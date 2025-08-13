@@ -168,7 +168,7 @@ const Landing = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-slate-950 to-background relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-background via-slate-50 to-background relative overflow-hidden">
       {/* Custom Cursor */}
       <div 
         className="fixed w-6 h-6 pointer-events-none z-50 mix-blend-difference"
@@ -185,12 +185,12 @@ const Landing = () => {
       <ParticleBackground />
 
       {/* Header */}
-      <header className="fixed top-0 w-full z-50 bg-background/20 backdrop-blur-md border-b border-border animate-fade-in-down">
+      <header className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-border animate-fade-in-down">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 animate-fade-in-left">
               <div className="w-8 h-8 bg-gradient-ai rounded-lg flex items-center justify-center animate-ai-pulse">
-                <Brain className="h-5 w-5 text-background" />
+                <Brain className="h-5 w-5 text-white" />
               </div>
               <span className="text-xl font-bold text-foreground">Sports Analytics Pro</span>
             </div>
@@ -299,7 +299,7 @@ const Landing = () => {
                 </div>
                 <div className="absolute bottom-4 right-4 bg-primary/20 backdrop-blur-sm rounded-lg px-4 py-3 border border-primary/30 animate-fade-in-up" style={{ animationDelay: '1.2s', animationFillMode: 'both' }}>
                   <div className="text-2xl font-bold text-primary animate-glow">24/7</div>
-                  <div className="text-xs text-foreground">Neural Networks</div>
+                  <div className="text-xs text-foreground/70">Neural Networks</div>
                 </div>
               </div>
             </div>
@@ -504,17 +504,17 @@ const Landing = () => {
       {/* CTA Section */}
       <section className="py-20 px-4 bg-gradient-ai">
         <div className="container mx-auto text-center">
-          <h2 className="text-4xl lg:text-5xl font-bold text-background mb-4 animate-fade-in-up">
+          <h2 className="text-4xl lg:text-5xl font-bold text-white mb-4 animate-fade-in-up">
             Stop the Bleeding. Start Winning.
           </h2>
-          <p className="text-xl text-background/80 mb-8 max-w-2xl mx-auto animate-fade-in-up" style={{ animationDelay: '0.2s', animationFillMode: 'both' }}>
+          <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto animate-fade-in-up" style={{ animationDelay: '0.2s', animationFillMode: 'both' }}>
             <strong>Every day you wait costs you money.</strong> Join thousands who've already escaped the cycle of frustration and losses. 
             <strong>Your breakthrough moment starts now.</strong>
           </p>
           <Button 
             size="lg"
             onClick={handleGetStarted}
-            className="bg-background text-primary hover:bg-background/90 hover:scale-105 transition-all duration-300 text-lg px-8 py-6 animate-fade-in-up"
+            className="bg-white text-primary hover:bg-white/90 hover:scale-105 transition-all duration-300 text-lg px-8 py-6 animate-fade-in-up"
             style={{ animationDelay: '0.4s', animationFillMode: 'both' }}
           >
             Start Your Free Trial
@@ -524,12 +524,12 @@ const Landing = () => {
       </section>
 
       {/* Footer */}
-      <footer className="py-8 px-4 bg-background/50 border-t border-border">
+      <footer className="py-8 px-4 bg-muted/50 border-t border-border">
         <div className="container mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between">
             <div className="flex items-center gap-2 mb-4 md:mb-0">
               <div className="w-6 h-6 bg-gradient-ai rounded flex items-center justify-center">
-                <Brain className="h-4 w-4 text-background" />
+                <Brain className="h-4 w-4 text-white" />
               </div>
               <span className="font-bold text-foreground">Sports Analytics Pro</span>
             </div>

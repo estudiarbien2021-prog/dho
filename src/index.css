@@ -3,64 +3,64 @@
 @tailwind utilities;
 
 /* Design system for AI-powered sports betting platform
-Professional dark theme with futuristic accents and sport-betting colors
+Professional light theme with modern accents and sport-analytics colors
 */
 
 @layer base {
   :root {
-    --background: 218 100% 3%;
-    --foreground: 213 100% 98%;
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
 
-    --card: 220 39% 5%;
-    --card-foreground: 213 100% 98%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
 
-    --popover: 220 39% 5%;
-    --popover-foreground: 213 100% 98%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
 
     --primary: 186 100% 42%;
-    --primary-foreground: 218 100% 3%;
+    --primary-foreground: 210 40% 98%;
 
-    --secondary: 220 39% 8%;
-    --secondary-foreground: 213 100% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 84% 4.9%;
 
-    --muted: 220 39% 8%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
 
     --accent: 197 100% 50%;
-    --accent-foreground: 218 100% 3%;
+    --accent-foreground: 222.2 84% 4.9%;
 
     --success: 160 84% 39%;
-    --success-foreground: 218 100% 3%;
+    --success-foreground: 0 0% 100%;
 
     --warning: 38 100% 50%;
-    --warning-foreground: 218 100% 3%;
+    --warning-foreground: 0 0% 100%;
 
     --destructive: 0 85% 60%;
-    --destructive-foreground: 213 100% 98%;
+    --destructive-foreground: 210 40% 98%;
 
-    --border: 220 39% 11%;
-    --input: 220 39% 8%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
     --ring: 186 100% 42%;
 
     --odds-positive: 160 84% 39%;
     --odds-negative: 0 85% 60%;
-    --odds-neutral: 213 27% 84%;
+    --odds-neutral: 215.4 16.3% 46.9%;
     
-    --table-header: 220 39% 6%;
-    --table-row: 220 39% 5%;
-    --table-row-hover: 220 39% 8%;
+    --table-header: 210 40% 98%;
+    --table-row: 0 0% 100%;
+    --table-row-hover: 210 40% 96%;
 
     /* AI & Futuristic gradients */
     --gradient-primary: linear-gradient(135deg, hsl(186 100% 42%), hsl(197 100% 50%));
     --gradient-ai: linear-gradient(135deg, hsl(197 100% 50%), hsl(270 100% 60%));
     --gradient-success: linear-gradient(135deg, hsl(160 84% 39%), hsl(142 76% 36%));
-    --gradient-subtle: linear-gradient(180deg, hsl(220 39% 5%), hsl(218 100% 3%));
+    --gradient-subtle: linear-gradient(180deg, hsl(0 0% 100%), hsl(210 40% 98%));
 
     /* Futuristic shadows and glows */
-    --shadow-elegant: 0 10px 30px -10px hsl(0 0% 0% / 0.8);
-    --shadow-glow: 0 0 40px hsl(186 100% 42% / 0.2);
-    --shadow-ai-glow: 0 0 50px hsl(197 100% 50% / 0.3);
-    --shadow-success-glow: 0 0 30px hsl(160 84% 39% / 0.2);
+    --shadow-elegant: 0 10px 30px -10px hsl(0 0% 0% / 0.1);
+    --shadow-glow: 0 0 40px hsl(186 100% 42% / 0.15);
+    --shadow-ai-glow: 0 0 50px hsl(197 100% 50% / 0.2);
+    --shadow-success-glow: 0 0 30px hsl(160 84% 39% / 0.15);
 
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
@@ -111,14 +111,6 @@ Professional dark theme with futuristic accents and sport-betting colors
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 }
 
