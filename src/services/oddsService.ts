@@ -17,7 +17,7 @@ interface ScrapeResponse {
 export class OddsService {
   
   /**
-   * Scraper les cotes en temps réel depuis OddsPedia via Firecrawl
+   * Récupérer les vrais matchs du jour depuis des APIs officielles
    */
   static async scrapeRealOdds(competitions: string[]): Promise<ScrapeResponse> {
     try {
