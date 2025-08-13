@@ -89,7 +89,7 @@ const Index = () => {
           
           toast({
             title: "Données chargées",
-            description: `${scrapedMatches.length} matchs chargés depuis OddsPedia`,
+            description: `${scrapedMatches.length} matchs trouvés avec des cotes réalistes`,
           });
         } catch (error) {
           console.error('Error loading initial data:', error);
@@ -152,7 +152,7 @@ const Index = () => {
       
       toast({
         title: "Données mises à jour",
-        description: `${scrapedMatches.length} matchs chargés depuis OddsPedia`,
+        description: `${scrapedMatches.length} matchs trouvés avec des cotes réalistes`,
       });
     } catch (error) {
       console.error('Error refreshing data:', error);
@@ -274,8 +274,8 @@ const Index = () => {
             </div>
           </div>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Analysez les cotes des matchs les plus médiatisés en temps réel. 
-            Données scrapées depuis OddsPedia pour les compétitions Tier-1.
+            Vrais matchs du jour avec cotes réalistes calculées. 
+            Données provenant d'APIs officielles pour les compétitions Tier-1.
           </p>
           
           {/* Badges de statut */}
@@ -310,7 +310,7 @@ const Index = () => {
           <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription>
-              <strong>Scraping Temps Réel:</strong> Les données sont maintenant récupérées directement depuis OddsPedia via Firecrawl. 
+              <strong>Matchs Réels:</strong> Les vrais matchs du jour sont récupérés depuis des APIs officielles. 
               Vous êtes connecté en tant que <strong>{user.email}</strong>.
             </AlertDescription>
           </Alert>
@@ -319,8 +319,8 @@ const Index = () => {
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                <strong>Erreur de Scraping:</strong> Impossible de récupérer les données d'OddsPedia. 
-                Vérifiez votre connexion et réessayez.
+                <strong>Erreur de chargement:</strong> Aucun match trouvé pour aujourd'hui dans les ligues majeures. 
+                Les APIs externes peuvent être temporairement indisponibles.
               </AlertDescription>
             </Alert>
           )}
@@ -376,7 +376,7 @@ const Index = () => {
             Jouez de manière responsable. Données scrapées à titre informatif uniquement.
           </p>
           <p className="text-xs mt-2">
-            Données OddsPedia • Scraping via Firecrawl • Respect des TOS • Throttling automatique
+            APIs officielles • TheSportsDB • Football-Data.org • Cotes calculées selon la force des équipes
           </p>
           {lastUpdate && (
             <p className="text-xs mt-1 text-primary">
