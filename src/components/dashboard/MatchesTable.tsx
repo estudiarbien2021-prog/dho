@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Clock, TrendingDown, Target, Eye, ExternalLink } from 'lucide-react';
+import { Clock, Brain, ExternalLink } from 'lucide-react';
 import { FlagMini } from '@/components/Flag';
 import { leagueToFlag } from '@/lib/leagueCountry';
 import { format } from 'date-fns';
@@ -92,9 +92,14 @@ export function MatchesTable({ matches, onMatchClick }: MatchesTableProps) {
                 className="cursor-pointer hover:bg-muted/50"
                 onClick={() => handleSort('vig_1x2')}
               >
-                Vig 1X2
+                Évaluation
               </TableHead>
-              <TableHead>Signaux</TableHead>
+              <TableHead>
+                <div className="flex items-center gap-1">
+                  <Brain className="h-4 w-4" />
+                  Recommandation IA
+                </div>
+              </TableHead>
               <TableHead>Probas</TableHead>
               <TableHead className="w-[100px]">Action</TableHead>
             </TableRow>
@@ -137,32 +142,34 @@ export function MatchesTable({ matches, onMatchClick }: MatchesTableProps) {
                   
                   <TableCell>
                     <Badge 
-                      variant={match.vig_1x2 <= 0.12 ? "default" : "secondary"}
-                      className="font-mono"
+                      variant={match.vig_1x2 <= 0.12 ? "default" : "destructive"}
+                      className="font-medium"
                     >
-                      {(match.vig_1x2 * 100).toFixed(1)}%
+                      {match.vig_1x2 <= 0.12 ? "Idéal" : "À éviter"}
                     </Badge>
                   </TableCell>
                   
                   <TableCell>
-                    <div className="flex gap-1 flex-wrap">
+                    <div className="space-y-1">
                       {match.is_low_vig_1x2 && (
-                        <Badge variant="default" className="text-xs">
-                          <TrendingDown className="h-3 w-3 mr-1" />
-                          Low Vig
-                        </Badge>
+                        <p className="text-xs text-brand-500 font-medium">
+                          ✓ Match recommandé (faible marge)
+                        </p>
                       )}
                       {match.watch_btts && (
-                        <Badge variant="secondary" className="text-xs">
-                          <Target className="h-3 w-3 mr-1" />
-                          BTTS
-                        </Badge>
+                        <p className="text-xs text-surface-soft">
+                          • Opportunité BTTS détectée
+                        </p>
                       )}
                       {match.watch_over25 && (
-                        <Badge variant="outline" className="text-xs">
-                          <Eye className="h-3 w-3 mr-1" />
-                          O2.5
-                        </Badge>
+                        <p className="text-xs text-surface-soft">
+                          • Potentiel Over 2.5 buts
+                        </p>
+                      )}
+                      {!match.is_low_vig_1x2 && !match.watch_btts && !match.watch_over25 && (
+                        <p className="text-xs text-text-mute">
+                          Aucune recommandation spéciale
+                        </p>
                       )}
                     </div>
                   </TableCell>

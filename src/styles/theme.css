@@ -11,35 +11,8 @@
 
   /* text */
   --text:215 25% 15%; --text-weak:215 16% 28%; --text-mute:215 12% 45%;
-
-  /* Aliases for compatibility */
-  --primary: 150 85% 36%;
-  --primary-foreground: 0 0% 100%;
-  --success: 150 85% 36%;
-  --success-foreground: 0 0% 100%;
-  --foreground: 215 25% 15%;
-  --muted-foreground: 215 16% 28%;
-  --background: 0 0% 100%;
-  --border: 0 0% 90%;
-  --card: 0 0% 100%;
-  --destructive: 0 84% 60%;
-
-  /* Gradients */
-  --gradient-primary: linear-gradient(135deg, hsl(150 85% 36%), hsl(150 70% 50%));
-  --gradient-success: linear-gradient(135deg, hsl(150 85% 36%), hsl(150 90% 24%));
 }
 .dark{
   --surface:215 20% 12%; --surface-soft:215 22% 16%; --surface-strong:215 24% 20%;
   --text:0 0% 100%; --text-weak:0 0% 85%; --text-mute:0 0% 70%;
-  
-  /* Dark mode aliases */
-  --primary: 150 85% 36%;
-  --primary-foreground: 0 0% 100%;
-  --success: 150 85% 36%;
-  --success-foreground: 0 0% 100%;
-  --foreground: 0 0% 100%;
-  --muted-foreground: 0 0% 85%;
-  --background: 215 20% 12%;
-  --border: 215 24% 20%;
-  --card: 215 20% 12%;
 }
