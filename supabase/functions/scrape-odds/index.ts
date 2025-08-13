@@ -54,17 +54,17 @@ interface MatchOdds {
   bookmakers: BookmakerOdds[];
 }
 
-// Solution fiable sans scrapping
+// Solution fiable avec API Football
 async function fetchRealTodayMatches(): Promise<MatchOdds[]> {
   console.log('🔍 Fetching matches from reliable sources...');
   
   const matches: MatchOdds[] = [];
 
   try {
-    // 1. Essayer Football Data API
-    console.log('⚽ Trying Football Data API...');
-    const footballDataMatches = await fetchFromFootballDataV2();
-    matches.push(...footballDataMatches);
+    // 1. Essayer API Football
+    console.log('⚽ Trying API Football...');
+    const apiFootballMatches = await fetchFromApiFootball();
+    matches.push(...apiFootballMatches);
 
     // 2. Si pas assez de matchs, ajouter des matchs réalistes
     if (matches.length < 5) {
@@ -83,62 +83,75 @@ async function fetchRealTodayMatches(): Promise<MatchOdds[]> {
   }
 }
 
-async function fetchFromFootballDataV2(): Promise<MatchOdds[]> {
+async function fetchFromApiFootball(): Promise<MatchOdds[]> {
+  const apiKey = Deno.env.get('API_FOOTBALL_KEY');
+  
+  if (!apiKey) {
+    console.log('⚠️ API_FOOTBALL_KEY not found');
+    return [];
+  }
+
   try {
     const today = new Date().toISOString().split('T')[0];
-    console.log(`🏆 Football Data API - fetching matches for ${today}`);
+    console.log(`🏆 API Football - fetching matches for ${today}`);
     
-    const response = await fetch(`https://api.football-data.org/v4/matches?dateFrom=${today}&dateTo=${today}`, {
-      headers: {
-        'X-Auth-Token': 'demo'
-      }
-    });
-
-    if (!response.ok) {
-      console.log(`Football-Data API error: ${response.status}`);
-      return [];
-    }
-
-    const data = await response.json();
-    const matchesCount = data.matches?.length || 0;
-    console.log(`Football-Data returned ${matchesCount} matches`);
-
-    if (!data.matches || data.matches.length === 0) {
-      return [];
-    }
-
+    // Get fixtures for today from major leagues
+    const leagueIds = [39, 140, 78, 61, 135]; // Premier League, LaLiga, Bundesliga, Ligue 1, Serie A
     const matches: MatchOdds[] = [];
 
-    for (const match of data.matches.slice(0, 15)) {
-      const competition = match.competition?.name;
-      const homeTeam = match.homeTeam?.name;
-      const awayTeam = match.awayTeam?.name;
-      
-      if (!competition || !homeTeam || !awayTeam) continue;
-      
-      const bookmaker = generateRealisticOddsForMatch(homeTeam, awayTeam, competition);
-      bookmaker.name = 'Football Data';
-      
-      const startTimestamp = Math.floor(new Date(match.utcDate).getTime() / 1000);
+    for (const leagueId of leagueIds) {
+      try {
+        const response = await fetch(`https://v3.football.api-sports.io/fixtures?league=${leagueId}&date=${today}`, {
+          headers: {
+            'X-RapidAPI-Key': apiKey,
+            'X-RapidAPI-Host': 'v3.football.api-sports.io'
+          }
+        });
 
-      matches.push({
-        id: `football-data-${match.id}`,
-        startTimestamp,
-        tournament: {
-          name: normalizeLeagueName(competition),
-          country: match.competition?.area?.name || getCountryFromLeague(competition)
-        },
-        homeTeam: { name: homeTeam },
-        awayTeam: { name: awayTeam },
-        bookmakers: [bookmaker]
-      });
+        if (!response.ok) {
+          console.log(`API Football error for league ${leagueId}: ${response.status}`);
+          continue;
+        }
+
+        const data = await response.json();
+        console.log(`API Football league ${leagueId} returned ${data.results || 0} matches`);
+
+        if (data.response && data.response.length > 0) {
+          for (const fixture of data.response.slice(0, 5)) {
+            const competition = fixture.league?.name;
+            const homeTeam = fixture.teams?.home?.name;
+            const awayTeam = fixture.teams?.away?.name;
+            
+            if (!competition || !homeTeam || !awayTeam) continue;
+            
+            const bookmaker = generateRealisticOddsForMatch(homeTeam, awayTeam, competition);
+            bookmaker.name = 'API Football';
+            
+            const startTimestamp = Math.floor(new Date(fixture.fixture.date).getTime() / 1000);
+
+            matches.push({
+              id: `api-football-${fixture.fixture.id}`,
+              startTimestamp,
+              tournament: {
+                name: normalizeLeagueName(competition),
+                country: fixture.league?.country || getCountryFromLeague(competition)
+              },
+              homeTeam: { name: homeTeam },
+              awayTeam: { name: awayTeam },
+              bookmakers: [bookmaker]
+            });
+          }
+        }
+      } catch (error) {
+        console.error(`❌ Error fetching league ${leagueId}:`, error);
+      }
     }
 
-    console.log(`✅ Football-Data: Found ${matches.length} matches`);
+    console.log(`✅ API Football: Found ${matches.length} matches`);
     return matches;
 
   } catch (error) {
-    console.error('❌ Football-Data fetch error:', error);
+    console.error('❌ API Football fetch error:', error);
     return [];
   }
 }
