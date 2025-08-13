@@ -6,100 +6,16 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FiltersPanel, FilterState, SortState } from '@/components/FiltersPanel';
 import { OddsTable, MatchOdds } from '@/components/OddsTable';
-import { TrendingUp, AlertTriangle, Info, LogOut, User } from 'lucide-react';
+import { TrendingUp, AlertTriangle, Info, LogOut, User, Wifi, WifiOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-
-// Mock data pour la démonstration
-const MOCK_MATCHES: MatchOdds[] = [
-  {
-    id: "match-1",
-    startTimestamp: Math.floor(Date.now() / 1000) + 3600, // Dans 1h
-    tournament: { name: "Premier League", country: "Angleterre" },
-    homeTeam: { name: "Manchester City" },
-    awayTeam: { name: "Liverpool" },
-    bookmakers: [
-      {
-        name: "Bet365",
-        oneX2: { home: 2.10, draw: 3.40, away: 3.20 },
-        btts: { yes: 1.85, no: 1.95 },
-        ou: {
-          "1.5": { over: 1.25, under: 3.80 },
-          "2.5": { over: 1.80, under: 2.05 },
-          "3.5": { over: 2.90, under: 1.42 }
-        },
-        ahMain: { line: -0.5, home: 1.85, away: 1.95 }
-      }
-    ]
-  },
-  {
-    id: "match-2",
-    startTimestamp: Math.floor(Date.now() / 1000) + 7200, // Dans 2h
-    tournament: { name: "LaLiga", country: "Espagne" },
-    homeTeam: { name: "Real Madrid" },
-    awayTeam: { name: "Barcelona" },
-    bookmakers: [
-      {
-        name: "Unibet",
-        oneX2: { home: 2.25, draw: 3.10, away: 3.50 },
-        btts: { yes: 1.90, no: 1.90 },
-        ou: {
-          "2.5": { over: 1.95, under: 1.85 },
-          "3.5": { over: 3.20, under: 1.35 }
-        },
-        ahMain: { line: -0.25, home: 1.90, away: 1.90 }
-      }
-    ]
-  },
-  {
-    id: "match-3",
-    startTimestamp: Math.floor(Date.now() / 1000) + 10800, // Dans 3h
-    tournament: { name: "Brasileirão Série A", country: "Brésil" },
-    homeTeam: { name: "Flamengo" },
-    awayTeam: { name: "Palmeiras" },
-    bookmakers: [
-      {
-        name: "Betfair",
-        oneX2: { home: 2.80, draw: 3.00, away: 2.60 },
-        btts: { yes: 2.10, no: 1.75 },
-        ou: {
-          "2.5": { over: 2.25, under: 1.65 }
-        },
-        ahMain: { line: 0, home: 1.95, away: 1.85 }
-      }
-    ]
-  }
-];
+import { OddsService } from '@/services/oddsService';
 
 const Index = () => {
   const { toast } = useToast();
   const { user, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
 
-  // Rediriger vers /auth si pas connecté
-  useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/auth');
-    }
-  }, [user, authLoading, navigate]);
-
-  // Afficher un loader pendant la vérification d'auth
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-subtle flex items-center justify-center">
-        <div className="text-center">
-          <TrendingUp className="h-12 w-12 text-primary mx-auto mb-4 animate-pulse" />
-          <p className="text-muted-foreground">Chargement...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Ne pas afficher le contenu si pas connecté
-  if (!user) {
-    return null;
-  }
-  
   // États des filtres
   const [filters, setFilters] = useState<FilterState>({
     competitions: ['Premier League', 'LaLiga', 'Champions League'],
@@ -124,6 +40,15 @@ const Index = () => {
   const [matches, setMatches] = useState<MatchOdds[]>([]);
   const [loading, setLoading] = useState(false);
   const [presets, setPresets] = useState<string[]>([]);
+  const [lastUpdate, setLastUpdate] = useState<string>('');
+  const [scrapingStatus, setScrapingStatus] = useState<'idle' | 'scraping' | 'success' | 'error'>('idle');
+
+  // Rediriger vers /auth si pas connecté
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/auth');
+    }
+  }, [user, authLoading, navigate]);
 
   // Charger les presets depuis localStorage
   useEffect(() => {
@@ -133,46 +58,108 @@ const Index = () => {
     }
   }, []);
 
-  // Appliquer les filtres
-  const applyFilters = (rawMatches: MatchOdds[]) => {
-    return rawMatches.filter(match => {
-      // Filtre par compétition
-      if (filters.competitions.length > 0) {
-        const matchCompetition = filters.competitions.some(comp => 
-          match.tournament.name.toLowerCase().includes(comp.toLowerCase())
-        );
-        if (!matchCompetition) return false;
-      }
+  // Charger les données initiales automatiquement
+  useEffect(() => {
+    // Auto-refresh au premier chargement seulement si l'utilisateur est connecté
+    if (user) {
+      // Appeler la fonction handleRefresh indirectement pour éviter les problèmes de hoisting
+      const loadInitialData = async () => {
+        setLoading(true);
+        setScrapingStatus('scraping');
+        
+        try {
+          const response = await OddsService.scrapeRealOdds(filters.competitions);
+          
+          if (!response.success) {
+            throw new Error(response.error || 'Échec du scraping');
+          }
 
-      // Filtre par fenêtre horaire
-      if (filters.timeWindow !== 'all') {
-        const now = Math.floor(Date.now() / 1000);
-        const hoursLimit = filters.timeWindow === '6h' ? 6 : 12;
-        const timeLimit = now + (hoursLimit * 3600);
-        if (match.startTimestamp > timeLimit) return false;
-      }
+          let scrapedMatches = response.matches;
+          
+          // Appliquer les filtres
+          scrapedMatches = OddsService.filterTier1Matches(scrapedMatches, filters.enableHypePlus);
+          scrapedMatches = OddsService.applyTimeWindowFilter(scrapedMatches, filters.timeWindow);
+          
+          // Appliquer le tri
+          scrapedMatches = OddsService.sortMatches(scrapedMatches, sort.field, sort.direction);
 
-      return true;
-    });
-  };
+          setMatches(scrapedMatches);
+          setLastUpdate(new Date().toLocaleString('fr-FR'));
+          setScrapingStatus('success');
+          
+          toast({
+            title: "Données chargées",
+            description: `${scrapedMatches.length} matchs chargés depuis OddsPedia`,
+          });
+        } catch (error) {
+          console.error('Error loading initial data:', error);
+          setScrapingStatus('error');
+          toast({
+            title: "Erreur de scraping initial",
+            description: error instanceof Error ? error.message : "Impossible de charger les données",
+            variant: "destructive",
+          });
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      loadInitialData();
+    }
+  }, [user]); // Dépendance sur user pour s'assurer qu'on ne lance le scraping qu'une fois connecté
+
+  // Afficher un loader pendant la vérification d'auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-subtle flex items-center justify-center">
+        <div className="text-center">
+          <TrendingUp className="h-12 w-12 text-primary mx-auto mb-4 animate-pulse" />
+          <p className="text-muted-foreground">Chargement...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Ne pas afficher le contenu si pas connecté
+  if (!user) {
+    return null;
+  }
 
   const handleRefresh = async () => {
     setLoading(true);
+    setScrapingStatus('scraping');
+    
     try {
-      // Simulation d'appel API
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Utiliser le vrai service de scraping
+      const response = await OddsService.scrapeRealOdds(filters.competitions);
       
-      const filteredMatches = applyFilters(MOCK_MATCHES);
-      setMatches(filteredMatches);
+      if (!response.success) {
+        throw new Error(response.error || 'Échec du scraping');
+      }
+
+      let scrapedMatches = response.matches;
+      
+      // Appliquer les filtres
+      scrapedMatches = OddsService.filterTier1Matches(scrapedMatches, filters.enableHypePlus);
+      scrapedMatches = OddsService.applyTimeWindowFilter(scrapedMatches, filters.timeWindow);
+      
+      // Appliquer le tri
+      scrapedMatches = OddsService.sortMatches(scrapedMatches, sort.field, sort.direction);
+
+      setMatches(scrapedMatches);
+      setLastUpdate(new Date().toLocaleString('fr-FR'));
+      setScrapingStatus('success');
       
       toast({
         title: "Données mises à jour",
-        description: `${filteredMatches.length} matchs chargés`,
+        description: `${scrapedMatches.length} matchs chargés depuis OddsPedia`,
       });
     } catch (error) {
+      console.error('Error refreshing data:', error);
+      setScrapingStatus('error');
       toast({
-        title: "Erreur",
-        description: "Impossible de charger les données",
+        title: "Erreur de scraping",
+        description: error instanceof Error ? error.message : "Impossible de charger les données",
         variant: "destructive",
       });
     } finally {
@@ -181,36 +168,9 @@ const Index = () => {
   };
 
   const handleExportCSV = () => {
-    const csvData = matches.map(match => ({
-      Heure_SP: new Intl.DateTimeFormat('fr-FR', {
-        timeZone: 'America/Sao_Paulo',
-        hour: '2-digit',
-        minute: '2-digit',
-        day: '2-digit',
-        month: '2-digit'
-      }).format(new Date(match.startTimestamp * 1000)),
-      Heure_Paris: new Intl.DateTimeFormat('fr-FR', {
-        timeZone: 'Europe/Paris',
-        hour: '2-digit',
-        minute: '2-digit',
-        day: '2-digit',
-        month: '2-digit'
-      }).format(new Date(match.startTimestamp * 1000)),
-      Competition: match.tournament.name,
-      Match: `${match.homeTeam.name} vs ${match.awayTeam.name}`,
-      Home: match.bookmakers[0]?.oneX2?.home || '',
-      Draw: match.bookmakers[0]?.oneX2?.draw || '',
-      Away: match.bookmakers[0]?.oneX2?.away || '',
-      BTTS_Yes: match.bookmakers[0]?.btts?.yes || '',
-      BTTS_No: match.bookmakers[0]?.btts?.no || '',
-    }));
-
-    const csv = [
-      Object.keys(csvData[0] || {}).join(','),
-      ...csvData.map(row => Object.values(row).join(','))
-    ].join('\n');
-
-    const blob = new Blob([csv], { type: 'text/csv' });
+    const csv = OddsService.formatForCSV(matches);
+    
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -220,7 +180,7 @@ const Index = () => {
 
     toast({
       title: "Export réussi",
-      description: "Le fichier CSV a été téléchargé",
+      description: "Le fichier CSV a été téléchargé avec les données temps réel",
     });
   };
 
@@ -282,11 +242,6 @@ const Index = () => {
     });
   };
 
-  // Charger les données initiales
-  useEffect(() => {
-    handleRefresh();
-  }, []);
-
   return (
     <div className="min-h-screen bg-gradient-subtle">
       <div className="container mx-auto px-4 py-8 space-y-6">
@@ -326,12 +281,27 @@ const Index = () => {
           {/* Badges de statut */}
           <div className="flex items-center justify-center gap-4">
             <Badge variant="outline" className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-success rounded-full animate-pulse"></div>
-              Données en temps réel
+              {scrapingStatus === 'scraping' ? (
+                <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
+              ) : scrapingStatus === 'success' ? (
+                <div className="w-2 h-2 bg-success rounded-full"></div>
+              ) : scrapingStatus === 'error' ? (
+                <div className="w-2 h-2 bg-destructive rounded-full"></div>
+              ) : (
+                <div className="w-2 h-2 bg-muted rounded-full"></div>
+              )}
+              {scrapingStatus === 'scraping' ? 'Scraping en cours...' : 
+               scrapingStatus === 'success' ? 'Données temps réel' :
+               scrapingStatus === 'error' ? 'Erreur de scraping' : 'Prêt à scraper'}
             </Badge>
             <Badge variant="outline">
               {matches.length} matchs disponibles
             </Badge>
+            {lastUpdate && (
+              <Badge variant="outline" className="text-xs">
+                Mis à jour: {lastUpdate}
+              </Badge>
+            )}
           </div>
         </div>
 
@@ -340,17 +310,26 @@ const Index = () => {
           <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription>
-              <strong>Mode Démonstration:</strong> Cette version utilise des données factices. 
-              Le scraping OddsPedia sera implémenté dans la version finale avec respect des TOS.
+              <strong>Scraping Temps Réel:</strong> Les données sont maintenant récupérées directement depuis OddsPedia via Firecrawl. 
               Vous êtes connecté en tant que <strong>{user.email}</strong>.
             </AlertDescription>
           </Alert>
+          
+          {scrapingStatus === 'error' && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Erreur de Scraping:</strong> Impossible de récupérer les données d'OddsPedia. 
+                Vérifiez votre connexion et réessayez.
+              </AlertDescription>
+            </Alert>
+          )}
           
           {filters.competitions.length > 10 && (
             <Alert>
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                <strong>Limitation:</strong> Maximum 10 compétitions par requête pour des raisons de performance.
+                <strong>Limitation:</strong> Maximum 10 compétitions par requête pour des raisons de performance et respect des TOS.
               </AlertDescription>
             </Alert>
           )}
@@ -394,11 +373,16 @@ const Index = () => {
         <Card className="p-6 text-center text-muted-foreground">
           <p className="text-sm">
             <strong>Avertissement:</strong> Les paris sportifs présentent des risques. 
-            Jouez de manière responsable. Données à titre informatif uniquement.
+            Jouez de manière responsable. Données scrapées à titre informatif uniquement.
           </p>
           <p className="text-xs mt-2">
-            Respect des TOS OddsPedia • Throttling automatique • Données mises à jour manuellement
+            Données OddsPedia • Scraping via Firecrawl • Respect des TOS • Throttling automatique
           </p>
+          {lastUpdate && (
+            <p className="text-xs mt-1 text-primary">
+              Dernière mise à jour: {lastUpdate} • {matches.length} matchs analysés
+            </p>
+          )}
         </Card>
       </div>
     </div>

@@ -1,1 +1,4 @@
 project_id = "dnasdyvakwsvngajpuds"
+
+[functions.scrape-odds]
+verify_jwt = false
