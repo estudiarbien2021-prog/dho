@@ -39,6 +39,12 @@ export function parseDate(dateStr: string): Date {
   return new Date(dateStr);
 }
 
+function parseFloatSafe(value: string | undefined): number {
+  if (!value || value === 'N/A' || value === '') return 0;
+  const parsed = parseFloat(value);
+  return isNaN(parsed) ? 0 : parsed;
+}
+
 export function categorizeLeague(league: string): ProcessedMatch['category'] {
   const lowerLeague = league.toLowerCase();
   
@@ -116,8 +122,8 @@ export function detectOverUnderMarkets(row: RawMatchData): Array<{
       const threshold = parseFloat(`${overMatch[1]}.${overMatch[2]}`);
       const underKey = `Odds_Under${overMatch[1]}${overMatch[2]}`;
       
-      const oddsOver = parseFloat(row[key] || '0');
-      const oddsUnder = parseFloat(row[underKey] || '0');
+      const oddsOver = parseFloatSafe(row[key]);
+      const oddsUnder = parseFloatSafe(row[underKey]);
       
       if (oddsOver > 0 && oddsUnder > 0) {
         markets.push({
@@ -163,9 +169,9 @@ export function processCSVData(csvText: string): ProcessedMatch[] {
       const kickoffLocal = new Date(kickoffUtc.toLocaleString());
       
       // Parse main odds
-      const oddsHome = parseFloat(row.Odds_Home_Win);
-      const oddsDraw = parseFloat(row.Odds_Draw);  
-      const oddsAway = parseFloat(row.Odds_Away_Win);
+      const oddsHome = parseFloatSafe(row.Odds_Home_Win);
+      const oddsDraw = parseFloatSafe(row.Odds_Draw);  
+      const oddsAway = parseFloatSafe(row.Odds_Away_Win);
       
       if (!oddsHome || !oddsDraw || !oddsAway) return;
       
@@ -173,8 +179,8 @@ export function processCSVData(csvText: string): ProcessedMatch[] {
       const { probs: probs1x2, vig: vig1x2 } = calculateFairProbabilities(oddsHome, oddsDraw, oddsAway);
       
       // Parse BTTS odds
-      const oddsBttsYes = parseFloat(row.Odds_BTTS_Yes || '0');
-      const oddsBttsNo = parseFloat(row.Odds_BTTS_No || '0');
+      const oddsBttsYes = parseFloatSafe(row.Odds_BTTS_Yes);
+      const oddsBttsNo = parseFloatSafe(row.Odds_BTTS_No);
       
       let probsBtts = [0.5, 0.5];
       let vigBtts = 0;
@@ -186,8 +192,8 @@ export function processCSVData(csvText: string): ProcessedMatch[] {
       }
       
       // Parse Over/Under 2.5
-      const oddsOver25 = parseFloat(row.Odds_Over25 || '0');
-      const oddsUnder25 = parseFloat(row.Odds_Under25 || '0');
+      const oddsOver25 = parseFloatSafe(row.Odds_Over25);
+      const oddsUnder25 = parseFloatSafe(row.Odds_Under25);
       
       let probsOu25 = [0.5, 0.5];
       let vigOu25 = 0;
