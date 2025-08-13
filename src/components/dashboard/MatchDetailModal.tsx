@@ -23,43 +23,124 @@ export function MatchDetailModal({ match, isOpen, onClose }: MatchDetailModalPro
 
   const flagInfo = leagueToFlag(match.league);
 
+  // Calculate fair odds from probabilities
+  const fairOdds1x2 = {
+    home: match.p_home_fair > 0 ? (1 / match.p_home_fair).toFixed(2) : '0.00',
+    draw: match.p_draw_fair > 0 ? (1 / match.p_draw_fair).toFixed(2) : '0.00',
+    away: match.p_away_fair > 0 ? (1 / match.p_away_fair).toFixed(2) : '0.00'
+  };
+
+  const fairOddsBtts = {
+    yes: match.p_btts_yes_fair > 0 ? (1 / match.p_btts_yes_fair).toFixed(2) : '0.00',
+    no: match.p_btts_no_fair > 0 ? (1 / match.p_btts_no_fair).toFixed(2) : '0.00'
+  };
+
+  const fairOddsOver25 = {
+    over: match.p_over_2_5_fair > 0 ? (1 / match.p_over_2_5_fair).toFixed(2) : '0.00',
+    under: match.p_under_2_5_fair > 0 ? (1 / match.p_under_2_5_fair).toFixed(2) : '0.00'
+  };
+
+  // Determine winning predictions
+  const get1x2Winner = () => {
+    if (match.p_home_fair > match.p_draw_fair && match.p_home_fair > match.p_away_fair) {
+      return match.home_team;
+    } else if (match.p_away_fair > match.p_draw_fair && match.p_away_fair > match.p_home_fair) {
+      return match.away_team;
+    } else {
+      return 'Nul';
+    }
+  };
+
+  const getBttsWinner = () => match.p_btts_yes_fair > match.p_btts_no_fair ? 'Oui' : 'Non';
+  const getOver25Winner = () => match.p_over_2_5_fair > match.p_under_2_5_fair ? '+2,5 buts' : '-2,5 buts';
+
+  // Calculate best recommendation
+  const getBestRecommendation = () => {
+    const recommendations = [];
+    
+    // 1X2 recommendation
+    const max1x2Prob = Math.max(match.p_home_fair, match.p_draw_fair, match.p_away_fair);
+    const odds1x2 = match.p_home_fair === max1x2Prob ? match.odds_home : 
+                   match.p_draw_fair === max1x2Prob ? match.odds_draw : match.odds_away;
+    const expectedValue1x2 = (max1x2Prob * odds1x2) - 1;
+    recommendations.push({
+      type: '1X2',
+      prediction: get1x2Winner(),
+      probability: max1x2Prob,
+      odds: odds1x2,
+      expectedValue: expectedValue1x2
+    });
+
+    // BTTS recommendation
+    if (match.p_btts_yes_fair > 0) {
+      const maxBttsProb = Math.max(match.p_btts_yes_fair, match.p_btts_no_fair);
+      const oddsBtts = match.p_btts_yes_fair === maxBttsProb ? match.odds_btts_yes : match.odds_btts_no;
+      const expectedValueBtts = (maxBttsProb * oddsBtts) - 1;
+      recommendations.push({
+        type: 'BTTS',
+        prediction: getBttsWinner(),
+        probability: maxBttsProb,
+        odds: oddsBtts,
+        expectedValue: expectedValueBtts
+      });
+    }
+
+    // Over/Under recommendation
+    if (match.p_over_2_5_fair > 0) {
+      const maxOverProb = Math.max(match.p_over_2_5_fair, match.p_under_2_5_fair);
+      const oddsOver = match.p_over_2_5_fair === maxOverProb ? match.odds_over_2_5 : match.odds_under_2_5;
+      const expectedValueOver = (maxOverProb * oddsOver) - 1;
+      recommendations.push({
+        type: 'O/U 2.5',
+        prediction: getOver25Winner(),
+        probability: maxOverProb,
+        odds: oddsOver,
+        expectedValue: expectedValueOver
+      });
+    }
+
+    return recommendations.sort((a, b) => b.expectedValue - a.expectedValue)[0];
+  };
+
+  const bestRecommendation = getBestRecommendation();
+
   // Donut chart data with brand colors
   const results1x2Data = [
-    { name: 'Domicile', value: match.p_home_fair * 100, color: 'hsl(150 85% 36%)' },
-    { name: 'Nul', value: match.p_draw_fair * 100, color: 'hsl(150 60% 65%)' },
-    { name: 'Extérieur', value: match.p_away_fair * 100, color: 'hsl(150 70% 50%)' },
+    { name: 'Domicile', value: match.p_home_fair * 100, color: 'hsl(var(--brand))' },
+    { name: 'Nul', value: match.p_draw_fair * 100, color: 'hsl(var(--brand-300))' },
+    { name: 'Extérieur', value: match.p_away_fair * 100, color: 'hsl(var(--brand-400))' },
   ];
 
   const bttsData = match.p_btts_yes_fair > 0 ? [
-    { name: 'BTTS Oui', value: match.p_btts_yes_fair * 100, color: 'hsl(150 85% 36%)' },
-    { name: 'BTTS Non', value: match.p_btts_no_fair * 100, color: 'hsl(150 60% 65%)' },
+    { name: 'BTTS Oui', value: match.p_btts_yes_fair * 100, color: 'hsl(var(--brand))' },
+    { name: 'BTTS Non', value: match.p_btts_no_fair * 100, color: 'hsl(var(--brand-300))' },
   ] : [];
 
   const over25Data = match.p_over_2_5_fair > 0 ? [
-    { name: 'Over 2.5', value: match.p_over_2_5_fair * 100, color: 'hsl(150 85% 36%)' },
-    { name: 'Under 2.5', value: match.p_under_2_5_fair * 100, color: 'hsl(150 60% 65%)' },
+    { name: 'Over 2.5', value: match.p_over_2_5_fair * 100, color: 'hsl(var(--brand))' },
+    { name: 'Under 2.5', value: match.p_under_2_5_fair * 100, color: 'hsl(var(--brand-300))' },
   ] : [];
 
-  const DonutChart = ({ data, title }: { data: any[], title: string }) => (
-    <Card className="group relative p-6 bg-gradient-to-br from-surface-soft to-surface-strong border border-brand/30 hover:border-brand/50 transition-all duration-500 hover:shadow-xl hover:shadow-brand/20 backdrop-blur-sm transform hover:scale-[1.02]">
+  const DonutChart = ({ data, title, prediction }: { data: any[], title: string, prediction: string }) => (
+    <Card className="group relative p-4 bg-gradient-to-br from-surface-soft to-surface-strong border border-brand/30 hover:border-brand/50 transition-all duration-500 hover:shadow-xl hover:shadow-brand/20 backdrop-blur-sm transform hover:scale-[1.02]">
       <div className="absolute inset-0 bg-gradient-to-br from-brand/5 to-brand-300/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-transparent via-brand/5 to-transparent animate-pulse" />
-      <h4 className="font-semibold text-center mb-6 text-lg text-text relative z-10 bg-gradient-to-r from-brand to-brand-400 bg-clip-text text-transparent transform group-hover:scale-105 transition-transform duration-300">
+      <h4 className="font-semibold text-center mb-3 text-base text-text relative z-10 bg-gradient-to-r from-brand to-brand-400 bg-clip-text text-transparent transform group-hover:scale-105 transition-transform duration-300">
         {title}
       </h4>
-      <div className="h-56 relative z-10 transform group-hover:scale-105 transition-transform duration-500">
+      <div className="h-40 relative z-10 transform group-hover:scale-105 transition-transform duration-500">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
               data={data}
               cx="50%"
               cy="50%"
-              innerRadius={50}
-              outerRadius={90}
+              innerRadius={35}
+              outerRadius={65}
               paddingAngle={3}
               dataKey="value"
               animationBegin={0}
-              animationDuration={1500}
+              animationDuration={1200}
               animationEasing="ease-in-out"
             >
               {data.map((entry, index) => (
@@ -83,14 +164,13 @@ export function MatchDetailModal({ match, isOpen, onClose }: MatchDetailModalPro
                 boxShadow: '0 8px 32px hsl(var(--brand) / 0.2)'
               }}
             />
-            <Legend 
-              verticalAlign="bottom" 
-              height={36}
-              iconType="circle"
-              wrapperStyle={{ color: 'hsl(var(--text))' }}
-            />
           </PieChart>
         </ResponsiveContainer>
+      </div>
+      <div className="mt-3 text-center relative z-10">
+        <Badge className="bg-gradient-to-r from-brand/30 to-brand-400/30 border-brand/40 text-text font-bold text-sm px-3 py-1 animate-pulse">
+          🎯 {prediction}
+        </Badge>
       </div>
     </Card>
   );
@@ -114,11 +194,11 @@ export function MatchDetailModal({ match, isOpen, onClose }: MatchDetailModalPro
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-8 relative z-10">
+        <div className="space-y-6 relative z-10">
           {/* Match Info */}
-          <Card className="group relative p-6 bg-gradient-to-r from-surface-soft to-surface-strong border border-brand/30 hover:border-brand/50 transition-all duration-500 backdrop-blur-sm hover:shadow-xl hover:shadow-brand/20 transform hover:scale-[1.01]">
+          <Card className="group relative p-4 bg-gradient-to-r from-surface-soft to-surface-strong border border-brand/30 hover:border-brand/50 transition-all duration-500 backdrop-blur-sm hover:shadow-xl hover:shadow-brand/20 transform hover:scale-[1.01]">
             <div className="absolute inset-0 bg-gradient-to-r from-brand/5 to-brand-300/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 relative z-10">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 relative z-10">
               <div className="text-center md:text-left">
                 <p className="text-sm text-text-weak mb-2">Catégorie</p>
                 <Badge variant="secondary" className="capitalize bg-gradient-to-r from-brand/20 to-brand-300/20 border-brand/30 text-text hover:from-brand/30 hover:to-brand-300/30 transition-all duration-300">
@@ -133,10 +213,10 @@ export function MatchDetailModal({ match, isOpen, onClose }: MatchDetailModalPro
                 </p>
               </div>
               <div className="text-center md:text-left">
-                <p className="text-sm text-text-weak mb-2">Heure São Paulo</p>
+                <p className="text-sm text-text-weak mb-2">Heure locale</p>
                 <p className="font-medium flex items-center justify-center md:justify-start gap-2 text-text">
                   <Clock className="h-4 w-4 text-brand" />
-                  {format(match.kickoff_local, 'dd/MM HH:mm', { locale: fr })}
+                  {format(match.kickoff_utc, 'dd/MM HH:mm', { locale: fr })}
                 </p>
               </div>
               <div className="text-center md:text-left">
@@ -177,11 +257,51 @@ export function MatchDetailModal({ match, isOpen, onClose }: MatchDetailModalPro
               Analyse des Probabilités IA
             </h3>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <DonutChart data={results1x2Data} title="Résultat 1X2" />
-              {bttsData.length > 0 && <DonutChart data={bttsData} title="Both Teams To Score" />}
-              {over25Data.length > 0 && <DonutChart data={over25Data} title="Over/Under 2.5" />}
+              <DonutChart data={results1x2Data} title="Résultat 1X2" prediction={get1x2Winner()} />
+              {bttsData.length > 0 && <DonutChart data={bttsData} title="Both Teams To Score" prediction={getBttsWinner()} />}
+              {over25Data.length > 0 && <DonutChart data={over25Data} title="Over/Under 2.5" prediction={getOver25Winner()} />}
             </div>
           </div>
+
+          <Separator className="bg-gradient-to-r from-transparent via-brand/30 to-transparent" />
+
+          {/* AI Recommendation */}
+          <Card className="group relative p-6 bg-gradient-to-br from-brand/20 to-brand-400/20 border border-brand/50 hover:border-brand/70 transition-all duration-500 hover:shadow-2xl hover:shadow-brand/30 backdrop-blur-sm transform hover:scale-[1.02] animate-pulse">
+            <div className="absolute inset-0 bg-gradient-to-br from-brand/10 to-brand-400/15 rounded-lg opacity-100 group-hover:opacity-80 transition-opacity duration-500" />
+            <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-transparent via-brand/10 to-transparent animate-pulse" />
+            <div className="relative z-10">
+              <h3 className="text-xl font-bold bg-gradient-to-r from-brand to-brand-400 bg-clip-text text-transparent flex items-center gap-3 mb-4">
+                <div className="w-2 h-8 bg-gradient-to-b from-brand to-brand-400 rounded-full animate-pulse"></div>
+                🤖 Recommandation IA
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="text-center md:text-left">
+                  <p className="text-sm text-text-weak mb-2">Type de pari</p>
+                  <Badge className="bg-gradient-to-r from-brand/40 to-brand-400/40 border-brand/60 text-brand-fg font-bold px-3 py-1">
+                    {bestRecommendation.type}
+                  </Badge>
+                </div>
+                <div className="text-center md:text-left">
+                  <p className="text-sm text-text-weak mb-2">Prédiction</p>
+                  <p className="font-bold text-lg text-brand">
+                    {bestRecommendation.prediction}
+                  </p>
+                </div>
+                <div className="text-center md:text-left">
+                  <p className="text-sm text-text-weak mb-2">Probabilité IA</p>
+                  <Badge variant="outline" className="bg-gradient-to-r from-brand/30 to-brand-400/30 border-brand/50 text-text font-bold">
+                    {(bestRecommendation.probability * 100).toFixed(1)}%
+                  </Badge>
+                </div>
+                <div className="text-center md:text-left">
+                  <p className="text-sm text-text-weak mb-2">Valeur Attendue</p>
+                  <Badge variant={bestRecommendation.expectedValue > 0 ? "default" : "secondary"} className="bg-gradient-to-r from-brand-400/30 to-brand-600/30 border-brand-400/50 text-text font-bold">
+                    {bestRecommendation.expectedValue > 0 ? '+' : ''}{(bestRecommendation.expectedValue * 100).toFixed(1)}%
+                  </Badge>
+                </div>
+              </div>
+            </div>
+          </Card>
 
           <Separator className="bg-gradient-to-r from-transparent via-brand/30 to-transparent" />
 
@@ -272,30 +392,30 @@ export function MatchDetailModal({ match, isOpen, onClose }: MatchDetailModalPro
               </div>
             </Card>
 
-            {/* Fair Probabilities */}
+            {/* Fair Odds */}
             <Card className="group relative p-6 bg-gradient-to-br from-surface-soft to-surface-strong border border-brand-400/30 hover:border-brand-400/50 transition-all duration-500 hover:shadow-xl hover:shadow-brand-400/20 backdrop-blur-sm transform hover:scale-[1.01]">
               <div className="absolute inset-0 bg-gradient-to-br from-brand-400/5 to-brand-500/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               <h4 className="font-semibold mb-4 flex items-center gap-2 text-text relative z-10">
                 <Eye className="h-5 w-5 text-brand-400" />
-                Probabilités Fair IA
+                Odds Fairs IA
               </h4>
               <div className="space-y-4 relative z-10">
                 <div className="flex justify-between items-center p-3 bg-brand/10 rounded-lg border border-brand/30 hover:border-brand/40 transition-colors duration-300">
                   <span className="font-medium text-text">Domicile:</span>
                   <span className="font-mono text-lg font-bold text-brand">
-                    {(match.p_home_fair * 100).toFixed(1)}%
+                    {fairOdds1x2.home}
                   </span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-brand-300/10 rounded-lg border border-brand-300/30 hover:border-brand-300/40 transition-colors duration-300">
                   <span className="font-medium text-text">Nul:</span>
                   <span className="font-mono text-lg font-bold text-brand-300">
-                    {(match.p_draw_fair * 100).toFixed(1)}%
+                    {fairOdds1x2.draw}
                   </span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-brand-400/10 rounded-lg border border-brand-400/30 hover:border-brand-400/40 transition-colors duration-300">
                   <span className="font-medium text-text">Extérieur:</span>
                   <span className="font-mono text-lg font-bold text-brand-400">
-                    {(match.p_away_fair * 100).toFixed(1)}%
+                    {fairOdds1x2.away}
                   </span>
                 </div>
                 {match.p_btts_yes_fair > 0 && (
@@ -304,18 +424,32 @@ export function MatchDetailModal({ match, isOpen, onClose }: MatchDetailModalPro
                     <div className="flex justify-between items-center p-3 bg-surface-strong/50 rounded-lg border border-brand-400/20 hover:border-brand-400/30 transition-colors duration-300">
                       <span className="font-medium text-text">BTTS Oui:</span>
                       <span className="font-mono text-lg font-bold text-brand-400">
-                        {(match.p_btts_yes_fair * 100).toFixed(1)}%
+                        {fairOddsBtts.yes}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-surface-strong/50 rounded-lg border border-brand-400/20 hover:border-brand-400/30 transition-colors duration-300">
+                      <span className="font-medium text-text">BTTS Non:</span>
+                      <span className="font-mono text-lg font-bold text-brand-400">
+                        {fairOddsBtts.no}
                       </span>
                     </div>
                   </>
                 )}
                 {match.p_over_2_5_fair > 0 && (
-                  <div className="flex justify-between items-center p-3 bg-surface-strong/50 rounded-lg border border-brand-400/20 hover:border-brand-400/30 transition-colors duration-300">
-                    <span className="font-medium text-text">Over 2.5:</span>
-                    <span className="font-mono text-lg font-bold text-brand-400">
-                      {(match.p_over_2_5_fair * 100).toFixed(1)}%
-                    </span>
-                  </div>
+                  <>
+                    <div className="flex justify-between items-center p-3 bg-surface-strong/50 rounded-lg border border-brand-400/20 hover:border-brand-400/30 transition-colors duration-300">
+                      <span className="font-medium text-text">Over 2.5:</span>
+                      <span className="font-mono text-lg font-bold text-brand-400">
+                        {fairOddsOver25.over}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-surface-strong/50 rounded-lg border border-brand-400/20 hover:border-brand-400/30 transition-colors duration-300">
+                      <span className="font-medium text-text">Under 2.5:</span>
+                      <span className="font-mono text-lg font-bold text-brand-400">
+                        {fairOddsOver25.under}
+                      </span>
+                    </div>
+                  </>
                 )}
               </div>
             </Card>
