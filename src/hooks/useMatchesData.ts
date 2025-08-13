@@ -134,7 +134,7 @@ export function useMatchesData() {
       }
 
       // Market filters
-      if (filters.marketFilters.length > 0) {
+      if (filters.marketFilters && filters.marketFilters.length > 0) {
         const hasMarket = filters.marketFilters.every(market => {
           switch (market) {
             case 'btts_yes': return match.odds_btts_yes && match.odds_btts_yes > 0;

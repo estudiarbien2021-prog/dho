@@ -31,7 +31,7 @@ export function FilterPanel({ filters, onFiltersChange, availableLeagues }: Filt
   };
 
   const hasActiveFilters = filters.search || filters.leagues.length > 0 || 
-    filters.timeWindow !== 'all' || filters.marketFilters.length > 0;
+    filters.timeWindow !== 'all' || (filters.marketFilters && filters.marketFilters.length > 0);
 
   return (
     <Card className="p-6 h-fit">
@@ -117,11 +117,12 @@ export function FilterPanel({ filters, onFiltersChange, availableLeagues }: Filt
               <div key={market.id} className="flex items-center space-x-2">
                 <Checkbox
                   id={`market-${market.id}`}
-                  checked={filters.marketFilters.includes(market.id)}
+                  checked={filters.marketFilters ? filters.marketFilters.includes(market.id) : false}
                   onCheckedChange={(checked) => {
+                    const currentMarkets = filters.marketFilters || [];
                     const newMarkets = checked
-                      ? [...filters.marketFilters, market.id]
-                      : filters.marketFilters.filter(m => m !== market.id);
+                      ? [...currentMarkets, market.id]
+                      : currentMarkets.filter(m => m !== market.id);
                     updateFilters({ marketFilters: newMarkets });
                   }}
                 />
