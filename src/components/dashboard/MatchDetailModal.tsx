@@ -41,26 +41,40 @@ export function MatchDetailModal({ match, isOpen, onClose }: MatchDetailModalPro
   ] : [];
 
   const DonutChart = ({ data, title }: { data: any[], title: string }) => (
-    <Card className="p-4">
-      <h4 className="font-medium text-center mb-4">{title}</h4>
-      <div className="h-48">
+    <Card className="p-6 hover:shadow-lg transition-shadow">
+      <h4 className="font-semibold text-center mb-6 text-lg">{title}</h4>
+      <div className="h-56">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
               data={data}
               cx="50%"
               cy="50%"
-              innerRadius={40}
-              outerRadius={80}
-              paddingAngle={2}
+              innerRadius={50}
+              outerRadius={90}
+              paddingAngle={3}
               dataKey="value"
+              animationBegin={0}
+              animationDuration={800}
             >
               {data.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={entry.color} />
               ))}
             </Pie>
-            <Tooltip formatter={(value: number) => `${value.toFixed(1)}%`} />
-            <Legend />
+            <Tooltip 
+              formatter={(value: number) => [`${value.toFixed(1)}%`, '']}
+              contentStyle={{
+                backgroundColor: 'hsl(var(--popover))',
+                border: '1px solid hsl(var(--border))',
+                borderRadius: '6px',
+                color: 'hsl(var(--popover-foreground))'
+              }}
+            />
+            <Legend 
+              verticalAlign="bottom" 
+              height={36}
+              iconType="circle"
+            />
           </PieChart>
         </ResponsiveContainer>
       </div>
@@ -69,37 +83,46 @@ export function MatchDetailModal({ match, isOpen, onClose }: MatchDetailModalPro
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-3">
+      <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto">
+        <DialogHeader className="pb-4">
+          <DialogTitle className="flex items-center gap-3 text-xl">
             <FlagMini code={flagInfo.code} confed={flagInfo.confed} />
-            <span>{match.home_team} vs {match.away_team}</span>
+            <div className="flex flex-col">
+              <span className="font-bold">{match.home_team} vs {match.away_team}</span>
+              <span className="text-sm font-normal text-muted-foreground">{match.league}</span>
+            </div>
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
           {/* Match Info */}
-          <Card className="p-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Compétition</p>
-                <p className="font-medium">{match.league}</p>
+          <Card className="p-6 bg-gradient-to-r from-primary/5 to-secondary/5">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="text-center md:text-left">
+                <p className="text-sm text-muted-foreground mb-1">Catégorie</p>
+                <Badge variant="secondary" className="capitalize">
+                  {match.category.replace('_', ' ')}
+                </Badge>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Catégorie</p>
-                <p className="font-medium capitalize">{match.category.replace('_', ' ')}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Heure UTC</p>
-                <p className="font-medium">
-                  {format(match.kickoff_utc, 'dd/MM/yyyy HH:mm', { locale: fr })}
+              <div className="text-center md:text-left">
+                <p className="text-sm text-muted-foreground mb-1">Heure UTC</p>
+                <p className="font-medium flex items-center justify-center md:justify-start gap-1">
+                  <Clock className="h-4 w-4" />
+                  {format(match.kickoff_utc, 'dd/MM HH:mm', { locale: fr })}
                 </p>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Heure locale</p>
-                <p className="font-medium">
-                  {format(match.kickoff_local, 'dd/MM/yyyy HH:mm', { locale: fr })}
+              <div className="text-center md:text-left">
+                <p className="text-sm text-muted-foreground mb-1">Heure São Paulo</p>
+                <p className="font-medium flex items-center justify-center md:justify-start gap-1">
+                  <Clock className="h-4 w-4" />
+                  {format(match.kickoff_local, 'dd/MM HH:mm', { locale: fr })}
                 </p>
+              </div>
+              <div className="text-center md:text-left">
+                <p className="text-sm text-muted-foreground mb-1">Vig 1X2</p>
+                <Badge variant={match.vig_1x2 <= 0.12 ? "default" : "secondary"} className="font-mono">
+                  {(match.vig_1x2 * 100).toFixed(2)}%
+                </Badge>
               </div>
             </div>
           </Card>
@@ -127,72 +150,130 @@ export function MatchDetailModal({ match, isOpen, onClose }: MatchDetailModalPro
           </div>
 
           {/* Donut Charts */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <DonutChart data={results1x2Data} title="Résultat 1X2" />
-            {bttsData.length > 0 && <DonutChart data={bttsData} title="Both Teams To Score" />}
-            {over25Data.length > 0 && <DonutChart data={over25Data} title="Over/Under 2.5" />}
+          <div className="space-y-6">
+            <h3 className="text-lg font-semibold">Analyse des Probabilités</h3>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <DonutChart data={results1x2Data} title="Résultat 1X2" />
+              {bttsData.length > 0 && <DonutChart data={bttsData} title="Both Teams To Score" />}
+              {over25Data.length > 0 && <DonutChart data={over25Data} title="Over/Under 2.5" />}
+            </div>
           </div>
 
           <Separator />
 
-          {/* Odds & Probabilities */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Odds & Analysis */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Odds */}
-            <Card className="p-4">
-              <h4 className="font-medium mb-4">Cotes Originales</h4>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span>Domicile:</span>
-                  <span className="font-mono">{match.odds_home.toFixed(2)}</span>
+            <Card className="p-6">
+              <h4 className="font-semibold mb-4 flex items-center gap-2">
+                <TrendingDown className="h-5 w-5" />
+                Cotes Originales
+              </h4>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center p-2 bg-muted/30 rounded">
+                  <span className="font-medium">Domicile:</span>
+                  <span className="font-mono text-lg">{match.odds_home.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>Nul:</span>
-                  <span className="font-mono">{match.odds_draw.toFixed(2)}</span>
+                <div className="flex justify-between items-center p-2 bg-muted/30 rounded">
+                  <span className="font-medium">Nul:</span>
+                  <span className="font-mono text-lg">{match.odds_draw.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>Extérieur:</span>
-                  <span className="font-mono">{match.odds_away.toFixed(2)}</span>
+                <div className="flex justify-between items-center p-2 bg-muted/30 rounded">
+                  <span className="font-medium">Extérieur:</span>
+                  <span className="font-mono text-lg">{match.odds_away.toFixed(2)}</span>
                 </div>
-                <Separator />
                 {match.odds_btts_yes && (
-                  <div className="flex justify-between">
-                    <span>BTTS Oui:</span>
-                    <span className="font-mono">{match.odds_btts_yes.toFixed(2)}</span>
-                  </div>
+                  <>
+                    <Separator />
+                    <div className="flex justify-between items-center p-2 bg-muted/30 rounded">
+                      <span className="font-medium">BTTS Oui:</span>
+                      <span className="font-mono text-lg">{match.odds_btts_yes.toFixed(2)}</span>
+                    </div>
+                  </>
                 )}
                 {match.odds_over_2_5 && (
-                  <div className="flex justify-between">
-                    <span>Over 2.5:</span>
-                    <span className="font-mono">{match.odds_over_2_5.toFixed(2)}</span>
+                  <div className="flex justify-between items-center p-2 bg-muted/30 rounded">
+                    <span className="font-medium">Over 2.5:</span>
+                    <span className="font-mono text-lg">{match.odds_over_2_5.toFixed(2)}</span>
                   </div>
                 )}
               </div>
             </Card>
 
             {/* Vigorish */}
-            <Card className="p-4">
-              <h4 className="font-medium mb-4">Marges (Vigorish)</h4>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span>1X2:</span>
-                  <Badge variant={match.vig_1x2 <= 0.12 ? "default" : "secondary"}>
+            <Card className="p-6">
+              <h4 className="font-semibold mb-4 flex items-center gap-2">
+                <Target className="h-5 w-5" />
+                Marges (Vigorish)
+              </h4>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center p-3 bg-muted/30 rounded">
+                  <span className="font-medium">1X2:</span>
+                  <Badge variant={match.vig_1x2 <= 0.12 ? "default" : "secondary"} className="text-sm">
                     {(match.vig_1x2 * 100).toFixed(2)}%
                   </Badge>
                 </div>
                 {match.vig_btts > 0 && (
-                  <div className="flex justify-between items-center">
-                    <span>BTTS:</span>
-                    <Badge variant={match.vig_btts <= 0.15 ? "default" : "secondary"}>
+                  <div className="flex justify-between items-center p-3 bg-muted/30 rounded">
+                    <span className="font-medium">BTTS:</span>
+                    <Badge variant={match.vig_btts <= 0.15 ? "default" : "secondary"} className="text-sm">
                       {(match.vig_btts * 100).toFixed(2)}%
                     </Badge>
                   </div>
                 )}
                 {match.vig_ou_2_5 > 0 && (
-                  <div className="flex justify-between items-center">
-                    <span>O/U 2.5:</span>
-                    <Badge variant={match.vig_ou_2_5 <= 0.15 ? "default" : "secondary"}>
+                  <div className="flex justify-between items-center p-3 bg-muted/30 rounded">
+                    <span className="font-medium">O/U 2.5:</span>
+                    <Badge variant={match.vig_ou_2_5 <= 0.15 ? "default" : "secondary"} className="text-sm">
                       {(match.vig_ou_2_5 * 100).toFixed(2)}%
                     </Badge>
+                  </div>
+                )}
+              </div>
+            </Card>
+
+            {/* Fair Probabilities */}
+            <Card className="p-6">
+              <h4 className="font-semibold mb-4 flex items-center gap-2">
+                <Eye className="h-5 w-5" />
+                Probabilités Fair
+              </h4>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center p-2 bg-green-50 dark:bg-green-950/20 rounded border border-green-200 dark:border-green-800">
+                  <span className="font-medium">Domicile:</span>
+                  <span className="font-mono text-lg font-bold text-green-700 dark:text-green-400">
+                    {(match.p_home_fair * 100).toFixed(1)}%
+                  </span>
+                </div>
+                <div className="flex justify-between items-center p-2 bg-yellow-50 dark:bg-yellow-950/20 rounded border border-yellow-200 dark:border-yellow-800">
+                  <span className="font-medium">Nul:</span>
+                  <span className="font-mono text-lg font-bold text-yellow-700 dark:text-yellow-400">
+                    {(match.p_draw_fair * 100).toFixed(1)}%
+                  </span>
+                </div>
+                <div className="flex justify-between items-center p-2 bg-red-50 dark:bg-red-950/20 rounded border border-red-200 dark:border-red-800">
+                  <span className="font-medium">Extérieur:</span>
+                  <span className="font-mono text-lg font-bold text-red-700 dark:text-red-400">
+                    {(match.p_away_fair * 100).toFixed(1)}%
+                  </span>
+                </div>
+                {match.p_btts_yes_fair > 0 && (
+                  <>
+                    <Separator />
+                    <div className="flex justify-between items-center p-2 bg-muted/30 rounded">
+                      <span className="font-medium">BTTS Oui:</span>
+                      <span className="font-mono text-lg font-bold">
+                        {(match.p_btts_yes_fair * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                  </>
+                )}
+                {match.p_over_2_5_fair > 0 && (
+                  <div className="flex justify-between items-center p-2 bg-muted/30 rounded">
+                    <span className="font-medium">Over 2.5:</span>
+                    <span className="font-mono text-lg font-bold">
+                      {(match.p_over_2_5_fair * 100).toFixed(1)}%
+                    </span>
                   </div>
                 )}
               </div>
