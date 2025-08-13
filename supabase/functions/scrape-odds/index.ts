@@ -356,7 +356,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log('🚀 === RELIABLE MATCHES DATA - NO SCRAPING ===');
+    console.log('🚀 === API FOOTBALL INTEGRATION ===');
     
     const { competitions = [], date } = await req.json();
     console.log('📝 Request params:', { 
@@ -366,6 +366,7 @@ serve(async (req) => {
     });
 
     const realMatches = await fetchRealTodayMatches();
+    console.log(`📊 Total matches fetched: ${realMatches.length}`);
     
     if (realMatches.length === 0) {
       console.log('⚠️ No matches found');
@@ -374,7 +375,7 @@ serve(async (req) => {
           success: false,
           matches: [],
           timestamp: new Date().toISOString(),
-          source: 'reliable-solution',
+          source: 'api-football-integration',
           error: 'Aucun match trouvé pour aujourd\'hui'
         }),
         { 
