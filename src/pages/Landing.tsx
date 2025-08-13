@@ -33,7 +33,7 @@ const Landing = () => {
   const navigate = useNavigate();
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [typedText, setTypedText] = useState('');
-  const fullText = 'AI Football Analytics Platform';
+  const fullText = 'Le foot te fait vibrer. Garde la lucidité.';
 
   const heroRef = useScrollAnimation();
   const featuresRef = useScrollAnimation();
@@ -75,30 +75,30 @@ const Landing = () => {
   const features = [
     {
       icon: Brain,
-      badge: "AI-Powered",
-      title: "Prédictions Football Avancées",
-      description: "Arrêtez de vous tromper sur les gros matchs et de passer pour un amateur devant vos amis. Notre IA analyse la forme des équipes, les stats des joueurs, les conditions météo et 200+ facteurs pour que vous fassiez enfin des prédictions qui impressionnent.",
+      badge: "Modèles IA",
+      title: "Modèles de Probabilités",
+      description: "Tendance du match, profil de marquage, effets de game-state. Entrées visibles, sorties compréhensibles. Fini le brouillard d'infos - tu gardes la lucidité même quand ça chauffe.",
       image: featureAi
     },
     {
       icon: Clock,
       badge: "Real-Time", 
-      title: "Intelligence Match en Direct",
-      description: "Ne ratez plus jamais une info cruciale qui change tout. Recevez les alertes sur les compos, blessures de dernière minute et changements tactiques en temps réel. Soyez le premier à savoir, le premier à briller.",
+      title: "Signaux des Moments Clés",
+      description: "Compos, blessures, bascules tactiques… résumés en signaux nets. Recevez en temps utile les informations vraiment importantes, sans le bruit de fond.",
       image: featureAnalytics
     },
     {
       icon: Shield,
       badge: "Enterprise",
-      title: "Sécurité Niveau Bancaire",
-      description: "Vos méthodes d'analyse qui marchent sont votre avantage secret. Un cryptage militaire protège vos stratégies gagnantes et vos découvertes tactiques des regards indiscrets. Votre expertise reste à vous.",
+      title: "Qualité & Sécurité",
+      description: "Pipelines validés, versions publiées, rôles & accès. Votre cadre d'analyse reste solide et sécurisé, match après match, saison après saison.",
       image: featureSecurity
     },
     {
       icon: Bot,
       badge: "Automated",
-      title: "Analyse Football Intelligente",
-      description: "Fini les nuits blanches à éplucher les stats et à douter de vos choix. Notre système travaille 24h/24 pour identifier les patterns gagnants et les opportunités que vous n'auriez jamais vues seul. Dormez tranquille, réveillez-vous expert.",
+      title: "Routine qui Rassure",
+      description: "Vues, notes, exports CSV/API, traçabilité. Même exigence, chaque match. Développez une routine fiable qui tient même sous pression.",
       image: featureAutomation
     }
   ];
@@ -106,20 +106,20 @@ const Landing = () => {
   const testimonials = [
     {
       name: "Marcus Thompson",
-      role: "Analyste Football Professionnel",
-      content: "J'en avais marre de me tromper sur les gros matchs devant mes collègues. Maintenant je dors tranquille en sachant que mon analyse couvre chaque match de Premier League et Ligue des Champions. Ma crédibilité a explosé de 34% en 3 mois.",
+      role: "Analyste, club pro",
+      content: "Je prépare les gros matchs sans stress et avec une lecture cohérente. Les modèles expliqués m'ont donné un cadre qui tient, même sur les matchs les plus tendus.",
       avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=60&h=60&fit=crop&crop=face"
     },
     {
       name: "Elena Kowalski",
-      role: "Experte Données Football", 
-      content: "Je gaspillais 12h par jour à analyser les équipes avec des résultats décevants. Cette plateforme m'a rendu mes week-ends et multiplié ma précision. C'est magique pour devenir un vrai expert football reconnu.",
+      role: "Producteur TV", 
+      content: "Les probabilités expliquées ont clarifié nos émissions d'avant-match. Toute l'équipe suit maintenant le même cadre d'analyse, c'est plus fluide et crédible.",
       avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b0e9?w=60&h=60&fit=crop&crop=face"
     },
     {
       name: "David Chen",
-      role: "Responsable Équipe Analyse",
-      content: "La peur de me planter sur les gros matchs me bouffait. Maintenant j'ai la confiance que donnent des insights IA sur toutes les ligues majeures. La performance de mon équipe sur l'analyse foot a bondi de 67%.",
+      role: "Lead Data",
+      content: "Exports propres, API simple : toute l'équipe suit le même cadre. Routine fiable qui nous fait gagner un temps précieux sur l'analyse quotidienne.",
       avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=60&h=60&fit=crop&crop=face"
     }
   ];
@@ -229,7 +229,7 @@ const Landing = () => {
             <div className="flex-1 text-center lg:text-left">
               <Badge className="mb-6 bg-success/20 text-success border-success/30 animate-scale-in hover:scale-110 transition-transform duration-300">
                 <Sparkles className="w-4 h-4 mr-2" />
-                Fini les Analyses Football Approximatives
+                Quand tout s'accélère, ton cadre doit tenir
               </Badge>
               
               <h1 className="text-5xl lg:text-7xl font-bold text-foreground mb-6 leading-tight">
@@ -241,9 +241,8 @@ const Landing = () => {
               
               <div className="animate-fade-in-up" style={{ animationDelay: '0.5s', animationFillMode: 'both' }}>
                 <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
-                  <strong className="text-destructive">Marre de rater vos prédictions sur les gros matchs ?</strong> Fini la frustration des analyses approximatives qui vous font passer pour un amateur. 
-                  Notre IA analyse chaque match de Premier League, Ligue des Champions et tournois majeurs pour vous donner la crédibilité d'un vrai expert. 
-                  <strong className="text-success">Enfin, impressionnez votre entourage avec des prédictions précises et professionnelles.</strong>
+                  <strong className="text-destructive">Marre des lectures qui déraillent sur les gros matchs ?</strong> Notre IA transforme le brouillard d'infos en repères clairs et expliqués. 
+                  <strong className="text-success">Enfin, un cadre clair pour lire les gros matchs sans te laisser embarquer.</strong> Tu vis le frisson… avec la tête froide.
                 </p>
               </div>
               
@@ -253,7 +252,7 @@ const Landing = () => {
                   onClick={handleGetStarted}
                   className="bg-gradient-primary hover:shadow-glow text-lg px-8 py-6 hover:scale-105 transition-all duration-300"
                 >
-                  Start Free Trial
+                  Essayer gratuitement
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
                 <Button 
@@ -263,23 +262,26 @@ const Landing = () => {
                   className="border-primary/30 text-primary hover:bg-primary/10 text-lg px-8 py-6 hover:scale-105 transition-all duration-300"
                 >
                   <Play className="mr-2 h-5 w-5" />
-                  Watch AI Demo
+                  Voir la démo (2 min)
                 </Button>
               </div>
               
-              {/* Stats */}
-              <div ref={statsRef} className="grid grid-cols-3 gap-8 text-center">
+              {/* Stats remplacées par des chips neutres */}
+              <div ref={statsRef} className="flex flex-wrap justify-center gap-4 text-center">
                 <div className={`transition-all duration-500 ${visibleStats.has(0) ? 'animate-scale-in' : 'opacity-0 scale-75'}`}>
-                  <div className="text-3xl font-bold text-primary mb-2 animate-float">99.2%</div>
-                  <div className="text-muted-foreground">Match Accuracy</div>
+                  <Badge className="bg-primary/20 text-primary border-primary/30 px-4 py-2 text-sm">
+                    Modèles explicables
+                  </Badge>
                 </div>
                 <div className={`transition-all duration-500 ${visibleStats.has(1) ? 'animate-scale-in' : 'opacity-0 scale-75'}`} style={{ animationDelay: '0.2s' }}>
-                  <div className="text-3xl font-bold text-success mb-2 animate-float" style={{ animationDelay: '0.5s' }}>250K+</div>
-                  <div className="text-muted-foreground">Football Matches Analyzed</div>
+                  <Badge className="bg-success/20 text-success border-success/30 px-4 py-2 text-sm">
+                    Compétitions majeures
+                  </Badge>
                 </div>
                 <div className={`transition-all duration-500 ${visibleStats.has(2) ? 'animate-scale-in' : 'opacity-0 scale-75'}`} style={{ animationDelay: '0.4s' }}>
-                  <div className="text-3xl font-bold text-success mb-2 animate-float" style={{ animationDelay: '1s' }}>45+</div>
-                  <div className="text-muted-foreground">Leagues Covered</div>
+                  <Badge className="bg-success/20 text-success border-success/30 px-4 py-2 text-sm">
+                    API & exports
+                  </Badge>
                 </div>
               </div>
             </div>
@@ -322,14 +324,14 @@ const Landing = () => {
               Football AI Technology
             </Badge>
             <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">
-              Arrêtez Ces{' '}
-              <span className="bg-gradient-to-r from-destructive to-warning bg-clip-text text-transparent">
-                Erreurs Football
+              Quand tout s'accélère,{' '}
+              <span className="bg-gradient-to-r from-primary to-success bg-clip-text text-transparent">
+                ton cadre doit tenir
               </span>
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              <strong className="text-destructive">La frustration des mauvaises prédictions, c'est fini.</strong> Notre IA élimine les approximations sur la forme des équipes, les blessures et les résultats. 
-              <strong className="text-success">Transformez votre passion football en expertise reconnue.</strong>
+              <strong className="text-destructive">Infos partout, essentiel nulle part.</strong> La compo tombe, ta lecture vacille. Chaque soir un autre rituel : impossible d'être constant. 
+              <strong className="text-success">Notre IA transforme le chaos en repères fiables.</strong>
             </p>
           </div>
 
@@ -386,12 +388,12 @@ const Landing = () => {
             <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">
               Choisissez Votre{' '}
               <span className="bg-gradient-success bg-clip-text text-transparent">
-                Niveau d'Expert.
+                Niveau d'Analyse.
               </span>
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              <strong className="text-destructive">Combien de fois vous êtes-vous trompé sur les gros matchs ?</strong> Chaque analyse sans IA vous fait passer à côté de votre potentiel d'expert. 
-              <strong className="text-success">Choisissez le plan qui vous donne enfin la reconnaissance que vous méritez.</strong>
+              <strong className="text-primary">Trouvez le cadre qui correspond à vos besoins d'analyse.</strong> Chaque match analysé sans structure solide vous fait perdre en clarté. 
+              <strong className="text-success">Choisissez l'approche qui vous donnera enfin une routine fiable.</strong>
             </p>
           </div>
 
@@ -461,14 +463,14 @@ const Landing = () => {
               Success Stories
             </Badge>
             <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">
-              De l'Amateur au{' '}
+              De la Confusion à{' '}
               <span className="bg-gradient-success bg-clip-text text-transparent">
-                Vrai Expert
+                la Clarté
               </span>
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              <strong className="text-destructive">Ils étaient exactement comme vous.</strong> Frustrés par leurs mauvaises prédictions, stressés avant chaque gros match, doutant de leurs analyses. 
-              <strong className="text-success">Voici comment ils sont devenus des références reconnues.</strong>
+              <strong className="text-primary">Ils cherchaient aussi une approche plus cohérente.</strong> Fatigués des lectures approximatives et des doutes constants sur les gros matchs. 
+              <strong className="text-success">Voici comment ils ont trouvé leur routine d'analyse fiable.</strong>
             </p>
           </div>
 
@@ -505,11 +507,11 @@ const Landing = () => {
       <section className="py-20 px-4 bg-gradient-success">
         <div className="container mx-auto text-center">
           <h2 className="text-4xl lg:text-5xl font-bold text-white mb-4 animate-fade-in-up">
-            Devenez L'Expert Football Que Vous Rêvez d'Être
+            Retrouvez le plaisir des gros matchs, en gardant la tête froide
           </h2>
           <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto animate-fade-in-up" style={{ animationDelay: '0.2s', animationFillMode: 'both' }}>
-            <strong>Chaque match que vous ratez vous éloigne de vos rêves d'expertise.</strong> Rejoignez des milliers de passionnés qui ont enfin trouvé la crédibilité qu'ils cherchaient. 
-            <strong>Votre transformation en expert commence maintenant.</strong>
+            <strong>Chaque match vécu dans la confusion vous éloigne du vrai plaisir du foot.</strong> Rejoignez des milliers de passionnés qui ont retrouvé la sérénité face aux gros matchs. 
+            <strong>Votre routine d'analyse claire commence maintenant.</strong>
           </p>
           <Button 
             size="lg"
@@ -533,9 +535,14 @@ const Landing = () => {
               </div>
               <span className="font-bold text-foreground">Football Analytics Pro</span>
             </div>
-            <p className="text-muted-foreground text-sm">
-              © 2024 Football Analytics Pro. Advanced predictive intelligence for football matches.
-            </p>
+            <div className="text-center md:text-right">
+              <p className="text-muted-foreground text-sm mb-2">
+                © 2024 Football Analytics Pro. Plateforme d'analyse sportive.
+              </p>
+              <p className="text-muted-foreground text-xs">
+                Plateforme d'analyse. Aucun conseil financier ou de mise. Aucun résultat n'est garanti.
+              </p>
+            </div>
           </div>
         </div>
       </footer>
