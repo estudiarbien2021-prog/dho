@@ -2,9 +2,7 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { Search, Filter, X, ArrowUpDown, Trophy } from 'lucide-react';
 import { MatchFilters } from '@/hooks/useMatchesData';
@@ -34,8 +32,8 @@ export function FilterPanel({ filters, onFiltersChange, availableLeagues }: Filt
     filters.timeWindow !== 'all' || (filters.marketFilters && filters.marketFilters.length > 0);
 
   return (
-    <Card className="p-6 h-fit">
-      <div className="flex items-center justify-between mb-6">
+    <Card className="p-4">
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Filter className="h-5 w-5 text-muted-foreground" />
           <h3 className="font-semibold">Filtres</h3>
@@ -48,10 +46,10 @@ export function FilterPanel({ filters, onFiltersChange, availableLeagues }: Filt
         )}
       </div>
 
-      <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
         {/* Search */}
         <div className="space-y-2">
-          <Label htmlFor="search">Recherche</Label>
+          <Label htmlFor="search" className="text-sm font-medium">Recherche</Label>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -66,7 +64,7 @@ export function FilterPanel({ filters, onFiltersChange, availableLeagues }: Filt
 
         {/* Time Window */}
         <div className="space-y-2">
-          <Label>Période</Label>
+          <Label className="text-sm font-medium">Période</Label>
           <Select value={filters.timeWindow} onValueChange={(value) => updateFilters({ timeWindow: value as any })}>
             <SelectTrigger>
               <SelectValue />
@@ -82,7 +80,7 @@ export function FilterPanel({ filters, onFiltersChange, availableLeagues }: Filt
 
         {/* Group By */}
         <div className="space-y-2">
-          <Label>Regroupement</Label>
+          <Label className="text-sm font-medium">Regroupement</Label>
           <Select value={filters.groupBy} onValueChange={(value) => updateFilters({ groupBy: value as any })}>
             <SelectTrigger>
               <SelectValue />
@@ -91,7 +89,7 @@ export function FilterPanel({ filters, onFiltersChange, availableLeagues }: Filt
               <SelectItem value="time">
                 <div className="flex items-center gap-2">
                   <ArrowUpDown className="h-4 w-4" />
-                  Par heure de début
+                  Par heure
                 </div>
               </SelectItem>
               <SelectItem value="competition">
@@ -105,38 +103,37 @@ export function FilterPanel({ filters, onFiltersChange, availableLeagues }: Filt
         </div>
 
         {/* Market Filters */}
-        <div className="space-y-3">
-          <Label>Filtres de marchés</Label>
-          <div className="space-y-2">
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Marchés</Label>
+          <div className="flex flex-wrap gap-2">
             {[
               { id: 'btts_yes', label: 'BTTS Oui' },
               { id: 'btts_no', label: 'BTTS Non' },
-              { id: 'over25', label: '+2.5 buts' },
-              { id: 'under25', label: '-2.5 buts' }
+              { id: 'over25', label: '+2.5' },
+              { id: 'under25', label: '-2.5' }
             ].map(market => (
-              <div key={market.id} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`market-${market.id}`}
-                  checked={filters.marketFilters ? filters.marketFilters.includes(market.id) : false}
-                  onCheckedChange={(checked) => {
-                    const currentMarkets = filters.marketFilters || [];
-                    const newMarkets = checked
-                      ? [...currentMarkets, market.id]
-                      : currentMarkets.filter(m => m !== market.id);
-                    updateFilters({ marketFilters: newMarkets });
-                  }}
-                />
-                <Label htmlFor={`market-${market.id}`} className="text-sm">
-                  {market.label}
-                </Label>
-              </div>
+              <Button
+                key={market.id}
+                variant={filters.marketFilters && filters.marketFilters.includes(market.id) ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  const currentMarkets = filters.marketFilters || [];
+                  const newMarkets = currentMarkets.includes(market.id)
+                    ? currentMarkets.filter(m => m !== market.id)
+                    : [...currentMarkets, market.id];
+                  updateFilters({ marketFilters: newMarkets });
+                }}
+                className="text-xs h-8"
+              >
+                {market.label}
+              </Button>
             ))}
           </div>
         </div>
 
         {/* Top Leagues Quick Filter */}
-        <div className="space-y-3">
-          <Label>Ligues populaires</Label>
+        <div className="space-y-2 md:col-span-2">
+          <Label className="text-sm font-medium">Ligues populaires</Label>
           <div className="flex flex-wrap gap-2">
             {['Copa Libertadores', 'Copa Sudamericana', 'Premier League', 'Serie A', 'La Liga'].filter(league => 
               availableLeagues.includes(league)
@@ -151,7 +148,7 @@ export function FilterPanel({ filters, onFiltersChange, availableLeagues }: Filt
                     : [...filters.leagues, league];
                   updateFilters({ leagues: newLeagues });
                 }}
-                className="text-xs"
+                className="text-xs h-8"
               >
                 {league}
               </Button>

@@ -144,30 +144,25 @@ export function Dashboard({ currentLang, matches: _matches }: DashboardProps) {
       <KPIHeader stats={stats} />
 
       {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <div className="space-y-6">
         {/* Filters Panel */}
-        <div className="lg:col-span-1">
-          <FilterPanel
-            filters={filters}
-            onFiltersChange={setFilters}
-            availableLeagues={availableLeagues}
-          />
-        </div>
+        <FilterPanel
+          filters={filters}
+          onFiltersChange={setFilters}
+          availableLeagues={availableLeagues}
+        />
 
-        {/* Main Content Area */}
-        <div className="lg:col-span-3 space-y-6">
-          {/* Matches Table */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold">
-                Matchs ({matches.length})
-              </h2>
-            </div>
-            <MatchesTable 
-              matches={matches} 
-              onMatchClick={handleMatchClick} 
-            />
+        {/* Matches Table */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">
+              Matchs ({matches.length})
+            </h2>
           </div>
+          <MatchesTable 
+            matches={matches} 
+            onMatchClick={handleMatchClick} 
+          />
         </div>
       </div>
 
