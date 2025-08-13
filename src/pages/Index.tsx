@@ -10,6 +10,7 @@ import { TrendingUp, AlertTriangle, Info, LogOut, User, Wifi, WifiOff } from 'lu
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { OddsService } from '@/services/oddsService';
+import { CSVService } from '@/services/csvService';
 
 const Index = () => {
   const { toast } = useToast();
@@ -68,28 +69,28 @@ const Index = () => {
         setScrapingStatus('scraping');
         
         try {
-          const response = await OddsService.scrapeRealOdds(filters.competitions);
-          
-          if (!response.success) {
-            throw new Error(response.error || 'Échec du scraping');
-          }
-
-          let scrapedMatches = response.matches;
+          // Charger les données depuis le CSV
+          const csvMatches = await CSVService.loadMatches();
           
           // Appliquer les filtres
-          scrapedMatches = OddsService.filterTier1Matches(scrapedMatches, filters.enableHypePlus);
-          scrapedMatches = OddsService.applyTimeWindowFilter(scrapedMatches, filters.timeWindow);
+          let filteredMatches = CSVService.filterMatches(csvMatches, {
+            competitions: filters.competitions,
+            countries: filters.countries,
+            timeWindow: filters.timeWindow,
+            minOdds: filters.oddsMin,
+            maxOdds: filters.oddsMax
+          });
           
           // Appliquer le tri
-          scrapedMatches = OddsService.sortMatches(scrapedMatches, sort.field, sort.direction);
+          filteredMatches = OddsService.sortMatches(filteredMatches, sort.field, sort.direction);
 
-          setMatches(scrapedMatches);
+          setMatches(filteredMatches);
           setLastUpdate(new Date().toLocaleString('fr-FR'));
           setScrapingStatus('success');
           
           toast({
-            title: "Données chargées",
-            description: `${scrapedMatches.length} matchs trouvés avec des cotes réalistes`,
+            title: "Données chargées depuis CSV",
+            description: `${filteredMatches.length} matchs trouvés dans les données`,
           });
         } catch (error) {
           console.error('Error loading initial data:', error);
@@ -130,29 +131,28 @@ const Index = () => {
     setScrapingStatus('scraping');
     
     try {
-      // Utiliser le vrai service de scraping
-      const response = await OddsService.scrapeRealOdds(filters.competitions);
-      
-      if (!response.success) {
-        throw new Error(response.error || 'Échec du scraping');
-      }
-
-      let scrapedMatches = response.matches;
+      // Charger les données depuis le CSV
+      const csvMatches = await CSVService.loadMatches();
       
       // Appliquer les filtres
-      scrapedMatches = OddsService.filterTier1Matches(scrapedMatches, filters.enableHypePlus);
-      scrapedMatches = OddsService.applyTimeWindowFilter(scrapedMatches, filters.timeWindow);
+      let filteredMatches = CSVService.filterMatches(csvMatches, {
+        competitions: filters.competitions,
+        countries: filters.countries,
+        timeWindow: filters.timeWindow,
+        minOdds: filters.oddsMin,
+        maxOdds: filters.oddsMax
+      });
       
       // Appliquer le tri
-      scrapedMatches = OddsService.sortMatches(scrapedMatches, sort.field, sort.direction);
+      filteredMatches = OddsService.sortMatches(filteredMatches, sort.field, sort.direction);
 
-      setMatches(scrapedMatches);
+      setMatches(filteredMatches);
       setLastUpdate(new Date().toLocaleString('fr-FR'));
       setScrapingStatus('success');
       
       toast({
-        title: "Données mises à jour",
-        description: `${scrapedMatches.length} matchs trouvés avec des cotes réalistes`,
+        title: "Données mises à jour depuis CSV",
+        description: `${filteredMatches.length} matchs trouvés dans les données`,
       });
     } catch (error) {
       console.error('Error refreshing data:', error);
