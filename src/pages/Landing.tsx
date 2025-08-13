@@ -77,28 +77,28 @@ const Landing = () => {
       icon: Brain,
       badge: "AI-Powered",
       title: "Advanced Football Predictions",
-      description: "Stop losing money on gut feelings about football matches. Our AI analyzes team performance, player stats, weather conditions, and 200+ football-specific factors to predict match outcomes with surgical precision.",
+      description: "Get data-driven insights instead of relying on intuition. Our AI analyzes team performance, player stats, weather conditions, and 200+ football-specific factors to provide accurate match outcome predictions for sports analysis.",
       image: featureAi
     },
     {
       icon: Clock,
       badge: "Real-Time",
       title: "Live Match Intelligence",
-      description: "Never miss another football opportunity. Get instant alerts on team news, injury updates, odds movements, and in-play betting opportunities during matches - all tailored for football betting success.",
+      description: "Stay informed with comprehensive match data. Get instant alerts on team news, injury updates, tactical changes, and real-time match statistics - all designed for thorough football analysis and research.",
       image: featureAnalytics
     },
     {
       icon: Shield,
       badge: "Enterprise",
       title: "Bank-Grade Security",
-      description: "Your football betting strategies are your competitive advantage. Military-grade encryption ensures your winning methods and profitable patterns stay protected from competitors and bookmakers.",
+      description: "Your football research and analysis data is valuable. Military-grade encryption ensures your analytical insights and research methods stay protected and secure in our platform.",
       image: featureSecurity
     },
     {
       icon: Bot,
       badge: "Automated",
       title: "Smart Football Analysis",
-      description: "Stop spending endless hours researching football teams and leagues. Our intelligent system works 24/7 to identify profitable football patterns, value bets, and winning opportunities while you sleep.",
+      description: "Save time on football research. Our intelligent system works 24/7 to identify tactical patterns, team trends, and statistical insights while you focus on other important tasks.",
       image: featureAutomation
     }
   ];
@@ -107,19 +107,19 @@ const Landing = () => {
     {
       name: "Marcus Thompson",
       role: "Professional Football Analyst",
-      content: "I was losing sleep over inconsistent football predictions. Now I sleep peacefully knowing my analysis covers every Premier League, Champions League and major tournament match. My success rate increased 34% in just 3 months.",
+      content: "I was struggling with inconsistent football analysis. Now I have comprehensive coverage of every Premier League, Champions League and major tournament match. My analytical accuracy improved by 34% in just 3 months.",
       avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=60&h=60&fit=crop&crop=face"
     },
     {
       name: "Elena Kowalski",
       role: "Football Data Specialist", 
-      content: "I used to waste 12 hours daily researching football teams and player stats with mediocre results. This platform gave me back my weekends and multiplied my accuracy on match predictions. It's life-changing for football analysis.",
+      content: "I used to spend 12 hours daily researching football teams and player stats manually. This platform gave me back my weekends and significantly improved my match analysis accuracy. It's revolutionary for football research.",
       avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b0e9?w=60&h=60&fit=crop&crop=face"
     },
     {
       name: "David Chen",
-      role: "Football Investment Team Lead",
-      content: "The fear of making wrong decisions on big football matches kept me up at night. Now I have the confidence of AI-backed insights covering every major league. Our team's performance on football markets jumped 67%.",
+      role: "Football Research Team Lead",
+      content: "Making informed decisions on football analysis was challenging without proper data. Now I have confidence with AI-backed insights covering every major league. Our team's analytical precision improved significantly.",
       avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=60&h=60&fit=crop&crop=face"
     }
   ];
@@ -229,7 +229,7 @@ const Landing = () => {
             <div className="flex-1 text-center lg:text-left">
               <Badge className="mb-6 bg-success/20 text-success border-success/30 animate-scale-in hover:scale-110 transition-transform duration-300">
                 <Sparkles className="w-4 h-4 mr-2" />
-                The End of Football Guesswork
+                Advanced Football Data Analysis
               </Badge>
               
               <h1 className="text-5xl lg:text-7xl font-bold text-foreground mb-6 leading-tight">
@@ -241,9 +241,9 @@ const Landing = () => {
               
               <div className="animate-fade-in-up" style={{ animationDelay: '0.5s', animationFillMode: 'both' }}>
                 <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
-                  <strong className="text-destructive">Tired of losing money on football matches?</strong> Stop the frustration of unpredictable results. 
-                  Our AI analyzes every Premier League, Champions League, and major tournament match to give you the confidence and clarity you've been searching for. 
-                  <strong className="text-success">Finally, make football predictions backed by intelligence, not emotion.</strong>
+                  <strong className="text-primary">Need better football match analysis?</strong> Stop relying on incomplete data and guesswork. 
+                  Our AI analyzes every Premier League, Champions League, and major tournament match to give you comprehensive insights and data-driven analysis. 
+                  <strong className="text-success">Make informed football predictions backed by advanced analytics, not emotions.</strong>
                 </p>
               </div>
               
@@ -322,14 +322,14 @@ const Landing = () => {
               Football AI Technology
             </Badge>
             <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">
-              Stop Making These{' '}
-              <span className="bg-gradient-to-r from-destructive to-warning bg-clip-text text-transparent">
-                Football Mistakes
+              Advanced{' '}
+              <span className="bg-gradient-to-r from-primary to-success bg-clip-text text-transparent">
+                Football Analytics
               </span>
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              <strong className="text-destructive">The pain of losing on football matches ends here.</strong> Our AI eliminates the guesswork about team form, player injuries, and match outcomes. 
-              <strong className="text-success">Transform football frustration into winning confidence.</strong>
+              <strong className="text-primary">Comprehensive football data analysis starts here.</strong> Our AI eliminates guesswork about team form, player injuries, and match outcomes. 
+              <strong className="text-success">Transform your football research with data-driven insights.</strong>
             </p>
           </div>
 
@@ -384,14 +384,14 @@ const Landing = () => {
               Pricing Plans
             </Badge>
             <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">
-              Stop Losing on Football.{' '}
+              Choose Your{' '}
               <span className="bg-gradient-success bg-clip-text text-transparent">
-                Start Winning.
+                Analysis Plan.
               </span>
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              <strong className="text-destructive">How much have you lost on unpredictable football results?</strong> Every match you analyze without AI is money left on the table. 
-              <strong className="text-success">Choose the plan that finally gives you the football edge you deserve.</strong>
+              <strong className="text-primary">Get the football data you need for better analysis.</strong> Every match you analyze without proper data is incomplete research. 
+              <strong className="text-success">Choose the plan that gives you the football insights you deserve.</strong>
             </p>
           </div>
 
@@ -461,14 +461,14 @@ const Landing = () => {
               Success Stories
             </Badge>
             <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">
-              From Football Losses to{' '}
+              From Football Analysis to{' '}
               <span className="bg-gradient-success bg-clip-text text-transparent">
-                Consistent Wins
+                Better Insights
               </span>
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              <strong className="text-destructive">They were exactly where you are now.</strong> Frustrated with unpredictable football results, losing money, stressed about every big match. 
-              <strong className="text-success">Here's how they turned their football analysis around.</strong>
+              <strong className="text-primary">They were looking for better football analysis too.</strong> Frustrated with incomplete data and inconsistent research methods. 
+              <strong className="text-success">Here's how they improved their football analysis approach.</strong>
             </p>
           </div>
 
@@ -505,11 +505,11 @@ const Landing = () => {
       <section className="py-20 px-4 bg-gradient-success">
         <div className="container mx-auto text-center">
           <h2 className="text-4xl lg:text-5xl font-bold text-white mb-4 animate-fade-in-up">
-            Stop Losing on Football. Start Winning.
+            Start Advanced Football Analysis Today
           </h2>
           <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto animate-fade-in-up" style={{ animationDelay: '0.2s', animationFillMode: 'both' }}>
-            <strong>Every football match you analyze without AI costs you money.</strong> Join thousands who've already escaped the cycle of unpredictable football results and losses. 
-            <strong>Your football breakthrough moment starts now.</strong>
+            <strong>Every football match you analyze without AI data is incomplete research.</strong> Join thousands who've already improved their football analysis with comprehensive data insights. 
+            <strong>Your football research breakthrough starts now.</strong>
           </p>
           <Button 
             size="lg"
