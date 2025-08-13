@@ -168,26 +168,26 @@ export default {
 				},
 				'glow': {
 					'0%, 100%': {
-						boxShadow: '0 0 20px rgba(6, 182, 212, 0.4)'
+						boxShadow: '0 0 20px rgba(34, 197, 94, 0.4)'
 					},
 					'50%': {
-						boxShadow: '0 0 40px rgba(6, 182, 212, 0.8)'
+						boxShadow: '0 0 40px rgba(34, 197, 94, 0.8)'
 					}
 				},
 				'ai-pulse': {
 					'0%, 100%': {
-						boxShadow: '0 0 30px rgba(14, 165, 233, 0.3)'
+						boxShadow: '0 0 30px rgba(34, 197, 94, 0.3)'
 					},
 					'50%': {
-						boxShadow: '0 0 60px rgba(14, 165, 233, 0.6)'
+						boxShadow: '0 0 60px rgba(34, 197, 94, 0.6)'
 					}
 				},
 				'success-glow': {
 					'0%, 100%': {
-						boxShadow: '0 0 20px rgba(16, 185, 129, 0.3)'
+						boxShadow: '0 0 20px rgba(34, 197, 94, 0.3)'
 					},
 					'50%': {
-						boxShadow: '0 0 40px rgba(16, 185, 129, 0.6)'
+						boxShadow: '0 0 40px rgba(34, 197, 94, 0.6)'
 					}
 				},
 				'particle': {

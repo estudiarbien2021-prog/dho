@@ -189,7 +189,7 @@ const Landing = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 animate-fade-in-left">
-              <div className="w-8 h-8 bg-gradient-ai rounded-lg flex items-center justify-center animate-ai-pulse">
+              <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center animate-ai-pulse">
                 <Brain className="h-5 w-5 text-white" />
               </div>
               <span className="text-xl font-bold text-foreground">Sports Analytics Pro</span>
@@ -227,7 +227,7 @@ const Landing = () => {
         <div className="container mx-auto">
           <div className="flex flex-col lg:flex-row items-center gap-12">
             <div className="flex-1 text-center lg:text-left">
-              <Badge className="mb-6 bg-primary/20 text-primary border-primary/30 animate-scale-in hover:scale-110 transition-transform duration-300">
+              <Badge className="mb-6 bg-success/20 text-success border-success/30 animate-scale-in hover:scale-110 transition-transform duration-300">
                 <Sparkles className="w-4 h-4 mr-2" />
                 The End of Guesswork
               </Badge>
@@ -278,7 +278,7 @@ const Landing = () => {
                   <div className="text-muted-foreground">Data Points Processed</div>
                 </div>
                 <div className={`transition-all duration-500 ${visibleStats.has(2) ? 'animate-scale-in' : 'opacity-0 scale-75'}`} style={{ animationDelay: '0.4s' }}>
-                  <div className="text-3xl font-bold text-warning mb-2 animate-float" style={{ animationDelay: '1s' }}>847%</div>
+                  <div className="text-3xl font-bold text-success mb-2 animate-float" style={{ animationDelay: '1s' }}>847%</div>
                   <div className="text-muted-foreground">Average ROI Boost</div>
                 </div>
               </div>
@@ -317,7 +317,7 @@ const Landing = () => {
       >
         <div className="container mx-auto">
           <div className="text-center mb-16 animate-fade-in-up">
-            <Badge className="mb-4 bg-primary/20 text-primary border-primary/30 animate-scale-in">
+            <Badge className="mb-4 bg-success/20 text-success border-success/30 animate-scale-in">
               <Bot className="w-4 h-4 mr-2" />
               AI Technology
             </Badge>
@@ -349,17 +349,17 @@ const Landing = () => {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   </div>
-                  <Badge className="w-fit bg-primary/20 text-primary border-primary/30 mb-2 animate-scale-in">
+                  <Badge className="w-fit bg-success/20 text-success border-success/30 mb-2 animate-scale-in">
                     {feature.badge}
                   </Badge>
-                  <CardTitle className="text-foreground text-xl flex items-center gap-3 group-hover:text-primary transition-colors duration-300">
-                    <feature.icon className="h-6 w-6 text-primary group-hover:animate-ai-pulse" />
+                  <CardTitle className="text-foreground text-xl flex items-center gap-3 group-hover:text-success transition-colors duration-300">
+                    <feature.icon className="h-6 w-6 text-success group-hover:animate-ai-pulse" />
                     {feature.title}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground mb-4 group-hover:text-foreground/80 transition-colors duration-300">{feature.description}</p>
-                  <Button variant="link" className="text-primary hover:text-primary/80 p-0 hover:scale-105 transition-all duration-300">
+                  <Button variant="link" className="text-success hover:text-success/80 p-0 hover:scale-105 transition-all duration-300">
                     Explore feature →
                   </Button>
                 </CardContent>
@@ -379,7 +379,7 @@ const Landing = () => {
       >
         <div className="container mx-auto">
           <div className="text-center mb-16 animate-fade-in-up">
-            <Badge className="mb-4 bg-warning/20 text-warning border-warning/30 animate-scale-in">
+            <Badge className="mb-4 bg-success/20 text-success border-success/30 animate-scale-in">
               <DollarSign className="w-4 h-4 mr-2" />
               Pricing Plans
             </Badge>
@@ -400,20 +400,20 @@ const Landing = () => {
               <Card 
                 key={index} 
                 className={`bg-card/50 border-border backdrop-blur-sm relative hover:bg-card/80 transition-all duration-500 hover:scale-105 animate-fade-in-up group ${
-                  plan.popular ? 'ring-2 ring-primary scale-105 shadow-ai-glow' : ''
+                  plan.popular ? 'ring-2 ring-success scale-105 shadow-success-glow' : ''
                 }`}
                 style={{ animationDelay: `${index * 0.2}s`, animationFillMode: 'both' }}
               >
                 {plan.popular && (
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 animate-float">
-                    <Badge className="bg-gradient-primary text-background shadow-glow">
+                    <Badge className="bg-gradient-success text-white shadow-success-glow">
                       <Star className="w-4 h-4 mr-1" />
                       Most Popular
                     </Badge>
                   </div>
                 )}
                 <CardHeader className="text-center">
-                  <CardTitle className="text-foreground text-2xl group-hover:text-primary transition-colors duration-300">{plan.name}</CardTitle>
+                  <CardTitle className="text-foreground text-2xl group-hover:text-success transition-colors duration-300">{plan.name}</CardTitle>
                   <div className="mt-4">
                     <span className="text-4xl font-bold text-foreground">{plan.price}</span>
                     {plan.period && <span className="text-muted-foreground">{plan.period}</span>}
@@ -432,7 +432,7 @@ const Landing = () => {
                   <Button 
                     className={`w-full ${
                       plan.popular 
-                        ? 'bg-gradient-primary hover:shadow-glow' 
+                        ? 'bg-gradient-success hover:shadow-success-glow' 
                         : 'bg-secondary hover:bg-secondary/80'
                     } hover:scale-105 transition-all duration-300`}
                     onClick={handleGetStarted}
@@ -502,7 +502,7 @@ const Landing = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-4 bg-gradient-ai">
+      <section className="py-20 px-4 bg-gradient-success">
         <div className="container mx-auto text-center">
           <h2 className="text-4xl lg:text-5xl font-bold text-white mb-4 animate-fade-in-up">
             Stop the Bleeding. Start Winning.
@@ -514,7 +514,7 @@ const Landing = () => {
           <Button 
             size="lg"
             onClick={handleGetStarted}
-            className="bg-white text-primary hover:bg-white/90 hover:scale-105 transition-all duration-300 text-lg px-8 py-6 animate-fade-in-up"
+            className="bg-white text-success hover:bg-white/90 hover:scale-105 transition-all duration-300 text-lg px-8 py-6 animate-fade-in-up"
             style={{ animationDelay: '0.4s', animationFillMode: 'both' }}
           >
             Start Your Free Trial
@@ -528,7 +528,7 @@ const Landing = () => {
         <div className="container mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between">
             <div className="flex items-center gap-2 mb-4 md:mb-0">
-              <div className="w-6 h-6 bg-gradient-ai rounded flex items-center justify-center">
+              <div className="w-6 h-6 bg-gradient-success rounded flex items-center justify-center">
                 <Brain className="h-4 w-4 text-white" />
               </div>
               <span className="font-bold text-foreground">Sports Analytics Pro</span>
