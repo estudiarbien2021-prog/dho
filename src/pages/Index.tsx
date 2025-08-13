@@ -19,7 +19,7 @@ const Index = () => {
 
   // États des filtres
   const [filters, setFilters] = useState<FilterState>({
-    competitions: ['Premier League', 'LaLiga', 'Champions League'],
+    competitions: [], // Vide par défaut pour afficher toutes les compétitions CSV
     countries: [],
     timeWindow: 'all',
     bookmakers: [],

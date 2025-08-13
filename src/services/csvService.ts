@@ -237,6 +237,8 @@ export class CSVService {
       console.log(`🏆 Filtre compétitions: ${beforeCompetitions} → ${filtered.length}`);
       console.log('🏆 Compétitions recherchées:', filters.competitions);
       console.log('🏆 Échantillon compétitions trouvées:', filtered.slice(0, 3).map(m => m.tournament.name));
+    } else {
+      console.log('🏆 Pas de filtre compétitions - affichage de toutes les compétitions');
     }
 
     // Filtre par pays
