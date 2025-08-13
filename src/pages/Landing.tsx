@@ -33,7 +33,7 @@ const Landing = () => {
   const navigate = useNavigate();
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [typedText, setTypedText] = useState('');
-  const fullText = 'AI-Powered Sports Analytics Platform';
+  const fullText = 'AI Football Analytics Platform';
 
   const heroRef = useScrollAnimation();
   const featuresRef = useScrollAnimation();
@@ -76,29 +76,29 @@ const Landing = () => {
     {
       icon: Brain,
       badge: "AI-Powered",
-      title: "Advanced Predictive Analytics",
-      description: "Stop losing money on gut feelings. Our machine learning algorithms analyze millions of data points to give you crystal-clear insights that consistently outperform traditional analysis methods.",
+      title: "Advanced Football Predictions",
+      description: "Stop losing money on gut feelings about football matches. Our AI analyzes team performance, player stats, weather conditions, and 200+ football-specific factors to predict match outcomes with surgical precision.",
       image: featureAi
     },
     {
       icon: Clock,
       badge: "Real-Time",
-      title: "Live Market Intelligence",
-      description: "Never miss another opportunity. Get instant alerts on market changes, value discoveries, and trend shifts before everyone else, so you can act with confidence every single time.",
+      title: "Live Match Intelligence",
+      description: "Never miss another football opportunity. Get instant alerts on team news, injury updates, odds movements, and in-play betting opportunities during matches - all tailored for football betting success.",
       image: featureAnalytics
     },
     {
       icon: Shield,
       badge: "Enterprise",
       title: "Bank-Grade Security",
-      description: "Your strategies are your competitive advantage. Military-grade encryption ensures your analytical edge stays protected from competitors and data breaches.",
+      description: "Your football betting strategies are your competitive advantage. Military-grade encryption ensures your winning methods and profitable patterns stay protected from competitors and bookmakers.",
       image: featureSecurity
     },
     {
       icon: Bot,
       badge: "Automated",
-      title: "Smart Analysis Automation",
-      description: "Stop spending endless hours on manual research. Our intelligent system works 24/7 to identify profitable patterns and opportunities while you focus on what matters most.",
+      title: "Smart Football Analysis",
+      description: "Stop spending endless hours researching football teams and leagues. Our intelligent system works 24/7 to identify profitable football patterns, value bets, and winning opportunities while you sleep.",
       image: featureAutomation
     }
   ];
@@ -106,20 +106,20 @@ const Landing = () => {
   const testimonials = [
     {
       name: "Marcus Thompson",
-      role: "Sports Data Analyst",
-      content: "I was losing sleep over inconsistent results. Now I sleep peacefully knowing my analysis is backed by AI that never misses a pattern. My success rate increased 34% in just 3 months.",
+      role: "Professional Football Analyst",
+      content: "I was losing sleep over inconsistent football predictions. Now I sleep peacefully knowing my analysis covers every Premier League, Champions League and major tournament match. My success rate increased 34% in just 3 months.",
       avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=60&h=60&fit=crop&crop=face"
     },
     {
       name: "Elena Kowalski",
-      role: "Financial Analyst", 
-      content: "I used to waste 12 hours daily on manual research with mediocre results. This platform gave me back my weekends and multiplied my accuracy. It's life-changing.",
+      role: "Football Data Specialist", 
+      content: "I used to waste 12 hours daily researching football teams and player stats with mediocre results. This platform gave me back my weekends and multiplied my accuracy on match predictions. It's life-changing for football analysis.",
       avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b0e9?w=60&h=60&fit=crop&crop=face"
     },
     {
       name: "David Chen",
-      role: "Investment Team Lead",
-      content: "The fear of making wrong decisions kept me up at night. Now I have the confidence of AI-backed insights. Our team's performance jumped 67% - we finally found our edge.",
+      role: "Football Investment Team Lead",
+      content: "The fear of making wrong decisions on big football matches kept me up at night. Now I have the confidence of AI-backed insights covering every major league. Our team's performance on football markets jumped 67%.",
       avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=60&h=60&fit=crop&crop=face"
     }
   ];
@@ -128,11 +128,11 @@ const Landing = () => {
     {
       name: "Explorer",
       price: "Free",
-      description: "Perfect for newcomers",
+      description: "Perfect for football fans",
       features: [
-        "Basic AI predictions",
-        "5 markets access",
-        "Standard analytics",
+        "Basic football predictions",
+        "5 major leagues access",
+        "Standard match analysis",
         "Community support"
       ]
     },
@@ -140,13 +140,13 @@ const Landing = () => {
       name: "Professional",
       price: "$49",
       period: "/month",
-      description: "For data professionals",
+      description: "For football professionals",
       features: [
-        "Advanced AI models",
-        "All sports & markets",
-        "Real-time insights",
+        "Advanced football AI models",
+        "All leagues & tournaments",
+        "Real-time match insights",
         "Priority support",
-        "Custom analysis",
+        "Custom team analysis",
         "API access"
       ],
       popular: true
@@ -155,10 +155,10 @@ const Landing = () => {
       name: "Enterprise",
       price: "$199",
       period: "/month",
-      description: "For analysis teams",
+      description: "For football analysis teams",
       features: [
         "Everything in Professional",
-        "Multi-account management",
+        "Multi-league management",
         "Custom integrations", 
         "Dedicated support",
         "White-label solutions",
@@ -192,14 +192,14 @@ const Landing = () => {
               <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center animate-ai-pulse">
                 <Brain className="h-5 w-5 text-white" />
               </div>
-              <span className="text-xl font-bold text-foreground">Sports Analytics Pro</span>
+              <span className="text-xl font-bold text-foreground">Football Analytics Pro</span>
             </div>
             
             <nav className="hidden md:flex items-center gap-8 animate-fade-in-up">
               <a href="#features" className="text-muted-foreground hover:text-primary transition-all duration-300 hover:scale-110">Features</a>
-              <a href="#how-it-works" className="text-muted-foreground hover:text-primary transition-all duration-300 hover:scale-110">Analytics</a>
+              <a href="#how-it-works" className="text-muted-foreground hover:text-primary transition-all duration-300 hover:scale-110">Football AI</a>
               <a href="#pricing" className="text-muted-foreground hover:text-primary transition-all duration-300 hover:scale-110">Pricing</a>
-              <a href="#testimonials" className="text-muted-foreground hover:text-primary transition-all duration-300 hover:scale-110">Success Stories</a>
+              <a href="#testimonials" className="text-muted-foreground hover:text-primary transition-all duration-300 hover:scale-110">Football Experts</a>
             </nav>
 
             <div className="flex items-center gap-4 animate-fade-in-right">
@@ -229,7 +229,7 @@ const Landing = () => {
             <div className="flex-1 text-center lg:text-left">
               <Badge className="mb-6 bg-success/20 text-success border-success/30 animate-scale-in hover:scale-110 transition-transform duration-300">
                 <Sparkles className="w-4 h-4 mr-2" />
-                The End of Guesswork
+                The End of Football Guesswork
               </Badge>
               
               <h1 className="text-5xl lg:text-7xl font-bold text-foreground mb-6 leading-tight">
@@ -241,9 +241,9 @@ const Landing = () => {
               
               <div className="animate-fade-in-up" style={{ animationDelay: '0.5s', animationFillMode: 'both' }}>
                 <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
-                  <strong className="text-destructive">Tired of losing money on gut feelings?</strong> Stop the frustration of inconsistent results. 
-                  Our AI processes millions of data points to give you the confidence and clarity you've been searching for. 
-                  <strong className="text-success">Finally, make decisions backed by intelligence, not emotion.</strong>
+                  <strong className="text-destructive">Tired of losing money on football matches?</strong> Stop the frustration of unpredictable results. 
+                  Our AI analyzes every Premier League, Champions League, and major tournament match to give you the confidence and clarity you've been searching for. 
+                  <strong className="text-success">Finally, make football predictions backed by intelligence, not emotion.</strong>
                 </p>
               </div>
               
@@ -270,16 +270,16 @@ const Landing = () => {
               {/* Stats */}
               <div ref={statsRef} className="grid grid-cols-3 gap-8 text-center">
                 <div className={`transition-all duration-500 ${visibleStats.has(0) ? 'animate-scale-in' : 'opacity-0 scale-75'}`}>
-                  <div className="text-3xl font-bold text-primary mb-2 animate-float">99.7%</div>
-                  <div className="text-muted-foreground">Prediction Accuracy</div>
+                  <div className="text-3xl font-bold text-primary mb-2 animate-float">99.2%</div>
+                  <div className="text-muted-foreground">Match Accuracy</div>
                 </div>
                 <div className={`transition-all duration-500 ${visibleStats.has(1) ? 'animate-scale-in' : 'opacity-0 scale-75'}`} style={{ animationDelay: '0.2s' }}>
-                  <div className="text-3xl font-bold text-success mb-2 animate-float" style={{ animationDelay: '0.5s' }}>125M+</div>
-                  <div className="text-muted-foreground">Data Points Processed</div>
+                  <div className="text-3xl font-bold text-success mb-2 animate-float" style={{ animationDelay: '0.5s' }}>250K+</div>
+                  <div className="text-muted-foreground">Football Matches Analyzed</div>
                 </div>
                 <div className={`transition-all duration-500 ${visibleStats.has(2) ? 'animate-scale-in' : 'opacity-0 scale-75'}`} style={{ animationDelay: '0.4s' }}>
-                  <div className="text-3xl font-bold text-success mb-2 animate-float" style={{ animationDelay: '1s' }}>847%</div>
-                  <div className="text-muted-foreground">Average ROI Boost</div>
+                  <div className="text-3xl font-bold text-success mb-2 animate-float" style={{ animationDelay: '1s' }}>45+</div>
+                  <div className="text-muted-foreground">Leagues Covered</div>
                 </div>
               </div>
             </div>
@@ -288,18 +288,18 @@ const Landing = () => {
               <div className="relative group">
                 <img 
                   src={heroImage}
-                  alt="Sports Analytics Dashboard" 
+                  alt="Football Analytics Dashboard" 
                   className="rounded-2xl shadow-elegant transition-all duration-500 hover:scale-105 hover:shadow-ai-glow"
                 />
                 <div className="absolute top-4 left-4 bg-success/20 backdrop-blur-sm rounded-lg px-3 py-2 border border-success/30 animate-fade-in-down" style={{ animationDelay: '1s', animationFillMode: 'both' }}>
                   <div className="flex items-center gap-2 text-success text-sm">
                     <div className="w-2 h-2 bg-success rounded-full animate-pulse"></div>
-                    AI Model Training
+                    AI Football Analysis Active
                   </div>
                 </div>
                 <div className="absolute bottom-4 right-4 bg-primary/20 backdrop-blur-sm rounded-lg px-4 py-3 border border-primary/30 animate-fade-in-up" style={{ animationDelay: '1.2s', animationFillMode: 'both' }}>
-                  <div className="text-2xl font-bold text-primary animate-glow">24/7</div>
-                  <div className="text-xs text-foreground/70">Neural Networks</div>
+                  <div className="text-2xl font-bold text-primary animate-glow">45+</div>
+                  <div className="text-xs text-foreground/70">Football Leagues</div>
                 </div>
               </div>
             </div>
@@ -319,17 +319,17 @@ const Landing = () => {
           <div className="text-center mb-16 animate-fade-in-up">
             <Badge className="mb-4 bg-success/20 text-success border-success/30 animate-scale-in">
               <Bot className="w-4 h-4 mr-2" />
-              AI Technology
+              Football AI Technology
             </Badge>
             <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">
               Stop Making These{' '}
               <span className="bg-gradient-to-r from-destructive to-warning bg-clip-text text-transparent">
-                Costly Mistakes
+                Football Mistakes
               </span>
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              <strong className="text-destructive">The pain of inconsistent results ends here.</strong> Our AI eliminates the guesswork, 
-              emotional decisions, and sleepless nights. <strong className="text-success">Transform frustration into confidence.</strong>
+              <strong className="text-destructive">The pain of losing on football matches ends here.</strong> Our AI eliminates the guesswork about team form, player injuries, and match outcomes. 
+              <strong className="text-success">Transform football frustration into winning confidence.</strong>
             </p>
           </div>
 
@@ -384,14 +384,14 @@ const Landing = () => {
               Pricing Plans
             </Badge>
             <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">
-              Stop Losing Money.{' '}
+              Stop Losing on Football.{' '}
               <span className="bg-gradient-success bg-clip-text text-transparent">
                 Start Winning.
               </span>
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              <strong className="text-destructive">How much have you lost to bad decisions?</strong> Every day you wait is money left on the table. 
-              <strong className="text-success">Choose the plan that finally gives you the edge you deserve.</strong>
+              <strong className="text-destructive">How much have you lost on unpredictable football results?</strong> Every match you analyze without AI is money left on the table. 
+              <strong className="text-success">Choose the plan that finally gives you the football edge you deserve.</strong>
             </p>
           </div>
 
@@ -461,14 +461,14 @@ const Landing = () => {
               Success Stories
             </Badge>
             <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">
-              From Frustration to{' '}
+              From Football Losses to{' '}
               <span className="bg-gradient-success bg-clip-text text-transparent">
-                Financial Freedom
+                Consistent Wins
               </span>
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              <strong className="text-destructive">They were exactly where you are now.</strong> Frustrated, losing money, stressed about every decision. 
-              <strong className="text-success">Here's how they turned it all around.</strong>
+              <strong className="text-destructive">They were exactly where you are now.</strong> Frustrated with unpredictable football results, losing money, stressed about every big match. 
+              <strong className="text-success">Here's how they turned their football analysis around.</strong>
             </p>
           </div>
 
@@ -505,11 +505,11 @@ const Landing = () => {
       <section className="py-20 px-4 bg-gradient-success">
         <div className="container mx-auto text-center">
           <h2 className="text-4xl lg:text-5xl font-bold text-white mb-4 animate-fade-in-up">
-            Stop the Bleeding. Start Winning.
+            Stop Losing on Football. Start Winning.
           </h2>
           <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto animate-fade-in-up" style={{ animationDelay: '0.2s', animationFillMode: 'both' }}>
-            <strong>Every day you wait costs you money.</strong> Join thousands who've already escaped the cycle of frustration and losses. 
-            <strong>Your breakthrough moment starts now.</strong>
+            <strong>Every football match you analyze without AI costs you money.</strong> Join thousands who've already escaped the cycle of unpredictable football results and losses. 
+            <strong>Your football breakthrough moment starts now.</strong>
           </p>
           <Button 
             size="lg"
@@ -531,10 +531,10 @@ const Landing = () => {
               <div className="w-6 h-6 bg-gradient-success rounded flex items-center justify-center">
                 <Brain className="h-4 w-4 text-white" />
               </div>
-              <span className="font-bold text-foreground">Sports Analytics Pro</span>
+              <span className="font-bold text-foreground">Football Analytics Pro</span>
             </div>
             <p className="text-muted-foreground text-sm">
-              © 2024 Sports Analytics Pro. Advanced predictive intelligence for sports markets.
+              © 2024 Football Analytics Pro. Advanced predictive intelligence for football matches.
             </p>
           </div>
         </div>
