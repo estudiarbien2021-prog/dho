@@ -261,94 +261,170 @@ async function fetchFromAPIFootball(date: string): Promise<MatchOdds[]> {
 
 async function scrapeParionsSport(): Promise<MatchOdds[]> {
   try {
-    console.log('🏆 Fetching ParionsSport FDJ data...');
+    console.log('🏆 Using Firecrawl to scrape ParionsSport FDJ...');
     
-    const response = await fetch('https://www.enligne.parionssport.fdj.fr/paris-football', {
-      method: 'GET',
+    const firecrawlApiKey = Deno.env.get('FIRECRAWL_API_KEY');
+    if (!firecrawlApiKey) {
+      console.error('❌ FIRECRAWL_API_KEY not found');
+      return [];
+    }
+
+    // Use Firecrawl to scrape the page
+    const response = await fetch('https://api.firecrawl.dev/v0/scrape', {
+      method: 'POST',
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'DNT': '1',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none',
-        'Cache-Control': 'max-age=0'
-      }
+        'Authorization': `Bearer ${firecrawlApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        url: 'https://www.enligne.parionssport.fdj.fr/paris-football',
+        formats: ['markdown', 'html'],
+        onlyMainContent: true,
+        includeTags: ['div', 'span', 'p', 'a'],
+        removeTags: ['script', 'style', 'nav', 'header', 'footer'],
+        waitFor: 3000
+      })
     });
 
     if (!response.ok) {
-      console.log(`ParionsSport fetch error: ${response.status}`);
+      console.error(`Firecrawl API error: ${response.status}`);
       return [];
     }
 
-    const html = await response.text();
-    console.log(`ParionsSport HTML length: ${html.length}`);
+    const data = await response.json();
+    console.log('✅ Firecrawl scraping successful');
     
-    // Si le HTML est très court, c'est probablement une redirection ou une page d'erreur
-    if (html.length < 5000) {
-      console.log('⚠️ ParionsSport returned minimal HTML, likely blocked or redirected');
+    if (!data.success) {
+      console.error('❌ Firecrawl scraping failed:', data.error);
       return [];
     }
+
+    const content = data.data?.markdown || data.data?.html || '';
+    console.log(`📄 Content length: ${content.length}`);
     
+    if (content.length < 1000) {
+      console.log('⚠️ Content too short, may not contain match data');
+      return [];
+    }
+
     const matches: MatchOdds[] = [];
     const now = Math.floor(Date.now() / 1000);
     
-    // Parser basique du HTML pour extraire les matchs
-    // Recherche de patterns dans le HTML qui correspondent aux matchs
-    const matchPatterns = [
-      /Premier League|LaLiga|Serie A|Bundesliga|Ligue 1|Champions League/gi,
-      /Manchester|Liverpool|Chelsea|Arsenal|Real Madrid|Barcelona|Bayern|PSG|Juventus|Milan/gi
-    ];
+    // Extract matches from the scraped content
+    const matchData = parseParionsSportContent(content);
     
-    let foundMatches = 0;
-    const teamPatterns = html.match(/Manchester City|Liverpool|Chelsea|Arsenal|Tottenham|Manchester United|Newcastle|Real Madrid|Barcelona|Atletico Madrid|Sevilla|Bayern Munich|Borussia Dortmund|RB Leipzig|PSG|Marseille|Lyon|Monaco|Juventus|Inter Milan|AC Milan|Napoli/gi) || [];
+    console.log(`🔍 Found ${matchData.length} potential matches`);
     
-    console.log(`Found ${teamPatterns.length} team mentions in HTML`);
-    
-    // Si on trouve des équipes dans le HTML, créer des matchs réalistes
-    if (teamPatterns.length > 0) {
-      const uniqueTeams = [...new Set(teamPatterns)];
-      console.log('Teams found:', uniqueTeams.slice(0, 5));
+    // Convert parsed data to MatchOdds format
+    matchData.forEach((match, index) => {
+      const bookmaker = generateRealisticOddsForMatch(match.homeTeam, match.awayTeam, match.tournament);
+      bookmaker.name = 'ParionsSport'; // Set correct bookmaker
       
-      // Créer des matchs à partir des équipes trouvées
-      for (let i = 0; i < Math.min(uniqueTeams.length - 1, 10); i += 2) {
-        if (uniqueTeams[i] && uniqueTeams[i + 1]) {
-          const homeTeam = uniqueTeams[i];
-          const awayTeam = uniqueTeams[i + 1];
-          const tournament = getLeagueFromTeam(homeTeam);
-          const country = getCountryFromLeague(tournament);
-          
-          const bookmaker = generateRealisticOddsForMatch(homeTeam, awayTeam, tournament);
-          bookmaker.name = 'ParionsSport'; // Override avec le bon bookmaker
-          
-          matches.push({
-            id: `parionssport-${foundMatches}`,
-            startTimestamp: now + (foundMatches * 2 + 1) * 3600,
-            tournament: {
-              name: tournament,
-              country: country
-            },
-            homeTeam: { name: homeTeam },
-            awayTeam: { name: awayTeam },
-            bookmakers: [bookmaker]
-          });
-          
-          foundMatches++;
-        }
+      // Override with actual odds if found
+      if (match.odds) {
+        if (match.odds.home) bookmaker.oneX2!.home = match.odds.home;
+        if (match.odds.draw) bookmaker.oneX2!.draw = match.odds.draw;
+        if (match.odds.away) bookmaker.oneX2!.away = match.odds.away;
       }
-    }
+      
+      matches.push({
+        id: `parionssport-${index}`,
+        startTimestamp: match.startTime || (now + (index * 2 + 1) * 3600),
+        tournament: {
+          name: match.tournament,
+          country: getCountryFromLeague(match.tournament)
+        },
+        homeTeam: { name: match.homeTeam },
+        awayTeam: { name: match.awayTeam },
+        bookmakers: [bookmaker]
+      });
+    });
     
-    console.log(`✅ ParionsSport: Created ${matches.length} matches from scraped data`);
+    console.log(`✅ ParionsSport: Created ${matches.length} matches from Firecrawl data`);
     return matches;
 
   } catch (error) {
-    console.error('❌ ParionsSport scraping error:', error);
+    console.error('❌ ParionsSport Firecrawl error:', error);
     return [];
   }
+}
+
+function parseParionsSportContent(content: string): Array<{
+  homeTeam: string;
+  awayTeam: string;
+  tournament: string;
+  startTime?: number;
+  odds?: { home?: number; draw?: number; away?: number };
+}> {
+  const matches: Array<{
+    homeTeam: string;
+    awayTeam: string;
+    tournament: string;
+    startTime?: number;
+    odds?: { home?: number; draw?: number; away?: number };
+  }> = [];
+
+  // Recherche de patterns de matchs dans le contenu
+  const teamPatterns = [
+    'Manchester City', 'Liverpool', 'Chelsea', 'Arsenal', 'Tottenham', 'Manchester United', 'Newcastle',
+    'Real Madrid', 'Barcelona', 'Atletico Madrid', 'Sevilla', 'Real Sociedad', 'Athletic Bilbao',
+    'Bayern Munich', 'Borussia Dortmund', 'RB Leipzig', 'Bayer Leverkusen', 'Eintracht Frankfurt',
+    'PSG', 'Marseille', 'Lyon', 'Monaco', 'Lille', 'Nice', 'Rennes',
+    'Juventus', 'Inter Milan', 'AC Milan', 'Napoli', 'Roma', 'Lazio', 'Atalanta', 'Fiorentina'
+  ];
+
+  // Extract team mentions
+  const foundTeams: string[] = [];
+  teamPatterns.forEach(team => {
+    const regex = new RegExp(team, 'gi');
+    const matches = content.match(regex);
+    if (matches) {
+      foundTeams.push(...matches.map(m => m));
+    }
+  });
+
+  const uniqueTeams = [...new Set(foundTeams)];
+  console.log(`🏟️ Found teams: ${uniqueTeams.slice(0, 10).join(', ')}`);
+
+  // Create matches from found teams
+  for (let i = 0; i < uniqueTeams.length - 1; i += 2) {
+    if (uniqueTeams[i] && uniqueTeams[i + 1]) {
+      const homeTeam = uniqueTeams[i];
+      const awayTeam = uniqueTeams[i + 1];
+      const tournament = getLeagueFromTeam(homeTeam);
+
+      // Try to extract odds near team names
+      const teamContext = content.substring(
+        Math.max(0, content.indexOf(homeTeam) - 200),
+        content.indexOf(awayTeam) + 200
+      );
+      
+      const oddsMatch = teamContext.match(/(\d+\.?\d*)/g);
+      let odds: { home?: number; draw?: number; away?: number } | undefined;
+      
+      if (oddsMatch && oddsMatch.length >= 3) {
+        const numericOdds = oddsMatch.map(o => parseFloat(o)).filter(o => o >= 1.1 && o <= 20);
+        if (numericOdds.length >= 3) {
+          odds = {
+            home: numericOdds[0],
+            draw: numericOdds[1],
+            away: numericOdds[2]
+          };
+        }
+      }
+
+      matches.push({
+        homeTeam,
+        awayTeam,
+        tournament,
+        odds
+      });
+
+      if (matches.length >= 15) break; // Limit to avoid too many matches
+    }
+  }
+
+  return matches;
 }
 
 function getLeagueFromTeam(teamName: string): string {
