@@ -17,6 +17,11 @@ import {
   Users,
   CheckCircle
 } from 'lucide-react';
+import heroImage from '@/assets/hero-image.jpg';
+import featureAi from '@/assets/feature-ai.jpg';
+import featureAnalytics from '@/assets/feature-analytics.jpg';
+import featureSecurity from '@/assets/feature-security.jpg';
+import featureAutomation from '@/assets/feature-automation.jpg';
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -36,28 +41,28 @@ const Landing = () => {
       badge: "Core Feature",
       title: "Advanced Odds Analysis",
       description: "Leverage cutting-edge algorithms for intelligent odds comparison and value betting opportunities.",
-      image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=300&fit=crop"
+      image: featureAi
     },
     {
       icon: Clock,
       badge: "Popular",
       title: "Real-time Data",
       description: "Get instant updates with live odds monitoring and real-time match statistics.",
-      image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&h=300&fit=crop"
+      image: featureAnalytics
     },
     {
       icon: Shield,
       badge: "Secure",
       title: "Enterprise Security",
       description: "Bank-grade security with end-to-end encryption and compliance standards.",
-      image: "https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=400&h=300&fit=crop"
+      image: featureSecurity
     },
     {
       icon: Zap,
       badge: "Powerful",
       title: "Smart Automation",
       description: "Automate your betting strategy with intelligent filters and advanced sorting.",
-      image: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&h=300&fit=crop"
+      image: featureAutomation
     }
   ];
 
@@ -225,7 +230,7 @@ const Landing = () => {
             <div className="flex-1 relative">
               <div className="relative">
                 <img 
-                  src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&h=400&fit=crop"
+                  src={heroImage}
                   alt="Sports Betting Analytics" 
                   className="rounded-2xl shadow-2xl"
                 />
