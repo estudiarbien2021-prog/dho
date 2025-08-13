@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { FiltersPanel, FilterState, SortState } from '@/components/FiltersPanel';
 import { OddsTable, MatchOdds } from '@/components/OddsTable';
-import { TrendingUp, AlertTriangle, Info } from 'lucide-react';
+import { TrendingUp, AlertTriangle, Info, LogOut, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 // Mock data pour la démonstration
 const MOCK_MATCHES: MatchOdds[] = [
@@ -70,6 +73,32 @@ const MOCK_MATCHES: MatchOdds[] = [
 
 const Index = () => {
   const { toast } = useToast();
+  const { user, loading: authLoading, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  // Rediriger vers /auth si pas connecté
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/auth');
+    }
+  }, [user, authLoading, navigate]);
+
+  // Afficher un loader pendant la vérification d'auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-subtle flex items-center justify-center">
+        <div className="text-center">
+          <TrendingUp className="h-12 w-12 text-primary mx-auto mb-4 animate-pulse" />
+          <p className="text-muted-foreground">Chargement...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Ne pas afficher le contenu si pas connecté
+  if (!user) {
+    return null;
+  }
   
   // États des filtres
   const [filters, setFilters] = useState<FilterState>({
@@ -261,13 +290,33 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-subtle">
       <div className="container mx-auto px-4 py-8 space-y-6">
-        {/* Header */}
+        {/* Header avec auth */}
         <div className="text-center space-y-4">
-          <div className="flex items-center justify-center gap-3">
-            <TrendingUp className="h-8 w-8 text-primary" />
-            <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              Hype Odds
-            </h1>
+          <div className="flex items-center justify-between">
+            <div className="flex-1" />
+            <div className="flex items-center gap-3">
+              <TrendingUp className="h-8 w-8 text-primary" />
+              <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+                Hype Odds
+              </h1>
+            </div>
+            <div className="flex-1 flex justify-end">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <User className="h-4 w-4" />
+                  <span>{user.email}</span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={signOut}
+                  className="flex items-center gap-2"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Déconnexion
+                </Button>
+              </div>
+            </div>
           </div>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             Analysez les cotes des matchs les plus médiatisés en temps réel. 
@@ -293,6 +342,7 @@ const Index = () => {
             <AlertDescription>
               <strong>Mode Démonstration:</strong> Cette version utilise des données factices. 
               Le scraping OddsPedia sera implémenté dans la version finale avec respect des TOS.
+              Vous êtes connecté en tant que <strong>{user.email}</strong>.
             </AlertDescription>
           </Alert>
           
