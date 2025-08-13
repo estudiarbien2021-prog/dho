@@ -33,7 +33,7 @@ const Landing = () => {
   const navigate = useNavigate();
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [typedText, setTypedText] = useState('');
-  const fullText = 'AI-Powered Sports Betting Analytics';
+  const fullText = 'AI-Powered Sports Analytics Platform';
 
   const heroRef = useScrollAnimation();
   const featuresRef = useScrollAnimation();
@@ -77,28 +77,28 @@ const Landing = () => {
       icon: Brain,
       badge: "AI-Powered",
       title: "Advanced Predictive Analytics",
-      description: "Machine learning algorithms analyze thousands of data points to predict outcomes and identify value bets with unprecedented accuracy.",
+      description: "Stop losing money on gut feelings. Our machine learning algorithms analyze millions of data points to give you crystal-clear insights that consistently outperform traditional analysis methods.",
       image: featureAi
     },
     {
       icon: Clock,
       badge: "Real-Time",
       title: "Live Market Intelligence",
-      description: "Get instant updates with millisecond precision on odds movements, line changes, and market sentiment across all major bookmakers.",
+      description: "Never miss another opportunity. Get instant alerts on market changes, value discoveries, and trend shifts before everyone else, so you can act with confidence every single time.",
       image: featureAnalytics
     },
     {
       icon: Shield,
       badge: "Enterprise",
       title: "Bank-Grade Security",
-      description: "Military-grade encryption and multi-layer security protocols protect your data and strategies from unauthorized access.",
+      description: "Your strategies are your competitive advantage. Military-grade encryption ensures your analytical edge stays protected from competitors and data breaches.",
       image: featureSecurity
     },
     {
       icon: Bot,
       badge: "Automated",
-      title: "Smart Betting Automation",
-      description: "Deploy intelligent betting bots that execute your strategies 24/7, react to market changes, and maximize profitable opportunities.",
+      title: "Smart Analysis Automation",
+      description: "Stop spending endless hours on manual research. Our intelligent system works 24/7 to identify profitable patterns and opportunities while you focus on what matters most.",
       image: featureAutomation
     }
   ];
@@ -106,20 +106,20 @@ const Landing = () => {
   const testimonials = [
     {
       name: "Marcus Thompson",
-      role: "Professional Sports Trader",
-      content: "This platform's AI predictions have increased my win rate by 34%. The automation features alone save me 8 hours daily.",
+      role: "Sports Data Analyst",
+      content: "I was losing sleep over inconsistent results. Now I sleep peacefully knowing my analysis is backed by AI that never misses a pattern. My success rate increased 34% in just 3 months.",
       avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=60&h=60&fit=crop&crop=face"
     },
     {
       name: "Elena Kowalski",
-      role: "Quantitative Analyst",
-      content: "The most sophisticated betting analytics I've encountered. The real-time data integration is simply unmatched in the industry.",
+      role: "Financial Analyst", 
+      content: "I used to waste 12 hours daily on manual research with mediocre results. This platform gave me back my weekends and multiplied my accuracy. It's life-changing.",
       avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b0e9?w=60&h=60&fit=crop&crop=face"
     },
     {
       name: "David Chen",
-      role: "Betting Syndicate Manager",
-      content: "Our team's ROI jumped 67% in the first quarter. The predictive models consistently outperform traditional analysis methods.",
+      role: "Investment Team Lead",
+      content: "The fear of making wrong decisions kept me up at night. Now I have the confidence of AI-backed insights. Our team's performance jumped 67% - we finally found our edge.",
       avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=60&h=60&fit=crop&crop=face"
     }
   ];
@@ -140,13 +140,13 @@ const Landing = () => {
       name: "Professional",
       price: "$49",
       period: "/month",
-      description: "For serious traders",
+      description: "For data professionals",
       features: [
         "Advanced AI models",
-        "All markets & sports",
-        "Real-time alerts",
+        "All sports & markets",
+        "Real-time insights",
         "Priority support",
-        "Custom strategies",
+        "Custom analysis",
         "API access"
       ],
       popular: true
@@ -155,13 +155,13 @@ const Landing = () => {
       name: "Enterprise",
       price: "$199",
       period: "/month",
-      description: "For trading teams",
+      description: "For analysis teams",
       features: [
         "Everything in Professional",
         "Multi-account management",
-        "Custom integrations",
+        "Custom integrations", 
         "Dedicated support",
-        "White-label options",
+        "White-label solutions",
         "Team collaboration tools"
       ]
     }
@@ -192,12 +192,12 @@ const Landing = () => {
               <div className="w-8 h-8 bg-gradient-ai rounded-lg flex items-center justify-center animate-ai-pulse">
                 <Brain className="h-5 w-5 text-background" />
               </div>
-              <span className="text-xl font-bold text-foreground">Hype Odds AI</span>
+              <span className="text-xl font-bold text-foreground">Sports Analytics Pro</span>
             </div>
             
             <nav className="hidden md:flex items-center gap-8 animate-fade-in-up">
               <a href="#features" className="text-muted-foreground hover:text-primary transition-all duration-300 hover:scale-110">Features</a>
-              <a href="#how-it-works" className="text-muted-foreground hover:text-primary transition-all duration-300 hover:scale-110">AI Technology</a>
+              <a href="#how-it-works" className="text-muted-foreground hover:text-primary transition-all duration-300 hover:scale-110">Analytics</a>
               <a href="#pricing" className="text-muted-foreground hover:text-primary transition-all duration-300 hover:scale-110">Pricing</a>
               <a href="#testimonials" className="text-muted-foreground hover:text-primary transition-all duration-300 hover:scale-110">Success Stories</a>
             </nav>
@@ -229,7 +229,7 @@ const Landing = () => {
             <div className="flex-1 text-center lg:text-left">
               <Badge className="mb-6 bg-primary/20 text-primary border-primary/30 animate-scale-in hover:scale-110 transition-transform duration-300">
                 <Sparkles className="w-4 h-4 mr-2" />
-                Next-Gen Sports Intelligence
+                The End of Guesswork
               </Badge>
               
               <h1 className="text-5xl lg:text-7xl font-bold text-foreground mb-6 leading-tight">
@@ -241,9 +241,9 @@ const Landing = () => {
               
               <div className="animate-fade-in-up" style={{ animationDelay: '0.5s', animationFillMode: 'both' }}>
                 <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
-                  Harness the power of artificial intelligence to revolutionize your sports betting strategy. 
-                  Our advanced algorithms process millions of data points to deliver predictive insights 
-                  that give you the competitive edge.
+                  <strong className="text-destructive">Tired of losing money on gut feelings?</strong> Stop the frustration of inconsistent results. 
+                  Our AI processes millions of data points to give you the confidence and clarity you've been searching for. 
+                  <strong className="text-success">Finally, make decisions backed by intelligence, not emotion.</strong>
                 </p>
               </div>
               
@@ -288,7 +288,7 @@ const Landing = () => {
               <div className="relative group">
                 <img 
                   src={heroImage}
-                  alt="AI Sports Betting Analytics Dashboard" 
+                  alt="Sports Analytics Dashboard" 
                   className="rounded-2xl shadow-elegant transition-all duration-500 hover:scale-105 hover:shadow-ai-glow"
                 />
                 <div className="absolute top-4 left-4 bg-success/20 backdrop-blur-sm rounded-lg px-3 py-2 border border-success/30 animate-fade-in-down" style={{ animationDelay: '1s', animationFillMode: 'both' }}>
@@ -322,14 +322,14 @@ const Landing = () => {
               AI Technology
             </Badge>
             <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">
-              Advanced Features for{' '}
-              <span className="bg-gradient-primary bg-clip-text text-transparent">
-                Professional Traders
+              Stop Making These{' '}
+              <span className="bg-gradient-to-r from-destructive to-warning bg-clip-text text-transparent">
+                Costly Mistakes
               </span>
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Experience the future of sports betting with our cutting-edge AI platform that learns, 
-              adapts, and evolves to maximize your profitability.
+              <strong className="text-destructive">The pain of inconsistent results ends here.</strong> Our AI eliminates the guesswork, 
+              emotional decisions, and sleepless nights. <strong className="text-success">Transform frustration into confidence.</strong>
             </p>
           </div>
 
@@ -384,14 +384,14 @@ const Landing = () => {
               Pricing Plans
             </Badge>
             <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">
-              Choose Your{' '}
+              Stop Losing Money.{' '}
               <span className="bg-gradient-success bg-clip-text text-transparent">
-                Trading Tier
+                Start Winning.
               </span>
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Start with our free tier and scale up as you grow. Every plan includes our core AI features 
-              with advanced options for professional traders.
+              <strong className="text-destructive">How much have you lost to bad decisions?</strong> Every day you wait is money left on the table. 
+              <strong className="text-success">Choose the plan that finally gives you the edge you deserve.</strong>
             </p>
           </div>
 
@@ -461,13 +461,14 @@ const Landing = () => {
               Success Stories
             </Badge>
             <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">
-              Trusted by{' '}
+              From Frustration to{' '}
               <span className="bg-gradient-success bg-clip-text text-transparent">
-                Elite Traders
+                Financial Freedom
               </span>
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Join thousands of professional traders who've transformed their strategies with our AI platform.
+              <strong className="text-destructive">They were exactly where you are now.</strong> Frustrated, losing money, stressed about every decision. 
+              <strong className="text-success">Here's how they turned it all around.</strong>
             </p>
           </div>
 
@@ -504,10 +505,11 @@ const Landing = () => {
       <section className="py-20 px-4 bg-gradient-ai">
         <div className="container mx-auto text-center">
           <h2 className="text-4xl lg:text-5xl font-bold text-background mb-4 animate-fade-in-up">
-            Ready to Transform Your Trading?
+            Stop the Bleeding. Start Winning.
           </h2>
           <p className="text-xl text-background/80 mb-8 max-w-2xl mx-auto animate-fade-in-up" style={{ animationDelay: '0.2s', animationFillMode: 'both' }}>
-            Join the AI revolution and start making smarter, more profitable bets today.
+            <strong>Every day you wait costs you money.</strong> Join thousands who've already escaped the cycle of frustration and losses. 
+            <strong>Your breakthrough moment starts now.</strong>
           </p>
           <Button 
             size="lg"
@@ -529,10 +531,10 @@ const Landing = () => {
               <div className="w-6 h-6 bg-gradient-ai rounded flex items-center justify-center">
                 <Brain className="h-4 w-4 text-background" />
               </div>
-              <span className="font-bold text-foreground">Hype Odds AI</span>
+              <span className="font-bold text-foreground">Sports Analytics Pro</span>
             </div>
             <p className="text-muted-foreground text-sm">
-              © 2024 Hype Odds AI. Powered by next-generation artificial intelligence.
+              © 2024 Sports Analytics Pro. Advanced predictive intelligence for sports markets.
             </p>
           </div>
         </div>
