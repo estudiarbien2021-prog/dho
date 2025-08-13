@@ -127,42 +127,42 @@ const Landing = () => {
   const pricingPlans = [
     {
       name: "Explorer",
-      price: "Free",
-      description: "Perfect for football fans",
+      price: "Gratuit",
+      description: "Parfait pour les passionnés",
       features: [
-        "Basic football predictions",
-        "5 major leagues access",
-        "Standard match analysis",
-        "Community support"
+        "Tableaux essentiels",
+        "Modèles de base",
+        "5 vues enregistrées",
+        "Communauté"
       ]
     },
     {
-      name: "Professional",
-      price: "$49",
-      period: "/month",
-      description: "For football professionals",
+      name: "Professionnel",
+      price: "49 €",
+      period: "/mois",
+      description: "Pour les analystes football",
       features: [
-        "Advanced football AI models",
-        "All leagues & tournaments",
-        "Real-time match insights",
-        "Priority support",
-        "Custom team analysis",
-        "API access"
+        "Tous les modèles & dashboards",
+        "Signaux en direct",
+        "API & CSV",
+        "Support prioritaire",
+        "Analyses sur mesure",
+        "Accès complet"
       ],
       popular: true
     },
     {
-      name: "Enterprise",
-      price: "$199",
-      period: "/month",
-      description: "For football analysis teams",
+      name: "Équipe",
+      price: "199 €",
+      period: "/mois",
+      description: "Pour les équipes d'analyse",
       features: [
-        "Everything in Professional",
-        "Multi-league management",
-        "Custom integrations", 
-        "Dedicated support",
-        "White-label solutions",
-        "Team collaboration tools"
+        "Tout du Professionnel",
+        "SSO & permissions",
+        "Intégrations sur mesure",
+        "Succès dédié",
+        "Solutions en marque blanche",
+        "SLA"
       ]
     }
   ];
@@ -199,7 +199,7 @@ const Landing = () => {
               <a href="#features" className="text-muted-foreground hover:text-primary transition-all duration-300 hover:scale-110">Features</a>
               <a href="#how-it-works" className="text-muted-foreground hover:text-primary transition-all duration-300 hover:scale-110">Football AI</a>
               <a href="#pricing" className="text-muted-foreground hover:text-primary transition-all duration-300 hover:scale-110">Pricing</a>
-              <a href="#testimonials" className="text-muted-foreground hover:text-primary transition-all duration-300 hover:scale-110">Football Experts</a>
+              <a href="#testimonials" className="text-muted-foreground hover:text-primary transition-all duration-300 hover:scale-110">Ressources</a>
             </nav>
 
             <div className="flex items-center gap-4 animate-fade-in-right">
@@ -241,7 +241,7 @@ const Landing = () => {
               
               <div className="animate-fade-in-up" style={{ animationDelay: '0.5s', animationFillMode: 'both' }}>
                 <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
-                  <strong className="text-destructive">Marre des lectures qui déraillent sur les gros matchs ?</strong> Notre IA transforme le brouillard d'infos en repères clairs et expliqués. 
+                  <strong className="text-destructive">Marre des lectures qui déraillent sur les gros matchs ?</strong> Notre IA transforme le chaos en repères nets et expliqués. 
                   <strong className="text-success">Enfin, un cadre clair pour lire les gros matchs sans te laisser embarquer.</strong> Tu vis le frisson… avec la tête froide.
                 </p>
               </div>
@@ -331,7 +331,7 @@ const Landing = () => {
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
               <strong className="text-destructive">Infos partout, essentiel nulle part.</strong> La compo tombe, ta lecture vacille. Chaque soir un autre rituel : impossible d'être constant. 
-              <strong className="text-success">Notre IA transforme le chaos en repères fiables.</strong>
+              <strong className="text-success">Fin du brouillard d'infos – tu gardes la lucidité même quand ça chauffe.</strong>
             </p>
           </div>
 
@@ -362,7 +362,7 @@ const Landing = () => {
                 <CardContent>
                   <p className="text-muted-foreground mb-4 group-hover:text-foreground/80 transition-colors duration-300">{feature.description}</p>
                   <Button variant="link" className="text-success hover:text-success/80 p-0 hover:scale-105 transition-all duration-300">
-                    Explore feature →
+                    Découvrir →
                   </Button>
                 </CardContent>
               </Card>
@@ -439,7 +439,7 @@ const Landing = () => {
                     } hover:scale-105 transition-all duration-300`}
                     onClick={handleGetStarted}
                   >
-                    {plan.price === 'Free' ? 'Start Free' : 'Choose Plan'}
+                    {plan.price === 'Gratuit' ? 'Commencer gratuitement' : 'Choisir ce plan'}
                   </Button>
                 </CardContent>
               </Card>
@@ -519,7 +519,7 @@ const Landing = () => {
             className="bg-white text-success hover:bg-white/90 hover:scale-105 transition-all duration-300 text-lg px-8 py-6 animate-fade-in-up"
             style={{ animationDelay: '0.4s', animationFillMode: 'both' }}
           >
-            Start Your Free Trial
+            Commencer l'essai gratuit
             <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
         </div>
