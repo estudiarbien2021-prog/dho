@@ -5,19 +5,17 @@ import Papa from 'papaparse';
 export interface MatchFilters {
   search: string;
   leagues: string[];
-  categories: string[];
-  flags: string[];
-  vigRange: [number, number];
   timeWindow: 'all' | '6h' | '12h' | '24h';
+  groupBy: 'time' | 'competition';
+  marketFilters: string[];
 }
 
 const defaultFilters: MatchFilters = {
   search: '',
   leagues: [],
-  categories: [],
-  flags: [],
-  vigRange: [0, 0.15],
-  timeWindow: 'all'
+  timeWindow: 'all',
+  groupBy: 'time',
+  marketFilters: []
 };
 
 export function useMatchesData() {
@@ -117,7 +115,7 @@ export function useMatchesData() {
 
   // Filter matches
   const filteredMatches = useMemo(() => {
-    return rawMatches.filter(match => {
+    let matches = rawMatches.filter(match => {
       // Search filter
       if (filters.search) {
         const searchTerm = filters.search.toLowerCase();
@@ -135,27 +133,18 @@ export function useMatchesData() {
         return false;
       }
 
-      // Categories filter
-      if (filters.categories.length > 0 && !filters.categories.includes(match.category)) {
-        return false;
-      }
-
-      // Flags filter
-      if (filters.flags.length > 0) {
-        const hasFlag = filters.flags.some(flag => {
-          switch (flag) {
-            case 'low_vig': return match.is_low_vig_1x2;
-            case 'watch_btts': return match.watch_btts;
-            case 'watch_over25': return match.watch_over25;
-            default: return false;
+      // Market filters
+      if (filters.marketFilters.length > 0) {
+        const hasMarket = filters.marketFilters.every(market => {
+          switch (market) {
+            case 'btts_yes': return match.odds_btts_yes && match.odds_btts_yes > 0;
+            case 'btts_no': return match.odds_btts_no && match.odds_btts_no > 0;
+            case 'over25': return match.odds_over_2_5 && match.odds_over_2_5 > 0;
+            case 'under25': return match.odds_under_2_5 && match.odds_under_2_5 > 0;
+            default: return true;
           }
         });
-        if (!hasFlag) return false;
-      }
-
-      // Vig range filter
-      if (match.vig_1x2 < filters.vigRange[0] || match.vig_1x2 > filters.vigRange[1]) {
-        return false;
+        if (!hasMarket) return false;
       }
 
       // Time window filter
@@ -172,15 +161,25 @@ export function useMatchesData() {
 
       return true;
     });
+
+    // Apply grouping/sorting
+    if (filters.groupBy === 'competition') {
+      matches.sort((a, b) => {
+        if (a.league !== b.league) {
+          return a.league.localeCompare(b.league);
+        }
+        return a.kickoff_utc.getTime() - b.kickoff_utc.getTime();
+      });
+    } else {
+      matches.sort((a, b) => a.kickoff_utc.getTime() - b.kickoff_utc.getTime());
+    }
+
+    return matches;
   }, [rawMatches, filters]);
 
   // Get unique values for filters
   const availableLeagues = useMemo(() => 
     [...new Set(rawMatches.map(m => m.league))].sort(), [rawMatches]
-  );
-
-  const availableCategories = useMemo(() => 
-    [...new Set(rawMatches.map(m => m.category))].sort(), [rawMatches]
   );
 
   // Stats
@@ -201,7 +200,6 @@ export function useMatchesData() {
     filters,
     setFilters,
     availableLeagues,
-    availableCategories,
     stats
   };
 }

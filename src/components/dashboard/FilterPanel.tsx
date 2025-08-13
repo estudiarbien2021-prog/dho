@@ -6,17 +6,16 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
-import { Search, Filter, X } from 'lucide-react';
+import { Search, Filter, X, ArrowUpDown, Trophy } from 'lucide-react';
 import { MatchFilters } from '@/hooks/useMatchesData';
 
 interface FilterPanelProps {
   filters: MatchFilters;
   onFiltersChange: (filters: MatchFilters) => void;
   availableLeagues: string[];
-  availableCategories: string[];
 }
 
-export function FilterPanel({ filters, onFiltersChange, availableLeagues, availableCategories }: FilterPanelProps) {
+export function FilterPanel({ filters, onFiltersChange, availableLeagues }: FilterPanelProps) {
   const updateFilters = (updates: Partial<MatchFilters>) => {
     onFiltersChange({ ...filters, ...updates });
   };
@@ -25,15 +24,14 @@ export function FilterPanel({ filters, onFiltersChange, availableLeagues, availa
     onFiltersChange({
       search: '',
       leagues: [],
-      categories: [],
-      flags: [],
-      vigRange: [0, 0.15],
-      timeWindow: 'all'
+      timeWindow: 'all',
+      groupBy: 'time',
+      marketFilters: []
     });
   };
 
   const hasActiveFilters = filters.search || filters.leagues.length > 0 || 
-    filters.categories.length > 0 || filters.flags.length > 0 || filters.timeWindow !== 'all';
+    filters.timeWindow !== 'all' || filters.marketFilters.length > 0;
 
   return (
     <Card className="p-6 h-fit">
@@ -82,74 +80,56 @@ export function FilterPanel({ filters, onFiltersChange, availableLeagues, availa
           </Select>
         </div>
 
-        {/* Categories */}
-        <div className="space-y-3">
-          <Label>Catégories</Label>
-          <div className="space-y-2">
-            {availableCategories.map(category => (
-              <div key={category} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`cat-${category}`}
-                  checked={filters.categories.includes(category)}
-                  onCheckedChange={(checked) => {
-                    const newCategories = checked
-                      ? [...filters.categories, category]
-                      : filters.categories.filter(c => c !== category);
-                    updateFilters({ categories: newCategories });
-                  }}
-                />
-                <Label htmlFor={`cat-${category}`} className="text-sm capitalize">
-                  {category.replace('_', ' ')}
-                </Label>
-              </div>
-            ))}
-          </div>
+        {/* Group By */}
+        <div className="space-y-2">
+          <Label>Regroupement</Label>
+          <Select value={filters.groupBy} onValueChange={(value) => updateFilters({ groupBy: value as any })}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="time">
+                <div className="flex items-center gap-2">
+                  <ArrowUpDown className="h-4 w-4" />
+                  Par heure de début
+                </div>
+              </SelectItem>
+              <SelectItem value="competition">
+                <div className="flex items-center gap-2">
+                  <Trophy className="h-4 w-4" />
+                  Par compétition
+                </div>
+              </SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
-        {/* Flags */}
+        {/* Market Filters */}
         <div className="space-y-3">
-          <Label>Signaux</Label>
+          <Label>Filtres de marchés</Label>
           <div className="space-y-2">
             {[
-              { id: 'low_vig', label: 'Low Vig (≤12%)' },
-              { id: 'watch_btts', label: 'Watch BTTS' },
-              { id: 'watch_over25', label: 'Watch Over 2.5' }
-            ].map(flag => (
-              <div key={flag.id} className="flex items-center space-x-2">
+              { id: 'btts_yes', label: 'BTTS Oui' },
+              { id: 'btts_no', label: 'BTTS Non' },
+              { id: 'over25', label: '+2.5 buts' },
+              { id: 'under25', label: '-2.5 buts' }
+            ].map(market => (
+              <div key={market.id} className="flex items-center space-x-2">
                 <Checkbox
-                  id={`flag-${flag.id}`}
-                  checked={filters.flags.includes(flag.id)}
+                  id={`market-${market.id}`}
+                  checked={filters.marketFilters.includes(market.id)}
                   onCheckedChange={(checked) => {
-                    const newFlags = checked
-                      ? [...filters.flags, flag.id]
-                      : filters.flags.filter(f => f !== flag.id);
-                    updateFilters({ flags: newFlags });
+                    const newMarkets = checked
+                      ? [...filters.marketFilters, market.id]
+                      : filters.marketFilters.filter(m => m !== market.id);
+                    updateFilters({ marketFilters: newMarkets });
                   }}
                 />
-                <Label htmlFor={`flag-${flag.id}`} className="text-sm">
-                  {flag.label}
+                <Label htmlFor={`market-${market.id}`} className="text-sm">
+                  {market.label}
                 </Label>
               </div>
             ))}
-          </div>
-        </div>
-
-        {/* Vig Range */}
-        <div className="space-y-3">
-          <Label>Marge (Vig) 1X2</Label>
-          <div className="px-2">
-            <Slider
-              value={filters.vigRange}
-              onValueChange={(value) => updateFilters({ vigRange: value as [number, number] })}
-              max={0.2}
-              min={0}
-              step={0.01}
-              className="w-full"
-            />
-            <div className="flex justify-between text-xs text-muted-foreground mt-1">
-              <span>{(filters.vigRange[0] * 100).toFixed(0)}%</span>
-              <span>{(filters.vigRange[1] * 100).toFixed(0)}%</span>
-            </div>
           </div>
         </div>
 

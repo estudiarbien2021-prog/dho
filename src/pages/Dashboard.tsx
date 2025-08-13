@@ -5,7 +5,7 @@ import { useMatchesData } from '@/hooks/useMatchesData';
 import { KPIHeader } from '@/components/dashboard/KPIHeader';
 import { FilterPanel } from '@/components/dashboard/FilterPanel';
 import { MatchesTable } from '@/components/dashboard/MatchesTable';
-import { VigorishDistribution } from '@/components/dashboard/VigorishDistribution';
+
 import { MatchDetailModal } from '@/components/dashboard/MatchDetailModal';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -26,7 +26,6 @@ export function Dashboard({ currentLang, matches: _matches }: DashboardProps) {
     filters, 
     setFilters, 
     availableLeagues, 
-    availableCategories, 
     stats 
   } = useMatchesData();
 
@@ -152,15 +151,11 @@ export function Dashboard({ currentLang, matches: _matches }: DashboardProps) {
             filters={filters}
             onFiltersChange={setFilters}
             availableLeagues={availableLeagues}
-            availableCategories={availableCategories}
           />
         </div>
 
         {/* Main Content Area */}
         <div className="lg:col-span-3 space-y-6">
-          {/* Vigorish Distribution Chart */}
-          <VigorishDistribution matches={matches} />
-
           {/* Matches Table */}
           <div>
             <div className="flex items-center justify-between mb-4">
