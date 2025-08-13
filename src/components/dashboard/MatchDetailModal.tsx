@@ -206,17 +206,16 @@ export function MatchDetailModal({ match, isOpen, onClose }: MatchDetailModalPro
                 </Badge>
               </div>
               <div className="text-center md:text-left">
-                <p className="text-sm text-text-weak mb-2">Heure UTC</p>
-                <p className="font-medium flex items-center justify-center md:justify-start gap-2 text-text">
-                  <Clock className="h-4 w-4 text-brand" />
-                  {format(match.kickoff_utc, 'dd/MM HH:mm', { locale: fr })}
-                </p>
-              </div>
-              <div className="text-center md:text-left">
                 <p className="text-sm text-text-weak mb-2">Heure locale</p>
                 <p className="font-medium flex items-center justify-center md:justify-start gap-2 text-text">
                   <Clock className="h-4 w-4 text-brand" />
-                  {format(match.kickoff_utc, 'dd/MM HH:mm', { locale: fr })}
+                  {new Date(match.kickoff_utc).toLocaleString('fr-FR', { 
+                    day: '2-digit', 
+                    month: '2-digit', 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                  })}
                 </p>
               </div>
               <div className="text-center md:text-left">
@@ -258,8 +257,8 @@ export function MatchDetailModal({ match, isOpen, onClose }: MatchDetailModalPro
             </h3>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <DonutChart data={results1x2Data} title="Résultat 1X2" prediction={get1x2Winner()} />
-              {bttsData.length > 0 && <DonutChart data={bttsData} title="Both Teams To Score" prediction={getBttsWinner()} />}
-              {over25Data.length > 0 && <DonutChart data={over25Data} title="Over/Under 2.5" prediction={getOver25Winner()} />}
+              {bttsData.length > 0 && <DonutChart data={bttsData} title="Les Deux Équipes Marquent" prediction={getBttsWinner()} />}
+              {over25Data.length > 0 && <DonutChart data={over25Data} title="Plus/Moins 2,5 Buts" prediction={getOver25Winner()} />}
             </div>
           </div>
 
@@ -274,7 +273,7 @@ export function MatchDetailModal({ match, isOpen, onClose }: MatchDetailModalPro
                 <div className="w-2 h-8 bg-gradient-to-b from-brand to-brand-400 rounded-full animate-pulse"></div>
                 🤖 Recommandation IA
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="text-center md:text-left">
                   <p className="text-sm text-text-weak mb-2">Type de pari</p>
                   <Badge className="bg-gradient-to-r from-brand/40 to-brand-400/40 border-brand/60 text-brand-fg font-bold px-3 py-1">
@@ -288,15 +287,9 @@ export function MatchDetailModal({ match, isOpen, onClose }: MatchDetailModalPro
                   </p>
                 </div>
                 <div className="text-center md:text-left">
-                  <p className="text-sm text-text-weak mb-2">Probabilité IA</p>
-                  <Badge variant="outline" className="bg-gradient-to-r from-brand/30 to-brand-400/30 border-brand/50 text-text font-bold">
-                    {(bestRecommendation.probability * 100).toFixed(1)}%
-                  </Badge>
-                </div>
-                <div className="text-center md:text-left">
-                  <p className="text-sm text-text-weak mb-2">Valeur Attendue</p>
-                  <Badge variant={bestRecommendation.expectedValue > 0 ? "default" : "secondary"} className="bg-gradient-to-r from-brand-400/30 to-brand-600/30 border-brand-400/50 text-text font-bold">
-                    {bestRecommendation.expectedValue > 0 ? '+' : ''}{(bestRecommendation.expectedValue * 100).toFixed(1)}%
+                  <p className="text-sm text-text-weak mb-2">Cote</p>
+                  <Badge variant="outline" className="bg-gradient-to-r from-brand/30 to-brand-400/30 border-brand/50 text-text font-bold text-lg">
+                    {bestRecommendation.odds.toFixed(2)}
                   </Badge>
                 </div>
               </div>
