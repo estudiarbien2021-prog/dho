@@ -9,7 +9,8 @@ import { VigorishDistribution } from '@/components/dashboard/VigorishDistributio
 import { MatchDetailModal } from '@/components/dashboard/MatchDetailModal';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Download, RefreshCw, AlertCircle } from 'lucide-react';
+import { Download, RefreshCw, AlertCircle, LogOut, Brain } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 interface DashboardProps {
   currentLang: Language;
@@ -17,6 +18,7 @@ interface DashboardProps {
 }
 
 export function Dashboard({ currentLang, matches: _matches }: DashboardProps) {
+  const { user, signOut } = useAuth();
   const { 
     matches, 
     isLoading, 
@@ -105,16 +107,36 @@ export function Dashboard({ currentLang, matches: _matches }: DashboardProps) {
     <div className="p-6 space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Dashboard Analytics</h1>
-          <p className="text-muted-foreground mt-1">
-            Analyse des paris sportifs avec données en temps réel
-          </p>
+        <div className="flex items-center gap-4">
+          <div className="p-2 rounded-xl bg-gradient-to-r from-brand/20 to-brand-400/20 border border-brand/30">
+            <Brain className="h-6 w-6 text-brand" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold">Dashboard Analytics</h1>
+            <p className="text-muted-foreground mt-1">
+              Analyse des paris sportifs avec données en temps réel
+            </p>
+          </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-3">
+          {user && (
+            <div className="text-right mr-4">
+              <p className="text-sm text-muted-foreground">Connecté en tant que</p>
+              <p className="font-medium">{user.email}</p>
+            </div>
+          )}
           <Button variant="outline" size="sm" onClick={exportToCSV} disabled={matches.length === 0}>
             <Download className="h-4 w-4 mr-2" />
             Export CSV ({matches.length})
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={signOut}
+            className="border-destructive/30 text-destructive hover:bg-destructive/10"
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Déconnexion
           </Button>
         </div>
       </div>

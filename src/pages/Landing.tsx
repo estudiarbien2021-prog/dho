@@ -28,9 +28,11 @@ import featureSecurity from '@/assets/feature-security.jpg';
 import featureAutomation from '@/assets/feature-automation.jpg';
 import ParticleBackground from '@/components/ParticleBackground';
 import { useScrollAnimation, useStaggeredAnimation } from '@/hooks/useScrollAnimation';
+import { useAuth } from '@/hooks/useAuth';
 
 const Landing = () => {
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [typedText, setTypedText] = useState('');
   const fullText = 'Le foot te fait vibrer. Garde la lucidité.';
@@ -65,7 +67,11 @@ const Landing = () => {
   }, []);
 
   const handleGetStarted = () => {
-    navigate('/auth');
+    if (user) {
+      navigate('/dashboard');
+    } else {
+      navigate('/auth');
+    }
   };
 
   const handleWatchDemo = () => {
@@ -203,15 +209,39 @@ const Landing = () => {
             </nav>
 
             <div className="flex items-center gap-4 animate-fade-in-right">
-              <Button variant="ghost" className="text-foreground hover:text-primary hover:scale-105 transition-all duration-300">
-                Sign In
-              </Button>
-              <Button 
-                onClick={handleGetStarted}
-                className="bg-gradient-primary hover:shadow-glow hover:scale-105 transition-all duration-300"
-              >
-                Get Started
-              </Button>
+              {user ? (
+                <>
+                  <Button 
+                    variant="ghost" 
+                    onClick={signOut}
+                    className="text-foreground hover:text-destructive hover:scale-105 transition-all duration-300"
+                  >
+                    Se déconnecter
+                  </Button>
+                  <Button 
+                    onClick={() => navigate('/dashboard')}
+                    className="bg-gradient-primary hover:shadow-glow hover:scale-105 transition-all duration-300"
+                  >
+                    Dashboard
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button 
+                    variant="ghost" 
+                    onClick={() => navigate('/auth')}
+                    className="text-foreground hover:text-primary hover:scale-105 transition-all duration-300"
+                  >
+                    Sign In
+                  </Button>
+                  <Button 
+                    onClick={handleGetStarted}
+                    className="bg-gradient-primary hover:shadow-glow hover:scale-105 transition-all duration-300"
+                  >
+                    Get Started
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>
