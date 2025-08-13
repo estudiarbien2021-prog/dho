@@ -4,7 +4,7 @@ import ReactCountryFlag from "react-country-flag";
 export function FlagMini({ code, confed }:{code?:string; confed?:"UEFA"|"CONMEBOL"}) {
   if (confed){
     return (
-      <span className="inline-flex items-center px-1.5 py-0.5 text-[10px] rounded bg-brand-50 text-brand-600 border border-brand-200">
+      <span className="inline-flex items-center px-1.5 py-0.5 text-[10px] rounded bg-primary/10 text-primary border border-primary/20">
         {confed}
       </span>
     );

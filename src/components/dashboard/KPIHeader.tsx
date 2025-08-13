@@ -19,26 +19,26 @@ export function KPIHeader({ stats }: KPIHeaderProps) {
       label: 'Total Matchs',
       value: stats.total,
       icon: BarChart3,
-      color: 'bg-brand/10 text-brand',
+      color: 'bg-primary/10 text-primary',
     },
     {
       label: 'Low Vig (≤12%)',
       value: stats.lowVig,
       percentage: stats.total > 0 ? (stats.lowVig / stats.total * 100).toFixed(1) : '0',
       icon: TrendingUp,
-      color: 'bg-success/10 text-success',
+      color: 'bg-green-500/10 text-green-600',
     },
     {
       label: 'Watch BTTS',
       value: stats.watchBtts,
       icon: Target,
-      color: 'bg-warning/10 text-warning',
+      color: 'bg-yellow-500/10 text-yellow-600',
     },
     {
       label: 'Watch Over 2.5',
       value: stats.watchOver25,
       icon: Eye,
-      color: 'bg-accent/10 text-accent',
+      color: 'bg-blue-500/10 text-blue-600',
     },
   ];
 
@@ -83,13 +83,13 @@ export function KPIHeader({ stats }: KPIHeaderProps) {
           <div className="flex items-center gap-4">
             <div className="text-right">
               <p className="text-xs text-muted-foreground">Objectif: &lt; 12%</p>
-              <p className={`text-sm font-medium ${stats.avgVig <= 0.12 ? 'text-success' : 'text-warning'}`}>
+              <p className={`text-sm font-medium ${stats.avgVig <= 0.12 ? 'text-green-600' : 'text-yellow-600'}`}>
                 {stats.avgVig <= 0.12 ? 'Excellent' : 'Élevé'}
               </p>
             </div>
             <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
               <div 
-                className={`h-full transition-all duration-500 ${stats.avgVig <= 0.12 ? 'bg-success' : 'bg-warning'}`}
+                className={`h-full transition-all duration-500 ${stats.avgVig <= 0.12 ? 'bg-green-500' : 'bg-yellow-500'}`}
                 style={{ width: `${Math.min(stats.avgVig * 100 / 15 * 100, 100)}%` }}
               />
             </div>
