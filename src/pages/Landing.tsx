@@ -76,29 +76,29 @@ const Landing = () => {
     {
       icon: Brain,
       badge: "AI-Powered",
-      title: "Advanced Football Predictions",
-      description: "Get data-driven insights instead of relying on intuition. Our AI analyzes team performance, player stats, weather conditions, and 200+ football-specific factors to provide accurate match outcome predictions for sports analysis.",
+      title: "Prédictions Football Avancées",
+      description: "Arrêtez de vous tromper sur les gros matchs et de passer pour un amateur devant vos amis. Notre IA analyse la forme des équipes, les stats des joueurs, les conditions météo et 200+ facteurs pour que vous fassiez enfin des prédictions qui impressionnent.",
       image: featureAi
     },
     {
       icon: Clock,
-      badge: "Real-Time",
-      title: "Live Match Intelligence",
-      description: "Stay informed with comprehensive match data. Get instant alerts on team news, injury updates, tactical changes, and real-time match statistics - all designed for thorough football analysis and research.",
+      badge: "Real-Time", 
+      title: "Intelligence Match en Direct",
+      description: "Ne ratez plus jamais une info cruciale qui change tout. Recevez les alertes sur les compos, blessures de dernière minute et changements tactiques en temps réel. Soyez le premier à savoir, le premier à briller.",
       image: featureAnalytics
     },
     {
       icon: Shield,
       badge: "Enterprise",
-      title: "Bank-Grade Security",
-      description: "Your football research and analysis data is valuable. Military-grade encryption ensures your analytical insights and research methods stay protected and secure in our platform.",
+      title: "Sécurité Niveau Bancaire",
+      description: "Vos méthodes d'analyse qui marchent sont votre avantage secret. Un cryptage militaire protège vos stratégies gagnantes et vos découvertes tactiques des regards indiscrets. Votre expertise reste à vous.",
       image: featureSecurity
     },
     {
       icon: Bot,
       badge: "Automated",
-      title: "Smart Football Analysis",
-      description: "Save time on football research. Our intelligent system works 24/7 to identify tactical patterns, team trends, and statistical insights while you focus on other important tasks.",
+      title: "Analyse Football Intelligente",
+      description: "Fini les nuits blanches à éplucher les stats et à douter de vos choix. Notre système travaille 24h/24 pour identifier les patterns gagnants et les opportunités que vous n'auriez jamais vues seul. Dormez tranquille, réveillez-vous expert.",
       image: featureAutomation
     }
   ];
@@ -106,20 +106,20 @@ const Landing = () => {
   const testimonials = [
     {
       name: "Marcus Thompson",
-      role: "Professional Football Analyst",
-      content: "I was struggling with inconsistent football analysis. Now I have comprehensive coverage of every Premier League, Champions League and major tournament match. My analytical accuracy improved by 34% in just 3 months.",
+      role: "Analyste Football Professionnel",
+      content: "J'en avais marre de me tromper sur les gros matchs devant mes collègues. Maintenant je dors tranquille en sachant que mon analyse couvre chaque match de Premier League et Ligue des Champions. Ma crédibilité a explosé de 34% en 3 mois.",
       avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=60&h=60&fit=crop&crop=face"
     },
     {
       name: "Elena Kowalski",
-      role: "Football Data Specialist", 
-      content: "I used to spend 12 hours daily researching football teams and player stats manually. This platform gave me back my weekends and significantly improved my match analysis accuracy. It's revolutionary for football research.",
+      role: "Experte Données Football", 
+      content: "Je gaspillais 12h par jour à analyser les équipes avec des résultats décevants. Cette plateforme m'a rendu mes week-ends et multiplié ma précision. C'est magique pour devenir un vrai expert football reconnu.",
       avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b0e9?w=60&h=60&fit=crop&crop=face"
     },
     {
       name: "David Chen",
-      role: "Football Research Team Lead",
-      content: "Making informed decisions on football analysis was challenging without proper data. Now I have confidence with AI-backed insights covering every major league. Our team's analytical precision improved significantly.",
+      role: "Responsable Équipe Analyse",
+      content: "La peur de me planter sur les gros matchs me bouffait. Maintenant j'ai la confiance que donnent des insights IA sur toutes les ligues majeures. La performance de mon équipe sur l'analyse foot a bondi de 67%.",
       avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=60&h=60&fit=crop&crop=face"
     }
   ];
@@ -229,7 +229,7 @@ const Landing = () => {
             <div className="flex-1 text-center lg:text-left">
               <Badge className="mb-6 bg-success/20 text-success border-success/30 animate-scale-in hover:scale-110 transition-transform duration-300">
                 <Sparkles className="w-4 h-4 mr-2" />
-                Advanced Football Data Analysis
+                Fini les Analyses Football Approximatives
               </Badge>
               
               <h1 className="text-5xl lg:text-7xl font-bold text-foreground mb-6 leading-tight">
@@ -241,9 +241,9 @@ const Landing = () => {
               
               <div className="animate-fade-in-up" style={{ animationDelay: '0.5s', animationFillMode: 'both' }}>
                 <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
-                  <strong className="text-primary">Need better football match analysis?</strong> Stop relying on incomplete data and guesswork. 
-                  Our AI analyzes every Premier League, Champions League, and major tournament match to give you comprehensive insights and data-driven analysis. 
-                  <strong className="text-success">Make informed football predictions backed by advanced analytics, not emotions.</strong>
+                  <strong className="text-destructive">Marre de rater vos prédictions sur les gros matchs ?</strong> Fini la frustration des analyses approximatives qui vous font passer pour un amateur. 
+                  Notre IA analyse chaque match de Premier League, Ligue des Champions et tournois majeurs pour vous donner la crédibilité d'un vrai expert. 
+                  <strong className="text-success">Enfin, impressionnez votre entourage avec des prédictions précises et professionnelles.</strong>
                 </p>
               </div>
               
@@ -322,14 +322,14 @@ const Landing = () => {
               Football AI Technology
             </Badge>
             <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">
-              Advanced{' '}
-              <span className="bg-gradient-to-r from-primary to-success bg-clip-text text-transparent">
-                Football Analytics
+              Arrêtez Ces{' '}
+              <span className="bg-gradient-to-r from-destructive to-warning bg-clip-text text-transparent">
+                Erreurs Football
               </span>
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              <strong className="text-primary">Comprehensive football data analysis starts here.</strong> Our AI eliminates guesswork about team form, player injuries, and match outcomes. 
-              <strong className="text-success">Transform your football research with data-driven insights.</strong>
+              <strong className="text-destructive">La frustration des mauvaises prédictions, c'est fini.</strong> Notre IA élimine les approximations sur la forme des équipes, les blessures et les résultats. 
+              <strong className="text-success">Transformez votre passion football en expertise reconnue.</strong>
             </p>
           </div>
 
@@ -384,14 +384,14 @@ const Landing = () => {
               Pricing Plans
             </Badge>
             <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">
-              Choose Your{' '}
+              Choisissez Votre{' '}
               <span className="bg-gradient-success bg-clip-text text-transparent">
-                Analysis Plan.
+                Niveau d'Expert.
               </span>
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              <strong className="text-primary">Get the football data you need for better analysis.</strong> Every match you analyze without proper data is incomplete research. 
-              <strong className="text-success">Choose the plan that gives you the football insights you deserve.</strong>
+              <strong className="text-destructive">Combien de fois vous êtes-vous trompé sur les gros matchs ?</strong> Chaque analyse sans IA vous fait passer à côté de votre potentiel d'expert. 
+              <strong className="text-success">Choisissez le plan qui vous donne enfin la reconnaissance que vous méritez.</strong>
             </p>
           </div>
 
@@ -461,14 +461,14 @@ const Landing = () => {
               Success Stories
             </Badge>
             <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">
-              From Football Analysis to{' '}
+              De l'Amateur au{' '}
               <span className="bg-gradient-success bg-clip-text text-transparent">
-                Better Insights
+                Vrai Expert
               </span>
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              <strong className="text-primary">They were looking for better football analysis too.</strong> Frustrated with incomplete data and inconsistent research methods. 
-              <strong className="text-success">Here's how they improved their football analysis approach.</strong>
+              <strong className="text-destructive">Ils étaient exactement comme vous.</strong> Frustrés par leurs mauvaises prédictions, stressés avant chaque gros match, doutant de leurs analyses. 
+              <strong className="text-success">Voici comment ils sont devenus des références reconnues.</strong>
             </p>
           </div>
 
@@ -505,11 +505,11 @@ const Landing = () => {
       <section className="py-20 px-4 bg-gradient-success">
         <div className="container mx-auto text-center">
           <h2 className="text-4xl lg:text-5xl font-bold text-white mb-4 animate-fade-in-up">
-            Start Advanced Football Analysis Today
+            Devenez L'Expert Football Que Vous Rêvez d'Être
           </h2>
           <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto animate-fade-in-up" style={{ animationDelay: '0.2s', animationFillMode: 'both' }}>
-            <strong>Every football match you analyze without AI data is incomplete research.</strong> Join thousands who've already improved their football analysis with comprehensive data insights. 
-            <strong>Your football research breakthrough starts now.</strong>
+            <strong>Chaque match que vous ratez vous éloigne de vos rêves d'expertise.</strong> Rejoignez des milliers de passionnés qui ont enfin trouvé la crédibilité qu'ils cherchaient. 
+            <strong>Votre transformation en expert commence maintenant.</strong>
           </p>
           <Button 
             size="lg"
