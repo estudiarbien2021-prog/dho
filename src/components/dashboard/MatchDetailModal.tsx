@@ -23,30 +23,31 @@ export function MatchDetailModal({ match, isOpen, onClose }: MatchDetailModalPro
 
   const flagInfo = leagueToFlag(match.league);
 
-  // Donut chart data with futuristic colors
+  // Donut chart data with brand colors
   const results1x2Data = [
-    { name: 'Domicile', value: match.p_home_fair * 100, color: '#06b6d4' },
-    { name: 'Nul', value: match.p_draw_fair * 100, color: '#8b5cf6' },
-    { name: 'Extérieur', value: match.p_away_fair * 100, color: '#ec4899' },
+    { name: 'Domicile', value: match.p_home_fair * 100, color: 'hsl(150 85% 36%)' },
+    { name: 'Nul', value: match.p_draw_fair * 100, color: 'hsl(150 60% 65%)' },
+    { name: 'Extérieur', value: match.p_away_fair * 100, color: 'hsl(150 70% 50%)' },
   ];
 
   const bttsData = match.p_btts_yes_fair > 0 ? [
-    { name: 'BTTS Oui', value: match.p_btts_yes_fair * 100, color: '#06b6d4' },
-    { name: 'BTTS Non', value: match.p_btts_no_fair * 100, color: '#ec4899' },
+    { name: 'BTTS Oui', value: match.p_btts_yes_fair * 100, color: 'hsl(150 85% 36%)' },
+    { name: 'BTTS Non', value: match.p_btts_no_fair * 100, color: 'hsl(150 60% 65%)' },
   ] : [];
 
   const over25Data = match.p_over_2_5_fair > 0 ? [
-    { name: 'Over 2.5', value: match.p_over_2_5_fair * 100, color: '#06b6d4' },
-    { name: 'Under 2.5', value: match.p_under_2_5_fair * 100, color: '#ec4899' },
+    { name: 'Over 2.5', value: match.p_over_2_5_fair * 100, color: 'hsl(150 85% 36%)' },
+    { name: 'Under 2.5', value: match.p_under_2_5_fair * 100, color: 'hsl(150 60% 65%)' },
   ] : [];
 
   const DonutChart = ({ data, title }: { data: any[], title: string }) => (
-    <Card className="relative p-6 bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-cyan-500/30 hover:border-cyan-400/50 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/20 backdrop-blur-sm">
-      <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-purple-500/5 rounded-lg" />
-      <h4 className="font-semibold text-center mb-6 text-lg text-cyan-100 relative z-10 bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
+    <Card className="group relative p-6 bg-gradient-to-br from-surface-soft to-surface-strong border border-brand/30 hover:border-brand/50 transition-all duration-500 hover:shadow-xl hover:shadow-brand/20 backdrop-blur-sm transform hover:scale-[1.02]">
+      <div className="absolute inset-0 bg-gradient-to-br from-brand/5 to-brand-300/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-transparent via-brand/5 to-transparent animate-pulse" />
+      <h4 className="font-semibold text-center mb-6 text-lg text-text relative z-10 bg-gradient-to-r from-brand to-brand-400 bg-clip-text text-transparent transform group-hover:scale-105 transition-transform duration-300">
         {title}
       </h4>
-      <div className="h-56 relative z-10">
+      <div className="h-56 relative z-10 transform group-hover:scale-105 transition-transform duration-500">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -58,27 +59,35 @@ export function MatchDetailModal({ match, isOpen, onClose }: MatchDetailModalPro
               paddingAngle={3}
               dataKey="value"
               animationBegin={0}
-              animationDuration={1200}
+              animationDuration={1500}
+              animationEasing="ease-in-out"
             >
               {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} stroke={entry.color} strokeWidth={2} />
+                <Cell 
+                  key={`cell-${index}`} 
+                  fill={entry.color} 
+                  stroke={entry.color} 
+                  strokeWidth={2}
+                  className="drop-shadow-lg hover:drop-shadow-xl transition-all duration-300"
+                />
               ))}
             </Pie>
             <Tooltip 
               formatter={(value: number) => [`${value.toFixed(1)}%`, '']}
               contentStyle={{
-                backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                border: '1px solid rgba(6, 182, 212, 0.3)',
-                borderRadius: '8px',
-                color: 'rgb(203, 213, 225)',
-                backdropFilter: 'blur(8px)'
+                backgroundColor: 'hsl(var(--surface))',
+                border: '1px solid hsl(var(--brand) / 0.3)',
+                borderRadius: '12px',
+                color: 'hsl(var(--text))',
+                backdropFilter: 'blur(12px)',
+                boxShadow: '0 8px 32px hsl(var(--brand) / 0.2)'
               }}
             />
             <Legend 
               verticalAlign="bottom" 
               height={36}
               iconType="circle"
-              wrapperStyle={{ color: 'rgb(203, 213, 225)' }}
+              wrapperStyle={{ color: 'hsl(var(--text))' }}
             />
           </PieChart>
         </ResponsiveContainer>
@@ -88,50 +97,51 @@ export function MatchDetailModal({ match, isOpen, onClose }: MatchDetailModalPro
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-cyan-500/20 shadow-2xl shadow-cyan-500/10">
-        <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 via-transparent to-purple-500/5 pointer-events-none" />
+      <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto bg-gradient-to-br from-surface via-surface-soft to-surface border border-brand/30 shadow-2xl shadow-brand/20 animate-fade-in">
+        <div className="absolute inset-0 bg-gradient-to-br from-brand/5 via-transparent to-brand-300/10 pointer-events-none animate-pulse" />
+        <div className="absolute inset-0 rounded-lg border border-brand/20 shadow-inner" />
         <DialogHeader className="pb-6 relative z-10">
-          <DialogTitle className="flex items-center gap-4 text-2xl">
-            <div className="p-2 rounded-lg bg-gradient-to-r from-cyan-400/20 to-purple-400/20 border border-cyan-400/30">
+          <DialogTitle className="flex items-center gap-4 text-2xl animate-fade-in">
+            <div className="p-3 rounded-xl bg-gradient-to-r from-brand/20 to-brand-400/20 border border-brand/30 hover:border-brand/50 transition-all duration-300 hover:scale-105">
               <FlagMini code={flagInfo.code} confed={flagInfo.confed} />
             </div>
             <div className="flex flex-col">
-              <span className="font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
+              <span className="font-bold bg-gradient-to-r from-brand to-brand-400 bg-clip-text text-transparent">
                 {match.home_team} vs {match.away_team}
               </span>
-              <span className="text-sm font-normal text-cyan-300/70">{match.league}</span>
+              <span className="text-sm font-normal text-text-weak">{match.league}</span>
             </div>
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-8 relative z-10">
           {/* Match Info */}
-          <Card className="relative p-6 bg-gradient-to-r from-slate-800/50 to-slate-900/50 border border-cyan-500/30 hover:border-cyan-400/50 transition-all duration-300 backdrop-blur-sm">
-            <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/5 to-purple-500/5 rounded-lg" />
+          <Card className="group relative p-6 bg-gradient-to-r from-surface-soft to-surface-strong border border-brand/30 hover:border-brand/50 transition-all duration-500 backdrop-blur-sm hover:shadow-xl hover:shadow-brand/20 transform hover:scale-[1.01]">
+            <div className="absolute inset-0 bg-gradient-to-r from-brand/5 to-brand-300/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 relative z-10">
               <div className="text-center md:text-left">
-                <p className="text-sm text-cyan-300/70 mb-2">Catégorie</p>
-                <Badge variant="secondary" className="capitalize bg-gradient-to-r from-cyan-500/20 to-purple-500/20 border-cyan-400/30 text-cyan-100">
+                <p className="text-sm text-text-weak mb-2">Catégorie</p>
+                <Badge variant="secondary" className="capitalize bg-gradient-to-r from-brand/20 to-brand-300/20 border-brand/30 text-text hover:from-brand/30 hover:to-brand-300/30 transition-all duration-300">
                   {match.category.replace('_', ' ')}
                 </Badge>
               </div>
               <div className="text-center md:text-left">
-                <p className="text-sm text-cyan-300/70 mb-2">Heure UTC</p>
-                <p className="font-medium flex items-center justify-center md:justify-start gap-2 text-cyan-100">
-                  <Clock className="h-4 w-4 text-cyan-400" />
+                <p className="text-sm text-text-weak mb-2">Heure UTC</p>
+                <p className="font-medium flex items-center justify-center md:justify-start gap-2 text-text">
+                  <Clock className="h-4 w-4 text-brand" />
                   {format(match.kickoff_utc, 'dd/MM HH:mm', { locale: fr })}
                 </p>
               </div>
               <div className="text-center md:text-left">
-                <p className="text-sm text-cyan-300/70 mb-2">Heure São Paulo</p>
-                <p className="font-medium flex items-center justify-center md:justify-start gap-2 text-cyan-100">
-                  <Clock className="h-4 w-4 text-cyan-400" />
+                <p className="text-sm text-text-weak mb-2">Heure São Paulo</p>
+                <p className="font-medium flex items-center justify-center md:justify-start gap-2 text-text">
+                  <Clock className="h-4 w-4 text-brand" />
                   {format(match.kickoff_local, 'dd/MM HH:mm', { locale: fr })}
                 </p>
               </div>
               <div className="text-center md:text-left">
-                <p className="text-sm text-cyan-300/70 mb-2">Vig 1X2</p>
-                <Badge variant={match.vig_1x2 <= 0.12 ? "default" : "secondary"} className="font-mono bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-purple-400/30 text-purple-100">
+                <p className="text-sm text-text-weak mb-2">Vig 1X2</p>
+                <Badge variant={match.vig_1x2 <= 0.12 ? "default" : "secondary"} className="font-mono bg-gradient-to-r from-brand-400/20 to-brand-600/20 border-brand-400/30 text-text hover:from-brand-400/30 hover:to-brand-600/30 transition-all duration-300">
                   {(match.vig_1x2 * 100).toFixed(2)}%
                 </Badge>
               </div>
@@ -141,19 +151,19 @@ export function MatchDetailModal({ match, isOpen, onClose }: MatchDetailModalPro
           {/* Flags */}
           <div className="flex gap-3 flex-wrap">
             {match.is_low_vig_1x2 && (
-              <Badge variant="default" className="bg-gradient-to-r from-emerald-500/20 to-green-500/20 border-emerald-400/40 text-emerald-100 hover:from-emerald-500/30 hover:to-green-500/30 transition-all duration-300">
+              <Badge variant="default" className="bg-gradient-to-r from-brand/20 to-brand-400/20 border-brand/40 text-text hover:from-brand/30 hover:to-brand-400/30 transition-all duration-300 hover:scale-105">
                 <TrendingDown className="h-3 w-3 mr-1" />
                 Low Vig (≤12%)
               </Badge>
             )}
             {match.watch_btts && (
-              <Badge variant="secondary" className="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border-cyan-400/40 text-cyan-100 hover:from-cyan-500/30 hover:to-blue-500/30 transition-all duration-300">
+              <Badge variant="secondary" className="bg-gradient-to-r from-brand-300/20 to-brand-500/20 border-brand-300/40 text-text hover:from-brand-300/30 hover:to-brand-500/30 transition-all duration-300 hover:scale-105">
                 <Target className="h-3 w-3 mr-1" />
                 Watch BTTS
               </Badge>
             )}
             {match.watch_over25 && (
-              <Badge variant="outline" className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-purple-400/40 text-purple-100 hover:from-purple-500/30 hover:to-pink-500/30 transition-all duration-300">
+              <Badge variant="outline" className="bg-gradient-to-r from-brand-400/20 to-brand-600/20 border-brand-400/40 text-text hover:from-brand-400/30 hover:to-brand-600/30 transition-all duration-300 hover:scale-105">
                 <Eye className="h-3 w-3 mr-1" />
                 Watch Over 2.5
               </Badge>
@@ -162,8 +172,8 @@ export function MatchDetailModal({ match, isOpen, onClose }: MatchDetailModalPro
 
           {/* Donut Charts */}
           <div className="space-y-6">
-            <h3 className="text-xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent flex items-center gap-3">
-              <div className="w-1 h-8 bg-gradient-to-b from-cyan-400 to-purple-400 rounded-full"></div>
+            <h3 className="text-xl font-bold bg-gradient-to-r from-brand to-brand-400 bg-clip-text text-transparent flex items-center gap-3 animate-fade-in">
+              <div className="w-1 h-8 bg-gradient-to-b from-brand to-brand-400 rounded-full animate-pulse"></div>
               Analyse des Probabilités IA
             </h3>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -173,74 +183,88 @@ export function MatchDetailModal({ match, isOpen, onClose }: MatchDetailModalPro
             </div>
           </div>
 
-          <Separator className="bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent" />
+          <Separator className="bg-gradient-to-r from-transparent via-brand/30 to-transparent" />
 
           {/* Odds & Analysis */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Odds */}
-            <Card className="relative p-6 bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-cyan-500/30 hover:border-cyan-400/50 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/20 backdrop-blur-sm">
-              <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-purple-500/5 rounded-lg" />
-              <h4 className="font-semibold mb-4 flex items-center gap-2 text-cyan-100 relative z-10">
-                <TrendingDown className="h-5 w-5 text-cyan-400" />
+            <Card className="group relative p-6 bg-gradient-to-br from-surface-soft to-surface-strong border border-brand/30 hover:border-brand/50 transition-all duration-500 hover:shadow-xl hover:shadow-brand/20 backdrop-blur-sm transform hover:scale-[1.01]">
+              <div className="absolute inset-0 bg-gradient-to-br from-brand/5 to-brand-300/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <h4 className="font-semibold mb-4 flex items-center gap-2 text-text relative z-10">
+                <TrendingDown className="h-5 w-5 text-brand" />
                 Cotes Originales
               </h4>
               <div className="space-y-4 relative z-10">
-                <div className="flex justify-between items-center p-3 bg-slate-700/50 rounded-lg border border-cyan-500/20">
-                  <span className="font-medium text-cyan-100">Domicile:</span>
-                  <span className="font-mono text-lg text-cyan-400">{match.odds_home.toFixed(2)}</span>
+                <div className="flex justify-between items-center p-3 bg-surface-strong/50 rounded-lg border border-brand/20 hover:border-brand/30 transition-colors duration-300">
+                  <span className="font-medium text-text">Domicile:</span>
+                  <span className="font-mono text-lg text-brand font-bold">{match.odds_home.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between items-center p-3 bg-slate-700/50 rounded-lg border border-purple-500/20">
-                  <span className="font-medium text-cyan-100">Nul:</span>
-                  <span className="font-mono text-lg text-purple-400">{match.odds_draw.toFixed(2)}</span>
+                <div className="flex justify-between items-center p-3 bg-surface-strong/50 rounded-lg border border-brand-300/20 hover:border-brand-300/30 transition-colors duration-300">
+                  <span className="font-medium text-text">Nul:</span>
+                  <span className="font-mono text-lg text-brand-300 font-bold">{match.odds_draw.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between items-center p-3 bg-slate-700/50 rounded-lg border border-pink-500/20">
-                  <span className="font-medium text-cyan-100">Extérieur:</span>
-                  <span className="font-mono text-lg text-pink-400">{match.odds_away.toFixed(2)}</span>
+                <div className="flex justify-between items-center p-3 bg-surface-strong/50 rounded-lg border border-brand-400/20 hover:border-brand-400/30 transition-colors duration-300">
+                  <span className="font-medium text-text">Extérieur:</span>
+                  <span className="font-mono text-lg text-brand-400 font-bold">{match.odds_away.toFixed(2)}</span>
                 </div>
                 {match.odds_btts_yes && (
                   <>
-                    <Separator className="bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent" />
-                    <div className="flex justify-between items-center p-3 bg-slate-700/50 rounded-lg border border-cyan-500/20">
-                      <span className="font-medium text-cyan-100">BTTS Oui:</span>
-                      <span className="font-mono text-lg text-cyan-400">{match.odds_btts_yes.toFixed(2)}</span>
+                    <Separator className="bg-gradient-to-r from-transparent via-brand/30 to-transparent" />
+                    <div className="flex justify-between items-center p-3 bg-surface-strong/50 rounded-lg border border-brand/20 hover:border-brand/30 transition-colors duration-300">
+                      <span className="font-medium text-text">BTTS Oui:</span>
+                      <span className="font-mono text-lg text-brand font-bold">{match.odds_btts_yes.toFixed(2)}</span>
                     </div>
+                    {match.odds_btts_no && (
+                      <div className="flex justify-between items-center p-3 bg-surface-strong/50 rounded-lg border border-brand-300/20 hover:border-brand-300/30 transition-colors duration-300">
+                        <span className="font-medium text-text">BTTS Non:</span>
+                        <span className="font-mono text-lg text-brand-300 font-bold">{match.odds_btts_no.toFixed(2)}</span>
+                      </div>
+                    )}
                   </>
                 )}
                 {match.odds_over_2_5 && (
-                  <div className="flex justify-between items-center p-3 bg-slate-700/50 rounded-lg border border-cyan-500/20">
-                    <span className="font-medium text-cyan-100">Over 2.5:</span>
-                    <span className="font-mono text-lg text-cyan-400">{match.odds_over_2_5.toFixed(2)}</span>
-                  </div>
+                  <>
+                    <div className="flex justify-between items-center p-3 bg-surface-strong/50 rounded-lg border border-brand/20 hover:border-brand/30 transition-colors duration-300">
+                      <span className="font-medium text-text">Over 2.5:</span>
+                      <span className="font-mono text-lg text-brand font-bold">{match.odds_over_2_5.toFixed(2)}</span>
+                    </div>
+                    {match.odds_under_2_5 && (
+                      <div className="flex justify-between items-center p-3 bg-surface-strong/50 rounded-lg border border-brand-300/20 hover:border-brand-300/30 transition-colors duration-300">
+                        <span className="font-medium text-text">Under 2.5:</span>
+                        <span className="font-mono text-lg text-brand-300 font-bold">{match.odds_under_2_5.toFixed(2)}</span>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </Card>
 
             {/* Vigorish */}
-            <Card className="relative p-6 bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-purple-500/30 hover:border-purple-400/50 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 backdrop-blur-sm">
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-pink-500/5 rounded-lg" />
-              <h4 className="font-semibold mb-4 flex items-center gap-2 text-cyan-100 relative z-10">
-                <Target className="h-5 w-5 text-purple-400" />
+            <Card className="group relative p-6 bg-gradient-to-br from-surface-soft to-surface-strong border border-brand-300/30 hover:border-brand-300/50 transition-all duration-500 hover:shadow-xl hover:shadow-brand-300/20 backdrop-blur-sm transform hover:scale-[1.01]">
+              <div className="absolute inset-0 bg-gradient-to-br from-brand-300/5 to-brand-400/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <h4 className="font-semibold mb-4 flex items-center gap-2 text-text relative z-10">
+                <Target className="h-5 w-5 text-brand-300" />
                 Marges (Vigorish)
               </h4>
               <div className="space-y-4 relative z-10">
-                <div className="flex justify-between items-center p-3 bg-slate-700/50 rounded-lg border border-purple-500/20">
-                  <span className="font-medium text-cyan-100">1X2:</span>
-                  <Badge variant={match.vig_1x2 <= 0.12 ? "default" : "secondary"} className="text-sm bg-gradient-to-r from-purple-500/30 to-pink-500/30 border-purple-400/40 text-purple-100">
+                <div className="flex justify-between items-center p-3 bg-surface-strong/50 rounded-lg border border-brand-300/20 hover:border-brand-300/30 transition-colors duration-300">
+                  <span className="font-medium text-text">1X2:</span>
+                  <Badge variant={match.vig_1x2 <= 0.12 ? "default" : "secondary"} className="text-sm bg-gradient-to-r from-brand-300/30 to-brand-400/30 border-brand-300/40 text-text font-bold">
                     {(match.vig_1x2 * 100).toFixed(2)}%
                   </Badge>
                 </div>
                 {match.vig_btts > 0 && (
-                  <div className="flex justify-between items-center p-3 bg-slate-700/50 rounded-lg border border-purple-500/20">
-                    <span className="font-medium text-cyan-100">BTTS:</span>
-                    <Badge variant={match.vig_btts <= 0.15 ? "default" : "secondary"} className="text-sm bg-gradient-to-r from-purple-500/30 to-pink-500/30 border-purple-400/40 text-purple-100">
+                  <div className="flex justify-between items-center p-3 bg-surface-strong/50 rounded-lg border border-brand-300/20 hover:border-brand-300/30 transition-colors duration-300">
+                    <span className="font-medium text-text">BTTS:</span>
+                    <Badge variant={match.vig_btts <= 0.15 ? "default" : "secondary"} className="text-sm bg-gradient-to-r from-brand-300/30 to-brand-400/30 border-brand-300/40 text-text font-bold">
                       {(match.vig_btts * 100).toFixed(2)}%
                     </Badge>
                   </div>
                 )}
                 {match.vig_ou_2_5 > 0 && (
-                  <div className="flex justify-between items-center p-3 bg-slate-700/50 rounded-lg border border-purple-500/20">
-                    <span className="font-medium text-cyan-100">O/U 2.5:</span>
-                    <Badge variant={match.vig_ou_2_5 <= 0.15 ? "default" : "secondary"} className="text-sm bg-gradient-to-r from-purple-500/30 to-pink-500/30 border-purple-400/40 text-purple-100">
+                  <div className="flex justify-between items-center p-3 bg-surface-strong/50 rounded-lg border border-brand-300/20 hover:border-brand-300/30 transition-colors duration-300">
+                    <span className="font-medium text-text">O/U 2.5:</span>
+                    <Badge variant={match.vig_ou_2_5 <= 0.15 ? "default" : "secondary"} className="text-sm bg-gradient-to-r from-brand-300/30 to-brand-400/30 border-brand-300/40 text-text font-bold">
                       {(match.vig_ou_2_5 * 100).toFixed(2)}%
                     </Badge>
                   </div>
@@ -249,46 +273,46 @@ export function MatchDetailModal({ match, isOpen, onClose }: MatchDetailModalPro
             </Card>
 
             {/* Fair Probabilities */}
-            <Card className="relative p-6 bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-emerald-500/30 hover:border-emerald-400/50 transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/20 backdrop-blur-sm">
-              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-green-500/5 rounded-lg" />
-              <h4 className="font-semibold mb-4 flex items-center gap-2 text-cyan-100 relative z-10">
-                <Eye className="h-5 w-5 text-emerald-400" />
+            <Card className="group relative p-6 bg-gradient-to-br from-surface-soft to-surface-strong border border-brand-400/30 hover:border-brand-400/50 transition-all duration-500 hover:shadow-xl hover:shadow-brand-400/20 backdrop-blur-sm transform hover:scale-[1.01]">
+              <div className="absolute inset-0 bg-gradient-to-br from-brand-400/5 to-brand-500/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <h4 className="font-semibold mb-4 flex items-center gap-2 text-text relative z-10">
+                <Eye className="h-5 w-5 text-brand-400" />
                 Probabilités Fair IA
               </h4>
               <div className="space-y-4 relative z-10">
-                <div className="flex justify-between items-center p-3 bg-cyan-500/10 rounded-lg border border-cyan-400/30">
-                  <span className="font-medium text-cyan-100">Domicile:</span>
-                  <span className="font-mono text-lg font-bold text-cyan-400">
+                <div className="flex justify-between items-center p-3 bg-brand/10 rounded-lg border border-brand/30 hover:border-brand/40 transition-colors duration-300">
+                  <span className="font-medium text-text">Domicile:</span>
+                  <span className="font-mono text-lg font-bold text-brand">
                     {(match.p_home_fair * 100).toFixed(1)}%
                   </span>
                 </div>
-                <div className="flex justify-between items-center p-3 bg-purple-500/10 rounded-lg border border-purple-400/30">
-                  <span className="font-medium text-cyan-100">Nul:</span>
-                  <span className="font-mono text-lg font-bold text-purple-400">
+                <div className="flex justify-between items-center p-3 bg-brand-300/10 rounded-lg border border-brand-300/30 hover:border-brand-300/40 transition-colors duration-300">
+                  <span className="font-medium text-text">Nul:</span>
+                  <span className="font-mono text-lg font-bold text-brand-300">
                     {(match.p_draw_fair * 100).toFixed(1)}%
                   </span>
                 </div>
-                <div className="flex justify-between items-center p-3 bg-pink-500/10 rounded-lg border border-pink-400/30">
-                  <span className="font-medium text-cyan-100">Extérieur:</span>
-                  <span className="font-mono text-lg font-bold text-pink-400">
+                <div className="flex justify-between items-center p-3 bg-brand-400/10 rounded-lg border border-brand-400/30 hover:border-brand-400/40 transition-colors duration-300">
+                  <span className="font-medium text-text">Extérieur:</span>
+                  <span className="font-mono text-lg font-bold text-brand-400">
                     {(match.p_away_fair * 100).toFixed(1)}%
                   </span>
                 </div>
                 {match.p_btts_yes_fair > 0 && (
                   <>
-                    <Separator className="bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent" />
-                    <div className="flex justify-between items-center p-3 bg-slate-700/50 rounded-lg border border-emerald-500/20">
-                      <span className="font-medium text-cyan-100">BTTS Oui:</span>
-                      <span className="font-mono text-lg font-bold text-emerald-400">
+                    <Separator className="bg-gradient-to-r from-transparent via-brand-400/30 to-transparent" />
+                    <div className="flex justify-between items-center p-3 bg-surface-strong/50 rounded-lg border border-brand-400/20 hover:border-brand-400/30 transition-colors duration-300">
+                      <span className="font-medium text-text">BTTS Oui:</span>
+                      <span className="font-mono text-lg font-bold text-brand-400">
                         {(match.p_btts_yes_fair * 100).toFixed(1)}%
                       </span>
                     </div>
                   </>
                 )}
                 {match.p_over_2_5_fair > 0 && (
-                  <div className="flex justify-between items-center p-3 bg-slate-700/50 rounded-lg border border-emerald-500/20">
-                    <span className="font-medium text-cyan-100">Over 2.5:</span>
-                    <span className="font-mono text-lg font-bold text-emerald-400">
+                  <div className="flex justify-between items-center p-3 bg-surface-strong/50 rounded-lg border border-brand-400/20 hover:border-brand-400/30 transition-colors duration-300">
+                    <span className="font-medium text-text">Over 2.5:</span>
+                    <span className="font-mono text-lg font-bold text-brand-400">
                       {(match.p_over_2_5_fair * 100).toFixed(1)}%
                     </span>
                   </div>
@@ -300,7 +324,7 @@ export function MatchDetailModal({ match, isOpen, onClose }: MatchDetailModalPro
           {/* Actions */}
           <div className="flex justify-end gap-3">
             <Button variant="outline" 
-              className="bg-gradient-to-r from-slate-700/50 to-slate-800/50 border-cyan-500/30 text-cyan-100 hover:from-slate-600/50 hover:to-slate-700/50 hover:border-cyan-400/50 transition-all duration-300"
+              className="bg-gradient-to-r from-surface-soft to-surface-strong border-brand/30 text-text hover:from-surface-strong hover:to-surface border-brand/40 transition-all duration-300"
               onClick={() => {
                 // Export match data as CSV
                 const csvData = `League,Home,Away,Kickoff,Vig_1X2,P_Home,P_Draw,P_Away
@@ -317,7 +341,7 @@ ${match.league},${match.home_team},${match.away_team},${match.kickoff_utc.toISOS
               Export CSV
             </Button>
             <Button 
-              className="bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 border-0 text-white font-medium px-6 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/20"
+              className="bg-gradient-to-r from-brand to-brand-400 hover:from-brand-600 hover:to-brand-700 border-0 text-brand-fg font-medium px-6 transition-all duration-300 hover:shadow-lg hover:shadow-brand/20"
               onClick={onClose}>
               Fermer
             </Button>
