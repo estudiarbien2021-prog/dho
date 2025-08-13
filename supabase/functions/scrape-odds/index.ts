@@ -95,55 +95,70 @@ async function fetchFromApiFootball(): Promise<MatchOdds[]> {
     const today = new Date().toISOString().split('T')[0];
     console.log(`🏆 API Football - fetching matches for ${today}`);
     
-    // Get fixtures for today from major leagues
-    const leagueIds = [39, 140, 78, 61, 135]; // Premier League, LaLiga, Bundesliga, Ligue 1, Serie A
+    // Récupérer les matchs d'aujourd'hui (toutes ligues)
+    const response = await fetch(`https://v3.football.api-sports.io/fixtures?date=${today}`, {
+      headers: {
+        'x-rapidapi-key': apiKey,
+        'x-rapidapi-host': 'v3.football.api-sports.io'
+      }
+    });
+
+    if (!response.ok) {
+      console.log(`❌ API Football error: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      console.log(`Error details: ${errorText}`);
+      return [];
+    }
+
+    const data = await response.json();
+    console.log(`✅ API Football response:`, {
+      results: data.results || 0,
+      errors: data.errors || []
+    });
+
+    if (data.errors && data.errors.length > 0) {
+      console.log('❌ API Football errors:', data.errors);
+      return [];
+    }
+
+    if (!data.response || data.response.length === 0) {
+      console.log('📋 No fixtures found for today');
+      return [];
+    }
+
     const matches: MatchOdds[] = [];
 
-    for (const leagueId of leagueIds) {
+    for (const fixture of data.response.slice(0, 20)) {
       try {
-        const response = await fetch(`https://v3.football.api-sports.io/fixtures?league=${leagueId}&date=${today}`, {
-          headers: {
-            'X-RapidAPI-Key': apiKey,
-            'X-RapidAPI-Host': 'v3.football.api-sports.io'
-          }
-        });
-
-        if (!response.ok) {
-          console.log(`API Football error for league ${leagueId}: ${response.status}`);
+        const league = fixture.league;
+        const homeTeam = fixture.teams?.home;
+        const awayTeam = fixture.teams?.away;
+        
+        if (!league?.name || !homeTeam?.name || !awayTeam?.name) {
+          console.log('⚠️ Skipping fixture with missing data:', fixture.fixture.id);
           continue;
         }
+        
+        const bookmaker = generateRealisticOddsForMatch(homeTeam.name, awayTeam.name, league.name);
+        bookmaker.name = 'API Football';
+        
+        const startTimestamp = fixture.fixture.timestamp;
 
-        const data = await response.json();
-        console.log(`API Football league ${leagueId} returned ${data.results || 0} matches`);
+        matches.push({
+          id: `api-football-${fixture.fixture.id}`,
+          startTimestamp,
+          tournament: {
+            name: normalizeLeagueName(league.name),
+            country: league.country || 'Unknown'
+          },
+          homeTeam: { name: homeTeam.name },
+          awayTeam: { name: awayTeam.name },
+          bookmakers: [bookmaker]
+        });
 
-        if (data.response && data.response.length > 0) {
-          for (const fixture of data.response.slice(0, 5)) {
-            const competition = fixture.league?.name;
-            const homeTeam = fixture.teams?.home?.name;
-            const awayTeam = fixture.teams?.away?.name;
-            
-            if (!competition || !homeTeam || !awayTeam) continue;
-            
-            const bookmaker = generateRealisticOddsForMatch(homeTeam, awayTeam, competition);
-            bookmaker.name = 'API Football';
-            
-            const startTimestamp = Math.floor(new Date(fixture.fixture.date).getTime() / 1000);
-
-            matches.push({
-              id: `api-football-${fixture.fixture.id}`,
-              startTimestamp,
-              tournament: {
-                name: normalizeLeagueName(competition),
-                country: fixture.league?.country || getCountryFromLeague(competition)
-              },
-              homeTeam: { name: homeTeam },
-              awayTeam: { name: awayTeam },
-              bookmakers: [bookmaker]
-            });
-          }
-        }
+        console.log(`✅ Added match: ${homeTeam.name} vs ${awayTeam.name} (${league.name})`);
       } catch (error) {
-        console.error(`❌ Error fetching league ${leagueId}:`, error);
+        console.error('❌ Error processing fixture:', error);
       }
     }
 
