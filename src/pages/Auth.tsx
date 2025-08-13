@@ -39,7 +39,7 @@ const Auth = () => {
 
       if (data.user) {
         toast.success("Connexion réussie !");
-        navigate("/");
+        navigate("/dashboard");
       }
     } catch (error) {
       toast.error("Une erreur est survenue");
@@ -63,7 +63,7 @@ const Auth = () => {
 
     setLoading(true);
     try {
-      const redirectUrl = `${window.location.origin}/`;
+      const redirectUrl = `${window.location.origin}/dashboard`;
       
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -85,7 +85,7 @@ const Auth = () => {
       if (data.user) {
         if (data.user.email_confirmed_at) {
           toast.success("Inscription réussie ! Vous êtes connecté.");
-          navigate("/");
+          navigate("/dashboard");
         } else {
           toast.success("Inscription réussie ! Vérifiez votre email pour confirmer votre compte.");
           // Ne pas rediriger si email pas confirmé
@@ -103,6 +103,16 @@ const Auth = () => {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/')}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              ← Retour à l'accueil
+            </Button>
+          </div>
           <h1 className="text-3xl font-bold text-foreground mb-2">Hype Odds</h1>
           <p className="text-muted-foreground">Accédez aux meilleures cotes de football</p>
         </div>
