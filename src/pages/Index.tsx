@@ -9,31 +9,47 @@ import { OddsTable, MatchOdds } from '@/components/OddsTable';
 import { TrendingUp, AlertTriangle, Info, LogOut, User, Wifi, WifiOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { OddsService } from '@/services/oddsService';
+import { NewFilterState, NewSortState } from '@/types/filters';
+import { AdvancedCSVService } from '@/services/advancedCSVService';
 import { CSVService } from '@/services/csvService';
+import { OddsService } from '@/services/oddsService';
+import { NewFiltersPanel } from '@/components/NewFiltersPanel';
 
 const Index = () => {
   const { toast } = useToast();
   const { user, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
 
-  // États des filtres
-  const [filters, setFilters] = useState<FilterState>({
-    competitions: [], // Vide par défaut pour afficher toutes les compétitions CSV
+  // États des nouveaux filtres avancés
+  const [filters, setFilters] = useState<NewFilterState>({
     countries: [],
-    timeWindow: 'all',
-    bookmakers: [],
-    markets: ['1x2', 'btts', 'ou'],
-    oddsMin: 1.50,
-    oddsMax: 5.00,
-    enableHypePlus: false,
-    customWhitelist: ''
+    competitions: [],
+    matchStatus: ['complete'],
+    odds1X2: {},
+    overUnder: {},
+    btts: { enabled: false },
+    corners: { enabled: false },
+    advanced: {
+      excludeNAOdds: true,
+      onlyValueBets: false,
+      valueBetThreshold: 3.0,
+      favoriteThreshold: 2.0,
+      underdogThreshold: 3.0,
+      balancedMatchRange: [1.8, 2.5]
+    },
+    dateRange: { enabled: false },
+    quickFilters: {
+      favoritesOnly: false,
+      underdogsOnly: false,
+      balancedMatches: false,
+      highValueBets: false,
+      completedMatchesOnly: true
+    }
   });
 
-  const [sort, setSort] = useState<SortState>({
+  const [sort, setSort] = useState<NewSortState>({
     field: 'time',
-    direction: 'asc',
-    thresholdPercent: 50
+    direction: 'asc'
   });
 
   const [showSaoPauloTime, setShowSaoPauloTime] = useState(true);
@@ -72,14 +88,8 @@ const Index = () => {
           // Charger les données depuis le CSV
           const csvMatches = await CSVService.loadMatches();
           
-          // Appliquer les filtres
-          let filteredMatches = CSVService.filterMatches(csvMatches, {
-            competitions: filters.competitions,
-            countries: filters.countries,
-            timeWindow: filters.timeWindow,
-            minOdds: filters.oddsMin,
-            maxOdds: filters.oddsMax
-          });
+          // Appliquer les nouveaux filtres avancés
+          let filteredMatches = AdvancedCSVService.filterMatchesAdvanced(csvMatches, filters);
           
           // Appliquer le tri
           filteredMatches = OddsService.sortMatches(filteredMatches, sort.field, sort.direction);
@@ -90,7 +100,7 @@ const Index = () => {
           
           toast({
             title: "Données chargées depuis CSV",
-            description: `${filteredMatches.length} matchs trouvés dans les données`,
+            description: `${filteredMatches.length} matchs trouvés avec les filtres avancés`,
           });
         } catch (error) {
           console.error('Error loading initial data:', error);
@@ -134,14 +144,8 @@ const Index = () => {
       // Charger les données depuis le CSV
       const csvMatches = await CSVService.loadMatches();
       
-      // Appliquer les filtres
-      let filteredMatches = CSVService.filterMatches(csvMatches, {
-        competitions: filters.competitions,
-        countries: filters.countries,
-        timeWindow: filters.timeWindow,
-        minOdds: filters.oddsMin,
-        maxOdds: filters.oddsMax
-      });
+      // Appliquer les nouveaux filtres avancés
+      let filteredMatches = AdvancedCSVService.filterMatchesAdvanced(csvMatches, filters);
       
       // Appliquer le tri
       filteredMatches = OddsService.sortMatches(filteredMatches, sort.field, sort.direction);
@@ -152,7 +156,7 @@ const Index = () => {
       
       toast({
         title: "Données mises à jour depuis CSV",
-        description: `${filteredMatches.length} matchs trouvés dans les données`,
+        description: `${filteredMatches.length} matchs trouvés avec les filtres avancés`,
       });
     } catch (error) {
       console.error('Error refreshing data:', error);
@@ -337,23 +341,16 @@ const Index = () => {
 
         {/* Interface principale */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Panel des filtres */}
+          {/* Nouveau panel des filtres avancés */}
           <div className="lg:col-span-1">
-            <FiltersPanel
+            <NewFiltersPanel
               filters={filters}
               sort={sort}
-              showSaoPauloTime={showSaoPauloTime}
-              showParisTime={showParisTime}
               onFiltersChange={setFilters}
               onSortChange={setSort}
-              onTimeDisplayChange={setShowSaoPauloTime}
               onRefresh={handleRefresh}
               onExportCSV={handleExportCSV}
               onCopyTable={handleCopyTable}
-              onSavePreset={handleSavePreset}
-              onLoadPreset={handleLoadPreset}
-              onDeletePreset={handleDeletePreset}
-              presets={presets}
               loading={loading}
             />
           </div>
