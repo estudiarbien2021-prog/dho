@@ -49,11 +49,10 @@ export interface NewFilterState {
     balancedMatchRange: [number, number]; // Range pour matchs équilibrés [min, max]
   };
   
-  // Filtres de dates
-  dateRange: {
+  // Filtres temporels
+  timeFilters: {
     enabled: boolean;
-    startDate?: string;
-    endDate?: string;
+    showUpcoming?: '2h' | '4h' | '6h' | 'all';
   };
   
   // Quick filters presets

@@ -47,9 +47,13 @@ export class FilterAnalyzer {
           row[header.trim()] = values[index]?.trim() || '';
         });
         
-        // Extraire pays et compétitions
-        if (row.Country) countries.add(row.Country);
-        if (row.League) competitions.add(row.League);
+        // Extraire pays et compétitions (exclure Esports automatiquement)
+        if (row.Country && row.Country.toLowerCase() !== 'esports') {
+          countries.add(row.Country);
+        }
+        if (row.League && !row.League.toLowerCase().includes('esoccer')) {
+          competitions.add(row.League);
+        }
         
         // Analyser les dates
         const timestamp = parseInt(row.date_unix);

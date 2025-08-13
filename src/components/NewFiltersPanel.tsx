@@ -90,7 +90,7 @@ export const NewFiltersPanel: React.FC<NewFiltersPanelProps> = ({
         underdogThreshold: 3.0,
         balancedMatchRange: [1.8, 2.5]
       },
-      dateRange: { enabled: false },
+      timeFilters: { enabled: false, showUpcoming: 'all' },
       quickFilters: {
         favoritesOnly: false,
         underdogsOnly: false,
@@ -217,6 +217,47 @@ export const NewFiltersPanel: React.FC<NewFiltersPanelProps> = ({
               <Label htmlFor="valueBets" className="text-sm">Value Bets</Label>
             </div>
           </div>
+        </div>
+
+        <Separator />
+
+        {/* Filtre temporel */}
+        <div className="space-y-3">
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="time-filter"
+              checked={filters.timeFilters.enabled}
+              onCheckedChange={(checked) => updateFilters({
+                timeFilters: { ...filters.timeFilters, enabled: checked }
+              })}
+            />
+            <Label htmlFor="time-filter" className="flex items-center gap-2 font-semibold">
+              <Clock className="h-4 w-4" />
+              Matchs à venir
+            </Label>
+          </div>
+          
+          {filters.timeFilters.enabled && (
+            <Select 
+              value={filters.timeFilters.showUpcoming || 'all'} 
+              onValueChange={(value) => updateFilters({
+                timeFilters: { 
+                  ...filters.timeFilters, 
+                  showUpcoming: value as '2h' | '4h' | '6h' | 'all'
+                }
+              })}
+            >
+              <SelectTrigger className="text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous les matchs</SelectItem>
+                <SelectItem value="2h">Dans les 2 prochaines heures</SelectItem>
+                <SelectItem value="4h">Dans les 4 prochaines heures</SelectItem>
+                <SelectItem value="6h">Dans les 6 prochaines heures</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
         </div>
 
         <Separator />

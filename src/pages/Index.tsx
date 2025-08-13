@@ -37,7 +37,7 @@ const Index = () => {
       underdogThreshold: 3.0,
       balancedMatchRange: [1.8, 2.5]
     },
-    dateRange: { enabled: false },
+    timeFilters: { enabled: false, showUpcoming: 'all' },
     quickFilters: {
       favoritesOnly: false,
       underdogsOnly: false,

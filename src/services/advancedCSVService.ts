@@ -11,31 +11,84 @@ export class AdvancedCSVService {
     
     let filtered = [...matches];
 
+    // 0. EXCLUSION AUTOMATIQUE des matchs Esports
+    filtered = this.excludeEsportsMatches(filtered);
+
     // 1. Filtres de base
     filtered = this.applyBasicFilters(filtered, filters);
     
-    // 2. Filtres par cotes 1X2
+    // 2. Filtres temporels
+    filtered = this.applyTimeFilters(filtered, filters);
+    
+    // 3. Filtres par cotes 1X2
     filtered = this.applyOdds1X2Filters(filtered, filters);
     
-    // 3. Filtres Over/Under
+    // 4. Filtres Over/Under
     filtered = this.applyOverUnderFilters(filtered, filters);
     
-    // 4. Filtres BTTS
+    // 5. Filtres BTTS
     filtered = this.applyBTTSFilters(filtered, filters);
     
-    // 5. Filtres Corners
+    // 6. Filtres Corners
     filtered = this.applyCornersFilters(filtered, filters);
     
-    // 6. Filtres avancés
+    // 7. Filtres avancés
     filtered = this.applyAdvancedFilters(filtered, filters);
     
-    // 7. Quick filters
+    // 8. Quick filters
     filtered = this.applyQuickFilters(filtered, filters);
     
     console.log('✅ Résultat final du filtrage avancé:', filtered.length, 'matches');
     return filtered;
   }
 
+  /**
+   * Exclure automatiquement les matchs Esports
+   */
+  private static excludeEsportsMatches(matches: MatchOdds[]): MatchOdds[] {
+    const before = matches.length;
+    const filtered = matches.filter(match => 
+      match.tournament.country?.toLowerCase() !== 'esports' &&
+      !match.tournament.name.toLowerCase().includes('esoccer')
+    );
+    console.log(`🚫 Exclusion Esports: ${before} → ${filtered.length}`);
+    return filtered;
+  }
+
+  /**
+   * Filtres temporels: matchs dans 2h/4h/6h
+   */
+  private static applyTimeFilters(matches: MatchOdds[], filters: NewFilterState): MatchOdds[] {
+    const { timeFilters } = filters;
+    if (!timeFilters.enabled || !timeFilters.showUpcoming || timeFilters.showUpcoming === 'all') {
+      return matches;
+    }
+    
+    const now = Math.floor(Date.now() / 1000);
+    let timeLimit: number;
+    
+    switch (timeFilters.showUpcoming) {
+      case '2h':
+        timeLimit = now + (2 * 3600);
+        break;
+      case '4h':
+        timeLimit = now + (4 * 3600);
+        break;
+      case '6h':
+        timeLimit = now + (6 * 3600);
+        break;
+      default:
+        return matches;
+    }
+    
+    const before = matches.length;
+    const filtered = matches.filter(match => 
+      match.startTimestamp >= now && match.startTimestamp <= timeLimit
+    );
+    
+    console.log(`⏰ Filtre temporel (${timeFilters.showUpcoming}): ${before} → ${filtered.length}`);
+    return filtered;
+  }
   /**
    * Filtres de base: pays, compétitions, statut
    */
