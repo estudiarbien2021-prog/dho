@@ -1,16 +1,18 @@
 import React, { useState, useCallback } from 'react';
 import { Upload as UploadIcon, FileText, AlertCircle, CheckCircle } from 'lucide-react';
 import { Language, useTranslation } from '@/lib/i18n';
+import { UploadResult } from '@/types/match';
 
 interface UploadProps {
   currentLang: Language;
+  onFileProcessed: (file: File) => Promise<UploadResult>;
 }
 
-export function Upload({ currentLang }: UploadProps) {
+export function Upload({ currentLang, onFileProcessed }: UploadProps) {
   const t = useTranslation(currentLang);
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadResult, setUploadResult] = useState<any>(null);
+  const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -48,17 +50,15 @@ export function Upload({ currentLang }: UploadProps) {
     setUploadResult(null);
 
     try {
-      // TODO: Implement actual file upload
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate upload
-      setUploadResult({
-        success: true,
-        filename: file.name,
-        total_matches: 150,
-        iffhs_matches: 89,
-        shortlist_count: 23
-      });
+      const result = await onFileProcessed(file);
+      setUploadResult(result);
+      
+      if (!result.success && result.error) {
+        setError(result.error);
+      }
     } catch (err) {
-      setError('Erreur lors du traitement du fichier');
+      const errorMsg = err instanceof Error ? err.message : 'Erreur lors du traitement du fichier';
+      setError(errorMsg);
     } finally {
       setIsUploading(false);
     }
@@ -110,7 +110,7 @@ export function Upload({ currentLang }: UploadProps) {
       </div>
 
       {/* Results */}
-      {uploadResult && (
+      {uploadResult && uploadResult.success && (
         <div className="bg-brand-50 border border-brand-200 rounded-xl p-6">
           <div className="flex items-center space-x-3 mb-4">
             <CheckCircle className="w-6 h-6 text-brand" />

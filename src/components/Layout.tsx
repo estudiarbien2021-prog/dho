@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { BarChart3, Upload, Archive, Settings, Moon, Sun } from 'lucide-react';
+import { BarChart3, Upload, Archive, Table2, Settings, Moon, Sun } from 'lucide-react';
 import { Language, useTranslation } from '@/lib/i18n';
 
 interface LayoutProps {
@@ -19,6 +19,7 @@ export function Layout({ currentLang, onLanguageChange }: LayoutProps) {
 
   const navItems = [
     { path: '/dashboard', icon: BarChart3, label: t.dashboard },
+    { path: '/table', icon: Table2, label: 'Tableau' },
     { path: '/upload', icon: Upload, label: t.upload },
     { path: '/archives', icon: Archive, label: t.archives },
   ];
