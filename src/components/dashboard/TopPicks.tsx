@@ -31,13 +31,13 @@ export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
     const allBets: BestBet[] = [];
 
     matches.forEach(match => {
-      // Category weight system - prioritize national championships and continental competitions  
+      // Category weight system - prioritize continental competitions above all
       const getCategoryWeight = (category: string) => {
         switch (category) {
-          case 'first_div': return 1.3; // National championships (priority)
-          case 'continental_cup': return 1.25; // Continental competitions (high priority)
+          case 'continental_cup': return 1.5; // Continental competitions (HIGHEST priority)
+          case 'first_div': return 1.2; // National championships (high priority)
           case 'second_div': return 1.0; // Second division (neutral)
-          case 'national_cup': return 0.7; // National cups (deprioritized)
+          case 'national_cup': return 0.6; // National cups (strongly deprioritized)
           default: return 1.0;
         }
       };
