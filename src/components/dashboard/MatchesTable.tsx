@@ -202,26 +202,24 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
   };
 
   const formatTime = (date: Date) => {
-    // Convert UTC date to local time zone for display
-    const localDate = new Date(date.toLocaleString());
-    return format(localDate, 'HH:mm', { locale: fr });
+    // Use date-fns directly - it handles timezone conversion automatically
+    return format(date, 'HH:mm', { locale: fr });
   };
 
   const formatDate = (date: Date) => {
-    // Convert UTC date to local time zone for display - IMPORTANT for correct local date
-    const localDate = new Date(date.toLocaleString());
-    return format(localDate, 'dd/MM', { locale: fr });
+    // Use date-fns directly - it handles timezone conversion automatically
+    return format(date, 'dd/MM', { locale: fr });
   };
 
   const formatTimeWithTimeZone = (date: Date) => {
-    // Show both UTC time and local time with timezone - using actual local date/time
-    const localTime = date.toLocaleTimeString('fr-FR', { 
-      hour: '2-digit', 
+    // Use native JavaScript Intl API for proper timezone formatting
+    const timeFormatter = new Intl.DateTimeFormat('fr-FR', {
+      hour: '2-digit',
       minute: '2-digit',
       timeZoneName: 'short'
     });
     
-    return localTime;
+    return timeFormatter.format(date);
   };
 
   // Group matches by competition if needed
