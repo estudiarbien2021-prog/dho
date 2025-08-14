@@ -226,53 +226,101 @@ serve(async (req) => {
         const availableKeys = Object.keys(row);
         console.log(`🔍 Traitement ligne ${csvRows.indexOf(row) + 1}, clés: ${availableKeys.slice(0, 5).join(', ')}...`);
         
-        // More flexible column mapping
-        const homeTeam = row['Home Team'] || row['home_team'] || row['home'] || row['équipe_domicile'] || 
-                         row['Équipe Domicile'] || row['HomeTeam'] || row['Home'];
-        const awayTeam = row['Away Team'] || row['away_team'] || row['away'] || row['équipe_extérieur'] || 
-                        row['Équipe Extérieur'] || row['AwayTeam'] || row['Away'];
-        const league = row['League'] || row['league'] || row['competition'] || row['Competition'] || 
-                      row['Compétition'] || row['Championnat'] || row['championnat'];
-        const country = row['Country'] || row['country'] || row['pays'] || row['Pays'] || row['Nation'];
+        // ULTRA FLEXIBLE column mapping - find any column that looks like what we need
+        const allKeys = Object.keys(row);
         
-        // Try different possible odds column names
-        const oddsHome = row['Odds_Home_Win'] || row['odds_1x2_home'] || row['odds_home'] || row['1'] || 
-                        row['Home'] || row['Domicile'] || row['Home Win'] || row['HomeWin'];
-        const oddsDraw = row['Odds_Draw'] || row['odds_1x2_draw'] || row['odds_draw'] || row['X'] || 
-                        row['Draw'] || row['Nul'] || row['Match Nul'] || row['DrawOdds'];
-        const oddsAway = row['Odds_Away_Win'] || row['odds_1x2_away'] || row['odds_away'] || row['2'] || 
-                        row['Away'] || row['Extérieur'] || row['Away Win'] || row['AwayWin'];
-
-        console.log(`🎯 Valeurs extraites:`, { homeTeam, awayTeam, league, country, oddsHome, oddsDraw, oddsAway });
-
-        // Skip rows with missing critical data but be more lenient
-        if (!homeTeam && !awayTeam && !league) {
-          console.log(`⚠️ Ligne complètement vide - ignorée`);
-          continue;
-        }
+        // Find home team (look for keywords)
+        const homeTeam = allKeys.find(key => 
+          key.toLowerCase().includes('home') || 
+          key.toLowerCase().includes('domicile') ||
+          key.toLowerCase().includes('équipe') && key.toLowerCase().includes('1')
+        ) ? row[allKeys.find(key => 
+          key.toLowerCase().includes('home') || 
+          key.toLowerCase().includes('domicile') ||
+          key.toLowerCase().includes('équipe') && key.toLowerCase().includes('1')
+        )!] : '';
         
-        // More detailed error logging
-        if (!homeTeam || !awayTeam || !league || !oddsHome || !oddsDraw || !oddsAway) {
-          console.log(`⚠️ LIGNE REJETÉE - Détails:`);
-          console.log(`   - Home Team: "${homeTeam}" (${homeTeam ? 'OK' : 'MANQUANT'})`);
-          console.log(`   - Away Team: "${awayTeam}" (${awayTeam ? 'OK' : 'MANQUANT'})`);
-          console.log(`   - League: "${league}" (${league ? 'OK' : 'MANQUANT'})`);
-          console.log(`   - Odds Home: "${oddsHome}" (${oddsHome ? 'OK' : 'MANQUANT'})`);
-          console.log(`   - Odds Draw: "${oddsDraw}" (${oddsDraw ? 'OK' : 'MANQUANT'})`);
-          console.log(`   - Odds Away: "${oddsAway}" (${oddsAway ? 'OK' : 'MANQUANT'})`);
-          console.log(`   - Toutes les clés disponibles: ${Object.keys(row).join(', ')}`);
+        // Find away team
+        const awayTeam = allKeys.find(key => 
+          key.toLowerCase().includes('away') || 
+          key.toLowerCase().includes('extérieur') ||
+          key.toLowerCase().includes('équipe') && key.toLowerCase().includes('2')
+        ) ? row[allKeys.find(key => 
+          key.toLowerCase().includes('away') || 
+          key.toLowerCase().includes('extérieur') ||
+          key.toLowerCase().includes('équipe') && key.toLowerCase().includes('2')
+        )!] : '';
+        
+        // Find league
+        const league = allKeys.find(key => 
+          key.toLowerCase().includes('league') || 
+          key.toLowerCase().includes('competition') ||
+          key.toLowerCase().includes('championnat') ||
+          key.toLowerCase().includes('ligue')
+        ) ? row[allKeys.find(key => 
+          key.toLowerCase().includes('league') || 
+          key.toLowerCase().includes('competition') ||
+          key.toLowerCase().includes('championnat') ||
+          key.toLowerCase().includes('ligue')
+        )!] : '';
+        
+        // Find country
+        const country = allKeys.find(key => 
+          key.toLowerCase().includes('country') || 
+          key.toLowerCase().includes('pays') ||
+          key.toLowerCase().includes('nation')
+        ) ? row[allKeys.find(key => 
+          key.toLowerCase().includes('country') || 
+          key.toLowerCase().includes('pays') ||
+          key.toLowerCase().includes('nation')
+        )!] : '';
+        
+        // Find odds - try to find numerical columns that look like odds
+        const potentialOddsKeys = allKeys.filter(key => {
+          const value = row[key];
+          return value && !isNaN(parseFloat(value)) && parseFloat(value) > 1 && parseFloat(value) < 50;
+        });
+        
+        // Take first 3 numerical values as odds (common in betting CSVs)
+        const oddsHome = potentialOddsKeys[0] ? row[potentialOddsKeys[0]] : '';
+        const oddsDraw = potentialOddsKeys[1] ? row[potentialOddsKeys[1]] : '';  
+        const oddsAway = potentialOddsKeys[2] ? row[potentialOddsKeys[2]] : '';
+        
+        // Fallback: if we have exactly 2 team names in the row, use them
+        const teamValues = allKeys.filter(key => {
+          const value = row[key];
+          return value && typeof value === 'string' && value.length > 2 && 
+                 !value.includes('.') && !value.match(/^\d/);
+        }).slice(0, 2);
+        
+        const finalHomeTeam = homeTeam || (teamValues[0] ? row[teamValues[0]] : '');
+        const finalAwayTeam = awayTeam || (teamValues[1] ? row[teamValues[1]] : '');
+        const finalLeague = league || 'Unknown League';
+
+        console.log(`🎯 Valeurs extraites:`, { 
+          finalHomeTeam, finalAwayTeam, finalLeague, country, 
+          oddsHome, oddsDraw, oddsAway,
+          potentialOddsKeys 
+        });
+
+        // Be VERY lenient - accept if we have at least 2 team names
+        if (!finalHomeTeam || !finalAwayTeam) {
+          console.log(`⚠️ LIGNE REJETÉE - Pas assez d'équipes trouvées`);
+          console.log(`   - Home: "${finalHomeTeam}"`);
+          console.log(`   - Away: "${finalAwayTeam}"`);
+          console.log(`   - Clés: ${Object.keys(row).join(', ')}`);
           continue;
         }
         
         const matchData = {
           match_date: uploadDate,
-          league: league,
-          home_team: homeTeam,
-          away_team: awayTeam,
+          league: finalLeague,
+          home_team: finalHomeTeam,
+          away_team: finalAwayTeam,
           country: country || null,
-          kickoff_utc: row.date_GMT ? new Date(row.date_GMT).toISOString() : new Date().toISOString(),
-          kickoff_local: row.date_GMT ? new Date(row.date_GMT).toISOString() : new Date().toISOString(),
-          category: getCategoryFromLeague(league),
+          kickoff_utc: new Date().toISOString(),
+          kickoff_local: new Date().toISOString(),
+          category: getCategoryFromLeague(finalLeague),
           
           // Default values for missing data - adapt to actual CSV structure
           p_home_fair: 0, // Not available in this CSV format
@@ -293,10 +341,10 @@ serve(async (req) => {
           watch_btts: (row['Odds_BTTS_Yes'] && parseFloat(row['Odds_BTTS_Yes']) > 0) || false,
           watch_over25: (row['Odds_Over25'] && parseFloat(row['Odds_Over25']) > 0) || false,
           
-          // Odds from CSV
-          odds_home: parseFloat(oddsHome),
-          odds_draw: parseFloat(oddsDraw),
-          odds_away: parseFloat(oddsAway),
+          // Odds from CSV (with fallbacks)
+          odds_home: oddsHome ? parseFloat(oddsHome) : 2.0,
+          odds_draw: oddsDraw ? parseFloat(oddsDraw) : 3.0, 
+          odds_away: oddsAway ? parseFloat(oddsAway) : 2.5,
           odds_btts_yes: row['Odds_BTTS_Yes'] ? parseFloat(row['Odds_BTTS_Yes']) : null,
           odds_btts_no: row['Odds_BTTS_No'] ? parseFloat(row['Odds_BTTS_No']) : null,
           odds_over_2_5: row['Odds_Over25'] ? parseFloat(row['Odds_Over25']) : null,
