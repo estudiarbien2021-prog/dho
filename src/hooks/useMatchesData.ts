@@ -45,8 +45,8 @@ export function useMatchesData() {
           skipEmptyLines: true,
           complete: (results) => {
             console.log('Parse complete, rows:', results.data.length);
-            console.log('CSV Headers:', results.meta.fields);
-            console.log('First CSV row sample:', results.data[0]);
+            console.log('CSV Headers:', JSON.stringify(results.meta.fields));
+            console.log('First CSV row sample:', JSON.stringify(results.data[0], null, 2));
             
             const processed = results.data.map((row: any, index: number) => {
               // Skip rows with missing odds
