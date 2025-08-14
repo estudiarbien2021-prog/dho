@@ -4,6 +4,7 @@ import { FilterPanel } from '@/components/dashboard/FilterPanel';
 import { MatchesTable } from '@/components/dashboard/MatchesTable';
 import { MatchDetailModal } from '@/components/dashboard/MatchDetailModal';
 import { KPIHeader } from '@/components/dashboard/KPIHeader';
+import { TopPicks } from '@/components/dashboard/TopPicks';
 import { ProcessedMatch } from '@/types/match';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -185,6 +186,9 @@ export function UserDashboard({ currentLang }: DashboardProps) {
       <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 space-y-4 sm:space-y-8">
         {/* KPIs */}
         <KPIHeader stats={stats} />
+
+        {/* Top 3 Picks */}
+        <TopPicks matches={matches} onMatchClick={handleMatchClick} />
 
         {/* Filters */}
         <FilterPanel
