@@ -362,7 +362,7 @@ serve(async (req) => {
     console.log(`✅ ${processedMatches.length} matchs traités avec succès`);
     console.log(`❌ ${errorCount} erreurs de traitement`);
     
-    // Bulk insert matches (using upsert to handle duplicates)
+    // Bulk insert matches (preserving historical data - only update if same date)
     if (processedMatches.length > 0) {
       // Insert in batches of 100 to avoid timeouts
       const batchSize = 100;
@@ -371,10 +371,12 @@ serve(async (req) => {
       for (let i = 0; i < processedMatches.length; i += batchSize) {
         const batch = processedMatches.slice(i, i + batchSize);
         
+        // Only upsert matches for the current upload date to preserve historical data
         const { data, error } = await supabase
           .from('matches')
           .upsert(batch, {
-            onConflict: 'match_date,league,home_team,away_team,kickoff_utc'
+            onConflict: 'match_date,league,home_team,away_team,kickoff_utc',
+            ignoreDuplicates: false
           });
         
         if (error) {
