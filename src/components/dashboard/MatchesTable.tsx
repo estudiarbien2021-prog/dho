@@ -190,7 +190,7 @@ export function MatchesTable({ matches, onMatchClick }: MatchesTableProps) {
                 className="cursor-pointer hover:bg-muted/50"
                 onClick={() => handleSort('vig_1x2')}
               >
-                Évaluation
+                Confiance
               </TableHead>
               <TableHead>
                 <div className="flex items-center gap-1">
@@ -239,12 +239,9 @@ export function MatchesTable({ matches, onMatchClick }: MatchesTableProps) {
                   </TableCell>
                   
                   <TableCell>
-                    <Badge 
-                      variant={match.vig_1x2 <= 0.12 ? "default" : "destructive"}
-                      className="font-medium"
-                    >
-                      {match.vig_1x2 <= 0.12 ? "Idéal" : "À éviter"}
-                    </Badge>
+                    <span className={`font-bold ${match.vig_1x2 <= 0.12 ? 'text-green-600' : 'text-muted-foreground'}`}>
+                      {match.vig_1x2 <= 0.12 ? "Haute" : "Moyenne"}
+                    </span>
                   </TableCell>
                   
                   <TableCell>
@@ -291,20 +288,35 @@ export function MatchesTable({ matches, onMatchClick }: MatchesTableProps) {
                   </TableCell>
                   
                   <TableCell>
-                    <div className="text-xs space-y-1">
-                      <div className="flex justify-between">
-                        <span>H:</span>
-                        <span className="font-mono">{(match.p_home_fair * 100).toFixed(0)}%</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>D:</span>
-                        <span className="font-mono">{(match.p_draw_fair * 100).toFixed(0)}%</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>A:</span>
-                        <span className="font-mono">{(match.p_away_fair * 100).toFixed(0)}%</span>
-                      </div>
-                    </div>
+                    {(() => {
+                      const homeProb = match.p_home_fair * 100;
+                      const drawProb = match.p_draw_fair * 100;
+                      const awayProb = match.p_away_fair * 100;
+                      const maxProb = Math.max(homeProb, drawProb, awayProb);
+                      
+                      return (
+                        <div className="text-xs space-y-1">
+                          <div className="flex justify-between">
+                            <span>H:</span>
+                            <span className={`font-mono ${homeProb === maxProb ? 'font-bold' : ''}`}>
+                              {homeProb.toFixed(0)}%
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>D:</span>
+                            <span className={`font-mono ${drawProb === maxProb ? 'font-bold' : ''}`}>
+                              {drawProb.toFixed(0)}%
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>A:</span>
+                            <span className={`font-mono ${awayProb === maxProb ? 'font-bold' : ''}`}>
+                              {awayProb.toFixed(0)}%
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </TableCell>
                   
                   <TableCell>
