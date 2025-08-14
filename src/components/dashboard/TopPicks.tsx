@@ -36,7 +36,7 @@ export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
         match,
         aiRec: generateAIRecommendation(match, [])
       }))
-      .filter(({ aiRec }) => aiRec !== null)
+      .filter(({ aiRec }) => aiRec !== null && aiRec.odds >= 1.6)
       .sort((a, b) => {
         // Trier par probabilité d'abord, puis par score
         const aProbability = a.match.p_btts_yes_fair || a.match.p_over_2_5_fair || 0;
