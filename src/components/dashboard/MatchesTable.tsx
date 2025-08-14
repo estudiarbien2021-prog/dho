@@ -215,19 +215,43 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
       return [{ league: null, matches: sortedMatches }];
     }
     
-    const groups: { league: string; matches: ProcessedMatch[] }[] = [];
-    let currentGroup: { league: string; matches: ProcessedMatch[] } | null = null;
+    // Group matches by league first
+    const matchesByLeague = new Map<string, ProcessedMatch[]>();
     
-    for (const match of sortedMatches) {
-      if (!currentGroup || currentGroup.league !== match.league) {
-        currentGroup = { league: match.league, matches: [] };
-        groups.push(currentGroup);
+    for (const match of matches) { // Use original matches, not sortedMatches
+      if (!matchesByLeague.has(match.league)) {
+        matchesByLeague.set(match.league, []);
       }
-      currentGroup.matches.push(match);
+      matchesByLeague.get(match.league)!.push(match);
     }
     
+    // Convert to array and sort each group internally
+    const groups = Array.from(matchesByLeague.entries()).map(([league, leagueMatches]) => ({
+      league,
+      matches: [...leagueMatches].sort((a, b) => {
+        if (sortField === 'kickoff_utc' || sortField === 'kickoff_local') {
+          const aVal = a[sortField];
+          const bVal = b[sortField];
+          if (aVal instanceof Date && bVal instanceof Date) {
+            return sortDirection === 'asc' ? aVal.getTime() - bVal.getTime() : bVal.getTime() - aVal.getTime();
+          }
+        }
+        
+        if (typeof a[sortField] === 'number' && typeof b[sortField] === 'number') {
+          return sortDirection === 'asc' ? a[sortField] - b[sortField] : b[sortField] - a[sortField];
+        }
+        
+        const aStr = String(a[sortField]).toLowerCase();
+        const bStr = String(b[sortField]).toLowerCase();
+        return sortDirection === 'asc' ? aStr.localeCompare(bStr) : bStr.localeCompare(aStr);
+      })
+    }));
+    
+    // Sort groups by league name
+    groups.sort((a, b) => a.league.localeCompare(b.league));
+    
     return groups;
-  }, [sortedMatches, groupBy]);
+  }, [matches, groupBy, sortField, sortDirection]);
 
   if (matches.length === 0) {
     return (
