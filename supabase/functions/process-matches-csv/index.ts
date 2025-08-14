@@ -362,8 +362,27 @@ serve(async (req) => {
     console.log(`✅ ${processedMatches.length} matchs traités avec succès`);
     console.log(`❌ ${errorCount} erreurs de traitement`);
     
-    // Bulk insert matches (preserving historical data - only update if same date)
+    // Deduplicate matches to avoid "ON CONFLICT DO UPDATE command cannot affect row a second time" error
     if (processedMatches.length > 0) {
+      // Create a map to deduplicate based on the conflict keys
+      const matchMap = new Map();
+      
+      for (const match of processedMatches) {
+        // Create a unique key based on the conflict columns
+        const key = `${match.match_date}-${match.league}-${match.home_team}-${match.away_team}-${match.kickoff_utc}`;
+        // Keep the last occurrence (most recent data)
+        matchMap.set(key, match);
+      }
+      
+      // Convert back to array
+      const uniqueMatches = Array.from(matchMap.values());
+      const duplicatesRemoved = processedMatches.length - uniqueMatches.length;
+      
+      if (duplicatesRemoved > 0) {
+        console.log(`🔄 ${duplicatesRemoved} doublons supprimés, ${uniqueMatches.length} matchs uniques restants`);
+      }
+      
+      processedMatches = uniqueMatches;
       // Insert in batches of 100 to avoid timeouts
       const batchSize = 100;
       let totalInserted = 0;
