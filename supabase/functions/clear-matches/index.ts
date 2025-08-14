@@ -17,13 +17,19 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    console.log('🗑️ Suppression de tous les matchs du dashboard...')
+    const { targetDate } = await req.json()
 
-    // Supprimer tous les matchs
+    if (!targetDate) {
+      throw new Error('Date cible requise')
+    }
+
+    console.log('🗑️ Suppression des matchs pour la date:', targetDate)
+
+    // Supprimer les matchs pour cette date spécifique
     const { data: deletedMatches, error: matchDeleteError } = await supabaseClient
       .from('matches')
       .delete()
-      .neq('id', 'non-existent-id') // Supprimer tous les matchs
+      .eq('match_date', targetDate)
       .select('id')
 
     if (matchDeleteError) {
@@ -31,13 +37,13 @@ serve(async (req) => {
     }
 
     const deletedCount = deletedMatches?.length || 0
-    console.log(`✅ ${deletedCount} matchs supprimés du dashboard`)
+    console.log(`✅ ${deletedCount} matchs supprimés pour le ${targetDate}`)
 
-    // Aussi vider la table match_uploads
+    // Aussi supprimer les uploads correspondants à cette date
     const { error: uploadDeleteError } = await supabaseClient
       .from('match_uploads')
       .delete()
-      .neq('id', 'non-existent-id') // Supprimer tous les uploads
+      .eq('upload_date', targetDate)
 
     if (uploadDeleteError) {
       console.error('❌ Erreur suppression uploads:', uploadDeleteError)
@@ -48,7 +54,8 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         deletedMatches: deletedCount,
-        message: `Dashboard vidé: ${deletedCount} matchs supprimés`
+        targetDate: targetDate,
+        message: `${deletedCount} matchs supprimés pour le ${targetDate}`
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

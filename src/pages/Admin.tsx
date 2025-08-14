@@ -32,6 +32,7 @@ export function Admin() {
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [selectedUploads, setSelectedUploads] = useState<string[]>([]);
   const [isDeletingUploads, setIsDeletingUploads] = useState(false);
+  const [clearDate, setClearDate] = useState(new Date().toISOString().split('T')[0]);
 
   // Load upload history
   useEffect(() => {
@@ -195,27 +196,29 @@ export function Admin() {
   };
 
   const handleClearDashboard = async () => {
-    const confirmed = window.confirm('⚠️ ATTENTION: Cette action va supprimer TOUS les matchs du dashboard et l\'historique des uploads. Êtes-vous sûr ?');
+    const confirmed = window.confirm(`⚠️ ATTENTION: Cette action va supprimer TOUS les matchs du ${clearDate} du dashboard. Êtes-vous sûr ?`);
     if (!confirmed) return;
 
     setIsProcessing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('clear-matches');
+      const { data, error } = await supabase.functions.invoke('clear-matches', {
+        body: { targetDate: clearDate }
+      });
 
       if (error) throw error;
 
       toast({
-        title: "Dashboard vidé !",
+        title: "Matchs supprimés !",
         description: data.message,
       });
 
       await loadUploadHistory();
       
     } catch (error) {
-      console.error('❌ Erreur vidage dashboard:', error);
+      console.error('❌ Erreur suppression matchs:', error);
       toast({
         title: "Erreur",
-        description: error.message || "Erreur lors du vidage du dashboard",
+        description: error.message || "Erreur lors de la suppression des matchs",
         variant: "destructive",
       });
     } finally {
@@ -309,20 +312,32 @@ export function Admin() {
               )}
             </Button>
 
-            <Button 
-              onClick={handleClearDashboard}
-              disabled={isProcessing || isDeletingUploads}
-              variant="destructive"
-              className="w-full"
-              size="sm"
-            >
-              {isProcessing ? (
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <XCircle className="h-4 w-4 mr-2" />
-              )}
-              Vider le Dashboard
-            </Button>
+            <div className="border-t pt-4 mt-4">
+              <Label htmlFor="clearDate">Date à vider du dashboard</Label>
+              <div className="flex gap-2 mt-2">
+                <Input
+                  id="clearDate"
+                  type="date"
+                  value={clearDate}
+                  onChange={(e) => setClearDate(e.target.value)}
+                  disabled={isProcessing || isDeletingUploads}
+                  className="flex-1"
+                />
+                <Button 
+                  onClick={handleClearDashboard}
+                  disabled={isProcessing || isDeletingUploads}
+                  variant="destructive"
+                  size="sm"
+                >
+                  {isProcessing ? (
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <XCircle className="h-4 w-4 mr-2" />
+                  )}
+                  Vider
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </Card>
