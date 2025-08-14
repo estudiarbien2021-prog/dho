@@ -37,7 +37,15 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
   };
 
   const getBttsWinner = () => match.p_btts_yes_fair > match.p_btts_no_fair ? 'Oui' : 'Non';
-  const getOver25Winner = () => match.p_over_2_5_fair > match.p_under_2_5_fair ? '+2,5 buts' : '-2,5 buts';
+  const getOver25Winner = () => {
+    // Utiliser la même logique de score que getBestRecommendation pour éviter les incohérences
+    if (!match.odds_over_2_5 || !match.odds_under_2_5) {
+      return match.p_over_2_5_fair > match.p_under_2_5_fair ? '+2,5 buts' : '-2,5 buts';
+    }
+    const overScore = match.p_over_2_5_fair * match.odds_over_2_5 * (1 + match.vig_ou_2_5);
+    const underScore = match.p_under_2_5_fair * match.odds_under_2_5 * (1 + match.vig_ou_2_5);
+    return overScore > underScore ? '+2,5 buts' : '-2,5 buts';
+  };
 
   // Calculate best recommendation using same formula as table
   const getBestRecommendation = () => {
