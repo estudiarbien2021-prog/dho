@@ -445,23 +445,43 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
                             if (match.ai_prediction) {
                               // Validation de cohérence : vérifier si la prédiction admin est cohérente avec les probabilités IA
                               const validateAdminPrediction = (adminPred: string) => {
+                                console.log('🔍 VALIDATION ADMIN PREDICTION:', {
+                                  adminPred,
+                                  p_over_2_5_fair: match.p_over_2_5_fair,
+                                  p_under_2_5_fair: match.p_under_2_5_fair,
+                                  p_btts_yes_fair: match.p_btts_yes_fair,
+                                  p_btts_no_fair: match.p_btts_no_fair,
+                                  home_team: match.home_team,
+                                  away_team: match.away_team
+                                });
+                                
                                 if (adminPred === '+2,5 buts') {
-                                  return match.p_over_2_5_fair > match.p_under_2_5_fair;
+                                  const isValid = match.p_over_2_5_fair > match.p_under_2_5_fair;
+                                  console.log('✅ +2,5 buts validation:', isValid);
+                                  return isValid;
                                 }
                                 if (adminPred === '-2,5 buts') {
-                                  return match.p_under_2_5_fair > match.p_over_2_5_fair;
+                                  const isValid = match.p_under_2_5_fair > match.p_over_2_5_fair;
+                                  console.log('✅ -2,5 buts validation:', isValid);
+                                  return isValid;
                                 }
                                 if (adminPred === 'BTTS Oui') {
-                                  return match.p_btts_yes_fair > match.p_btts_no_fair;
+                                  const isValid = match.p_btts_yes_fair > match.p_btts_no_fair;
+                                  console.log('✅ BTTS Oui validation:', isValid);
+                                  return isValid;
                                 }
                                 if (adminPred === 'BTTS Non') {
-                                  return match.p_btts_no_fair > match.p_btts_yes_fair;
+                                  const isValid = match.p_btts_no_fair > match.p_btts_yes_fair;
+                                  console.log('✅ BTTS Non validation:', isValid);
+                                  return isValid;
                                 }
+                                console.log('✅ Other prediction type accepted:', adminPred);
                                 return true; // Pour les autres types (1X2), on accepte
                               };
 
                               // Si la prédiction admin n'est pas cohérente, on passe à la recommandation automatique
                               const isAdminPredictionValid = validateAdminPrediction(match.ai_prediction);
+                              console.log('🎯 FINAL VALIDATION RESULT:', isAdminPredictionValid);
                               
                               if (isAdminPredictionValid) {
                                 const predictions = {
@@ -495,8 +515,10 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
                                     </div>
                                   </div>
                                 );
+                              } else {
+                                console.log('❌ ADMIN PREDICTION REJECTED - Using automatic recommendation instead');
+                                // Si pas cohérent, on continue vers la recommandation automatique  
                               }
-                              // Si pas cohérent, on continue vers la recommandation automatique
                             }
                             
                             const aiRec = generateAIRecommendation(match, marketFilters);
