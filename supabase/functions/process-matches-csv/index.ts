@@ -374,15 +374,16 @@ serve(async (req) => {
         matchMap.set(key, match);
       }
       
-      // Convert back to array
+      // Convert back to array and replace processedMatches content
       const uniqueMatches = Array.from(matchMap.values());
       const duplicatesRemoved = processedMatches.length - uniqueMatches.length;
       
       if (duplicatesRemoved > 0) {
         console.log(`🔄 ${duplicatesRemoved} doublons supprimés, ${uniqueMatches.length} matchs uniques restants`);
+        // Clear and refill the array with unique matches
+        processedMatches.length = 0;
+        processedMatches.push(...uniqueMatches);
       }
-      
-      processedMatches = uniqueMatches;
       // Insert in batches of 100 to avoid timeouts
       const batchSize = 100;
       let totalInserted = 0;
