@@ -18,48 +18,8 @@ interface AIRecommendation {
 }
 
 function generateAIRecommendation(match: ProcessedMatch): AIRecommendation | null {
-  // Analyser tous les marchés et calculer un score priorisant le vigorish
+  // Analyser uniquement les marchés BTTS et Over/Under
   const markets = [];
-
-  // Marché 1X2 - évaluer chaque possibilité
-  if (match.p_home_fair > 0.4 && match.odds_home >= 1.3) {
-    const score = match.p_home_fair * match.odds_home * (1 + match.vig_1x2);
-    markets.push({
-      betType: '1X2',
-      prediction: match.home_team,
-      odds: match.odds_home,
-      probability: match.p_home_fair,
-      vigorish: match.vig_1x2,
-      score,
-      confidence: match.p_home_fair > 0.6 && match.vig_1x2 > 0.08 ? 'high' : 'medium'
-    });
-  }
-  
-  if (match.p_draw_fair > 0.3 && match.odds_draw >= 1.3) {
-    const score = match.p_draw_fair * match.odds_draw * (1 + match.vig_1x2);
-    markets.push({
-      betType: '1X2',
-      prediction: 'Nul',
-      odds: match.odds_draw,
-      probability: match.p_draw_fair,
-      vigorish: match.vig_1x2,
-      score,
-      confidence: match.p_draw_fair > 0.5 && match.vig_1x2 > 0.08 ? 'high' : 'medium'
-    });
-  }
-  
-  if (match.p_away_fair > 0.4 && match.odds_away >= 1.3) {
-    const score = match.p_away_fair * match.odds_away * (1 + match.vig_1x2);
-    markets.push({
-      betType: '1X2',
-      prediction: match.away_team,
-      odds: match.odds_away,
-      probability: match.p_away_fair,
-      vigorish: match.vig_1x2,
-      score,
-      confidence: match.p_away_fair > 0.6 && match.vig_1x2 > 0.08 ? 'high' : 'medium'
-    });
-  }
 
   // Marché BTTS
   if (match.odds_btts_yes && match.odds_btts_yes >= 1.3 && match.p_btts_yes_fair > 0.45) {
