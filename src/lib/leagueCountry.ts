@@ -66,8 +66,17 @@ export const leagueCountryRules: Rule[] = [
 
 export function leagueToFlag(league: string, country?: string, homeTeam?: string, awayTeam?: string): FlagInfo {
   // 1. Priorité à la colonne country du CSV si elle existe
-  if (country && country.length === 2) {
-    return { code: country.toUpperCase() };
+  if (country) {
+    // Convertir les noms de pays complets en codes ISO
+    const countryCode = getCountryCodeFromName(country);
+    if (countryCode) {
+      return { code: countryCode };
+    }
+    
+    // Si c'est déjà un code ISO de 2 lettres
+    if (country.length === 2) {
+      return { code: country.toUpperCase() };
+    }
   }
   
   // 2. Recherche par nom de ligue (logique existante)
@@ -85,6 +94,96 @@ export function leagueToFlag(league: string, country?: string, homeTeam?: string
   }
   
   return { code: "" };
+}
+
+// Fonction pour convertir les noms de pays en codes ISO
+function getCountryCodeFromName(countryName: string): string | null {
+  const name = countryName.toLowerCase().trim();
+  
+  const countryMap: { [key: string]: string } = {
+    // Pays principaux
+    'brazil': 'BR',
+    'brasil': 'BR',
+    'argentina': 'AR',
+    'uruguay': 'UY',
+    'chile': 'CL',
+    'colombia': 'CO',
+    'peru': 'PE',
+    'ecuador': 'EC',
+    'paraguay': 'PY',
+    'bolivia': 'BO',
+    'venezuela': 'VE',
+    'mexico': 'MX',
+    'united states': 'US',
+    'usa': 'US',
+    'canada': 'CA',
+    'costa rica': 'CR',
+    
+    // Europe
+    'spain': 'ES',
+    'italy': 'IT',
+    'england': 'GB',
+    'united kingdom': 'GB',
+    'uk': 'GB',
+    'germany': 'DE',
+    'france': 'FR',
+    'portugal': 'PT',
+    'netherlands': 'NL',
+    'belgium': 'BE',
+    'turkey': 'TR',
+    'greece': 'GR',
+    'czech republic': 'CZ',
+    'scotland': 'GB',
+    'norway': 'NO',
+    'sweden': 'SE',
+    'poland': 'PL',
+    'ukraine': 'UA',
+    'bulgaria': 'BG',
+    'austria': 'AT',
+    'romania': 'RO',
+    'cyprus': 'CY',
+    'israel': 'IL',
+    'serbia': 'RS',
+    'azerbaijan': 'AZ',
+    'slovenia': 'SI',
+    'armenia': 'AM',
+    'hungary': 'HU',
+    'latvia': 'LV',
+    'switzerland': 'CH',
+    'denmark': 'DK',
+    
+    // Afrique & Asie
+    'egypt': 'EG',
+    'morocco': 'MA',
+    'algeria': 'DZ',
+    'japan': 'JP',
+    'south korea': 'KR',
+    'saudi arabia': 'SA',
+    'bhutan': 'BT',
+    'australia': 'AU',
+    'russia': 'RU',
+    'slovakia': 'SK',
+    'estonia': 'EE',
+    
+    // Cas spéciaux
+    'esports': '', // Pas de drapeau pour les esports
+    'south america': '', // Confédération, pas un pays
+    'europe': '', // Confédération, pas un pays
+    'north america': '', // Confédération, pas un pays
+    'africa': '', // Confédération, pas un pays
+    'asia': '', // Confédération, pas un pays
+    'oceania': '', // Confédération, pas un pays
+    'international': '', // Compétitions internationales
+    'world': '', // Coupe du monde, etc.
+    'continental': '', // Compétitions continentales
+    
+    // Cas alternatifs
+    'dominican republic': 'DO',
+    'rep dominicana': 'DO',
+    'rep. dominicana': 'DO'
+  };
+  
+  return countryMap[name] || null;
 }
 
 // Nouvelle fonction pour détecter le pays par les noms d'équipes
