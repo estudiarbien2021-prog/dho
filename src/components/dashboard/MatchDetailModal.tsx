@@ -758,12 +758,22 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                 // Validation de cohérence : vérifier si la prédiction admin est cohérente avec les probabilités IA
                 const validateAdminPrediction = (adminPred: string) => {
                   if (adminPred === '+2,5 buts') {
-                    const isValid = match.p_over_2_5_fair > match.p_under_2_5_fair;
-                    return isValid;
+                    // Utiliser la même logique de score que getBestRecommendation et getOver25Winner
+                    if (!match.odds_over_2_5 || !match.odds_under_2_5) {
+                      return match.p_over_2_5_fair > match.p_under_2_5_fair;
+                    }
+                    const overScore = match.p_over_2_5_fair * match.odds_over_2_5 * (1 + match.vig_ou_2_5);
+                    const underScore = match.p_under_2_5_fair * match.odds_under_2_5 * (1 + match.vig_ou_2_5);
+                    return overScore > underScore;
                   }
                   if (adminPred === '-2,5 buts') {
-                    const isValid = match.p_under_2_5_fair > match.p_over_2_5_fair;
-                    return isValid;
+                    // Utiliser la même logique de score que getBestRecommendation et getOver25Winner
+                    if (!match.odds_over_2_5 || !match.odds_under_2_5) {
+                      return match.p_under_2_5_fair > match.p_over_2_5_fair;
+                    }
+                    const overScore = match.p_over_2_5_fair * match.odds_over_2_5 * (1 + match.vig_ou_2_5);
+                    const underScore = match.p_under_2_5_fair * match.odds_under_2_5 * (1 + match.vig_ou_2_5);
+                    return underScore > overScore;
                   }
                   if (adminPred === 'BTTS Oui') {
                     const isValid = match.p_btts_yes_fair > match.p_btts_no_fair;
