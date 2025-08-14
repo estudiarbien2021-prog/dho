@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Clock, Brain, ExternalLink } from 'lucide-react';
+import { Clock, Brain, ExternalLink, Eye } from 'lucide-react';
 import { FlagMini } from '@/components/Flag';
 import { leagueToFlag } from '@/lib/leagueCountry';
 import { format } from 'date-fns';
@@ -286,8 +286,8 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
             </div>
           )}
           
-          {/* Matches Table */}
-          <Card className="overflow-hidden">
+          {/* Desktop Table */}
+          <Card className="overflow-hidden hidden md:block">
             <div className="overflow-x-auto">
               <Table>
                 {/* Show header only for first group or when not grouped */}
@@ -316,7 +316,7 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
                         </div>
                       </TableHead>
                       <TableHead 
-                        className="cursor-pointer hover:bg-muted/50"
+                        className="cursor-pointer hover:bg-muted/50 hidden lg:table-cell"
                         onClick={() => handleSort('vig_1x2')}
                       >
                         Confiance
@@ -324,10 +324,11 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
                       <TableHead>
                         <div className="flex items-center gap-1">
                           <Brain className="h-4 w-4" />
-                          Recommandation IA
+                          <span className="hidden lg:inline">Recommandation IA</span>
+                          <span className="lg:hidden">IA</span>
                         </div>
                       </TableHead>
-                      <TableHead>Probas</TableHead>
+                      <TableHead className="hidden lg:table-cell">Probas</TableHead>
                       <TableHead className="w-[100px]">Action</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -368,7 +369,7 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
                           </div>
                         </TableCell>
                         
-                        <TableCell>
+                        <TableCell className="hidden lg:table-cell">
                           <span className={`font-bold ${match.vig_1x2 <= 0.12 ? 'text-green-600' : 'text-muted-foreground'}`}>
                             {match.vig_1x2 <= 0.12 ? "Haute" : "Moyenne"}
                           </span>
@@ -468,6 +469,74 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
               </Table>
             </div>
           </Card>
+
+          {/* Mobile Cards */}
+          <div className="md:hidden space-y-4">
+            {group.matches.map((match) => {
+              const flagInfo = leagueToFlag(match.league, match.country, match.home_team, match.away_team);
+              const aiRec = generateAIRecommendation(match, marketFilters);
+              
+              return (
+                <Card key={match.id} className="p-4 cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => onMatchClick(match)}>
+                  <div className="space-y-3">
+                    {/* League & Time */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FlagMini code={flagInfo.code} confed={flagInfo.confed} />
+                        <span className="text-sm font-medium">{match.league}</span>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-medium">{formatTime(match.kickoff_utc)}</p>
+                        <p className="text-xs text-muted-foreground">{formatDate(match.kickoff_utc)}</p>
+                      </div>
+                    </div>
+                    
+                    {/* Match */}
+                    <div className="text-center py-2 border-y border-muted">
+                      <p className="font-medium">{match.home_team}</p>
+                      <p className="text-xs text-muted-foreground">vs</p>
+                      <p className="font-medium">{match.away_team}</p>
+                    </div>
+                    
+                    {/* AI Recommendation */}
+                    <div className="space-y-2">
+                      {aiRec ? (
+                        <div className="bg-green-100 p-3 rounded-lg border border-green-200">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Brain className="h-4 w-4 text-green-600" />
+                            <span className="text-sm font-medium text-green-800">
+                              Recommandation IA
+                            </span>
+                          </div>
+                          <div className="text-sm">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="font-medium">{aiRec.betType} - {aiRec.prediction}</span>
+                              <span className="text-green-600 font-bold">
+                                @{aiRec.odds.toFixed(2)}
+                              </span>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              Confiance: {aiRec.confidence}
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-xs text-muted-foreground text-center py-2">
+                          Aucune opportunité détectée
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Action Button */}
+                    <Button size="sm" className="w-full">
+                      <Eye className="h-4 w-4 mr-2" />
+                      Voir détails
+                    </Button>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
         </div>
       ))}
     </div>

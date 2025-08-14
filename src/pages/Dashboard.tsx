@@ -124,13 +124,13 @@ export function Dashboard({ currentLang }: DashboardProps) {
     <div className="min-h-screen bg-surface">
       {/* Header */}
       <div className="bg-surface-soft border-b border-surface-strong">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-6">
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-brand to-brand-400 bg-clip-text text-transparent">
+        <div className="container mx-auto px-2 sm:px-4 py-3 sm:py-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-6">
+              <h1 className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-brand to-brand-400 bg-clip-text text-transparent">
                 ⚽ Analytics Dashboard
               </h1>
-              <div className="hidden md:flex items-center space-x-4">
+              <div className="hidden lg:flex items-center space-x-4">
                 <Button variant="ghost" size="sm" onClick={() => window.location.href = '/dashboard'}>
                   <Calendar className="h-4 w-4 mr-2" />
                   Aujourd'hui
@@ -146,26 +146,43 @@ export function Dashboard({ currentLang }: DashboardProps) {
               </div>
             </div>
             
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2 sm:space-x-3 w-full sm:w-auto">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={exportToCSV}
                 disabled={matches.length === 0}
+                className="flex-1 sm:flex-none"
               >
-                <Download className="h-4 w-4 mr-2" />
-                Export CSV
+                <Download className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Export CSV</span>
               </Button>
-              <Button variant="ghost" size="sm" onClick={signOut}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Déconnexion
+              <Button variant="ghost" size="sm" onClick={signOut} className="flex-1 sm:flex-none">
+                <LogOut className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Déconnexion</span>
               </Button>
             </div>
+          </div>
+          
+          {/* Mobile Navigation */}
+          <div className="flex lg:hidden items-center space-x-2 mt-4 overflow-x-auto">
+            <Button variant="ghost" size="sm" onClick={() => window.location.href = '/dashboard'}>
+              <Calendar className="h-4 w-4 mr-2" />
+              Aujourd'hui
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => window.location.href = '/archives'}>
+              <Archive className="h-4 w-4 mr-2" />
+              Archives
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => window.location.href = '/admin'}>
+              <Settings className="h-4 w-4 mr-2" />
+              Admin
+            </Button>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8 space-y-8">
+      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 space-y-4 sm:space-y-8">
         {/* KPIs */}
         <KPIHeader stats={stats} />
 
