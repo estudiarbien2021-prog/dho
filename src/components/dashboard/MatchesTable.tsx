@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Clock, Brain, ExternalLink, Eye } from 'lucide-react';
+import { Clock, Brain, ExternalLink, Eye, Globe } from 'lucide-react';
 import { FlagMini } from '@/components/Flag';
 import { leagueToFlag } from '@/lib/leagueCountry';
 import { format } from 'date-fns';
@@ -232,6 +232,36 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
     return minutesUntil > 0 && minutesUntil <= 60;
   };
 
+  // Check if competition is international or continental
+  const isInternationalCompetition = (country: string | null, league: string) => {
+    // Check country field
+    if (country?.toLowerCase() === 'international') {
+      return true;
+    }
+    
+    // Check for continental competitions in league name
+    const leagueLower = league.toLowerCase();
+    const continentalKeywords = [
+      'champions league', 'europa league', 'conference league', 'europa conference league',
+      'libertadores', 'sudamericana', 'concacaf', 'afc cup', 'caf champions league',
+      'continental', 'intercontinental', 'world cup', 'euro', 'copa america',
+      'african nations', 'asian cup', 'confederation cup', 'nations league',
+      'international', 'qualifying', 'friendly'
+    ];
+    
+    return continentalKeywords.some(keyword => leagueLower.includes(keyword));
+  };
+
+  // Render flag or globe icon
+  const renderCompetitionIcon = (match: ProcessedMatch) => {
+    if (isInternationalCompetition(match.country, match.league)) {
+      return <Globe className="h-4 w-4 text-blue-500" />;
+    }
+    
+    const flagInfo = leagueToFlag(match.league, match.country, match.home_team, match.away_team);
+    return <FlagMini code={flagInfo.code} confed={flagInfo.confed} />;
+  };
+
   // Group matches by competition if needed
   const groupedMatches = useMemo(() => {
     if (groupBy !== 'competition') {
@@ -293,11 +323,7 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
             <div className="mb-4">
               <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-brand/10 to-brand-400/10 rounded-lg border border-brand/20">
                 <div className="flex items-center gap-2">
-                  {(() => {
-                    const firstMatch = group.matches[0];
-                    const flagInfo = leagueToFlag(firstMatch.league, firstMatch.country, firstMatch.home_team, firstMatch.away_team);
-                    return <FlagMini code={flagInfo.code} confed={flagInfo.confed} />;
-                  })()}
+                  {renderCompetitionIcon(group.matches[0])}
                   <h3 className="text-lg font-semibold text-brand">
                     {group.league}
                   </h3>
@@ -373,7 +399,7 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
                       >
                         <TableCell>
                           <div className="flex items-center gap-3">
-                            {groupBy !== 'competition' && <FlagMini code={flagInfo.code} confed={flagInfo.confed} />}
+                            {groupBy !== 'competition' && renderCompetitionIcon(match)}
                             <div>
                               <p className="font-medium text-sm">
                                 {match.league}
@@ -517,7 +543,7 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
                     {/* League & Time */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <FlagMini code={flagInfo.code} confed={flagInfo.confed} />
+                        {renderCompetitionIcon(match)}
                         <span className="text-sm font-medium">{match.league}</span>
                       </div>
                       <div className="text-right">
