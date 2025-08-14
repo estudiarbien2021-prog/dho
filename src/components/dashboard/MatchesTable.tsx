@@ -83,10 +83,18 @@ function generateAIRecommendation(match: ProcessedMatch): AIRecommendation | nul
   // Garder seulement la meilleure option BTTS
   if (bttsSuggestions.length > 0) {
     const bestBtts = bttsSuggestions.reduce((prev, current) => {
+      const scoreDifference = Math.abs(current.score - prev.score);
       console.log('Comparing BTTS scores:', prev.prediction, prev.score, 'vs', current.prediction, current.score);
+      
+      // Si les scores sont très proches (différence < 0.001), choisir celui avec la plus haute probabilité
+      if (scoreDifference < 0.001) {
+        console.log('Scores égaux, choisir par probabilité:', prev.probability, 'vs', current.probability);
+        return current.probability > prev.probability ? current : prev;
+      }
+      
       return current.score > prev.score ? current : prev;
     });
-    console.log('Best BTTS chosen:', bestBtts.prediction, 'with score:', bestBtts.score);
+    console.log('Best BTTS chosen:', bestBtts.prediction, 'with score:', bestBtts.score, 'and probability:', bestBtts.probability);
     markets.push(bestBtts);
   }
 
