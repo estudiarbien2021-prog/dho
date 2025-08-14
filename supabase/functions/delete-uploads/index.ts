@@ -25,6 +25,36 @@ serve(async (req) => {
 
     console.log('🗑️ Suppression des uploads:', uploadIds)
 
+    // D'abord récupérer les informations des uploads à supprimer
+    const { data: uploadsToDelete, error: fetchError } = await supabaseClient
+      .from('match_uploads')
+      .select('upload_date, filename')
+      .in('id', uploadIds)
+
+    if (fetchError) {
+      throw fetchError
+    }
+
+    console.log('📅 Uploads à supprimer:', uploadsToDelete)
+
+    // Supprimer les matchs correspondants
+    let totalMatchesDeleted = 0
+    for (const upload of uploadsToDelete) {
+      const { data: deletedMatches, error: matchDeleteError } = await supabaseClient
+        .from('matches')
+        .delete()
+        .eq('match_date', upload.upload_date)
+        .select('id')
+
+      if (matchDeleteError) {
+        console.error('❌ Erreur suppression matchs:', matchDeleteError)
+        throw matchDeleteError
+      }
+
+      console.log(`🗑️ ${deletedMatches?.length || 0} matchs supprimés pour le ${upload.upload_date}`)
+      totalMatchesDeleted += deletedMatches?.length || 0
+    }
+
     // Supprimer les entrées match_uploads
     const { error: deleteError } = await supabaseClient
       .from('match_uploads')
@@ -35,13 +65,14 @@ serve(async (req) => {
       throw deleteError
     }
 
-    console.log('✅ Uploads supprimés avec succès')
+    console.log('✅ Uploads et matchs supprimés avec succès')
 
     return new Response(
       JSON.stringify({
         success: true,
         deletedCount: uploadIds.length,
-        message: `${uploadIds.length} upload(s) supprimé(s) avec succès`
+        deletedMatches: totalMatchesDeleted,
+        message: `${uploadIds.length} upload(s) et ${totalMatchesDeleted} match(s) supprimé(s) avec succès`
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
