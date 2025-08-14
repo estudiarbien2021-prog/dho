@@ -348,16 +348,8 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
                             {groupBy !== 'competition' && <FlagMini code={flagInfo.code} confed={flagInfo.confed} />}
                             <div>
                               <p className="font-medium text-sm">
-                                {groupBy === 'competition' ? 
-                                  `${match.category.replace('_', ' ')}` : 
-                                  match.league
-                                }
+                                {match.league}
                               </p>
-                              {groupBy !== 'competition' && (
-                                <p className="text-xs text-muted-foreground capitalize">
-                                  {match.category.replace('_', ' ')}
-                                </p>
-                              )}
                             </div>
                           </div>
                         </TableCell>

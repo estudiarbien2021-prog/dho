@@ -158,36 +158,6 @@ export function useDatabaseMatches(specificDate?: string) {
         }
       }
 
-      // AI Opportunity filter - only show matches with AI recommendations
-      const hasAIOpportunity = () => {
-        // BTTS opportunities
-        const bttsSuggestions = [];
-        
-        if (match.odds_btts_yes && match.odds_btts_yes >= 1.3 && match.p_btts_yes_fair && match.p_btts_yes_fair > 0.45) {
-          bttsSuggestions.push('btts_yes');
-        }
-        
-        if (match.odds_btts_no && match.odds_btts_no >= 1.3 && match.p_btts_no_fair && match.p_btts_no_fair > 0.45) {
-          bttsSuggestions.push('btts_no');
-        }
-
-        // Over/Under opportunities
-        const ouSuggestions = [];
-        if (match.odds_over_2_5 && match.odds_over_2_5 >= 1.3 && match.p_over_2_5_fair > 0.45) {
-          ouSuggestions.push('over25');
-        }
-        
-        if (match.odds_under_2_5 && match.odds_under_2_5 >= 1.3 && match.p_under_2_5_fair > 0.45) {
-          ouSuggestions.push('under25');
-        }
-
-        return bttsSuggestions.length > 0 || ouSuggestions.length > 0;
-      };
-      
-      if (!hasAIOpportunity()) {
-        return false;
-      }
-
       return true;
     });
 
