@@ -219,7 +219,18 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
           country.includes('japan') || country.includes('korea') || country.includes('china') ||
           country.includes('saudi') || country.includes('qatar') || country.includes('uae') ||
           country.includes('iran') || country.includes('australia') || country.includes('thailand') ||
-          country.includes('vietnam') || country.includes('indonesia') || country.includes('malaysia')) {
+          country.includes('vietnam') || country.includes('indonesia') || country.includes('malaysia') ||
+          country.includes('singapore') || country.includes('philippines') || country.includes('myanmar') ||
+          country.includes('cambodia') || country.includes('laos') || country.includes('brunei') ||
+          country.includes('bhutan') || country.includes('nepal') || country.includes('bangladesh') ||
+          country.includes('sri lanka') || country.includes('maldives') || country.includes('afghanistan') ||
+          country.includes('pakistan') || country.includes('india') || country.includes('uzbekistan') ||
+          country.includes('kazakhstan') || country.includes('kyrgyzstan') || country.includes('tajikistan') ||
+          country.includes('turkmenistan') || country.includes('mongolia') || country.includes('taiwan') ||
+          country.includes('hong kong') || country.includes('macau') || country.includes('palestine') ||
+          country.includes('lebanon') || country.includes('syria') || country.includes('jordan') ||
+          country.includes('iraq') || country.includes('kuwait') || country.includes('bahrain') ||
+          country.includes('oman') || country.includes('yemen')) {
         return 'du football asiatique';
       }
       
