@@ -1,5 +1,14 @@
 // Shared confidence score logic for consistent values across components
 export function generateConfidenceScore(matchId: string, recommendation?: any): string {
+  console.log('generateConfidenceScore called with:', { 
+    matchId, 
+    recommendation: recommendation ? {
+      type: recommendation.type,
+      prediction: recommendation.prediction,
+      confidence: recommendation.confidence
+    } : null
+  });
+
   // Create deterministic seed from match ID for consistent randomization
   const hashCode = (str: string) => {
     let hash = 0;
@@ -25,5 +34,6 @@ export function generateConfidenceScore(matchId: string, recommendation?: any): 
     ? Math.min((recommendation.confidence * 100), 89.5).toFixed(1)
     : (70 + seededRandom(matchSeed, 2) * 19.5).toFixed(1); // Seeded between 70-89.5
 
+  console.log('generateConfidenceScore result:', confidence);
   return confidence;
 }
