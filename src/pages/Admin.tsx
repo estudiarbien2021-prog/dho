@@ -8,7 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Upload, RefreshCw, Calendar, CheckCircle, XCircle, Clock, Trash2, Users, Database, Shield, Eye, UserX, Crown } from 'lucide-react';
 import { format } from 'date-fns';
@@ -90,16 +90,29 @@ export function Admin() {
   }, [matchDate, filename]);
 
   const loadUsers = async () => {
+    console.log('🔍 Chargement des utilisateurs...');
     try {
       const { data: usersData, error: usersError } = await supabase
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (usersError) throw usersError;
+      console.log('📊 Réponse Supabase profiles:', { usersData, usersError });
+
+      if (usersError) {
+        console.error('❌ Erreur Supabase profiles:', usersError);
+        throw usersError;
+      }
 
       const users = usersData as UserProfile[];
+      console.log('👥 Utilisateurs trouvés:', users.length);
       setUsers(users);
+
+      // Si aucun utilisateur dans profiles, vérifions s'il y en a dans auth.users
+      if (users.length === 0) {
+        console.log('⚠️ Aucun utilisateur dans profiles, vérification de auth.users...');
+        // Note: On ne peut pas directement query auth.users via le client, on va créer une migration
+      }
 
       // Calculate stats
       const now = new Date();
@@ -113,9 +126,10 @@ export function Admin() {
         adminUsers: users.filter(u => u.role === 'admin').length
       };
 
+      console.log('📈 Statistiques calculées:', stats);
       setUserStats(stats);
     } catch (error) {
-      console.error('Error loading users:', error);
+      console.error('❌ Erreur lors du chargement des utilisateurs:', error);
       toast({
         title: "Erreur",
         description: "Impossible de charger les utilisateurs",
