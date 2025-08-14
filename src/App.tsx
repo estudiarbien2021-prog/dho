@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { Dashboard } from './pages/Dashboard';
+import { UserDashboard } from './pages/UserDashboard';
 import { Admin } from './pages/Admin';
 import { Archives } from './pages/Archives';
 import { Test } from './pages/Test';
@@ -30,7 +30,7 @@ const App: React.FC = () => {
             path="/dashboard" 
             element={
               <ProtectedRoute>
-                <Dashboard currentLang={currentLang} matches={[]} />
+                <UserDashboard currentLang={currentLang} matches={[]} />
               </ProtectedRoute>
             } 
           />

@@ -18,7 +18,7 @@ interface DashboardProps {
   matches: ProcessedMatch[];
 }
 
-export function Dashboard({ currentLang }: DashboardProps) {
+export function UserDashboard({ currentLang }: DashboardProps) {
   const { signOut } = useAuth();
   const { matches, isLoading, error, filters, setFilters, availableLeagues, stats } = useDatabaseMatches();
   const [selectedMatch, setSelectedMatch] = useState<ProcessedMatch | null>(null);
