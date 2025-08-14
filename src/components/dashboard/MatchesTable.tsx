@@ -18,6 +18,18 @@ interface AIRecommendation {
 }
 
 function generateAIRecommendation(match: ProcessedMatch): AIRecommendation | null {
+  // Debug spécifique pour ce match
+  console.log('=== AI RECOMMENDATION DEBUG ===', {
+    league: match.league,
+    home_team: match.home_team,
+    away_team: match.away_team,
+    odds_btts_yes: match.odds_btts_yes,
+    odds_btts_no: match.odds_btts_no,
+    p_btts_yes_fair: match.p_btts_yes_fair,
+    p_btts_no_fair: match.p_btts_no_fair,
+    vig_btts: match.vig_btts
+  });
+
   // Analyser uniquement les marchés BTTS et Over/Under
   const markets = [];
 
@@ -26,6 +38,7 @@ function generateAIRecommendation(match: ProcessedMatch): AIRecommendation | nul
   
   if (match.odds_btts_yes && match.odds_btts_yes >= 1.3 && match.p_btts_yes_fair && match.p_btts_yes_fair > 0.45) {
     const score = match.p_btts_yes_fair * match.odds_btts_yes * (1 + match.vig_btts);
+    console.log('BTTS YES passed all conditions, score:', score);
     bttsSuggestions.push({
       betType: 'BTTS',
       prediction: 'Oui',
@@ -35,10 +48,18 @@ function generateAIRecommendation(match: ProcessedMatch): AIRecommendation | nul
       score,
       confidence: match.p_btts_yes_fair > 0.65 && match.vig_btts > 0.08 ? 'high' : 'medium'
     });
+  } else {
+    console.log('BTTS YES conditions:', {
+      hasOdds: !!match.odds_btts_yes,
+      oddsGte13: match.odds_btts_yes >= 1.3,
+      hasProb: !!match.p_btts_yes_fair,
+      probGt045: match.p_btts_yes_fair > 0.45
+    });
   }
   
   if (match.odds_btts_no && match.odds_btts_no >= 1.3 && match.p_btts_no_fair && match.p_btts_no_fair > 0.45) {
     const score = match.p_btts_no_fair * match.odds_btts_no * (1 + match.vig_btts);
+    console.log('BTTS NO passed all conditions, score:', score);
     bttsSuggestions.push({
       betType: 'BTTS',
       prediction: 'Non',
@@ -48,13 +69,24 @@ function generateAIRecommendation(match: ProcessedMatch): AIRecommendation | nul
       score,
       confidence: match.p_btts_no_fair > 0.65 && match.vig_btts > 0.08 ? 'high' : 'medium'
     });
+  } else {
+    console.log('BTTS NO conditions:', {
+      hasOdds: !!match.odds_btts_no,
+      oddsGte13: match.odds_btts_no >= 1.3,
+      hasProb: !!match.p_btts_no_fair,
+      probGt045: match.p_btts_no_fair > 0.45
+    });
   }
+
+  console.log('BTTS suggestions count:', bttsSuggestions.length);
 
   // Garder seulement la meilleure option BTTS
   if (bttsSuggestions.length > 0) {
     const bestBtts = bttsSuggestions.reduce((prev, current) => {
+      console.log('Comparing BTTS scores:', prev.prediction, prev.score, 'vs', current.prediction, current.score);
       return current.score > prev.score ? current : prev;
     });
+    console.log('Best BTTS chosen:', bestBtts.prediction, 'with score:', bestBtts.score);
     markets.push(bestBtts);
   }
 
@@ -94,12 +126,19 @@ function generateAIRecommendation(match: ProcessedMatch): AIRecommendation | nul
     markets.push(bestOU);
   }
 
+  console.log('Total markets found:', markets.length);
+
   // Retourner le marché avec le meilleur score global (priorisant vigorish élevé)
-  if (markets.length === 0) return null;
+  if (markets.length === 0) {
+    console.log('No markets found, returning null');
+    return null;
+  }
   
   const bestMarket = markets.reduce((prev, current) => 
     current.score > prev.score ? current : prev
   );
+  
+  console.log('Final best market:', bestMarket.betType, '-', bestMarket.prediction);
   
   return {
     betType: bestMarket.betType,
