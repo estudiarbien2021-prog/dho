@@ -808,6 +808,14 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                 
                 const currentRecommendation = adminRecommendation || bestRecommendation;
                 
+                console.log('🔧 MODAL currentRecommendation:', {
+                  currentRecommendation,
+                  adminRecommendation,
+                  bestRecommendation,
+                  shouldUseAdminPrediction,
+                  match_id: match.id
+                });
+                
                 return (
                   <>
                     {shouldUseAdminPrediction && (
