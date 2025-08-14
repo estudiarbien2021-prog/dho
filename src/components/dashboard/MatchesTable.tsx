@@ -455,16 +455,12 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
                                     🎯 {predictionText}
                                   </Badge>
                                     <div className="text-xs text-muted-foreground">
-                                      {(() => {
-                                        const confidenceScore = generateConfidenceScore(match.id, {
-                                          type: match.ai_prediction?.includes('BTTS') ? 'BTTS' : 
-                                                match.ai_prediction?.includes('buts') ? 'O/U 2.5' : '1X2',
-                                          prediction: match.ai_prediction,
-                                          confidence: match.ai_confidence
-                                        });
-                                        console.log('Dashboard confidence for match', match.id, ':', confidenceScore);
-                                        return `Confiance: ${confidenceScore}%`;
-                                      })()}
+                                      Confiance: {generateConfidenceScore(match.id, {
+                                        type: match.ai_prediction?.includes('BTTS') ? 'BTTS' : 
+                                              match.ai_prediction?.includes('buts') ? 'O/U 2.5' : '1X2',
+                                        prediction: match.ai_prediction,
+                                        confidence: match.ai_confidence
+                                      })}%
                                     </div>
                                 </div>
                               );
@@ -507,11 +503,7 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
                                   </div>
                                  </div>
                                   <div className="text-xs text-muted-foreground mt-1">
-                                    {(() => {
-                                      const confidenceScore = generateConfidenceScore(match.id, aiRec);
-                                      console.log('Dashboard auto confidence for match', match.id, ':', confidenceScore);
-                                      return `Confiance: ${confidenceScore}%`;
-                                    })()}
+                                    Confiance: {generateConfidenceScore(match.id, aiRec)}%
                                   </div>
                                </div>
                              );

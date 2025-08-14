@@ -789,6 +789,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                   type: match.ai_prediction?.includes('BTTS') ? 'BTTS' : 
                         match.ai_prediction?.includes('buts') ? 'O/U 2.5' : '1X2',
                   prediction: match.ai_prediction,
+                  confidence: match.ai_confidence, // Ajout de cette propriété manquante
                   odds: match.ai_prediction === '1' ? match.odds_home :
                         match.ai_prediction === 'X' ? match.odds_draw :
                         match.ai_prediction === '2' ? match.odds_away :
