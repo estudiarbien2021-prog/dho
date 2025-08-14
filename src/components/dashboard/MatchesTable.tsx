@@ -10,6 +10,109 @@ import { leagueToFlag } from '@/lib/leagueCountry';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
+interface AIRecommendation {
+  betType: string;
+  prediction: string;
+  odds: number;
+  confidence: 'high' | 'medium' | 'low';
+}
+
+function generateAIRecommendation(match: ProcessedMatch): AIRecommendation | null {
+  const recommendations: Array<{
+    betType: string;
+    prediction: string;
+    odds: number;
+    value: number;
+    confidence: 'high' | 'medium' | 'low';
+  }> = [];
+
+  // Analyze 1X2 market
+  const maxProb1x2 = Math.max(match.p_home_fair, match.p_draw_fair, match.p_away_fair);
+  if (match.p_home_fair === maxProb1x2) {
+    const impliedProb = 1 / match.odds_home;
+    const value = (match.p_home_fair - impliedProb) / impliedProb;
+    if (value > 0.05 && match.is_low_vig_1x2) {
+      recommendations.push({
+        betType: '1X2',
+        prediction: `Victoire ${match.home_team}`,
+        odds: match.odds_home,
+        value,
+        confidence: value > 0.15 ? 'high' : value > 0.08 ? 'medium' : 'low'
+      });
+    }
+  } else if (match.p_away_fair === maxProb1x2) {
+    const impliedProb = 1 / match.odds_away;
+    const value = (match.p_away_fair - impliedProb) / impliedProb;
+    if (value > 0.05 && match.is_low_vig_1x2) {
+      recommendations.push({
+        betType: '1X2',
+        prediction: `Victoire ${match.away_team}`,
+        odds: match.odds_away,
+        value,
+        confidence: value > 0.15 ? 'high' : value > 0.08 ? 'medium' : 'low'
+      });
+    }
+  }
+
+  // Analyze BTTS market
+  if (match.watch_btts && match.odds_btts_yes) {
+    const impliedProb = 1 / match.odds_btts_yes;
+    const value = (match.p_btts_yes_fair - impliedProb) / impliedProb;
+    if (value > 0.03) {
+      recommendations.push({
+        betType: 'BTTS',
+        prediction: 'Les deux équipes marquent',
+        odds: match.odds_btts_yes,
+        value,
+        confidence: value > 0.12 ? 'high' : value > 0.06 ? 'medium' : 'low'
+      });
+    }
+  }
+
+  // Analyze Over/Under 2.5 market
+  if (match.watch_over25 && match.odds_over_2_5) {
+    const impliedProb = 1 / match.odds_over_2_5;
+    const value = (match.p_over_2_5_fair - impliedProb) / impliedProb;
+    if (value > 0.03) {
+      recommendations.push({
+        betType: 'O/U 2.5',
+        prediction: '+2,5 buts',
+        odds: match.odds_over_2_5,
+        value,
+        confidence: value > 0.12 ? 'high' : value > 0.06 ? 'medium' : 'low'
+      });
+    }
+  }
+
+  if (match.odds_under_2_5 && match.p_under_2_5_fair > 0.55) {
+    const impliedProb = 1 / match.odds_under_2_5;
+    const value = (match.p_under_2_5_fair - impliedProb) / impliedProb;
+    if (value > 0.03) {
+      recommendations.push({
+        betType: 'O/U 2.5',
+        prediction: '-2,5 buts',
+        odds: match.odds_under_2_5,
+        value,
+        confidence: value > 0.12 ? 'high' : value > 0.06 ? 'medium' : 'low'
+      });
+    }
+  }
+
+  // Return the recommendation with highest value
+  if (recommendations.length === 0) return null;
+  
+  const bestRec = recommendations.reduce((prev, current) => 
+    current.value > prev.value ? current : prev
+  );
+
+  return {
+    betType: bestRec.betType,
+    prediction: bestRec.prediction,
+    odds: bestRec.odds,
+    confidence: bestRec.confidence
+  };
+}
+
 interface MatchesTableProps {
   matches: ProcessedMatch[];
   onMatchClick: (match: ProcessedMatch) => void;
@@ -150,28 +253,48 @@ export function MatchesTable({ matches, onMatchClick }: MatchesTableProps) {
                   </TableCell>
                   
                   <TableCell>
-                    <div className="space-y-1">
-                      {match.is_low_vig_1x2 && (
-                        <p className="text-xs text-brand-500 font-medium">
-                          ✓ Match recommandé (faible marge)
-                        </p>
-                      )}
-                      {match.watch_btts && (
-                        <p className="text-xs text-surface-soft">
-                          • Opportunité BTTS détectée
-                        </p>
-                      )}
-                      {match.watch_over25 && (
-                        <p className="text-xs text-surface-soft">
-                          • Potentiel Over 2.5 buts
-                        </p>
-                      )}
-                      {!match.is_low_vig_1x2 && !match.watch_btts && !match.watch_over25 && (
-                        <p className="text-xs text-text-mute">
-                          Aucune recommandation spéciale
-                        </p>
-                      )}
-                    </div>
+                    {(() => {
+                      const aiRec = generateAIRecommendation(match);
+                      
+                      if (!aiRec) {
+                        return (
+                          <div className="text-xs text-muted-foreground">
+                            Aucune opportunité détectée
+                          </div>
+                        );
+                      }
+
+                      const confidenceColors = {
+                        high: 'bg-green-50 border-green-200 text-green-800',
+                        medium: 'bg-yellow-50 border-yellow-200 text-yellow-800', 
+                        low: 'bg-gray-50 border-gray-200 text-gray-600'
+                      };
+
+                      return (
+                        <div className={`p-2 rounded-lg border ${confidenceColors[aiRec.confidence]} min-w-[180px]`}>
+                          <div className="flex items-center gap-1 mb-1">
+                            <Brain className="h-3 w-3" />
+                            <span className="text-xs font-semibold">Recommandation IA</span>
+                          </div>
+                          <div className="space-y-1">
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs">Type de pari</span>
+                              <Badge variant="outline" className="text-xs px-1 py-0">
+                                {aiRec.betType}
+                              </Badge>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs">Prédiction</span>
+                              <span className="text-xs font-medium">{aiRec.prediction}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs">Cote</span>
+                              <span className="text-xs font-bold">{aiRec.odds.toFixed(2)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </TableCell>
                   
                   <TableCell>
