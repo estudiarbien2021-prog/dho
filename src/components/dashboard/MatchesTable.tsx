@@ -18,39 +18,51 @@ interface AIRecommendation {
 }
 
 function generateAIRecommendation(match: ProcessedMatch): AIRecommendation | null {
-  // Analyser tous les marchés et choisir le meilleur
+  // Analyser tous les marchés et calculer un score (probabilité * cote)
   const markets = [];
 
   // Marché 1X2
   const maxProb1x2 = Math.max(match.p_home_fair, match.p_draw_fair, match.p_away_fair);
   
   if (match.p_home_fair === maxProb1x2) {
+    const score = match.p_home_fair * match.odds_home;
     markets.push({
       betType: '1X2',
       prediction: match.home_team,
       odds: match.odds_home,
       probability: match.p_home_fair,
+      score,
       confidence: match.p_home_fair > 0.6 ? 'high' : match.p_home_fair > 0.45 ? 'medium' : 'low'
     });
   } else if (match.p_away_fair === maxProb1x2) {
+    const score = match.p_away_fair * match.odds_away;
     markets.push({
       betType: '1X2',
       prediction: match.away_team,
       odds: match.odds_away,
       probability: match.p_away_fair,
+      score,
       confidence: match.p_away_fair > 0.6 ? 'high' : match.p_away_fair > 0.45 ? 'medium' : 'low'
     });
   }
 
   // Marché BTTS
-  if (match.odds_btts_yes && match.p_btts_yes_fair > 0.4) {
-    markets.push({
-      betType: 'BTTS',
-      prediction: match.p_btts_yes_fair > 0.5 ? 'Oui' : 'Non',
-      odds: match.p_btts_yes_fair > 0.5 ? match.odds_btts_yes : match.odds_btts_no,
-      probability: match.p_btts_yes_fair > 0.5 ? match.p_btts_yes_fair : (1 - match.p_btts_yes_fair),
-      confidence: Math.abs(match.p_btts_yes_fair - 0.5) > 0.15 ? 'high' : Math.abs(match.p_btts_yes_fair - 0.5) > 0.08 ? 'medium' : 'low'
-    });
+  if (match.odds_btts_yes && match.p_btts_yes_fair > 0) {
+    const bttsProb = match.p_btts_yes_fair > 0.5 ? match.p_btts_yes_fair : (1 - match.p_btts_yes_fair);
+    const bttsOdds = match.p_btts_yes_fair > 0.5 ? match.odds_btts_yes : match.odds_btts_no;
+    const bttsPrediction = match.p_btts_yes_fair > 0.5 ? 'BTTS Oui' : 'BTTS Non';
+    
+    if (bttsOdds && bttsProb > 0.4) {
+      const score = bttsProb * bttsOdds;
+      markets.push({
+        betType: 'BTTS',
+        prediction: bttsPrediction,
+        odds: bttsOdds,
+        probability: bttsProb,
+        score,
+        confidence: bttsProb > 0.65 ? 'high' : bttsProb > 0.5 ? 'medium' : 'low'
+      });
+    }
   }
 
   // Marché Over/Under 2.5
@@ -59,29 +71,33 @@ function generateAIRecommendation(match: ProcessedMatch): AIRecommendation | nul
     const underProb = match.p_under_2_5_fair || (1 - overProb);
     
     if (overProb > underProb && overProb > 0.4) {
+      const score = overProb * match.odds_over_2_5;
       markets.push({
         betType: 'O/U 2.5',
-        prediction: '+2,5 buts',
+        prediction: 'Plus 2,5 buts',
         odds: match.odds_over_2_5,
         probability: overProb,
+        score,
         confidence: overProb > 0.65 ? 'high' : overProb > 0.5 ? 'medium' : 'low'
       });
-    } else if (underProb > 0.4) {
+    } else if (underProb > 0.4 && match.odds_under_2_5) {
+      const score = underProb * match.odds_under_2_5;
       markets.push({
         betType: 'O/U 2.5',
-        prediction: '-2,5 buts',
-        odds: match.odds_under_2_5 || (1 / underProb),
+        prediction: 'Moins 2,5 buts',
+        odds: match.odds_under_2_5,
         probability: underProb,
+        score,
         confidence: underProb > 0.65 ? 'high' : underProb > 0.5 ? 'medium' : 'low'
       });
     }
   }
 
-  // Choisir le marché avec la probabilité la plus élevée
+  // Retourner le marché avec le meilleur score (probabilité * cote)
   if (markets.length === 0) return null;
   
   const bestMarket = markets.reduce((prev, current) => 
-    current.probability > prev.probability ? current : prev
+    current.score > prev.score ? current : prev
   );
 
   return {
