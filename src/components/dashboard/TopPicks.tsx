@@ -31,74 +31,66 @@ export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
     const allBets: BestBet[] = [];
 
     matches.forEach(match => {
-      // BTTS markets - higher probability threshold (55%) and only if profitable
-      if (match.odds_btts_yes && match.odds_btts_yes >= 1.3 && match.p_btts_yes_fair && match.p_btts_yes_fair > 0.55) {
+      // BTTS markets - probability > 55% and odds >= 1.5
+      if (match.odds_btts_yes && match.odds_btts_yes >= 1.5 && match.p_btts_yes_fair && match.p_btts_yes_fair > 0.55) {
         const score = match.p_btts_yes_fair * match.odds_btts_yes * (1 + match.vig_btts);
         const edge = ((match.odds_btts_yes * match.p_btts_yes_fair) - 1) * 100;
-        if (edge > 0) { // Only profitable bets
-          allBets.push({
-            match,
-            type: 'BTTS',
-            prediction: 'Oui',
-            odds: match.odds_btts_yes,
-            probability: match.p_btts_yes_fair,
-            vigorish: match.vig_btts,
-            score,
-            edge
-          });
-        }
+        allBets.push({
+          match,
+          type: 'BTTS',
+          prediction: 'Oui',
+          odds: match.odds_btts_yes,
+          probability: match.p_btts_yes_fair,
+          vigorish: match.vig_btts,
+          score,
+          edge
+        });
       }
 
-      if (match.odds_btts_no && match.odds_btts_no >= 1.3 && match.p_btts_no_fair && match.p_btts_no_fair > 0.55) {
+      if (match.odds_btts_no && match.odds_btts_no >= 1.5 && match.p_btts_no_fair && match.p_btts_no_fair > 0.55) {
         const score = match.p_btts_no_fair * match.odds_btts_no * (1 + match.vig_btts);
         const edge = ((match.odds_btts_no * match.p_btts_no_fair) - 1) * 100;
-        if (edge > 0) { // Only profitable bets
-          allBets.push({
-            match,
-            type: 'BTTS',
-            prediction: 'Non',
-            odds: match.odds_btts_no,
-            probability: match.p_btts_no_fair,
-            vigorish: match.vig_btts,
-            score,
-            edge
-          });
-        }
+        allBets.push({
+          match,
+          type: 'BTTS',
+          prediction: 'Non',
+          odds: match.odds_btts_no,
+          probability: match.p_btts_no_fair,
+          vigorish: match.vig_btts,
+          score,
+          edge
+        });
       }
 
-      // Over/Under markets - higher probability threshold (55%) and only if profitable
-      if (match.odds_over_2_5 && match.odds_over_2_5 >= 1.3 && match.p_over_2_5_fair > 0.55) {
+      // Over/Under markets - probability > 55% and odds >= 1.5
+      if (match.odds_over_2_5 && match.odds_over_2_5 >= 1.5 && match.p_over_2_5_fair > 0.55) {
         const score = match.p_over_2_5_fair * match.odds_over_2_5 * (1 + match.vig_ou_2_5);
         const edge = ((match.odds_over_2_5 * match.p_over_2_5_fair) - 1) * 100;
-        if (edge > 0) { // Only profitable bets
-          allBets.push({
-            match,
-            type: 'O/U 2.5',
-            prediction: '+2,5 buts',
-            odds: match.odds_over_2_5,
-            probability: match.p_over_2_5_fair,
-            vigorish: match.vig_ou_2_5,
-            score,
-            edge
-          });
-        }
+        allBets.push({
+          match,
+          type: 'O/U 2.5',
+          prediction: '+2,5 buts',
+          odds: match.odds_over_2_5,
+          probability: match.p_over_2_5_fair,
+          vigorish: match.vig_ou_2_5,
+          score,
+          edge
+        });
       }
 
-      if (match.odds_under_2_5 && match.odds_under_2_5 >= 1.3 && match.p_under_2_5_fair > 0.55) {
+      if (match.odds_under_2_5 && match.odds_under_2_5 >= 1.5 && match.p_under_2_5_fair > 0.55) {
         const score = match.p_under_2_5_fair * match.odds_under_2_5 * (1 + match.vig_ou_2_5);
         const edge = ((match.odds_under_2_5 * match.p_under_2_5_fair) - 1) * 100;
-        if (edge > 0) { // Only profitable bets
-          allBets.push({
-            match,
-            type: 'O/U 2.5',
-            prediction: '-2,5 buts',
-            odds: match.odds_under_2_5,
-            probability: match.p_under_2_5_fair,
-            vigorish: match.vig_ou_2_5,
-            score,
-            edge
-          });
-        }
+        allBets.push({
+          match,
+          type: 'O/U 2.5',
+          prediction: '-2,5 buts',
+          odds: match.odds_under_2_5,
+          probability: match.p_under_2_5_fair,
+          vigorish: match.vig_ou_2_5,
+          score,
+          edge
+        });
       }
     });
 
@@ -118,7 +110,7 @@ export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
           <Target className="h-12 w-12 text-brand/50 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-text mb-2">Aucune opportunité premium détectée</h3>
           <p className="text-text-weak text-sm">
-            Aucun pari ne répond aux critères exigeants : probabilité IA {'>'} 55% ET edge positif (rentable).
+            Aucun pari ne répond aux critères : probabilité IA {'>'} 55% ET cotes ≥ 1.5.
           </p>
         </div>
       </Card>
@@ -132,8 +124,8 @@ export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
           <Trophy className="h-5 w-5 text-brand" />
         </div>
         <div>
-          <h2 className="text-xl font-bold text-text">💎 Top 3 Picks Premium</h2>
-          <p className="text-sm text-text-weak">Sélection exclusive : probabilité {'>'} 55% ET rentabilité garantie</p>
+          <h2 className="text-xl font-bold text-text">🎯 Top 3 Picks IA</h2>
+          <p className="text-sm text-text-weak">Sélection qualitative : probabilité {'>'} 55% ET cotes ≥ 1.5</p>
         </div>
       </div>
       
