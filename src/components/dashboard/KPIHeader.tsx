@@ -29,13 +29,13 @@ export function KPIHeader({ stats }: KPIHeaderProps) {
       color: 'bg-green-500/10 text-green-600',
     },
     {
-      label: 'Watch BTTS',
+      label: 'Recommandations BTTS',
       value: stats.watchBtts,
       icon: Target,
       color: 'bg-yellow-500/10 text-yellow-600',
     },
     {
-      label: 'Watch Over 2.5',
+      label: 'Recommandations O/U 2.5',
       value: stats.watchOver25,
       icon: Eye,
       color: 'bg-blue-500/10 text-blue-600',
