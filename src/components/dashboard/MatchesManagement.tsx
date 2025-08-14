@@ -25,13 +25,25 @@ interface Match {
   odds_home: number;
   odds_draw: number;
   odds_away: number;
+  odds_btts_yes?: number;
+  odds_btts_no?: number;
+  odds_over_2_5?: number;
+  odds_under_2_5?: number;
   p_home_fair: number;
   p_draw_fair: number;
   p_away_fair: number;
+  p_btts_yes_fair: number;
+  p_btts_no_fair: number;
+  p_over_2_5_fair: number;
+  p_under_2_5_fair: number;
   vig_1x2: number;
+  vig_btts: number;
+  vig_ou_2_5: number;
   is_low_vig_1x2: boolean;
   watch_btts: boolean;
   watch_over25: boolean;
+  ai_prediction?: string;
+  ai_confidence?: number;
 }
 
 export function MatchesManagement() {
@@ -39,7 +51,7 @@ export function MatchesManagement() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedMatches, setSelectedMatches] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [dateFilter, setDateFilter] = useState('');
+  const [dateFilter, setDateFilter] = useState(new Date().toISOString().split('T')[0]);
   const [isDeleting, setIsDeleting] = useState(false);
   const [editingMatch, setEditingMatch] = useState<Match | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -233,7 +245,9 @@ export function MatchesManagement() {
                 <TableHead>Pays</TableHead>
                 <TableHead>Cotes</TableHead>
                 <TableHead>Proba. Fair</TableHead>
+                <TableHead>BTTS/O2.5</TableHead>
                 <TableHead>Vig</TableHead>
+                <TableHead>IA Pred.</TableHead>
                 <TableHead>Flags</TableHead>
                 <TableHead className="w-16">Actions</TableHead>
               </TableRow>
@@ -241,14 +255,14 @@ export function MatchesManagement() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center py-8">
+                  <TableCell colSpan={11} className="text-center py-8">
                     <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2" />
                     Chargement des matchs...
                   </TableCell>
                 </TableRow>
               ) : filteredMatches.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                     Aucun match trouvé
                   </TableCell>
                 </TableRow>
@@ -297,9 +311,47 @@ export function MatchesManagement() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={match.vig_1x2 < 0.05 ? "default" : "secondary"}>
-                        {(match.vig_1x2 * 100).toFixed(1)}%
-                      </Badge>
+                      <div className="text-xs">
+                        <div>BTTS: {match.p_btts_yes_fair ? (match.p_btts_yes_fair * 100).toFixed(1) + '%' : '-'}</div>
+                        <div>O2.5: {match.p_over_2_5_fair ? (match.p_over_2_5_fair * 100).toFixed(1) + '%' : '-'}</div>
+                        <div>U2.5: {match.p_under_2_5_fair ? (match.p_under_2_5_fair * 100).toFixed(1) + '%' : '-'}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-1">
+                        <Badge variant={match.vig_1x2 < 0.05 ? "default" : "secondary"} className="text-xs">
+                          1X2: {(match.vig_1x2 * 100).toFixed(1)}%
+                        </Badge>
+                        {match.vig_btts > 0 && (
+                          <Badge variant="outline" className="text-xs">
+                            BTTS: {(match.vig_btts * 100).toFixed(1)}%
+                          </Badge>
+                        )}
+                        {match.vig_ou_2_5 > 0 && (
+                          <Badge variant="outline" className="text-xs">
+                            O/U: {(match.vig_ou_2_5 * 100).toFixed(1)}%
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-xs">
+                        {match.ai_prediction && (
+                          <div className="mb-1">
+                            <Badge variant="default" className="text-xs">
+                              {match.ai_prediction}
+                            </Badge>
+                          </div>
+                        )}
+                        {match.ai_confidence && (
+                          <div className="text-muted-foreground">
+                            {(match.ai_confidence * 100).toFixed(0)}%
+                          </div>
+                        )}
+                        {!match.ai_prediction && (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-1">
@@ -369,10 +421,18 @@ function EditMatchForm({ match, onSave, onCancel }: EditMatchFormProps) {
     p_home_fair: match.p_home_fair,
     p_draw_fair: match.p_draw_fair,
     p_away_fair: match.p_away_fair,
+    p_btts_yes_fair: match.p_btts_yes_fair,
+    p_btts_no_fair: match.p_btts_no_fair,
+    p_over_2_5_fair: match.p_over_2_5_fair,
+    p_under_2_5_fair: match.p_under_2_5_fair,
     vig_1x2: match.vig_1x2,
+    vig_btts: match.vig_btts,
+    vig_ou_2_5: match.vig_ou_2_5,
     is_low_vig_1x2: match.is_low_vig_1x2,
     watch_btts: match.watch_btts,
     watch_over25: match.watch_over25,
+    ai_prediction: match.ai_prediction || '',
+    ai_confidence: match.ai_confidence || 0,
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -381,51 +441,169 @@ function EditMatchForm({ match, onSave, onCancel }: EditMatchFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label>Probabilité Domicile (%)</Label>
-          <Input
-            type="number"
-            step="0.001"
-            min="0"
-            max="1"
-            value={formData.p_home_fair}
-            onChange={(e) => setFormData({...formData, p_home_fair: parseFloat(e.target.value)})}
-          />
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* 1X2 Probabilities */}
+      <div>
+        <h3 className="text-lg font-semibold mb-3">Probabilités 1X2</h3>
+        <div className="grid grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <Label>Domicile</Label>
+            <Input
+              type="number"
+              step="0.001"
+              min="0"
+              max="1"
+              value={formData.p_home_fair}
+              onChange={(e) => setFormData({...formData, p_home_fair: parseFloat(e.target.value)})}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Match Nul</Label>
+            <Input
+              type="number"
+              step="0.001"
+              min="0"
+              max="1"
+              value={formData.p_draw_fair}
+              onChange={(e) => setFormData({...formData, p_draw_fair: parseFloat(e.target.value)})}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Extérieur</Label>
+            <Input
+              type="number"
+              step="0.001"
+              min="0"
+              max="1"
+              value={formData.p_away_fair}
+              onChange={(e) => setFormData({...formData, p_away_fair: parseFloat(e.target.value)})}
+            />
+          </div>
         </div>
-        <div className="space-y-2">
-          <Label>Probabilité Match Nul (%)</Label>
-          <Input
-            type="number"
-            step="0.001"
-            min="0"
-            max="1"
-            value={formData.p_draw_fair}
-            onChange={(e) => setFormData({...formData, p_draw_fair: parseFloat(e.target.value)})}
-          />
+      </div>
+
+      {/* BTTS Probabilities */}
+      <div>
+        <h3 className="text-lg font-semibold mb-3">Probabilités BTTS</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>BTTS Oui</Label>
+            <Input
+              type="number"
+              step="0.001"
+              min="0"
+              max="1"
+              value={formData.p_btts_yes_fair}
+              onChange={(e) => setFormData({...formData, p_btts_yes_fair: parseFloat(e.target.value)})}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>BTTS Non</Label>
+            <Input
+              type="number"
+              step="0.001"
+              min="0"
+              max="1"
+              value={formData.p_btts_no_fair}
+              onChange={(e) => setFormData({...formData, p_btts_no_fair: parseFloat(e.target.value)})}
+            />
+          </div>
         </div>
-        <div className="space-y-2">
-          <Label>Probabilité Extérieur (%)</Label>
-          <Input
-            type="number"
-            step="0.001"
-            min="0"
-            max="1"
-            value={formData.p_away_fair}
-            onChange={(e) => setFormData({...formData, p_away_fair: parseFloat(e.target.value)})}
-          />
+      </div>
+
+      {/* Over/Under Probabilities */}
+      <div>
+        <h3 className="text-lg font-semibold mb-3">Probabilités Over/Under 2.5</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Over 2.5</Label>
+            <Input
+              type="number"
+              step="0.001"
+              min="0"
+              max="1"
+              value={formData.p_over_2_5_fair}
+              onChange={(e) => setFormData({...formData, p_over_2_5_fair: parseFloat(e.target.value)})}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Under 2.5</Label>
+            <Input
+              type="number"
+              step="0.001"
+              min="0"
+              max="1"
+              value={formData.p_under_2_5_fair}
+              onChange={(e) => setFormData({...formData, p_under_2_5_fair: parseFloat(e.target.value)})}
+            />
+          </div>
         </div>
-        <div className="space-y-2">
-          <Label>Vigorish 1X2 (%)</Label>
-          <Input
-            type="number"
-            step="0.001"
-            min="0"
-            max="1"
-            value={formData.vig_1x2}
-            onChange={(e) => setFormData({...formData, vig_1x2: parseFloat(e.target.value)})}
-          />
+      </div>
+
+      {/* Vigorish */}
+      <div>
+        <h3 className="text-lg font-semibold mb-3">Vigorish</h3>
+        <div className="grid grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <Label>Vigorish 1X2</Label>
+            <Input
+              type="number"
+              step="0.001"
+              min="0"
+              max="1"
+              value={formData.vig_1x2}
+              onChange={(e) => setFormData({...formData, vig_1x2: parseFloat(e.target.value)})}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Vigorish BTTS</Label>
+            <Input
+              type="number"
+              step="0.001"
+              min="0"
+              max="1"
+              value={formData.vig_btts}
+              onChange={(e) => setFormData({...formData, vig_btts: parseFloat(e.target.value)})}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Vigorish O/U 2.5</Label>
+            <Input
+              type="number"
+              step="0.001"
+              min="0"
+              max="1"
+              value={formData.vig_ou_2_5}
+              onChange={(e) => setFormData({...formData, vig_ou_2_5: parseFloat(e.target.value)})}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* AI Prediction */}
+      <div>
+        <h3 className="text-lg font-semibold mb-3">Prédiction IA</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Prédiction recommandée</Label>
+            <Input
+              type="text"
+              placeholder="ex: 1X, Over 2.5, BTTS Yes"
+              value={formData.ai_prediction}
+              onChange={(e) => setFormData({...formData, ai_prediction: e.target.value})}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Confiance (%)</Label>
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              max="1"
+              value={formData.ai_confidence}
+              onChange={(e) => setFormData({...formData, ai_confidence: parseFloat(e.target.value)})}
+            />
+          </div>
         </div>
       </div>
 

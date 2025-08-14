@@ -49,6 +49,8 @@ export type Database = {
       }
       matches: {
         Row: {
+          ai_confidence: number | null
+          ai_prediction: string | null
           away_team: string
           category: string
           country: string | null
@@ -82,6 +84,8 @@ export type Database = {
           watch_over25: boolean
         }
         Insert: {
+          ai_confidence?: number | null
+          ai_prediction?: string | null
           away_team: string
           category: string
           country?: string | null
@@ -115,6 +119,8 @@ export type Database = {
           watch_over25?: boolean
         }
         Update: {
+          ai_confidence?: number | null
+          ai_prediction?: string | null
           away_team?: string
           category?: string
           country?: string | null
