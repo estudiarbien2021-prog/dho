@@ -26,84 +26,131 @@ function generateAIRecommendation(match: ProcessedMatch): AIRecommendation | nul
     confidence: 'high' | 'medium' | 'low';
   }> = [];
 
-  // Analyze 1X2 market
+  // Console log pour déboguer
+  console.log('Analyzing match:', match.home_team, 'vs', match.away_team);
+  console.log('Match data:', {
+    is_low_vig_1x2: match.is_low_vig_1x2,
+    watch_btts: match.watch_btts,
+    watch_over25: match.watch_over25,
+    odds_home: match.odds_home,
+    odds_away: match.odds_away,
+    odds_btts_yes: match.odds_btts_yes,
+    odds_over_2_5: match.odds_over_2_5,
+    p_home_fair: match.p_home_fair,
+    p_away_fair: match.p_away_fair,
+    p_btts_yes_fair: match.p_btts_yes_fair,
+    p_over_2_5_fair: match.p_over_2_5_fair
+  });
+
+  // Analyse du marché 1X2 - conditions plus permissives
   const maxProb1x2 = Math.max(match.p_home_fair, match.p_draw_fair, match.p_away_fair);
-  if (match.p_home_fair === maxProb1x2) {
+  
+  if (match.p_home_fair === maxProb1x2 && match.p_home_fair > 0.35) {
     const impliedProb = 1 / match.odds_home;
     const value = (match.p_home_fair - impliedProb) / impliedProb;
-    if (value > 0.05 && match.is_low_vig_1x2) {
+    console.log('Home value:', value);
+    if (value > 0.02) { // Condition moins stricte
       recommendations.push({
         betType: '1X2',
         prediction: `Victoire ${match.home_team}`,
         odds: match.odds_home,
         value,
-        confidence: value > 0.15 ? 'high' : value > 0.08 ? 'medium' : 'low'
+        confidence: value > 0.10 ? 'high' : value > 0.05 ? 'medium' : 'low'
       });
     }
-  } else if (match.p_away_fair === maxProb1x2) {
+  }
+
+  if (match.p_away_fair === maxProb1x2 && match.p_away_fair > 0.35) {
     const impliedProb = 1 / match.odds_away;
     const value = (match.p_away_fair - impliedProb) / impliedProb;
-    if (value > 0.05 && match.is_low_vig_1x2) {
+    console.log('Away value:', value);
+    if (value > 0.02) { // Condition moins stricte
       recommendations.push({
         betType: '1X2',
         prediction: `Victoire ${match.away_team}`,
         odds: match.odds_away,
         value,
-        confidence: value > 0.15 ? 'high' : value > 0.08 ? 'medium' : 'low'
+        confidence: value > 0.10 ? 'high' : value > 0.05 ? 'medium' : 'low'
       });
     }
   }
 
-  // Analyze BTTS market
-  if (match.watch_btts && match.odds_btts_yes) {
+  // Analyse BTTS - conditions plus permissives
+  if (match.odds_btts_yes && match.p_btts_yes_fair > 0.4) {
     const impliedProb = 1 / match.odds_btts_yes;
     const value = (match.p_btts_yes_fair - impliedProb) / impliedProb;
-    if (value > 0.03) {
+    console.log('BTTS value:', value);
+    if (value > 0.01) { // Condition moins stricte
       recommendations.push({
         betType: 'BTTS',
         prediction: 'Les deux équipes marquent',
         odds: match.odds_btts_yes,
         value,
-        confidence: value > 0.12 ? 'high' : value > 0.06 ? 'medium' : 'low'
+        confidence: value > 0.08 ? 'high' : value > 0.04 ? 'medium' : 'low'
       });
     }
   }
 
-  // Analyze Over/Under 2.5 market
-  if (match.watch_over25 && match.odds_over_2_5) {
+  // Analyse Over/Under 2.5
+  if (match.odds_over_2_5 && match.p_over_2_5_fair > 0.45) {
     const impliedProb = 1 / match.odds_over_2_5;
     const value = (match.p_over_2_5_fair - impliedProb) / impliedProb;
-    if (value > 0.03) {
+    console.log('Over 2.5 value:', value);
+    if (value > 0.01) { // Condition moins stricte
       recommendations.push({
         betType: 'O/U 2.5',
         prediction: '+2,5 buts',
         odds: match.odds_over_2_5,
         value,
-        confidence: value > 0.12 ? 'high' : value > 0.06 ? 'medium' : 'low'
+        confidence: value > 0.08 ? 'high' : value > 0.04 ? 'medium' : 'low'
       });
     }
   }
 
-  if (match.odds_under_2_5 && match.p_under_2_5_fair > 0.55) {
+  if (match.odds_under_2_5 && match.p_under_2_5_fair > 0.45) {
     const impliedProb = 1 / match.odds_under_2_5;
     const value = (match.p_under_2_5_fair - impliedProb) / impliedProb;
-    if (value > 0.03) {
+    console.log('Under 2.5 value:', value);
+    if (value > 0.01) { // Condition moins stricte
       recommendations.push({
         betType: 'O/U 2.5',
         prediction: '-2,5 buts',
         odds: match.odds_under_2_5,
         value,
-        confidence: value > 0.12 ? 'high' : value > 0.06 ? 'medium' : 'low'
+        confidence: value > 0.08 ? 'high' : value > 0.04 ? 'medium' : 'low'
       });
     }
   }
 
-  // Return the recommendation with highest value
-  if (recommendations.length === 0) return null;
-  
+  console.log('Total recommendations found:', recommendations.length);
+
+  // Si aucune recommandation basée sur la valeur, créer une recommandation basique
+  if (recommendations.length === 0) {
+    // Recommandation basée sur la probabilité la plus élevée
+    if (match.p_home_fair > match.p_draw_fair && match.p_home_fair > match.p_away_fair && match.p_home_fair > 0.4) {
+      return {
+        betType: '1X2',
+        prediction: `Victoire ${match.home_team}`,
+        odds: match.odds_home,
+        confidence: match.p_home_fair > 0.55 ? 'medium' : 'low'
+      };
+    } else if (match.p_away_fair > match.p_draw_fair && match.p_away_fair > match.p_home_fair && match.p_away_fair > 0.4) {
+      return {
+        betType: '1X2',
+        prediction: `Victoire ${match.away_team}`,
+        odds: match.odds_away,
+        confidence: match.p_away_fair > 0.55 ? 'medium' : 'low'
+      };
+    }
+    return null;
+  }
+
+  // Retourner la recommandation avec la valeur la plus élevée
   const bestRec = recommendations.reduce((prev, current) => 
     current.value > prev.value ? current : prev
   );
+
+  console.log('Best recommendation:', bestRec);
 
   return {
     betType: bestRec.betType,
