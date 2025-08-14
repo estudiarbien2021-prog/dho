@@ -187,23 +187,24 @@ export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-text-weak">Probabilité IA:</span>
-                  <span className="font-medium text-brand">{(bet.probability * 100).toFixed(1)}%</span>
-                </div>
-
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-text-weak">Edge mathématique:</span>
-                  <span className={`font-medium ${bet.edge > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {bet.edge > 0 ? '+' : ''}{bet.edge.toFixed(1)}%
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-text-weak">Vigorish:</span>
-                  <span className={`font-medium ${bet.vigorish <= 0.08 ? 'text-green-400' : 'text-text-weak'}`}>
-                    {(bet.vigorish * 100).toFixed(1)}%
-                  </span>
+                {/* Animated Probability Bar */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-text-weak">Probabilité IA:</span>
+                    <span className="font-medium text-brand">{(bet.probability * 100).toFixed(1)}%</span>
+                  </div>
+                  <div className="relative h-2 bg-surface-strong/50 rounded-full overflow-hidden">
+                    <div 
+                      className="absolute top-0 left-0 h-full bg-gradient-to-r from-brand via-brand-300 to-brand-400 rounded-full shadow-lg animate-pulse"
+                      style={{ 
+                        width: `${bet.probability * 100}%`,
+                        boxShadow: '0 0 10px hsl(var(--brand) / 0.6), 0 0 20px hsl(var(--brand) / 0.4)',
+                        animation: 'pulse 2s ease-in-out infinite'
+                      }}
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-slide-right"></div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
