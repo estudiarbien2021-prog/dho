@@ -219,8 +219,37 @@ serve(async (req) => {
     // Process and insert matches
     const processedMatches = [];
     let errorCount = 0;
+    let skippedCount = 0;
+    
+    // Filter out empty rows and duplicates first
+    const validRows = [];
+    const seenMatches = new Set();
     
     for (const row of csvRows) {
+      // Skip rows with too few non-empty values
+      const nonEmptyValues = Object.values(row).filter(v => v && v.toString().trim().length > 0);
+      if (nonEmptyValues.length < 3) {
+        console.log(`⚠️ LIGNE IGNORÉE - Trop peu de données: ${nonEmptyValues.length} valeurs`);
+        skippedCount++;
+        continue;
+      }
+      
+      // Create a simple match identifier from the first few meaningful values
+      const matchKey = nonEmptyValues.slice(0, 3).join('|').toLowerCase();
+      
+      if (seenMatches.has(matchKey)) {
+        console.log(`⚠️ LIGNE IGNORÉE - Doublon détecté: ${matchKey}`);
+        skippedCount++;
+        continue;
+      }
+      
+      seenMatches.add(matchKey);
+      validRows.push(row);
+    }
+    
+    console.log(`📊 ${csvRows.length} lignes totales, ${validRows.length} lignes valides, ${skippedCount} lignes ignorées`);
+    
+    for (const row of validRows) {
       try {
         // Try to find the right column names (flexible mapping)
         const availableKeys = Object.keys(row);
