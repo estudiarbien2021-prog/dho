@@ -5,7 +5,7 @@ import Papa from 'papaparse';
 export interface MatchFilters {
   search: string;
   leagues: string[];
-  timeWindow: 'all' | '6h' | '12h' | '24h';
+  timeWindow: 'all' | '1h' | '2h' | '4h';
   groupBy: 'time' | 'competition';
   marketFilters: string[];
 }
@@ -156,7 +156,7 @@ export function useMatchesData() {
         const matchTime = new Date(match.kickoff_utc);
         const hoursDiff = (matchTime.getTime() - now.getTime()) / (1000 * 60 * 60);
         
-        const maxHours = filters.timeWindow === '6h' ? 6 : filters.timeWindow === '12h' ? 12 : 24;
+        const maxHours = filters.timeWindow === '1h' ? 1 : filters.timeWindow === '2h' ? 2 : 4;
         if (hoursDiff < 0 || hoursDiff > maxHours) {
           return false;
         }

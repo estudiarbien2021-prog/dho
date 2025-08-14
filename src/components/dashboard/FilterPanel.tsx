@@ -71,9 +71,9 @@ export function FilterPanel({ filters, onFiltersChange, availableLeagues }: Filt
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tous les matchs</SelectItem>
-              <SelectItem value="6h">Prochaines 6h</SelectItem>
-              <SelectItem value="12h">Prochaines 12h</SelectItem>
-              <SelectItem value="24h">Prochaines 24h</SelectItem>
+              <SelectItem value="1h">Prochaine 1h</SelectItem>
+              <SelectItem value="2h">Prochaines 2h</SelectItem>
+              <SelectItem value="4h">Prochaines 4h</SelectItem>
             </SelectContent>
           </Select>
         </div>
