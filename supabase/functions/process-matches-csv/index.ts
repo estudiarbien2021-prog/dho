@@ -331,24 +331,24 @@ serve(async (req) => {
           p_over_2_5_fair: row['p_over_2_5_fair'] ? parseFloat(row['p_over_2_5_fair']) : 0,
           p_under_2_5_fair: row['p_under_2_5_fair'] ? parseFloat(row['p_under_2_5_fair']) : 0,
           
-          // Default vigorish values
-          vig_1x2: 0,
-          vig_btts: 0,
-          vig_ou_2_5: 0,
+          // Extract vigorish values from CSV
+          vig_1x2: row['vig_1x2'] ? parseFloat(row['vig_1x2']) : 0,
+          vig_btts: row['vig_btts'] ? parseFloat(row['vig_btts']) : 0,
+          vig_ou_2_5: row['vig_ou_2_5'] ? parseFloat(row['vig_ou_2_5']) : 0,
           
-          // Default flags
-          is_low_vig_1x2: false,
-          watch_btts: (row['Odds_BTTS_Yes'] && parseFloat(row['Odds_BTTS_Yes']) > 0) || false,
-          watch_over25: (row['Odds_Over25'] && parseFloat(row['Odds_Over25']) > 0) || false,
+          // Extract flags from CSV
+          is_low_vig_1x2: row['is_low_vig_1x2'] === 'True' || row['is_low_vig_1x2'] === 'true' || false,
+          watch_btts: row['watch_btts'] === 'True' || row['watch_btts'] === 'true' || false,
+          watch_over25: row['watch_over25'] === 'True' || row['watch_over25'] === 'true' || false,
           
           // Odds from CSV (with fallbacks)
           odds_home: oddsHome ? parseFloat(oddsHome) : 2.0,
           odds_draw: oddsDraw ? parseFloat(oddsDraw) : 3.0, 
           odds_away: oddsAway ? parseFloat(oddsAway) : 2.5,
-          odds_btts_yes: row['Odds_BTTS_Yes'] ? parseFloat(row['Odds_BTTS_Yes']) : null,
-          odds_btts_no: row['Odds_BTTS_No'] ? parseFloat(row['Odds_BTTS_No']) : null,
-          odds_over_2_5: row['Odds_Over25'] ? parseFloat(row['Odds_Over25']) : null,
-          odds_under_2_5: row['Odds_Under25'] ? parseFloat(row['Odds_Under25']) : null,
+          odds_btts_yes: row['odds_btts_yes'] ? parseFloat(row['odds_btts_yes']) : null,
+          odds_btts_no: row['odds_btts_no'] ? parseFloat(row['odds_btts_no']) : null,
+          odds_over_2_5: row['odds_over_2_5'] ? parseFloat(row['odds_over_2_5']) : null,
+          odds_under_2_5: row['odds_under_2_5'] ? parseFloat(row['odds_under_2_5']) : null,
         };
         
         processedMatches.push(matchData);
