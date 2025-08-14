@@ -167,10 +167,10 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
 
   const bestRecommendation = getBestRecommendation();
 
-  // Generate AI recommendation explanation
+  // Generate AI recommendation explanation with storytelling approach
   const generateRecommendationExplanation = (recommendation: any) => {
     if (recommendation.type === 'Aucune') {
-      return "🤖 Notre algorithme n'a pas détecté d'opportunité favorable sur ce match. Les cotes proposées ne présentent pas d'avantage statistique significatif par rapport aux probabilités calculées.";
+      return "🔍 **L'histoire des données** : Après avoir scruté les statistiques des deux équipes, l'historique de leurs confrontations et les tendances actuelles, notre algorithme n'a trouvé aucune faille dans les cotes proposées. Les bookmakers ont bien fait leur travail cette fois-ci !";
     }
 
     const probPercent = (recommendation.probability * 100).toFixed(1);
@@ -180,29 +180,33 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
       ? (((recommendation.odds * recommendation.probability) - 1) * 100).toFixed(1) 
       : '0.0';
 
-    let explanation = `💡 **Pourquoi cette recommandation ?** Notre IA a détecté une opportunité intéressante : `;
+    let explanation = `📊 **L'analyse révèle une opportunité** : En croisant les performances récentes, les statistiques historiques et les patterns de jeu, `;
     
     if (recommendation.type === 'BTTS') {
       if (recommendation.prediction === 'Oui') {
-        explanation += `les statistiques montrent que les deux équipes ont ${probPercent}% de chances de marquer dans ce match.`;
+        explanation += `notre modèle identifie une forte probabilité (${probPercent}%) que les deux équipes trouvent le chemin des filets. `;
+        explanation += `Les statistiques offensives récentes et la porosité défensive observée plaident en ce sens.`;
       } else {
-        explanation += `les données indiquent ${probPercent}% de probabilité qu'au moins une équipe ne marque pas.`;
+        explanation += `les données suggèrent ${probPercent}% de chances qu'au moins une équipe reste muette. `;
+        explanation += `L'efficacité défensive ou les difficultés offensives récentes justifient cette tendance.`;
       }
     } else if (recommendation.type === 'O/U 2.5') {
       if (recommendation.prediction === '+2,5 buts') {
-        explanation += `l'analyse suggère ${probPercent}% de chances de voir plus de 2,5 buts dans ce match.`;
+        explanation += `tout indique un match prolifique avec ${probPercent}% de probabilité de dépasser 2,5 buts. `;
+        explanation += `Le style de jeu offensif des équipes et leurs confrontations passées suggèrent du spectacle.`;
       } else {
-        explanation += `les tendances pointent vers ${probPercent}% de probabilité de moins de 2,5 buts.`;
+        explanation += `les indices pointent vers un match serré avec ${probPercent}% de chances de rester sous 2,5 buts. `;
+        explanation += `Les enjeux tactiques et la solidité défensive laissent présager un duel équilibré.`;
       }
     }
 
-    explanation += ` La cote proposée (${recommendation.odds.toFixed(2)}) est plus généreuse que la cote juste estimée (${fairOdds}), `;
-    explanation += `créant un avantage de +${edge}% pour le parieur. `;
+    explanation += ` 💰 **L'avantage mathématique** : La cote ${recommendation.odds.toFixed(2)} cache une valeur intéressante comparée à notre estimation juste de ${fairOdds}. `;
+    explanation += `Cette différence vous offre un avantage théorique de **+${edge}%** sur le long terme. `;
     
     if (recommendation.vigorish < 0.08) {
-      explanation += `Bonus : la marge bookmaker est favorable à ${vigPercent}% seulement ! 📈`;
+      explanation += `🎯 **Le petit plus** : Avec seulement ${vigPercent}% de marge, ce bookmaker se montre généreux aujourd'hui !`;
     } else {
-      explanation += `Marge bookmaker acceptable à ${vigPercent}%.`;
+      explanation += `📈 Marge bookmaker standard à ${vigPercent}%, dans la moyenne du marché.`;
     }
 
     return explanation;
