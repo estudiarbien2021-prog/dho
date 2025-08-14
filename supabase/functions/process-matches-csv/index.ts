@@ -281,10 +281,10 @@ serve(async (req) => {
           return value && !isNaN(parseFloat(value)) && parseFloat(value) > 1 && parseFloat(value) < 50;
         });
         
-        // Take first 3 numerical values as odds (common in betting CSVs)
-        const oddsHome = potentialOddsKeys[0] ? row[potentialOddsKeys[0]] : '';
-        const oddsDraw = potentialOddsKeys[1] ? row[potentialOddsKeys[1]] : '';  
-        const oddsAway = potentialOddsKeys[2] ? row[potentialOddsKeys[2]] : '';
+        // Prioritize exact column names for odds
+        const oddsHome = row['odds_1x2_home'] || (potentialOddsKeys[0] ? row[potentialOddsKeys[0]] : '');
+        const oddsDraw = row['odds_1x2_draw'] || (potentialOddsKeys[1] ? row[potentialOddsKeys[1]] : '');  
+        const oddsAway = row['odds_1x2_away'] || (potentialOddsKeys[2] ? row[potentialOddsKeys[2]] : '');
         
         // Fallback: if we have exactly 2 team names in the row, use them
         const teamValues = allKeys.filter(key => {
