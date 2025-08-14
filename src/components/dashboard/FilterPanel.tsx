@@ -131,29 +131,58 @@ export function FilterPanel({ filters, onFiltersChange, availableLeagues }: Filt
           </div>
         </div>
 
-        {/* Top Leagues Quick Filter */}
+        {/* Leagues Dropdown */}
         <div className="space-y-2 md:col-span-2">
-          <Label className="text-sm font-medium">Ligues populaires</Label>
-          <div className="flex flex-wrap gap-2">
-            {['Copa Libertadores', 'Copa Sudamericana', 'Premier League', 'Serie A', 'La Liga'].filter(league => 
-              availableLeagues.includes(league)
-            ).map(league => (
-              <Button
-                key={league}
-                variant={filters.leagues.includes(league) ? "default" : "outline"}
-                size="sm"
-                onClick={() => {
-                  const newLeagues = filters.leagues.includes(league)
-                    ? filters.leagues.filter(l => l !== league)
-                    : [...filters.leagues, league];
-                  updateFilters({ leagues: newLeagues });
-                }}
-                className="text-xs h-8"
-              >
-                {league}
-              </Button>
-            ))}
-          </div>
+          <Label className="text-sm font-medium">Compétitions</Label>
+          <Select 
+            value={filters.leagues.length > 0 ? filters.leagues[0] : ""} 
+            onValueChange={(value) => {
+              if (value === "") {
+                updateFilters({ leagues: [] });
+              } else {
+                const newLeagues = filters.leagues.includes(value)
+                  ? filters.leagues.filter(l => l !== value)
+                  : [...filters.leagues, value];
+                updateFilters({ leagues: newLeagues });
+              }
+            }}
+          >
+            <SelectTrigger className="w-full bg-background">
+              <SelectValue placeholder="Sélectionner une compétition" />
+            </SelectTrigger>
+            <SelectContent className="bg-background border shadow-md z-50 max-h-[300px] overflow-y-auto">
+              <SelectItem value="">Toutes les compétitions</SelectItem>
+              {availableLeagues.map(league => (
+                <SelectItem key={league} value={league} className="cursor-pointer hover:bg-muted">
+                  <div className="flex items-center justify-between w-full">
+                    <span>{league}</span>
+                    {filters.leagues.includes(league) && (
+                      <div className="w-2 h-2 bg-primary rounded-full ml-2" />
+                    )}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {filters.leagues.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {filters.leagues.map(league => (
+                <Button
+                  key={league}
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    const newLeagues = filters.leagues.filter(l => l !== league);
+                    updateFilters({ leagues: newLeagues });
+                  }}
+                  className="text-xs h-6 px-2"
+                >
+                  {league.length > 20 ? `${league.substring(0, 17)}...` : league}
+                  <X className="h-3 w-3 ml-1" />
+                </Button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </Card>
