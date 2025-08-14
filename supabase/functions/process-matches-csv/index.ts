@@ -199,6 +199,15 @@ serve(async (req) => {
         console.error(`❌ ERREUR: Le CSV semble être du HTML! Première clé: ${firstKey}`);
         throw new Error('Le fichier téléchargé est du HTML, pas un CSV. Vérifiez l\'URL.');
       }
+      
+      // Show detailed structure of first 3 rows for debugging
+      console.log(`🔍 DEBUG - Première ligne complète:`, csvRows[0]);
+      if (csvRows.length > 1) {
+        console.log(`🔍 DEBUG - Deuxième ligne:`, csvRows[1]);
+      }
+      if (csvRows.length > 2) {
+        console.log(`🔍 DEBUG - Troisième ligne:`, csvRows[2]);
+      }
     }
     
     // Update total matches count
@@ -236,10 +245,22 @@ serve(async (req) => {
 
         console.log(`🎯 Valeurs extraites:`, { homeTeam, awayTeam, league, country, oddsHome, oddsDraw, oddsAway });
 
-        // Skip rows with missing critical data
+        // Skip rows with missing critical data but be more lenient
+        if (!homeTeam && !awayTeam && !league) {
+          console.log(`⚠️ Ligne complètement vide - ignorée`);
+          continue;
+        }
+        
+        // More detailed error logging
         if (!homeTeam || !awayTeam || !league || !oddsHome || !oddsDraw || !oddsAway) {
-          console.log(`⚠️ Ligne ignorée - données manquantes: ${homeTeam} vs ${awayTeam}, league: ${league}, odds: ${oddsHome}/${oddsDraw}/${oddsAway}`);
-          console.log(`🔍 Colonnes disponibles dans cette ligne: ${Object.keys(row).slice(0, 10).join(', ')}...`);
+          console.log(`⚠️ LIGNE REJETÉE - Détails:`);
+          console.log(`   - Home Team: "${homeTeam}" (${homeTeam ? 'OK' : 'MANQUANT'})`);
+          console.log(`   - Away Team: "${awayTeam}" (${awayTeam ? 'OK' : 'MANQUANT'})`);
+          console.log(`   - League: "${league}" (${league ? 'OK' : 'MANQUANT'})`);
+          console.log(`   - Odds Home: "${oddsHome}" (${oddsHome ? 'OK' : 'MANQUANT'})`);
+          console.log(`   - Odds Draw: "${oddsDraw}" (${oddsDraw ? 'OK' : 'MANQUANT'})`);
+          console.log(`   - Odds Away: "${oddsAway}" (${oddsAway ? 'OK' : 'MANQUANT'})`);
+          console.log(`   - Toutes les clés disponibles: ${Object.keys(row).join(', ')}`);
           continue;
         }
         
