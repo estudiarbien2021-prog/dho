@@ -190,6 +190,7 @@ export function Dashboard({ currentLang }: DashboardProps) {
             matches={matches} 
             onMatchClick={handleMatchClick}
             marketFilters={filters.marketFilters}
+            groupBy={filters.groupBy}
           />
         </div>
       </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ProcessedMatch } from '@/types/match';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -168,9 +168,10 @@ interface MatchesTableProps {
   matches: ProcessedMatch[];
   onMatchClick: (match: ProcessedMatch) => void;
   marketFilters?: string[];
+  groupBy?: 'time' | 'competition';
 }
 
-export function MatchesTable({ matches, onMatchClick, marketFilters = [] }: MatchesTableProps) {
+export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupBy = 'time' }: MatchesTableProps) {
   const [sortField, setSortField] = useState<keyof ProcessedMatch>('kickoff_utc');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
@@ -208,6 +209,26 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [] }: Matc
     return format(date, 'dd/MM', { locale: fr });
   };
 
+  // Group matches by competition if needed
+  const groupedMatches = useMemo(() => {
+    if (groupBy !== 'competition') {
+      return [{ league: null, matches: sortedMatches }];
+    }
+    
+    const groups: { league: string; matches: ProcessedMatch[] }[] = [];
+    let currentGroup: { league: string; matches: ProcessedMatch[] } | null = null;
+    
+    for (const match of sortedMatches) {
+      if (!currentGroup || currentGroup.league !== match.league) {
+        currentGroup = { league: match.league, matches: [] };
+        groups.push(currentGroup);
+      }
+      currentGroup.matches.push(match);
+    }
+    
+    return groups;
+  }, [sortedMatches, groupBy]);
+
   if (matches.length === 0) {
     return (
       <Card className="p-8 text-center">
@@ -217,183 +238,222 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [] }: Matc
   }
 
   return (
-    <Card className="overflow-hidden">
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead 
-                className="cursor-pointer hover:bg-muted/50 min-w-[200px]"
-                onClick={() => handleSort('league')}
-              >
-                Compétition
-              </TableHead>
-              <TableHead 
-                className="cursor-pointer hover:bg-muted/50 min-w-[250px]"
-                onClick={() => handleSort('home_team')}
-              >
-                Match
-              </TableHead>
-              <TableHead 
-                className="cursor-pointer hover:bg-muted/50"
-                onClick={() => handleSort('kickoff_utc')}
-              >
-                <div className="flex items-center gap-1">
-                  <Clock className="h-4 w-4" />
-                  Heure
+    <div className="space-y-6">
+      {groupedMatches.map((group, groupIndex) => (
+        <div key={group.league || 'default'}>
+          {/* Competition Header */}
+          {group.league && groupBy === 'competition' && (
+            <div className="mb-4">
+              <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-brand/10 to-brand-400/10 rounded-lg border border-brand/20">
+                <div className="flex items-center gap-2">
+                  {(() => {
+                    const firstMatch = group.matches[0];
+                    const flagInfo = leagueToFlag(firstMatch.league, firstMatch.country, firstMatch.home_team, firstMatch.away_team);
+                    return <FlagMini code={flagInfo.code} confed={flagInfo.confed} />;
+                  })()}
+                  <h3 className="text-lg font-semibold text-brand">
+                    {group.league}
+                  </h3>
                 </div>
-              </TableHead>
-              <TableHead 
-                className="cursor-pointer hover:bg-muted/50"
-                onClick={() => handleSort('vig_1x2')}
-              >
-                Confiance
-              </TableHead>
-              <TableHead>
-                <div className="flex items-center gap-1">
-                  <Brain className="h-4 w-4" />
-                  Recommandation IA
+                <div className="text-sm text-muted-foreground bg-white/50 px-3 py-1 rounded-full">
+                  {group.matches.length} match{group.matches.length > 1 ? 's' : ''}
                 </div>
-              </TableHead>
-              <TableHead>Probas</TableHead>
-              <TableHead className="w-[100px]">Action</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sortedMatches.map((match) => {
-              const flagInfo = leagueToFlag(match.league, match.country, match.home_team, match.away_team);
-              
-              return (
-                <TableRow 
-                  key={match.id} 
-                  className="cursor-pointer hover:bg-muted/50 transition-colors"
-                  onClick={() => onMatchClick(match)}
-                >
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <FlagMini code={flagInfo.code} confed={flagInfo.confed} />
-                      <div>
-                        <p className="font-medium text-sm">{match.league}</p>
-                        <p className="text-xs text-muted-foreground capitalize">
-                          {match.category.replace('_', ' ')}
-                        </p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  
-                  <TableCell>
-                    <div className="space-y-1">
-                      <p className="font-medium">{match.home_team}</p>
-                      <p className="text-muted-foreground">vs {match.away_team}</p>
-                    </div>
-                  </TableCell>
-                  
-                  <TableCell>
-                    <div className="text-center">
-                      <p className="font-medium">{formatTime(match.kickoff_utc)}</p>
-                      <p className="text-xs text-muted-foreground">{formatDate(match.kickoff_utc)}</p>
-                    </div>
-                  </TableCell>
-                  
-                  <TableCell>
-                    <span className={`font-bold ${match.vig_1x2 <= 0.12 ? 'text-green-600' : 'text-muted-foreground'}`}>
-                      {match.vig_1x2 <= 0.12 ? "Haute" : "Moyenne"}
-                    </span>
-                  </TableCell>
-                  
-                  <TableCell>
-                    {(() => {
-                      const aiRec = generateAIRecommendation(match, marketFilters);
-                      
-                      if (!aiRec) {
-                        return (
-                          <div className="text-xs text-muted-foreground">
-                            Aucune opportunité détectée
+              </div>
+            </div>
+          )}
+          
+          {/* Matches Table */}
+          <Card className="overflow-hidden">
+            <div className="overflow-x-auto">
+              <Table>
+                {/* Show header only for first group or when not grouped */}
+                {(groupIndex === 0 || groupBy !== 'competition') && (
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead 
+                        className="cursor-pointer hover:bg-muted/50 min-w-[200px]"
+                        onClick={() => handleSort('league')}
+                      >
+                        Compétition
+                      </TableHead>
+                      <TableHead 
+                        className="cursor-pointer hover:bg-muted/50 min-w-[250px]"
+                        onClick={() => handleSort('home_team')}
+                      >
+                        Match
+                      </TableHead>
+                      <TableHead 
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => handleSort('kickoff_utc')}
+                      >
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-4 w-4" />
+                          Heure
+                        </div>
+                      </TableHead>
+                      <TableHead 
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => handleSort('vig_1x2')}
+                      >
+                        Confiance
+                      </TableHead>
+                      <TableHead>
+                        <div className="flex items-center gap-1">
+                          <Brain className="h-4 w-4" />
+                          Recommandation IA
+                        </div>
+                      </TableHead>
+                      <TableHead>Probas</TableHead>
+                      <TableHead className="w-[100px]">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                )}
+                
+                <TableBody>
+                  {group.matches.map((match) => {
+                    const flagInfo = leagueToFlag(match.league, match.country, match.home_team, match.away_team);
+                    
+                    return (
+                      <TableRow 
+                        key={match.id} 
+                        className="cursor-pointer hover:bg-muted/50 transition-colors"
+                        onClick={() => onMatchClick(match)}
+                      >
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            {groupBy !== 'competition' && <FlagMini code={flagInfo.code} confed={flagInfo.confed} />}
+                            <div>
+                              <p className="font-medium text-sm">
+                                {groupBy === 'competition' ? 
+                                  `${match.category.replace('_', ' ')}` : 
+                                  match.league
+                                }
+                              </p>
+                              {groupBy !== 'competition' && (
+                                <p className="text-xs text-muted-foreground capitalize">
+                                  {match.category.replace('_', ' ')}
+                                </p>
+                              )}
+                            </div>
                           </div>
-                        );
-                      }
+                        </TableCell>
+                        
+                        <TableCell>
+                          <div className="space-y-1">
+                            <p className="font-medium">{match.home_team}</p>
+                            <p className="text-muted-foreground">vs {match.away_team}</p>
+                          </div>
+                        </TableCell>
+                        
+                        <TableCell>
+                          <div className="text-center">
+                            <p className="font-medium">{formatTime(match.kickoff_utc)}</p>
+                            <p className="text-xs text-muted-foreground">{formatDate(match.kickoff_utc)}</p>
+                          </div>
+                        </TableCell>
+                        
+                        <TableCell>
+                          <span className={`font-bold ${match.vig_1x2 <= 0.12 ? 'text-green-600' : 'text-muted-foreground'}`}>
+                            {match.vig_1x2 <= 0.12 ? "Haute" : "Moyenne"}
+                          </span>
+                        </TableCell>
+                        
+                        <TableCell>
+                          {(() => {
+                            const aiRec = generateAIRecommendation(match, marketFilters);
+                            
+                            if (!aiRec) {
+                              return (
+                                <div className="text-xs text-muted-foreground">
+                                  Aucune opportunité détectée
+                                </div>
+                              );
+                            }
 
-                      return (
-                        <div className="bg-green-100 p-2 rounded-lg border border-green-200 min-w-[180px]">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Brain className="h-3 w-3 text-green-600" />
-                            <span className="text-xs font-semibold text-green-700">Recommandation IA</span>
-                          </div>
-                          <div className="grid grid-cols-3 gap-2 text-xs">
-                            <div>
-                              <span className="text-green-600">Type de pari</span>
-                              <div className="bg-green-200 text-green-800 px-2 py-1 rounded mt-1 font-medium">
-                                {aiRec.betType}
+                            return (
+                              <div className="bg-green-100 p-2 rounded-lg border border-green-200 min-w-[180px]">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Brain className="h-3 w-3 text-green-600" />
+                                  <span className="text-xs font-semibold text-green-700">Recommandation IA</span>
+                                </div>
+                                <div className="grid grid-cols-3 gap-2 text-xs">
+                                  <div>
+                                    <span className="text-green-600">Type de pari</span>
+                                    <div className="bg-green-200 text-green-800 px-2 py-1 rounded mt-1 font-medium">
+                                      {aiRec.betType}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <span className="text-green-600">Prédiction</span>
+                                    <div className="text-green-800 font-medium mt-1">
+                                      {aiRec.prediction}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <span className="text-green-600">Cote</span>
+                                    <div className="bg-green-200 text-green-800 px-2 py-1 rounded mt-1 font-bold">
+                                      {aiRec.odds.toFixed(2)}
+                                    </div>
+                                  </div>
+                                </div>
                               </div>
-                            </div>
-                            <div>
-                              <span className="text-green-600">Prédiction</span>
-                              <div className="text-green-800 font-medium mt-1">
-                                {aiRec.prediction}
+                            );
+                          })()}
+                        </TableCell>
+                        
+                        <TableCell>
+                          {(() => {
+                            const homeProb = match.p_home_fair * 100;
+                            const drawProb = match.p_draw_fair * 100;
+                            const awayProb = match.p_away_fair * 100;
+                            const maxProb = Math.max(homeProb, drawProb, awayProb);
+                            
+                            return (
+                              <div className="text-xs space-y-1">
+                                <div className="flex justify-between">
+                                  <span>H:</span>
+                                  <span className={`font-mono ${homeProb === maxProb ? 'font-bold' : ''}`}>
+                                    {homeProb.toFixed(0)}%
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>D:</span>
+                                  <span className={`font-mono ${drawProb === maxProb ? 'font-bold' : ''}`}>
+                                    {drawProb.toFixed(0)}%
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>A:</span>
+                                  <span className={`font-mono ${awayProb === maxProb ? 'font-bold' : ''}`}>
+                                    {awayProb.toFixed(0)}%
+                                  </span>
+                                </div>
                               </div>
-                            </div>
-                            <div>
-                              <span className="text-green-600">Cote</span>
-                              <div className="bg-green-200 text-green-800 px-2 py-1 rounded mt-1 font-bold">
-                                {aiRec.odds.toFixed(2)}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </TableCell>
-                  
-                  <TableCell>
-                    {(() => {
-                      const homeProb = match.p_home_fair * 100;
-                      const drawProb = match.p_draw_fair * 100;
-                      const awayProb = match.p_away_fair * 100;
-                      const maxProb = Math.max(homeProb, drawProb, awayProb);
-                      
-                      return (
-                        <div className="text-xs space-y-1">
-                          <div className="flex justify-between">
-                            <span>H:</span>
-                            <span className={`font-mono ${homeProb === maxProb ? 'font-bold' : ''}`}>
-                              {homeProb.toFixed(0)}%
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>D:</span>
-                            <span className={`font-mono ${drawProb === maxProb ? 'font-bold' : ''}`}>
-                              {drawProb.toFixed(0)}%
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>A:</span>
-                            <span className={`font-mono ${awayProb === maxProb ? 'font-bold' : ''}`}>
-                              {awayProb.toFixed(0)}%
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </TableCell>
-                  
-                  <TableCell>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onMatchClick(match);
-                      }}
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </div>
-    </Card>
+                            );
+                          })()}
+                        </TableCell>
+                        
+                        <TableCell>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onMatchClick(match);
+                            }}
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
+        </div>
+      ))}
+    </div>
   );
 }
