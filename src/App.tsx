@@ -9,33 +9,41 @@ import Auth from './pages/Auth';
 import { Language } from './lib/i18n';
 import { AuthProvider } from './hooks/useAuth';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { useUserActivity } from './hooks/useUserActivity';
+
+const AppContent: React.FC = () => {
+  const [currentLang] = useState<Language>('fr');
+  
+  // Track user activity for login timestamps
+  useUserActivity();
+
+  return (
+    <Routes>
+      <Route path="/" element={<Landing />} />
+      <Route path="/auth" element={<Auth />} />
+      <Route path="/admin" element={<Admin />} />
+      <Route path="/archives" element={<Archives />} />
+      <Route path="/test" element={<Test />} />
+      <Route 
+        path="/dashboard" 
+        element={
+          <ProtectedRoute>
+            <UserDashboard currentLang={currentLang} matches={[]} />
+          </ProtectedRoute>
+        } 
+      />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+};
 
 const App: React.FC = () => {
   console.log('App component rendering');
-  
-  const [currentLang] = useState<Language>('fr');
-  
-  console.log('useState worked, currentLang:', currentLang);
 
   return (
     <AuthProvider>
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/admin" element={<Admin />} />
-          <Route path="/archives" element={<Archives />} />
-          <Route path="/test" element={<Test />} />
-          <Route 
-            path="/dashboard" 
-            element={
-              <ProtectedRoute>
-                <UserDashboard currentLang={currentLang} matches={[]} />
-              </ProtectedRoute>
-            } 
-          />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        <AppContent />
       </BrowserRouter>
     </AuthProvider>
   );
