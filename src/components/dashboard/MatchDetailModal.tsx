@@ -8,6 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { FlagMini } from '@/components/Flag';
 import { leagueToFlag } from '@/lib/leagueCountry';
+import { generateConfidenceScore } from '@/lib/confidence';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Clock, TrendingDown, Target, Eye, Download, Loader2, Zap } from 'lucide-react';
@@ -193,10 +194,8 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
       ? Math.abs(((recommendation.odds * recommendation.probability) - 1) * 100).toFixed(1) 
       : '0.0';
     
-    // Handle confidence score properly - dynamic score between 70 and 89.5
-    const confidence = recommendation.confidence && !isNaN(recommendation.confidence) && recommendation.confidence > 0
-      ? Math.min((recommendation.confidence * 100), 89.5).toFixed(1)
-      : (70 + seededRandom(matchSeed, 2) * 19.5).toFixed(1); // Seeded between 70-89.5
+    // Handle confidence score using shared function to ensure consistency
+    const confidence = generateConfidenceScore(match.id, recommendation);
 
     // Determine geographic context based on league
     const getGeographicContext = () => {
