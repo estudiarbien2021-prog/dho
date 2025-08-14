@@ -50,6 +50,8 @@ interface Match {
 }
 
 export function MatchesManagement() {
+  console.log('🚀 Composant MatchesManagement chargé !');
+  
   const [matches, setMatches] = useState<Match[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedMatches, setSelectedMatches] = useState<string[]>([]);
@@ -58,6 +60,8 @@ export function MatchesManagement() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [editingMatch, setEditingMatch] = useState<Match | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
+  console.log('📅 Date filter par défaut:', dateFilter);
 
   useEffect(() => {
     loadMatches();
@@ -388,7 +392,10 @@ export function MatchesManagement() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => setEditingMatch(match)}
+                            onClick={() => {
+                              console.log('🖱️ Clic sur Edit pour le match:', match.home_team, 'vs', match.away_team);
+                              setEditingMatch(match);
+                            }}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
