@@ -447,21 +447,21 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
                                 match.ai_confidence && match.ai_confidence > 0.6 ? 'medium' : 'low';
                               
                               return (
-                                <div className="flex flex-col gap-1">
+                                <div className="flex flex-col gap-1 items-center">
                                   <Badge 
                                     variant={confidenceLevel === 'high' ? 'default' : confidenceLevel === 'medium' ? 'secondary' : 'outline'}
                                     className="text-xs"
                                   >
                                     🎯 {predictionText}
                                   </Badge>
-                                    <div className="text-xs text-muted-foreground">
-                                      Confiance: {generateConfidenceScore(match.id, {
-                                        type: match.ai_prediction?.includes('BTTS') ? 'BTTS' : 
-                                              match.ai_prediction?.includes('buts') ? 'O/U 2.5' : '1X2',
-                                        prediction: match.ai_prediction,
-                                        confidence: match.ai_confidence
-                                      })}%
-                                    </div>
+                                  <div className="text-xs text-muted-foreground text-center">
+                                    Confiance: {generateConfidenceScore(match.id, {
+                                      type: match.ai_prediction?.includes('BTTS') ? 'BTTS' : 
+                                            match.ai_prediction?.includes('buts') ? 'O/U 2.5' : '1X2',
+                                      prediction: match.ai_prediction,
+                                      confidence: match.ai_confidence
+                                    })}%
+                                  </div>
                                 </div>
                               );
                             }
@@ -477,8 +477,8 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
                             }
 
                             return (
-                              <div className="bg-green-100 p-2 rounded-lg border border-green-200 min-w-[180px]">
-                                <div className="flex items-center gap-2 mb-2">
+                              <div className="bg-green-100 p-2 rounded-lg border border-green-200 min-w-[180px] text-center">
+                                <div className="flex items-center justify-center gap-2 mb-2">
                                   <Brain className="h-3 w-3 text-green-600" />
                                   <span className="text-xs font-semibold text-green-700">Recommandation IA</span>
                                 </div>
@@ -502,9 +502,9 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
                                     </div>
                                   </div>
                                  </div>
-                                  <div className="text-xs text-muted-foreground mt-1">
-                                    Confiance: {generateConfidenceScore(match.id, aiRec)}%
-                                  </div>
+                                 <div className="text-xs text-muted-foreground mt-1 text-center">
+                                   Confiance: {generateConfidenceScore(match.id, aiRec)}%
+                                 </div>
                                </div>
                              );
                            })()}
@@ -601,8 +601,8 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
                     {/* AI Recommendation */}
                     <div className="space-y-2">
                       {aiRec ? (
-                        <div className="bg-green-100 p-3 rounded-lg border border-green-200">
-                          <div className="flex items-center gap-2 mb-2">
+                        <div className="bg-green-100 p-3 rounded-lg border border-green-200 text-center">
+                          <div className="flex items-center justify-center gap-2 mb-2">
                             <Brain className="h-4 w-4 text-green-600" />
                             <span className="text-sm font-medium text-green-800">
                               Recommandation IA
@@ -615,7 +615,7 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
                                 @{aiRec.odds.toFixed(2)}
                               </span>
                             </div>
-                            <div className="text-xs text-muted-foreground">
+                            <div className="text-xs text-muted-foreground text-center">
                               Confiance: {generateConfidenceScore(match.id, aiRec)}%
                             </div>
                           </div>
