@@ -167,6 +167,47 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
 
   const bestRecommendation = getBestRecommendation();
 
+  // Generate AI recommendation explanation
+  const generateRecommendationExplanation = (recommendation: any) => {
+    if (recommendation.type === 'Aucune') {
+      return "🤖 Notre algorithme n'a pas détecté d'opportunité favorable sur ce match. Les cotes proposées ne présentent pas d'avantage statistique significatif par rapport aux probabilités calculées.";
+    }
+
+    const probPercent = (recommendation.probability * 100).toFixed(1);
+    const vigPercent = (recommendation.vigorish * 100).toFixed(1);
+    const fairOdds = recommendation.probability > 0 ? (1 / recommendation.probability).toFixed(2) : '0.00';
+    const edge = recommendation.odds > 0 && recommendation.probability > 0 
+      ? (((recommendation.odds * recommendation.probability) - 1) * 100).toFixed(1) 
+      : '0.0';
+
+    let explanation = `💡 **Pourquoi cette recommandation ?** Notre IA a détecté une opportunité intéressante : `;
+    
+    if (recommendation.type === 'BTTS') {
+      if (recommendation.prediction === 'Oui') {
+        explanation += `les statistiques montrent que les deux équipes ont ${probPercent}% de chances de marquer dans ce match.`;
+      } else {
+        explanation += `les données indiquent ${probPercent}% de probabilité qu'au moins une équipe ne marque pas.`;
+      }
+    } else if (recommendation.type === 'O/U 2.5') {
+      if (recommendation.prediction === '+2,5 buts') {
+        explanation += `l'analyse suggère ${probPercent}% de chances de voir plus de 2,5 buts dans ce match.`;
+      } else {
+        explanation += `les tendances pointent vers ${probPercent}% de probabilité de moins de 2,5 buts.`;
+      }
+    }
+
+    explanation += ` La cote proposée (${recommendation.odds.toFixed(2)}) est plus généreuse que la cote juste estimée (${fairOdds}), `;
+    explanation += `créant un avantage de +${edge}% pour le parieur. `;
+    
+    if (recommendation.vigorish < 0.08) {
+      explanation += `Bonus : la marge bookmaker est favorable à ${vigPercent}% seulement ! 📈`;
+    } else {
+      explanation += `Marge bookmaker acceptable à ${vigPercent}%.`;
+    }
+
+    return explanation;
+  };
+
   // Donut chart data with brand colors
   const results1x2Data = [
     { name: 'Domicile', value: match.p_home_fair * 100, color: 'hsl(var(--brand))' },
@@ -336,7 +377,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                 <div className="w-2 h-8 bg-gradient-to-b from-brand to-brand-400 rounded-full animate-pulse"></div>
                 🤖 Recommandation IA
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div className="text-center md:text-left">
                   <p className="text-sm text-text-weak mb-2">Type de pari</p>
                   <Badge className="bg-gradient-to-r from-brand/40 to-brand-400/40 border-brand/60 text-brand-fg font-bold px-3 py-1">
@@ -354,6 +395,15 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                   <Badge variant="outline" className="bg-gradient-to-r from-brand/30 to-brand-400/30 border-brand/50 text-text font-bold text-lg">
                     {bestRecommendation.odds.toFixed(2)}
                   </Badge>
+                </div>
+              </div>
+              
+              {/* AI Explanation */}
+              <div className="mt-4 p-4 bg-gradient-to-r from-brand/5 to-brand-400/5 rounded-lg border border-brand/20">
+                <div className="text-sm text-text leading-relaxed">
+                  <div dangerouslySetInnerHTML={{ 
+                    __html: generateRecommendationExplanation(bestRecommendation).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
+                  }} />
                 </div>
               </div>
             </div>
