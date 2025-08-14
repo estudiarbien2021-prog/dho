@@ -146,7 +146,13 @@ serve(async (req) => {
     const uploadDate = matchDate || new Date().toISOString().split('T')[0];
     const uploadFilename = filename || `matches-${uploadDate}.csv`;
     
-    console.log(`📥 Téléchargement du CSV depuis: ${csvUrl}`);
+    // Convert GitHub URL to raw URL if needed
+    let actualCsvUrl = csvUrl;
+    if (csvUrl.includes('github.com') && csvUrl.includes('/blob/')) {
+      actualCsvUrl = csvUrl.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/');
+    }
+    
+    console.log(`📥 Téléchargement du CSV depuis: ${actualCsvUrl}`);
     console.log(`📅 Date des matchs: ${uploadDate}`);
     
     // Create upload record
@@ -170,7 +176,7 @@ serve(async (req) => {
     }
     
     // Download CSV
-    const response = await fetch(csvUrl);
+    const response = await fetch(actualCsvUrl);
     if (!response.ok) {
       throw new Error(`Erreur téléchargement CSV: ${response.status} ${response.statusText}`);
     }
