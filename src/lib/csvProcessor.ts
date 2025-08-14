@@ -153,25 +153,25 @@ export function processCSVData(csvText: string): ProcessedMatch[] {
   
   parseResult.data.forEach((row, index) => {
     try {
-      if (!row.League || !row['Home Team'] || !row['Away Team']) {
+      if (!row.league || !row.home_team || !row.away_team) {
         return; // Skip incomplete rows
       }
       
-      if (!shouldIncludeMatch(row.League)) {
+      if (!shouldIncludeMatch(row.league)) {
         return; // Skip excluded leagues
       }
       
       // Parse datetime
-      const dateField = row.date_unix || row.date_GMT;
+      const dateField = row.kickoff_utc;
       if (!dateField) return;
       
       const kickoffUtc = parseDate(dateField);
       const kickoffLocal = new Date(kickoffUtc.toLocaleString());
       
       // Parse main odds
-      const oddsHome = parseFloatSafe(row.Odds_Home_Win);
-      const oddsDraw = parseFloatSafe(row.Odds_Draw);  
-      const oddsAway = parseFloatSafe(row.Odds_Away_Win);
+      const oddsHome = parseFloatSafe(row.odds_1x2_home);
+      const oddsDraw = parseFloatSafe(row.odds_1x2_draw);  
+      const oddsAway = parseFloatSafe(row.odds_1x2_away);
       
       if (!oddsHome || !oddsDraw || !oddsAway) return;
       
@@ -179,26 +179,36 @@ export function processCSVData(csvText: string): ProcessedMatch[] {
       const { probs: probs1x2, vig: vig1x2 } = calculateFairProbabilities(oddsHome, oddsDraw, oddsAway);
       
       // Parse BTTS odds
-      const oddsBttsYes = parseFloatSafe(row.Odds_BTTS_Yes);
-      const oddsBttsNo = parseFloatSafe(row.Odds_BTTS_No);
+      const oddsBttsYes = parseFloatSafe(row.odds_btts_yes);
+      const oddsBttsNo = parseFloatSafe(row.odds_btts_no);
       
       let probsBtts = [0.5, 0.5];
       let vigBtts = 0;
       
-      if (oddsBttsYes > 0 && oddsBttsNo > 0) {
+      // Si nous avons des probabilités et vigorish précalculés dans le CSV, les utiliser
+      if (row.p_btts_yes_fair && row.p_btts_no_fair && row.vig_btts) {
+        probsBtts = [parseFloatSafe(row.p_btts_yes_fair), parseFloatSafe(row.p_btts_no_fair)];
+        vigBtts = parseFloatSafe(row.vig_btts);
+      } else if (oddsBttsYes > 0 && oddsBttsNo > 0) {
+        // Sinon calculer à partir des cotes
         const bttsResult = calculateFairProbabilities(oddsBttsYes, oddsBttsNo);
         probsBtts = bttsResult.probs;
         vigBtts = bttsResult.vig;
       }
       
       // Parse Over/Under 2.5
-      const oddsOver25 = parseFloatSafe(row.Odds_Over25);
-      const oddsUnder25 = parseFloatSafe(row.Odds_Under25);
+      const oddsOver25 = parseFloatSafe(row.odds_over_2_5);
+      const oddsUnder25 = parseFloatSafe(row.odds_under_2_5);
       
       let probsOu25 = [0.5, 0.5];
       let vigOu25 = 0;
       
-      if (oddsOver25 > 0 && oddsUnder25 > 0) {
+      // Si nous avons des probabilités et vigorish précalculés dans le CSV, les utiliser
+      if (row.p_over_2_5_fair && row.p_under_2_5_fair && row.vig_ou_2_5) {
+        probsOu25 = [parseFloatSafe(row.p_over_2_5_fair), parseFloatSafe(row.p_under_2_5_fair)];
+        vigOu25 = parseFloatSafe(row.vig_ou_2_5);
+      } else if (oddsOver25 > 0 && oddsUnder25 > 0) {
+        // Sinon calculer à partir des cotes
         const ou25Result = calculateFairProbabilities(oddsOver25, oddsUnder25);
         probsOu25 = ou25Result.probs;
         vigOu25 = ou25Result.vig;
@@ -225,12 +235,12 @@ export function processCSVData(csvText: string): ProcessedMatch[] {
       
       const match: ProcessedMatch = {
         id: `${format(kickoffUtc, 'yyyy-MM-dd')}-${index}`,
-        league: row.League,
-        home_team: row['Home Team'],
-        away_team: row['Away Team'],
+        league: row.league,
+        home_team: row.home_team,
+        away_team: row.away_team,
         kickoff_utc: kickoffUtc,
         kickoff_local: kickoffLocal,
-        category: categorizeLeague(row.League),
+        category: categorizeLeague(row.league),
         
         // Fair probabilities
         p_home_fair: probs1x2[0],
