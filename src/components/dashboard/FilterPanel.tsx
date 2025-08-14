@@ -135,9 +135,9 @@ export function FilterPanel({ filters, onFiltersChange, availableLeagues }: Filt
         <div className="space-y-2 md:col-span-2">
           <Label className="text-sm font-medium">Compétitions</Label>
           <Select 
-            value={filters.leagues.length > 0 ? filters.leagues[0] : ""} 
+            value={filters.leagues.length > 0 ? filters.leagues[0] : "all"} 
             onValueChange={(value) => {
-              if (value === "") {
+              if (value === "all") {
                 updateFilters({ leagues: [] });
               } else {
                 const newLeagues = filters.leagues.includes(value)
@@ -151,7 +151,7 @@ export function FilterPanel({ filters, onFiltersChange, availableLeagues }: Filt
               <SelectValue placeholder="Sélectionner une compétition" />
             </SelectTrigger>
             <SelectContent className="bg-background border shadow-md z-50 max-h-[300px] overflow-y-auto">
-              <SelectItem value="">Toutes les compétitions</SelectItem>
+              <SelectItem value="all">Toutes les compétitions</SelectItem>
               {availableLeagues.map(league => (
                 <SelectItem key={league} value={league} className="cursor-pointer hover:bg-muted">
                   <div className="flex items-center justify-between w-full">
