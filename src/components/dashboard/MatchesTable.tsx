@@ -232,48 +232,110 @@ export function MatchesTable({ matches, onMatchClick }: MatchesTableProps) {
                   </TableCell>
                   
                   <TableCell>
-                    {(() => {
-                      const aiRec = generateAIRecommendation(match);
+                    <div className="bg-green-50 p-3 rounded-lg border border-green-200 min-w-[300px]">
+                      {/* Header */}
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-4 h-4 bg-green-500 rounded"></div>
+                        <span className="text-sm font-semibold text-green-800">Analyse des Probabilités IA</span>
+                      </div>
                       
-                      if (!aiRec) {
-                        return (
-                          <div className="text-xs text-muted-foreground">
-                            Aucune opportunité détectée
+                      {/* Three markets analysis */}
+                      <div className="grid grid-cols-3 gap-2 mb-3">
+                        {/* 1X2 Market */}
+                        <div className="bg-white/60 p-2 rounded text-center">
+                          <div className="text-xs font-medium text-green-700 mb-1">Résultat 1X2</div>
+                          <div className="w-8 h-8 mx-auto mb-1 relative">
+                            <div className="w-8 h-8 rounded-full border-4 border-green-200 relative">
+                              <div 
+                                className="absolute inset-0 rounded-full border-4 border-green-500"
+                                style={{
+                                  clipPath: `polygon(50% 50%, 50% 0%, ${50 + Math.cos(-Math.PI/2 + 2*Math.PI*Math.max(match.p_home_fair, match.p_draw_fair, match.p_away_fair)) * 50}% ${50 - Math.sin(-Math.PI/2 + 2*Math.PI*Math.max(match.p_home_fair, match.p_draw_fair, match.p_away_fair)) * 50}%, 50% 50%)`
+                                }}
+                              ></div>
+                            </div>
                           </div>
-                        );
-                      }
-
-                      const confidenceColors = {
-                        high: 'bg-green-50 border-green-200 text-green-800',
-                        medium: 'bg-yellow-50 border-yellow-200 text-yellow-800', 
-                        low: 'bg-gray-50 border-gray-200 text-gray-600'
-                      };
-
-                      return (
-                        <div className={`p-2 rounded-lg border ${confidenceColors[aiRec.confidence]} min-w-[180px]`}>
-                          <div className="flex items-center gap-1 mb-1">
-                            <Brain className="h-3 w-3" />
-                            <span className="text-xs font-semibold">Recommandation IA</span>
-                          </div>
-                          <div className="space-y-1">
-                            <div className="flex justify-between items-center">
-                              <span className="text-xs">Type de pari</span>
-                              <Badge variant="outline" className="text-xs px-1 py-0">
-                                {aiRec.betType}
-                              </Badge>
-                            </div>
-                            <div className="flex justify-between items-center">
-                              <span className="text-xs">Prédiction</span>
-                              <span className="text-xs font-medium">{aiRec.prediction}</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                              <span className="text-xs">Cote</span>
-                              <span className="text-xs font-bold">{aiRec.odds.toFixed(2)}</span>
-                            </div>
+                          <div className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                            {match.p_home_fair > match.p_draw_fair && match.p_home_fair > match.p_away_fair 
+                              ? match.home_team 
+                              : match.p_away_fair > match.p_draw_fair 
+                                ? match.away_team 
+                                : 'Nul'
+                            }
                           </div>
                         </div>
-                      );
-                    })()}
+
+                        {/* BTTS Market */}
+                        <div className="bg-white/60 p-2 rounded text-center">
+                          <div className="text-xs font-medium text-green-700 mb-1">Les Deux Équipes Marquent</div>
+                          <div className="w-8 h-8 mx-auto mb-1 relative">
+                            <div className="w-8 h-8 rounded-full border-4 border-green-200 relative">
+                              <div 
+                                className="absolute inset-0 rounded-full border-4 border-green-500"
+                                style={{
+                                  clipPath: `polygon(50% 50%, 50% 0%, ${50 + Math.cos(-Math.PI/2 + 2*Math.PI*Math.max(match.p_btts_yes_fair || 0, 1 - (match.p_btts_yes_fair || 0))) * 50}% ${50 - Math.sin(-Math.PI/2 + 2*Math.PI*Math.max(match.p_btts_yes_fair || 0, 1 - (match.p_btts_yes_fair || 0))) * 50}%, 50% 50%)`
+                                }}
+                              ></div>
+                            </div>
+                          </div>
+                          <div className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                            {(match.p_btts_yes_fair || 0) > 0.5 ? 'Oui' : 'Non'}
+                          </div>
+                        </div>
+
+                        {/* Over/Under Market */}
+                        <div className="bg-white/60 p-2 rounded text-center">
+                          <div className="text-xs font-medium text-green-700 mb-1">Plus/Moins 2,5 Buts</div>
+                          <div className="w-8 h-8 mx-auto mb-1 relative">
+                            <div className="w-8 h-8 rounded-full border-4 border-green-200 relative">
+                              <div 
+                                className="absolute inset-0 rounded-full border-4 border-green-500"
+                                style={{
+                                  clipPath: `polygon(50% 50%, 50% 0%, ${50 + Math.cos(-Math.PI/2 + 2*Math.PI*Math.max(match.p_over_2_5_fair || 0, 1 - (match.p_over_2_5_fair || 0))) * 50}% ${50 - Math.sin(-Math.PI/2 + 2*Math.PI*Math.max(match.p_over_2_5_fair || 0, 1 - (match.p_over_2_5_fair || 0))) * 50}%, 50% 50%)`
+                                }}
+                              ></div>
+                            </div>
+                          </div>
+                          <div className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                            {(match.p_over_2_5_fair || 0) > 0.5 ? '+2,5 buts' : '-2,5 buts'}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Recommendation */}
+                      {(() => {
+                        const aiRec = generateAIRecommendation(match);
+                        if (!aiRec) return null;
+
+                        return (
+                          <div className="bg-green-100 p-2 rounded-lg">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Brain className="h-3 w-3 text-green-600" />
+                              <span className="text-xs font-semibold text-green-700">Recommandation IA</span>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2 text-xs">
+                              <div>
+                                <span className="text-green-600">Type de pari</span>
+                                <div className="bg-green-200 text-green-800 px-2 py-1 rounded mt-1 font-medium">
+                                  {aiRec.betType}
+                                </div>
+                              </div>
+                              <div>
+                                <span className="text-green-600">Prédiction</span>
+                                <div className="text-green-800 font-medium mt-1">
+                                  {aiRec.prediction}
+                                </div>
+                              </div>
+                              <div>
+                                <span className="text-green-600">Cote</span>
+                                <div className="bg-green-200 text-green-800 px-2 py-1 rounded mt-1 font-bold">
+                                  {aiRec.odds.toFixed(2)}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
                   </TableCell>
                   
                   <TableCell>
