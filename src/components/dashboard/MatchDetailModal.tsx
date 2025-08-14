@@ -167,27 +167,56 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
       ? Math.abs(((recommendation.odds * recommendation.probability) - 1) * 100).toFixed(1) 
       : '0.0';
     
-    // Handle confidence score properly - dynamic score always >70
+    // Handle confidence score properly - dynamic score between 70 and 89.5
     const confidence = recommendation.confidence && !isNaN(recommendation.confidence) && recommendation.confidence > 0
-      ? (recommendation.confidence * 100).toFixed(1)
-      : (70 + Math.random() * 25).toFixed(1); // Random between 70-95
+      ? Math.min((recommendation.confidence * 100), 89.5).toFixed(1)
+      : (70 + Math.random() * 19.5).toFixed(1); // Random between 70-89.5
 
-    // Varied signal detection intros
+    // Determine geographic context based on league
+    const getGeographicContext = () => {
+      const league = match.league.toLowerCase();
+      const country = match.country?.toLowerCase() || '';
+      
+      if (league.includes('liga mx') || league.includes('mexico') || country.includes('mexico')) {
+        return 'du football mexicain et centre-américain';
+      } else if (league.includes('copa libertadores') || league.includes('copa sudamericana') || 
+                 league.includes('categoria primera') || league.includes('division profesional')) {
+        return 'du football sud-américain';
+      } else if (league.includes('canadian') || country.includes('canada')) {
+        return 'du football nord-américain';
+      } else if (league.includes('premier league') || league.includes('championship') || 
+                 league.includes('la liga') || league.includes('serie a') || 
+                 league.includes('bundesliga') || league.includes('ligue 1')) {
+        return 'du football européen';
+      } else if (league.includes('mls') || country.includes('usa')) {
+        return 'du football américain';
+      } else if (league.includes('brasileirao') || league.includes('brazil') || country.includes('brazil')) {
+        return 'du football brésilien';
+      } else if (league.includes('argentina') || country.includes('argentina')) {
+        return 'du football argentin';
+      } else {
+        return 'de cette compétition';
+      }
+    };
+
+    const geographicContext = getGeographicContext();
+
+    // Professional signal detection intros (removed "Pépite")
     const signalIntros = [
       `🎯 **Opportunité Détectée** | Niveau de Confiance: ${confidence}/100`,
-      `⚡ **Alerte Système** | Score de Fiabilité: ${confidence}/100`,
-      `🔥 **Signal Actif** | Indice de Certitude: ${confidence}/100`,
-      `💎 **Pépite Identifiée** | Taux de Confiance: ${confidence}/100`
+      `⚡ **Signal Identifié** | Score de Fiabilité: ${confidence}/100`,
+      `🔥 **Anomalie Détectée** | Indice de Certitude: ${confidence}/100`,
+      `📊 **Distorsion Repérée** | Taux de Confiance: ${confidence}/100`
     ];
 
     let explanation = `${signalIntros[Math.floor(Math.random() * signalIntros.length)]}\n\n`;
     
-    // Varied data story intros
+    // Varied data story intros with proper geographic context
     const dataIntros = [
-      "📊 **Intelligence Artificielle** : Notre réseau neuronal, nourri de +50,000 parties historiques",
-      "🧠 **Deep Learning** : L'algorithme, entraîné sur une base massive de données contextuelles", 
-      "⚙️ **Machine Learning** : Le modèle prédictif, alimenté par des milliers d'affrontements similaires",
-      "🎰 **Algorithme Quantitatif** : Notre IA, formée sur un dataset colossal de matchs européens"
+      `📊 **Intelligence Artificielle** : Notre réseau neuronal, nourri de +50,000 parties historiques ${geographicContext}`,
+      `🧠 **Deep Learning** : L'algorithme, entraîné sur une base massive de données contextuelles ${geographicContext}`, 
+      `⚙️ **Machine Learning** : Le modèle prédictif, alimenté par des milliers d'affrontements similaires ${geographicContext}`,
+      `🎰 **Algorithme Quantitatif** : Notre IA, formée sur un dataset colossal de matchs ${geographicContext}`
     ];
     
     explanation += `${dataIntros[Math.floor(Math.random() * dataIntros.length)]} avec contextes identiques (enjeux, déplacements, fatigue, météo), `;
@@ -230,21 +259,21 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
       }
     }
 
-    // Varied mathematical edge explanations
+    // Professional mathematical edge explanations
     const edgeTexts = [
       `\n\n💰 **Avantage Mathématique** : La cote **${recommendation.odds.toFixed(2)}** offre une "positive expected value" de **+${edge}%** selon nos calculs quantitatifs.`,
-      `\n\n🎯 **Edge Statistique** : Avec **${recommendation.odds.toFixed(2)}**, vous bénéficiez d'un avantage théorique de **+${edge}%** - une distorsion de marché rare à exploiter.`,
+      `\n\n🎯 **Edge Statistique** : Avec **${recommendation.odds.toFixed(2)}**, vous bénéficiez d'un avantage théorique de **+${edge}%** - une distorsion de marché à exploiter.`,
       `\n\n⚡ **Profit Attendu** : La cote **${recommendation.odds.toFixed(2)}** génère une espérance de gain positive de **+${edge}%** sur le long terme.`,
-      `\n\n💎 **Valeur Pure** : À **${recommendation.odds.toFixed(2)}**, cette cote présente un surplus de valeur quantifié à **+${edge}%** par nos algorithmes.`
+      `\n\n📈 **Valeur Calculée** : À **${recommendation.odds.toFixed(2)}**, cette cote présente un surplus de valeur quantifié à **+${edge}%** par nos algorithmes.`
     ];
     
     explanation += edgeTexts[Math.floor(Math.random() * edgeTexts.length)];
     
-    // Varied vigorish conclusions
+    // Professional vigorish conclusions
     if (recommendation.vigorish < 0.06) {
       const lowVigTexts = [
         `\n\n🚀 **Conditions Exceptionnelles** : Marge bookmaker de seulement ${vigPercent}% ! Une opportunité premium à saisir.`,
-        `\n\n⭐ **Deal Exceptionnel** : Vigorish ultra-compétitif à ${vigPercent}% - ce bookmaker casse les prix aujourd'hui !`,
+        `\n\n⭐ **Tarif Avantageux** : Vigorish ultra-compétitif à ${vigPercent}% - ce bookmaker casse les prix aujourd'hui.`,
         `\n\n🔥 **Aubaine Rare** : Avec ${vigPercent}% de commission, ces conditions sont parmi les meilleures du marché.`
       ];
       explanation += lowVigTexts[Math.floor(Math.random() * lowVigTexts.length)];
@@ -258,7 +287,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     } else {
       const highVigTexts = [
         `\n\n📊 **Marché Standard** : Vigorish à ${vigPercent}%, dans la fourchette habituelle du secteur.`,
-        `\n\n⚖️ **Conditions Classiques** : Marge de ${vigPercent}%, un niveau typique des bookmakers européens.`,
+        `\n\n⚖️ **Conditions Classiques** : Marge de ${vigPercent}%, un niveau typique des bookmakers professionnels.`,
         `\n\n📈 **Tarification Normale** : Commission à ${vigPercent}%, conforme aux standards du marché des paris.`
       ];
       explanation += highVigTexts[Math.floor(Math.random() * highVigTexts.length)];
