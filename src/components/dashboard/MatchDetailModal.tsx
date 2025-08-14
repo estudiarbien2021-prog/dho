@@ -179,47 +179,8 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
       return array[index];
     };
 
-    // Handle admin prediction format (convert to consistent format)
-    let normalizedRecommendation = { ...recommendation };
-    if (match.ai_prediction) {
-      if (match.ai_prediction.includes('BTTS Oui')) {
-        normalizedRecommendation = {
-          type: 'BTTS',
-          prediction: 'Oui',
-          odds: match.odds_btts_yes || 0,
-          probability: match.p_btts_yes_fair || 0,
-          vigorish: match.vig_btts || 0,
-          confidence: match.ai_confidence && match.ai_confidence > 0.8 ? 'high' : 'medium'
-        };
-      } else if (match.ai_prediction.includes('BTTS Non')) {
-        normalizedRecommendation = {
-          type: 'BTTS',
-          prediction: 'Non',
-          odds: match.odds_btts_no || 0,
-          probability: match.p_btts_no_fair || 0,
-          vigorish: match.vig_btts || 0,
-          confidence: match.ai_confidence && match.ai_confidence > 0.8 ? 'high' : 'medium'
-        };
-      } else if (match.ai_prediction === '+2,5 buts') {
-        normalizedRecommendation = {
-          type: 'O/U 2.5',
-          prediction: '+2,5 buts',
-          odds: match.odds_over_2_5 || 0,
-          probability: match.p_over_2_5_fair || 0,
-          vigorish: match.vig_ou_2_5 || 0,
-          confidence: match.ai_confidence && match.ai_confidence > 0.8 ? 'high' : 'medium'
-        };
-      } else if (match.ai_prediction === '-2,5 buts') {
-        normalizedRecommendation = {
-          type: 'O/U 2.5',
-          prediction: '-2,5 buts',
-          odds: match.odds_under_2_5 || 0,
-          probability: match.p_under_2_5_fair || 0,
-          vigorish: match.vig_ou_2_5 || 0,
-          confidence: match.ai_confidence && match.ai_confidence > 0.8 ? 'high' : 'medium'
-        };
-      }
-    }
+    // Use the recommendation passed as parameter (already validated)
+    const normalizedRecommendation = { ...recommendation };
 
     if (normalizedRecommendation.type === 'Aucune') {
       const noOpportunityTexts = [
