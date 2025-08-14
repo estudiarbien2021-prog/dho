@@ -64,6 +64,7 @@ export function MatchesManagement() {
   }, []);
 
   const loadMatches = async () => {
+    console.log('🔄 Chargement des matchs avec date filter:', dateFilter);
     try {
       setIsLoading(true);
       let query = supabase
@@ -80,9 +81,11 @@ export function MatchesManagement() {
       const { data, error } = await query;
 
       if (error) throw error;
+      console.log('✅ Matchs chargés:', data?.length, 'matchs');
+      console.log('📝 Premier match avec AI prediction:', data?.[0]?.ai_prediction, 'confidence:', data?.[0]?.ai_confidence);
       setMatches(data || []);
     } catch (error) {
-      console.error('Error loading matches:', error);
+      console.error('❌ Erreur lors du chargement des matchs:', error);
       toast({
         title: "Erreur",
         description: "Impossible de charger les matchs",
@@ -430,6 +433,9 @@ interface EditMatchFormProps {
 }
 
 function EditMatchForm({ match, onSave, onCancel }: EditMatchFormProps) {
+  console.log('🏗️ Initialisation du formulaire pour le match:', match.home_team, 'vs', match.away_team);
+  console.log('🔍 Valeurs AI actuelles:', { ai_prediction: match.ai_prediction, ai_confidence: match.ai_confidence });
+  
   const [formData, setFormData] = useState({
     p_home_fair: match.p_home_fair,
     p_draw_fair: match.p_draw_fair,
@@ -448,11 +454,14 @@ function EditMatchForm({ match, onSave, onCancel }: EditMatchFormProps) {
     ai_confidence: match.ai_confidence || 0,
   });
 
+  console.log('📝 FormData initial:', { ai_prediction: formData.ai_prediction, ai_confidence: formData.ai_confidence });
+
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log('📤 Soumission du formulaire avec:', formData);
+    console.log('🎯 AI values à envoyer:', { ai_prediction: formData.ai_prediction, ai_confidence: formData.ai_confidence });
     setIsSaving(true);
     await onSave(formData);
     setIsSaving(false);
