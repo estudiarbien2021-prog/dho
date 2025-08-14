@@ -736,10 +736,19 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
             <div className="relative z-10">
               <h3 className="text-xl font-bold bg-gradient-to-r from-brand to-brand-400 bg-clip-text text-transparent flex items-center gap-3 mb-4">
                 <div className="w-2 h-8 bg-gradient-to-b from-brand to-brand-400 rounded-full animate-pulse"></div>
-                🤖 Recommandation IA
+              🤖 Recommandation IA
               </h3>
               
               {/* Afficher d'abord les prédictions sauvegardées par l'admin */}
+              {(() => {
+                // Debug pour voir les valeurs AI
+                console.log('🔍 Modal Debug AI values for match:', match.home_team, 'vs', match.away_team, {
+                  ai_prediction: match.ai_prediction,
+                  ai_confidence: match.ai_confidence
+                });
+                return null;
+              })()}
+              
               {match.ai_prediction && (
                 <div className="p-4 rounded-lg bg-blue-50 border border-blue-200 dark:bg-blue-950 dark:border-blue-800 mb-4">
                   <div className="flex items-center justify-between mb-2">

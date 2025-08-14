@@ -96,6 +96,10 @@ export function useDatabaseMatches(specificDate?: string) {
           odds_over_2_5: match.odds_over_2_5 ? Number(match.odds_over_2_5) : undefined,
           odds_under_2_5: match.odds_under_2_5 ? Number(match.odds_under_2_5) : undefined,
           
+          // AI predictions
+          ai_prediction: match.ai_prediction,
+          ai_confidence: match.ai_confidence ? Number(match.ai_confidence) : 0,
+          
           over_under_markets: []
         }));
         
