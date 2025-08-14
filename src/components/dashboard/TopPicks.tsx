@@ -95,8 +95,8 @@ export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
     });
 
     // Sort by score (best opportunities) and take top 3
+    // Always show the 3 best matches of the day, regardless of edge
     return allBets
-      .filter(bet => bet.edge > 3) // Only positive edge bets
       .sort((a, b) => b.score - a.score)
       .slice(0, 3);
   };
@@ -108,9 +108,9 @@ export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
       <Card className="p-6 bg-gradient-to-br from-surface-soft to-surface border border-brand/20">
         <div className="text-center">
           <Target className="h-12 w-12 text-brand/50 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-text mb-2">Aucune opportunité premium détectée</h3>
+          <h3 className="text-lg font-semibold text-text mb-2">Aucun match analysé</h3>
           <p className="text-text-weak text-sm">
-            Nos algorithmes n'ont trouvé aucune distorsion de marché significative pour le moment.
+            Aucun match ne répond aux critères minimum d'analyse (cotes ≥1.3, probabilités ≥45%).
           </p>
         </div>
       </Card>
@@ -177,7 +177,9 @@ export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
 
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-text-weak">Edge mathématique:</span>
-                  <span className="font-medium text-green-400">+{bet.edge.toFixed(1)}%</span>
+                  <span className={`font-medium ${bet.edge > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {bet.edge > 0 ? '+' : ''}{bet.edge.toFixed(1)}%
+                  </span>
                 </div>
 
                 <div className="flex items-center justify-between text-xs">
