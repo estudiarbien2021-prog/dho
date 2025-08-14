@@ -177,26 +177,71 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
       const league = match.league.toLowerCase();
       const country = match.country?.toLowerCase() || '';
       
-      if (league.includes('liga mx') || league.includes('mexico') || country.includes('mexico')) {
-        return 'du football mexicain et centre-américain';
-      } else if (league.includes('copa libertadores') || league.includes('copa sudamericana') || 
-                 league.includes('categoria primera') || league.includes('division profesional')) {
-        return 'du football sud-américain';
-      } else if (league.includes('canadian') || country.includes('canada')) {
-        return 'du football nord-américain';
-      } else if (league.includes('premier league') || league.includes('championship') || 
-                 league.includes('la liga') || league.includes('serie a') || 
-                 league.includes('bundesliga') || league.includes('ligue 1')) {
-        return 'du football européen';
-      } else if (league.includes('mls') || country.includes('usa')) {
-        return 'du football américain';
-      } else if (league.includes('brasileirao') || league.includes('brazil') || country.includes('brazil')) {
-        return 'du football brésilien';
-      } else if (league.includes('argentina') || country.includes('argentina')) {
-        return 'du football argentin';
-      } else {
-        return 'de cette compétition';
+      // African competitions
+      if (league.includes('african') || league.includes('africa') || league.includes('chan') || 
+          league.includes('caf') || league.includes('champions league') && (league.includes('africa') || country === 'international') ||
+          country.includes('morocco') || country.includes('algeria') || country.includes('tunisia') || 
+          country.includes('egypt') || country.includes('nigeria') || country.includes('ghana') || 
+          country.includes('senegal') || country.includes('cameroon') || country.includes('ivory') ||
+          country.includes('south africa') || country.includes('zambia') || country.includes('mali') ||
+          country.includes('burkina') || country.includes('kenya') || country.includes('angola')) {
+        return 'du football africain';
       }
+      
+      // Asian competitions
+      if (league.includes('asian') || league.includes('asia') || league.includes('afc') ||
+          country.includes('japan') || country.includes('korea') || country.includes('china') ||
+          country.includes('saudi') || country.includes('qatar') || country.includes('uae') ||
+          country.includes('iran') || country.includes('australia') || country.includes('thailand') ||
+          country.includes('vietnam') || country.includes('indonesia') || country.includes('malaysia')) {
+        return 'du football asiatique';
+      }
+      
+      // North American / CONCACAF
+      if (league.includes('concacaf') || league.includes('gold cup') || league.includes('nations league') ||
+          league.includes('liga mx') || league.includes('mexico') || country.includes('mexico') ||
+          league.includes('mls') || country.includes('usa') || league.includes('canadian') || 
+          country.includes('canada') || country.includes('costa rica') || country.includes('guatemala') ||
+          country.includes('honduras') || country.includes('panama') || country.includes('jamaica')) {
+        return 'du football nord-américain et centre-américain';
+      }
+      
+      // South American competitions
+      if (league.includes('copa libertadores') || league.includes('copa sudamericana') || 
+          league.includes('categoria primera') || league.includes('division profesional') ||
+          league.includes('brasileirao') || league.includes('brazil') || country.includes('brazil') ||
+          league.includes('argentina') || country.includes('argentina') || country.includes('chile') ||
+          country.includes('colombia') || country.includes('peru') || country.includes('uruguay') ||
+          country.includes('ecuador') || country.includes('venezuela') || country.includes('bolivia') ||
+          country.includes('paraguay')) {
+        return 'du football sud-américain';
+      }
+      
+      // European competitions - be more specific
+      if (league.includes('premier league') || league.includes('championship') || 
+          league.includes('la liga') || league.includes('serie a') || 
+          league.includes('bundesliga') || league.includes('ligue 1') ||
+          league.includes('primeira liga') || league.includes('eredivisie') ||
+          league.includes('champions league') || league.includes('europa league') ||
+          league.includes('conference league') || league.includes('euro') ||
+          country.includes('england') || country.includes('spain') || country.includes('italy') ||
+          country.includes('germany') || country.includes('france') || country.includes('portugal') ||
+          country.includes('netherlands') || country.includes('belgium') || country.includes('poland') ||
+          country.includes('czech') || country.includes('austria') || country.includes('switzerland') ||
+          country.includes('croatia') || country.includes('serbia') || country.includes('greece') ||
+          country.includes('turkey') || country.includes('ukraine') || country.includes('russia') ||
+          country.includes('sweden') || country.includes('norway') || country.includes('denmark')) {
+        return 'du football européen';
+      }
+      
+      // International / World competitions
+      if (league.includes('world') || league.includes('mondial') || league.includes('fifa') ||
+          league.includes('international') || country === 'international') {
+        return 'des compétitions internationales';
+      }
+      
+      // Generic fallback - avoid defaulting to European
+      return 'de cette compétition spécifique';
     };
 
     const geographicContext = getGeographicContext();
