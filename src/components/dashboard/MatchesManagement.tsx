@@ -124,6 +124,9 @@ export function MatchesManagement() {
   const updateMatch = async (matchData: Partial<Match>) => {
     if (!editingMatch) return;
 
+    console.log('🔄 Début de la sauvegarde du match:', editingMatch.id);
+    console.log('📝 Données à sauvegarder:', matchData);
+
     try {
       const { error } = await supabase
         .from('matches')
@@ -132,16 +135,23 @@ export function MatchesManagement() {
 
       if (error) throw error;
 
+      console.log('✅ Match sauvegardé avec succès');
+
       toast({
         title: "Succès",
         description: "Match mis à jour avec succès",
       });
 
-      setIsEditDialogOpen(false);
-      setEditingMatch(null);
+      // Attendre un peu avant de fermer le dialogue pour que l'utilisateur voie le toast
+      setTimeout(() => {
+        setIsEditDialogOpen(false);
+        setEditingMatch(null);
+      }, 1000);
+      
       await loadMatches();
+      console.log('🔄 Liste des matchs rechargée');
     } catch (error) {
-      console.error('Error updating match:', error);
+      console.error('❌ Erreur lors de la sauvegarde du match:', error);
       toast({
         title: "Erreur",
         description: "Impossible de mettre à jour le match",
@@ -435,9 +445,14 @@ function EditMatchForm({ match, onSave, onCancel }: EditMatchFormProps) {
     ai_confidence: match.ai_confidence || 0,
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    console.log('📤 Soumission du formulaire avec:', formData);
+    setIsSaving(true);
+    await onSave(formData);
+    setIsSaving(false);
   };
 
   return (
@@ -635,11 +650,18 @@ function EditMatchForm({ match, onSave, onCancel }: EditMatchFormProps) {
       </div>
 
       <div className="flex justify-end gap-2 pt-4">
-        <Button type="button" variant="outline" onClick={onCancel}>
+        <Button type="button" variant="outline" onClick={onCancel} disabled={isSaving}>
           Annuler
         </Button>
-        <Button type="submit">
-          Enregistrer
+        <Button type="submit" disabled={isSaving}>
+          {isSaving ? (
+            <>
+              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              Sauvegarde...
+            </>
+          ) : (
+            'Enregistrer'
+          )}
         </Button>
       </div>
     </form>
