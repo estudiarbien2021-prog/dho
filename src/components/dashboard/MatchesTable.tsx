@@ -222,6 +222,16 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
     return timeFormatter.format(date);
   };
 
+  // Check if match starts within 60 minutes
+  const isMatchStartingSoon = (kickoffTime: Date) => {
+    const now = new Date();
+    const timeDiff = kickoffTime.getTime() - now.getTime();
+    const minutesUntil = timeDiff / (1000 * 60);
+    
+    // Return true if match starts within next 60 minutes and hasn't started yet
+    return minutesUntil > 0 && minutesUntil <= 60;
+  };
+
   // Group matches by competition if needed
   const groupedMatches = useMemo(() => {
     if (groupBy !== 'competition') {
@@ -354,7 +364,11 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
                     return (
                       <TableRow 
                         key={match.id} 
-                        className="cursor-pointer hover:bg-muted/50 transition-colors"
+                        className={`cursor-pointer hover:bg-muted/50 transition-colors ${
+                          isMatchStartingSoon(match.kickoff_utc) 
+                            ? 'animate-pulse bg-slate-800 dark:bg-slate-900 text-white hover:bg-slate-700' 
+                            : ''
+                        }`}
                         onClick={() => onMatchClick(match)}
                       >
                         <TableCell>
@@ -490,7 +504,15 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
               const aiRec = generateAIRecommendation(match, marketFilters);
               
               return (
-                <Card key={match.id} className="p-4 cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => onMatchClick(match)}>
+                <Card 
+                  key={match.id} 
+                  className={`p-4 cursor-pointer hover:bg-muted/50 transition-colors ${
+                    isMatchStartingSoon(match.kickoff_utc) 
+                      ? 'animate-pulse bg-slate-800 dark:bg-slate-900 text-white border-slate-600' 
+                      : ''
+                  }`} 
+                  onClick={() => onMatchClick(match)}
+                >
                   <div className="space-y-3">
                     {/* League & Time */}
                     <div className="flex items-center justify-between">
