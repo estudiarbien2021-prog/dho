@@ -10,7 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Upload, RefreshCw, Calendar, CheckCircle, XCircle, Clock, Trash2, Users, Database, Shield, Eye, UserX, Crown } from 'lucide-react';
+import { Upload, RefreshCw, Calendar, CheckCircle, XCircle, Clock, Trash2, Users, Database, Shield, Eye, UserX, Crown, Trophy } from 'lucide-react';
+import { MatchesManagement } from '@/components/dashboard/MatchesManagement';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -442,10 +443,14 @@ export function Admin() {
 
       {/* Admin Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="users" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
             Utilisateurs
+          </TabsTrigger>
+          <TabsTrigger value="matches" className="flex items-center gap-2">
+            <Trophy className="h-4 w-4" />
+            Matchs
           </TabsTrigger>
           <TabsTrigger value="data" className="flex items-center gap-2">
             <Database className="h-4 w-4" />
@@ -593,7 +598,12 @@ export function Admin() {
           </Card>
         </TabsContent>
 
-        {/* Data Tab */}
+        {/* Matches Management Tab */}
+        <TabsContent value="matches" className="space-y-6">
+          <MatchesManagement />
+        </TabsContent>
+
+        {/* Data Management Tab */}
         <TabsContent value="data" className="space-y-6">
           {/* CSV Upload Form */}
           <Card className="p-6">
