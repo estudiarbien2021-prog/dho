@@ -23,8 +23,18 @@ function generateAIRecommendation(match: ProcessedMatch): AIRecommendation | nul
 
   // Marché BTTS - évaluer les deux options et garder la meilleure
   const bttsSuggestions = [];
+  
+  console.log('BTTS Debug for table:', {
+    odds_btts_yes: match.odds_btts_yes,
+    odds_btts_no: match.odds_btts_no,
+    p_btts_yes_fair: match.p_btts_yes_fair,
+    p_btts_no_fair: match.p_btts_no_fair,
+    vig_btts: match.vig_btts
+  });
+  
   if (match.odds_btts_yes && match.odds_btts_yes >= 1.3 && match.p_btts_yes_fair > 0.45) {
     const score = match.p_btts_yes_fair * match.odds_btts_yes * (1 + match.vig_btts);
+    console.log('BTTS Yes score table:', score);
     bttsSuggestions.push({
       betType: 'BTTS',
       prediction: 'Oui',
@@ -38,6 +48,7 @@ function generateAIRecommendation(match: ProcessedMatch): AIRecommendation | nul
   
   if (match.odds_btts_no && match.odds_btts_no >= 1.3 && match.p_btts_no_fair > 0.45) {
     const score = match.p_btts_no_fair * match.odds_btts_no * (1 + match.vig_btts);
+    console.log('BTTS No score table:', score);
     bttsSuggestions.push({
       betType: 'BTTS',
       prediction: 'Non',
@@ -51,9 +62,11 @@ function generateAIRecommendation(match: ProcessedMatch): AIRecommendation | nul
 
   // Garder seulement la meilleure option BTTS
   if (bttsSuggestions.length > 0) {
-    const bestBtts = bttsSuggestions.reduce((prev, current) => 
-      current.score > prev.score ? current : prev
-    );
+    const bestBtts = bttsSuggestions.reduce((prev, current) => {
+      console.log('Comparing BTTS table:', prev.prediction, prev.score, 'vs', current.prediction, current.score);
+      return current.score > prev.score ? current : prev;
+    });
+    console.log('Best BTTS option table:', bestBtts.prediction, bestBtts.score);
     markets.push(bestBtts);
   }
 
@@ -100,6 +113,8 @@ function generateAIRecommendation(match: ProcessedMatch): AIRecommendation | nul
     current.score > prev.score ? current : prev
   );
 
+  console.log('Final best market table:', bestMarket);
+  
   return {
     betType: bestMarket.betType,
     prediction: bestMarket.prediction,

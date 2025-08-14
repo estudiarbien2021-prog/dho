@@ -60,8 +60,18 @@ export function MatchDetailModal({ match, isOpen, onClose }: MatchDetailModalPro
 
     // Marché BTTS - évaluer les deux options et garder la meilleure
     const bttsSuggestions = [];
+    
+    console.log('BTTS Debug for modal:', {
+      odds_btts_yes: match.odds_btts_yes,
+      odds_btts_no: match.odds_btts_no,
+      p_btts_yes_fair: match.p_btts_yes_fair,
+      p_btts_no_fair: match.p_btts_no_fair,
+      vig_btts: match.vig_btts
+    });
+    
     if (match.odds_btts_yes && match.odds_btts_yes >= 1.3 && match.p_btts_yes_fair > 0.45) {
       const score = match.p_btts_yes_fair * match.odds_btts_yes * (1 + match.vig_btts);
+      console.log('BTTS Yes score:', score);
       bttsSuggestions.push({
         type: 'BTTS',
         prediction: 'Oui',
@@ -75,6 +85,7 @@ export function MatchDetailModal({ match, isOpen, onClose }: MatchDetailModalPro
     
     if (match.odds_btts_no && match.odds_btts_no >= 1.3 && match.p_btts_no_fair > 0.45) {
       const score = match.p_btts_no_fair * match.odds_btts_no * (1 + match.vig_btts);
+      console.log('BTTS No score:', score);
       bttsSuggestions.push({
         type: 'BTTS',
         prediction: 'Non',
@@ -88,9 +99,11 @@ export function MatchDetailModal({ match, isOpen, onClose }: MatchDetailModalPro
 
     // Garder seulement la meilleure option BTTS
     if (bttsSuggestions.length > 0) {
-      const bestBtts = bttsSuggestions.reduce((prev, current) => 
-        current.score > prev.score ? current : prev
-      );
+      const bestBtts = bttsSuggestions.reduce((prev, current) => {
+        console.log('Comparing BTTS:', prev.prediction, prev.score, 'vs', current.prediction, current.score);
+        return current.score > prev.score ? current : prev;
+      });
+      console.log('Best BTTS option:', bestBtts.prediction, bestBtts.score);
       markets.push(bestBtts);
     }
 
@@ -143,9 +156,12 @@ export function MatchDetailModal({ match, isOpen, onClose }: MatchDetailModalPro
       };
     }
     
-    return markets.reduce((prev, current) => 
+    const bestMarket = markets.reduce((prev, current) => 
       current.score > prev.score ? current : prev
     );
+    
+    console.log('Final best market:', bestMarket);
+    return bestMarket;
   };
 
   const bestRecommendation = getBestRecommendation();
