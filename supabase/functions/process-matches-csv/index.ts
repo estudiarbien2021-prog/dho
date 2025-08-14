@@ -397,39 +397,45 @@ serve(async (req) => {
         
         if (dateGmt) {
           try {
-            // Convert format "Aug 14 2025 - 11:00pm" to a proper date
+            // Custom parser for format "Aug 14 2025 - 11:00pm"
             const dateStr = dateGmt.toString().trim();
             console.log(`📅 Parsing date: "${dateStr}"`);
             
-            // Split the date and time parts
-            const parts = dateStr.split(' - ');
-            if (parts.length === 2) {
-              const datePart = parts[0]; // "Aug 14 2025"
-              const timePart = parts[1]; // "11:00pm"
+            // Parse custom format: "Aug 14 2025 - 11:00pm"
+            const parseCustomDate = (dateString: string): Date | null => {
+              const match = dateString.match(/^(\w{3})\s+(\d{1,2})\s+(\d{4})\s+-\s+(\d{1,2}):(\d{2})(am|pm)$/);
+              if (!match) return null;
               
-              // Convert to ISO format
-              const isoString = `${datePart} ${timePart}`;
-              const parsedDate = new Date(isoString);
+              const [, monthName, day, year, hour, minute, ampm] = match;
               
-              if (!isNaN(parsedDate.getTime())) {
-                kickoffUtc = parsedDate;
-                kickoffLocal = parsedDate;
-                console.log(`✅ Date parsed successfully: ${kickoffUtc.toISOString()}`);
-              } else {
-                // Try alternative parsing method
-                const cleanedDate = dateStr.replace(' - ', ' ');
-                const altParsedDate = new Date(cleanedDate);
-                
-                if (!isNaN(altParsedDate.getTime())) {
-                  kickoffUtc = altParsedDate;
-                  kickoffLocal = altParsedDate;
-                  console.log(`✅ Date parsed with alternative method: ${kickoffUtc.toISOString()}`);
-                } else {
-                  console.log(`⚠️ Failed to parse date: "${dateStr}", using current time`);
-                }
+              // Convert month name to number
+              const months: { [key: string]: number } = {
+                'jan': 0, 'feb': 1, 'mar': 2, 'apr': 3, 'may': 4, 'jun': 5,
+                'jul': 6, 'aug': 7, 'sep': 8, 'oct': 9, 'nov': 10, 'dec': 11
+              };
+              
+              const monthIndex = months[monthName.toLowerCase()];
+              if (monthIndex === undefined) return null;
+              
+              // Convert 12-hour to 24-hour format
+              let hour24 = parseInt(hour);
+              if (ampm.toLowerCase() === 'pm' && hour24 !== 12) {
+                hour24 += 12;
+              } else if (ampm.toLowerCase() === 'am' && hour24 === 12) {
+                hour24 = 0;
               }
+              
+              return new Date(parseInt(year), monthIndex, parseInt(day), hour24, parseInt(minute));
+            };
+            
+            const parsedDate = parseCustomDate(dateStr);
+            
+            if (parsedDate && !isNaN(parsedDate.getTime())) {
+              kickoffUtc = parsedDate;
+              kickoffLocal = parsedDate;
+              console.log(`✅ Date parsed successfully: ${kickoffUtc.toISOString()}, local: ${kickoffLocal.toLocaleString()}`);
             } else {
-              console.log(`⚠️ Invalid date format: "${dateStr}", using current time`);
+              console.log(`⚠️ Failed to parse date: "${dateStr}", using current time`);
             }
           } catch (error) {
             console.log(`❌ Error parsing date: ${error.message}`);
