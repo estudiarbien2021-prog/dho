@@ -202,11 +202,24 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
   };
 
   const formatTime = (date: Date) => {
+    // Convert UTC date to local time zone for display
     return format(date, 'HH:mm', { locale: fr });
   };
 
   const formatDate = (date: Date) => {
+    // Convert UTC date to local time zone for display
     return format(date, 'dd/MM', { locale: fr });
+  };
+
+  const formatTimeWithTimeZone = (date: Date) => {
+    // Show both UTC time and local time with timezone
+    const localTime = format(date, 'HH:mm', { locale: fr });
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const timeZoneAbbr = new Intl.DateTimeFormat('fr', { 
+      timeZoneName: 'short' 
+    }).formatToParts(date).find(part => part.type === 'timeZoneName')?.value || '';
+    
+    return `${localTime} ${timeZoneAbbr}`;
   };
 
   // Group matches by competition if needed
@@ -364,7 +377,7 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
                         
                         <TableCell>
                           <div className="text-center">
-                            <p className="font-medium">{formatTime(match.kickoff_utc)}</p>
+                            <p className="font-medium">{formatTimeWithTimeZone(match.kickoff_utc)}</p>
                             <p className="text-xs text-muted-foreground">{formatDate(match.kickoff_utc)}</p>
                           </div>
                         </TableCell>
