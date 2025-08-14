@@ -179,7 +179,49 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
       return array[index];
     };
 
-    if (recommendation.type === 'Aucune') {
+    // Handle admin prediction format (convert to consistent format)
+    let normalizedRecommendation = { ...recommendation };
+    if (match.ai_prediction) {
+      if (match.ai_prediction.includes('BTTS Oui')) {
+        normalizedRecommendation = {
+          type: 'BTTS',
+          prediction: 'Oui',
+          odds: match.odds_btts_yes || 0,
+          probability: match.p_btts_yes_fair || 0,
+          vigorish: match.vig_btts || 0,
+          confidence: match.ai_confidence && match.ai_confidence > 0.8 ? 'high' : 'medium'
+        };
+      } else if (match.ai_prediction.includes('BTTS Non')) {
+        normalizedRecommendation = {
+          type: 'BTTS',
+          prediction: 'Non',
+          odds: match.odds_btts_no || 0,
+          probability: match.p_btts_no_fair || 0,
+          vigorish: match.vig_btts || 0,
+          confidence: match.ai_confidence && match.ai_confidence > 0.8 ? 'high' : 'medium'
+        };
+      } else if (match.ai_prediction === '+2,5 buts') {
+        normalizedRecommendation = {
+          type: 'O/U 2.5',
+          prediction: '+2,5 buts',
+          odds: match.odds_over_2_5 || 0,
+          probability: match.p_over_2_5_fair || 0,
+          vigorish: match.vig_ou_2_5 || 0,
+          confidence: match.ai_confidence && match.ai_confidence > 0.8 ? 'high' : 'medium'
+        };
+      } else if (match.ai_prediction === '-2,5 buts') {
+        normalizedRecommendation = {
+          type: 'O/U 2.5',
+          prediction: '-2,5 buts',
+          odds: match.odds_under_2_5 || 0,
+          probability: match.p_under_2_5_fair || 0,
+          vigorish: match.vig_ou_2_5 || 0,
+          confidence: match.ai_confidence && match.ai_confidence > 0.8 ? 'high' : 'medium'
+        };
+      }
+    }
+
+    if (normalizedRecommendation.type === 'Aucune') {
       const noOpportunityTexts = [
         "🔍 **Scan Complet** : Après analyse de 47 métriques avancées, notre IA n'a trouvé aucune faille exploitable. Les bookmakers ont parfaitement calibré leurs prix cette fois.",
         "🎯 **Radar Silencieux** : Notre système de détection d'opportunités reste muet sur ce match. Les cotes reflètent parfaitement les probabilités réelles calculées.",
@@ -188,14 +230,14 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
       return getSeededChoice(noOpportunityTexts, 1);
     }
 
-    const probPercent = (recommendation.probability * 100).toFixed(1);
-    const vigPercent = (recommendation.vigorish * 100).toFixed(1);
-    const edge = recommendation.odds > 0 && recommendation.probability > 0 
-      ? Math.abs(((recommendation.odds * recommendation.probability) - 1) * 100).toFixed(1) 
+    const probPercent = (normalizedRecommendation.probability * 100).toFixed(1);
+    const vigPercent = (normalizedRecommendation.vigorish * 100).toFixed(1);
+    const edge = normalizedRecommendation.odds > 0 && normalizedRecommendation.probability > 0 
+      ? Math.abs(((normalizedRecommendation.odds * normalizedRecommendation.probability) - 1) * 100).toFixed(1) 
       : '0.0';
     
     // Handle confidence score using shared function to ensure consistency
-    const confidence = generateConfidenceScore(match.id, recommendation);
+    const confidence = generateConfidenceScore(match.id, normalizedRecommendation);
 
     // Determine geographic context based on league
     const getGeographicContext = () => {
@@ -390,8 +432,8 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     
     explanation += `${getSeededChoice(dataIntros, 4)} avec contextes identiques (enjeux, déplacements, fatigue, météo), `;
     
-    if (recommendation.type === 'BTTS') {
-      if (recommendation.prediction === 'Oui') {
+    if (normalizedRecommendation.type === 'BTTS') {
+      if (normalizedRecommendation.prediction === 'Oui') {
         const bttsYesTexts = [
           `révèle **${probPercent}%** de chances que les deux formations trouvent le chemin des filets. L'analyse des corridors offensifs, des faiblesses défensives latérales et des duels individuels converge vers un festival de buts.`,
           `calcule **${probPercent}%** de probabilité d'un double marquage. Les metrics d'Expected Goals, la porosité défensive constatée et l'agressivité offensive récente dessinent un scénario spectaculaire.`,
@@ -408,8 +450,8 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
         ];
         explanation += getSeededChoice(bttsNoTexts, 6);
       }
-    } else if (recommendation.type === 'O/U 2.5') {
-      if (recommendation.prediction === '+2,5 buts') {
+    } else if (normalizedRecommendation.type === 'O/U 2.5') {
+      if (normalizedRecommendation.prediction === '+2,5 buts') {
         const overTexts = [
           `projette **${probPercent}%** de chances d'explosivité offensive avec 3+ réalisations. La conjugaison des Expected Goals, du tempo de jeu élevé et des espaces laissés en transition dessine un match débridé.`,
           `anticipe **${probPercent}%** de probabilité d'un festival offensif dépassant 2,5 buts. L'analyse des phases de pressing haut, des contres rapides et des situations de face-à-face suggère du spectacle.`,
@@ -430,10 +472,10 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
 
     // Professional mathematical edge explanations
     const edgeTexts = [
-      `\n\n💰 **Avantage Mathématique** : La cote **${recommendation.odds.toFixed(2)}** offre une "positive expected value" de **+${edge}%** selon nos calculs quantitatifs.`,
-      `\n\n🎯 **Edge Statistique** : Avec **${recommendation.odds.toFixed(2)}**, vous bénéficiez d'un avantage théorique de **+${edge}%** - une distorsion de marché à exploiter.`,
-      `\n\n⚡ **Profit Attendu** : La cote **${recommendation.odds.toFixed(2)}** génère une espérance de gain positive de **+${edge}%** sur le long terme.`,
-      `\n\n📈 **Valeur Calculée** : À **${recommendation.odds.toFixed(2)}**, cette cote présente un surplus de valeur quantifié à **+${edge}%** par nos algorithmes.`
+      `\n\n💰 **Avantage Mathématique** : La cote **${normalizedRecommendation.odds.toFixed(2)}** offre une "positive expected value" de **+${edge}%** selon nos calculs quantitatifs.`,
+      `\n\n🎯 **Edge Statistique** : Avec **${normalizedRecommendation.odds.toFixed(2)}**, vous bénéficiez d'un avantage théorique de **+${edge}%** - une distorsion de marché à exploiter.`,
+      `\n\n⚡ **Profit Attendu** : La cote **${normalizedRecommendation.odds.toFixed(2)}** génère une espérance de gain positive de **+${edge}%** sur le long terme.`,
+      `\n\n📈 **Valeur Calculée** : À **${normalizedRecommendation.odds.toFixed(2)}**, cette cote présente un surplus de valeur quantifié à **+${edge}%** par nos algorithmes.`
     ];
     
     explanation += getSeededChoice(edgeTexts, 9);
@@ -808,20 +850,9 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                     {/* AI Explanation */}
                     <div className="mt-4 p-4 bg-gradient-to-r from-brand/5 to-brand-400/5 rounded-lg border border-brand/20">
                       <div className="text-sm text-text leading-relaxed">
-                        {useAdminPrediction ? (
-                          <div>
-                            <strong>Analyse IA personnalisée:</strong> Notre intelligence artificielle recommande de miser sur <strong>{currentRecommendation.prediction}</strong> avec une confiance de <strong>{((match.ai_confidence || 0) * 100).toFixed(0)}%</strong>. 
-                            {match.ai_confidence && match.ai_confidence > 0.8 ? 
-                              " Cette prédiction présente un niveau de confiance très élevé, basé sur une analyse approfondie des données historiques et des statistiques actuelles." :
-                              match.ai_confidence && match.ai_confidence > 0.6 ?
-                              " Cette prédiction présente un bon niveau de confiance, s'appuyant sur des indicateurs statistiques favorables." :
-                              " Cette prédiction est accompagnée d'une confiance modérée, à considérer avec prudence dans votre stratégie de mise."}
-                          </div>
-                        ) : (
-                          <div dangerouslySetInnerHTML={{ 
-                            __html: generateRecommendationExplanation(bestRecommendation).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
-                          }} />
-                        )}
+                        <div dangerouslySetInnerHTML={{ 
+                          __html: generateRecommendationExplanation(currentRecommendation).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
+                        }} />
                       </div>
                     </div>
                   </>
