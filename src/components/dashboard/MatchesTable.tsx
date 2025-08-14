@@ -430,6 +430,32 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
                         
                         <TableCell>
                           {(() => {
+                            // Afficher d'abord les recommandations sauvegardées par l'admin
+                            if (match.ai_prediction) {
+                              const predictions = {
+                                '1': match.home_team,
+                                'X': 'Nul', 
+                                '2': match.away_team
+                              };
+                              const predictionText = predictions[match.ai_prediction as keyof typeof predictions] || match.ai_prediction;
+                              const confidenceLevel = match.ai_confidence && match.ai_confidence > 0.8 ? 'high' : 
+                                match.ai_confidence && match.ai_confidence > 0.6 ? 'medium' : 'low';
+                              
+                              return (
+                                <div className="flex flex-col gap-1">
+                                  <Badge 
+                                    variant={confidenceLevel === 'high' ? 'default' : confidenceLevel === 'medium' ? 'secondary' : 'outline'}
+                                    className="text-xs"
+                                  >
+                                    🎯 {predictionText}
+                                  </Badge>
+                                  <div className="text-xs text-muted-foreground">
+                                    Confiance: {((match.ai_confidence || 0) * 100).toFixed(0)}%
+                                  </div>
+                                </div>
+                              );
+                            }
+                            
                             const aiRec = generateAIRecommendation(match, marketFilters);
                             
                             if (!aiRec) {

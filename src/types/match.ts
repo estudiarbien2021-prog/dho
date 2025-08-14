@@ -61,6 +61,10 @@ export interface ProcessedMatch {
     p_under_fair: number;
     vig: number;
   }>;
+  
+  // AI predictions from admin
+  ai_prediction?: string | null;
+  ai_confidence?: number;
 }
 
 export interface UploadResult {

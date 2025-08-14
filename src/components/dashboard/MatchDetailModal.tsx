@@ -738,9 +738,36 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                 <div className="w-2 h-8 bg-gradient-to-b from-brand to-brand-400 rounded-full animate-pulse"></div>
                 🤖 Recommandation IA
               </h3>
+              
+              {/* Afficher d'abord les prédictions sauvegardées par l'admin */}
+              {match.ai_prediction && (
+                <div className="p-4 rounded-lg bg-blue-50 border border-blue-200 dark:bg-blue-950 dark:border-blue-800 mb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-semibold text-sm">Prédiction IA (Admin)</span>
+                    <Badge variant="default">
+                      {match.ai_confidence && match.ai_confidence > 0.8 ? 'Très forte' : 
+                       match.ai_confidence && match.ai_confidence > 0.6 ? 'Forte' : 
+                       match.ai_confidence && match.ai_confidence > 0.4 ? 'Moyenne' : 'Faible'}
+                    </Badge>
+                  </div>
+                  
+                  <p className="font-bold text-lg mb-1">
+                    {match.ai_prediction === '1' ? match.home_team : 
+                     match.ai_prediction === 'X' ? 'Nul' : 
+                     match.ai_prediction === '2' ? match.away_team : 
+                     match.ai_prediction}
+                  </p>
+                  
+                  <div className="flex justify-between text-sm text-muted-foreground">
+                    <span>Confiance IA: {((match.ai_confidence || 0) * 100).toFixed(0)}%</span>
+                    <span>Sauvegardé par admin</span>
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div className="text-center md:text-left">
-                  <p className="text-sm text-text-weak mb-2">Type de pari</p>
+                  <p className="text-sm text-text-weak mb-2">Type de pari (Auto)</p>
                   <Badge className="bg-gradient-to-r from-brand/40 to-brand-400/40 border-brand/60 text-brand-fg font-bold px-3 py-1">
                     {bestRecommendation.type}
                   </Badge>
