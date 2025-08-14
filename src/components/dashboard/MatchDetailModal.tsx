@@ -54,52 +54,80 @@ export function MatchDetailModal({ match, isOpen, onClose }: MatchDetailModalPro
   const getBttsWinner = () => match.p_btts_yes_fair > match.p_btts_no_fair ? 'Oui' : 'Non';
   const getOver25Winner = () => match.p_over_2_5_fair > match.p_under_2_5_fair ? '+2,5 buts' : '-2,5 buts';
 
-  // Calculate best recommendation
+  // Calculate best recommendation using same formula as table
   const getBestRecommendation = () => {
-    const recommendations = [];
-    
-    // 1X2 recommendation
-    const max1x2Prob = Math.max(match.p_home_fair, match.p_draw_fair, match.p_away_fair);
-    const odds1x2 = match.p_home_fair === max1x2Prob ? match.odds_home : 
-                   match.p_draw_fair === max1x2Prob ? match.odds_draw : match.odds_away;
-    const expectedValue1x2 = (max1x2Prob * odds1x2) - 1;
-    recommendations.push({
-      type: '1X2',
-      prediction: get1x2Winner(),
-      probability: max1x2Prob,
-      odds: odds1x2,
-      expectedValue: expectedValue1x2
-    });
+    const markets = [];
 
-    // BTTS recommendation
-    if (match.p_btts_yes_fair > 0) {
-      const maxBttsProb = Math.max(match.p_btts_yes_fair, match.p_btts_no_fair);
-      const oddsBtts = match.p_btts_yes_fair === maxBttsProb ? match.odds_btts_yes : match.odds_btts_no;
-      const expectedValueBtts = (maxBttsProb * oddsBtts) - 1;
-      recommendations.push({
+    // Marché BTTS
+    if (match.odds_btts_yes && match.odds_btts_yes >= 1.3 && match.p_btts_yes_fair > 0.45) {
+      const score = match.p_btts_yes_fair * match.odds_btts_yes * (1 + match.vig_btts);
+      markets.push({
         type: 'BTTS',
-        prediction: getBttsWinner(),
-        probability: maxBttsProb,
-        odds: oddsBtts,
-        expectedValue: expectedValueBtts
+        prediction: 'Oui',
+        odds: match.odds_btts_yes,
+        probability: match.p_btts_yes_fair,
+        vigorish: match.vig_btts,
+        score,
+        confidence: match.p_btts_yes_fair > 0.65 && match.vig_btts > 0.08 ? 'high' : 'medium'
+      });
+    }
+    
+    if (match.odds_btts_no && match.odds_btts_no >= 1.3 && match.p_btts_no_fair > 0.45) {
+      const score = match.p_btts_no_fair * match.odds_btts_no * (1 + match.vig_btts);
+      markets.push({
+        type: 'BTTS',
+        prediction: 'Non',
+        odds: match.odds_btts_no,
+        probability: match.p_btts_no_fair,
+        vigorish: match.vig_btts,
+        score,
+        confidence: match.p_btts_no_fair > 0.65 && match.vig_btts > 0.08 ? 'high' : 'medium'
       });
     }
 
-    // Over/Under recommendation
-    if (match.p_over_2_5_fair > 0) {
-      const maxOverProb = Math.max(match.p_over_2_5_fair, match.p_under_2_5_fair);
-      const oddsOver = match.p_over_2_5_fair === maxOverProb ? match.odds_over_2_5 : match.odds_under_2_5;
-      const expectedValueOver = (maxOverProb * oddsOver) - 1;
-      recommendations.push({
+    // Marché Over/Under 2.5
+    if (match.odds_over_2_5 && match.odds_over_2_5 >= 1.3 && match.p_over_2_5_fair > 0.45) {
+      const score = match.p_over_2_5_fair * match.odds_over_2_5 * (1 + match.vig_ou_2_5);
+      markets.push({
         type: 'O/U 2.5',
-        prediction: getOver25Winner(),
-        probability: maxOverProb,
-        odds: oddsOver,
-        expectedValue: expectedValueOver
+        prediction: '+2,5 buts',
+        odds: match.odds_over_2_5,
+        probability: match.p_over_2_5_fair,
+        vigorish: match.vig_ou_2_5,
+        score,
+        confidence: match.p_over_2_5_fair > 0.65 && match.vig_ou_2_5 > 0.08 ? 'high' : 'medium'
+      });
+    }
+    
+    if (match.odds_under_2_5 && match.odds_under_2_5 >= 1.3 && match.p_under_2_5_fair > 0.45) {
+      const score = match.p_under_2_5_fair * match.odds_under_2_5 * (1 + match.vig_ou_2_5);
+      markets.push({
+        type: 'O/U 2.5',
+        prediction: '-2,5 buts',
+        odds: match.odds_under_2_5,
+        probability: match.p_under_2_5_fair,
+        vigorish: match.vig_ou_2_5,
+        score,
+        confidence: match.p_under_2_5_fair > 0.65 && match.vig_ou_2_5 > 0.08 ? 'high' : 'medium'
       });
     }
 
-    return recommendations.sort((a, b) => b.expectedValue - a.expectedValue)[0];
+    // Retourner le marché avec le meilleur score (priorisant vigorish élevé)
+    if (markets.length === 0) {
+      return {
+        type: 'Aucune',
+        prediction: 'Aucune opportunité détectée',
+        odds: 0,
+        probability: 0,
+        vigorish: 0,
+        score: 0,
+        confidence: 'low'
+      };
+    }
+    
+    return markets.reduce((prev, current) => 
+      current.score > prev.score ? current : prev
+    );
   };
 
   const bestRecommendation = getBestRecommendation();
