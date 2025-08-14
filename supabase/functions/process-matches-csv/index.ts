@@ -191,7 +191,14 @@ serve(async (req) => {
     // Log first row structure for debugging
     if (csvRows.length > 0) {
       console.log(`📋 Structure de la première ligne:`, JSON.stringify(csvRows[0], null, 2));
-      console.log(`🔑 Clés disponibles:`, Object.keys(csvRows[0]));
+      console.log(`🔑 Clés disponibles:`, JSON.stringify(Object.keys(csvRows[0])));
+      
+      // Test if this looks like HTML instead of CSV
+      const firstKey = Object.keys(csvRows[0])[0];
+      if (firstKey && firstKey.includes('html')) {
+        console.error(`❌ ERREUR: Le CSV semble être du HTML! Première clé: ${firstKey}`);
+        throw new Error('Le fichier téléchargé est du HTML, pas un CSV. Vérifiez l\'URL.');
+      }
     }
     
     // Update total matches count
@@ -207,23 +214,25 @@ serve(async (req) => {
     for (const row of csvRows) {
       try {
         // Try to find the right column names (flexible mapping)
-        console.log(`🔍 Traitement ligne ${csvRows.indexOf(row) + 1}:`, {
-          'Home Team': row['Home Team'],
-          'Away Team': row['Away Team'], 
-          'League': row['League'],
-          'Country': row['Country'],
-          'Odds_Home_Win': row['Odds_Home_Win'],
-          'Odds_Draw': row['Odds_Draw'],
-          'Odds_Away_Win': row['Odds_Away_Win']
-        });
+        const availableKeys = Object.keys(row);
+        console.log(`🔍 Traitement ligne ${csvRows.indexOf(row) + 1}, clés: ${availableKeys.slice(0, 5).join(', ')}...`);
         
-        const homeTeam = row['Home Team'] || row.home_team || row.home;
-        const awayTeam = row['Away Team'] || row.away_team || row.away;
-        const league = row.League || row.league || row.competition;
-        const country = row.Country || row.country || row.pays;
-        const oddsHome = row['Odds_Home_Win'] || row.odds_1x2_home || row.odds_home || row['1'];
-        const oddsDraw = row['Odds_Draw'] || row.odds_1x2_draw || row.odds_draw || row['X'];
-        const oddsAway = row['Odds_Away_Win'] || row.odds_1x2_away || row.odds_away || row['2'];
+        // More flexible column mapping
+        const homeTeam = row['Home Team'] || row['home_team'] || row['home'] || row['équipe_domicile'] || 
+                         row['Équipe Domicile'] || row['HomeTeam'] || row['Home'];
+        const awayTeam = row['Away Team'] || row['away_team'] || row['away'] || row['équipe_extérieur'] || 
+                        row['Équipe Extérieur'] || row['AwayTeam'] || row['Away'];
+        const league = row['League'] || row['league'] || row['competition'] || row['Competition'] || 
+                      row['Compétition'] || row['Championnat'] || row['championnat'];
+        const country = row['Country'] || row['country'] || row['pays'] || row['Pays'] || row['Nation'];
+        
+        // Try different possible odds column names
+        const oddsHome = row['Odds_Home_Win'] || row['odds_1x2_home'] || row['odds_home'] || row['1'] || 
+                        row['Home'] || row['Domicile'] || row['Home Win'] || row['HomeWin'];
+        const oddsDraw = row['Odds_Draw'] || row['odds_1x2_draw'] || row['odds_draw'] || row['X'] || 
+                        row['Draw'] || row['Nul'] || row['Match Nul'] || row['DrawOdds'];
+        const oddsAway = row['Odds_Away_Win'] || row['odds_1x2_away'] || row['odds_away'] || row['2'] || 
+                        row['Away'] || row['Extérieur'] || row['Away Win'] || row['AwayWin'];
 
         console.log(`🎯 Valeurs extraites:`, { homeTeam, awayTeam, league, country, oddsHome, oddsDraw, oddsAway });
 
