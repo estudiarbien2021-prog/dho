@@ -163,13 +163,13 @@ export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
               </div>
 
               {/* Match Info */}
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center justify-center gap-2 mb-3">
                 <FlagMini code={flagInfo.code} confed={flagInfo.confed} />
-                <span className="text-xs text-text-weak truncate">{bet.match.league}</span>
+                <span className="text-xs text-text-weak text-center truncate">{bet.match.league}</span>
               </div>
 
-              <div className="space-y-2 mb-4">
-                <div className="text-sm font-medium text-text truncate">
+              <div className="space-y-2 mb-4 text-center">
+                <div className="text-sm font-medium text-text">
                   {bet.match.home_team} vs {bet.match.away_team}
                 </div>
                 <div className="text-xs text-text-weak">
