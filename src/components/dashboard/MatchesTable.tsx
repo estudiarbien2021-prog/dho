@@ -17,7 +17,7 @@ interface AIRecommendation {
   confidence: 'high' | 'medium' | 'low';
 }
 
-function generateAIRecommendation(match: ProcessedMatch): AIRecommendation | null {
+function generateAIRecommendation(match: ProcessedMatch, marketFilters: string[] = []): AIRecommendation | null {
   // Debug spécifique pour ce match
   console.log('=== AI RECOMMENDATION DEBUG ===', {
     league: match.league,
@@ -30,13 +30,19 @@ function generateAIRecommendation(match: ProcessedMatch): AIRecommendation | nul
     vig_btts: match.vig_btts
   });
 
-  // Analyser uniquement les marchés BTTS et Over/Under
+  // Analyser uniquement les marchés BTTS et Over/Under selon les filtres
   const markets = [];
+
+  // Vérifier si les filtres de marchés permettent les marchés BTTS
+  const allowBttsYes = marketFilters.length === 0 || marketFilters.includes('btts_yes');
+  const allowBttsNo = marketFilters.length === 0 || marketFilters.includes('btts_no');
+  const allowOver25 = marketFilters.length === 0 || marketFilters.includes('over25');
+  const allowUnder25 = marketFilters.length === 0 || marketFilters.includes('under25');
 
   // Marché BTTS - évaluer les deux options et garder la meilleure (seulement si on a des données)
   const bttsSuggestions = [];
   
-  if (match.odds_btts_yes && match.odds_btts_yes >= 1.3 && match.p_btts_yes_fair && match.p_btts_yes_fair > 0.45) {
+  if (allowBttsYes && match.odds_btts_yes && match.odds_btts_yes >= 1.3 && match.p_btts_yes_fair && match.p_btts_yes_fair > 0.45) {
     const score = match.p_btts_yes_fair * match.odds_btts_yes * (1 + match.vig_btts);
     console.log('BTTS YES passed all conditions, score:', score);
     bttsSuggestions.push({
@@ -50,6 +56,7 @@ function generateAIRecommendation(match: ProcessedMatch): AIRecommendation | nul
     });
   } else {
     console.log('BTTS YES conditions:', {
+      allowed: allowBttsYes,
       hasOdds: !!match.odds_btts_yes,
       oddsGte13: match.odds_btts_yes >= 1.3,
       hasProb: !!match.p_btts_yes_fair,
@@ -57,7 +64,7 @@ function generateAIRecommendation(match: ProcessedMatch): AIRecommendation | nul
     });
   }
   
-  if (match.odds_btts_no && match.odds_btts_no >= 1.3 && match.p_btts_no_fair && match.p_btts_no_fair > 0.45) {
+  if (allowBttsNo && match.odds_btts_no && match.odds_btts_no >= 1.3 && match.p_btts_no_fair && match.p_btts_no_fair > 0.45) {
     const score = match.p_btts_no_fair * match.odds_btts_no * (1 + match.vig_btts);
     console.log('BTTS NO passed all conditions, score:', score);
     bttsSuggestions.push({
@@ -71,6 +78,7 @@ function generateAIRecommendation(match: ProcessedMatch): AIRecommendation | nul
     });
   } else {
     console.log('BTTS NO conditions:', {
+      allowed: allowBttsNo,
       hasOdds: !!match.odds_btts_no,
       oddsGte13: match.odds_btts_no >= 1.3,
       hasProb: !!match.p_btts_no_fair,
@@ -100,7 +108,7 @@ function generateAIRecommendation(match: ProcessedMatch): AIRecommendation | nul
 
   // Marché Over/Under 2.5 - évaluer les deux options et garder la meilleure
   const ouSuggestions = [];
-  if (match.odds_over_2_5 && match.odds_over_2_5 >= 1.3 && match.p_over_2_5_fair > 0.45) {
+  if (allowOver25 && match.odds_over_2_5 && match.odds_over_2_5 >= 1.3 && match.p_over_2_5_fair > 0.45) {
     const score = match.p_over_2_5_fair * match.odds_over_2_5 * (1 + match.vig_ou_2_5);
     ouSuggestions.push({
       betType: 'O/U 2.5',
@@ -113,7 +121,7 @@ function generateAIRecommendation(match: ProcessedMatch): AIRecommendation | nul
     });
   }
   
-  if (match.odds_under_2_5 && match.odds_under_2_5 >= 1.3 && match.p_under_2_5_fair > 0.45) {
+  if (allowUnder25 && match.odds_under_2_5 && match.odds_under_2_5 >= 1.3 && match.p_under_2_5_fair > 0.45) {
     const score = match.p_under_2_5_fair * match.odds_under_2_5 * (1 + match.vig_ou_2_5);
     ouSuggestions.push({
       betType: 'O/U 2.5',
@@ -159,9 +167,10 @@ function generateAIRecommendation(match: ProcessedMatch): AIRecommendation | nul
 interface MatchesTableProps {
   matches: ProcessedMatch[];
   onMatchClick: (match: ProcessedMatch) => void;
+  marketFilters?: string[];
 }
 
-export function MatchesTable({ matches, onMatchClick }: MatchesTableProps) {
+export function MatchesTable({ matches, onMatchClick, marketFilters = [] }: MatchesTableProps) {
   const [sortField, setSortField] = useState<keyof ProcessedMatch>('kickoff_utc');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
@@ -294,7 +303,7 @@ export function MatchesTable({ matches, onMatchClick }: MatchesTableProps) {
                   
                   <TableCell>
                     {(() => {
-                      const aiRec = generateAIRecommendation(match);
+                      const aiRec = generateAIRecommendation(match, marketFilters);
                       
                       if (!aiRec) {
                         return (

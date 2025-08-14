@@ -16,9 +16,10 @@ interface MatchDetailModalProps {
   match: ProcessedMatch | null;
   isOpen: boolean;
   onClose: () => void;
+  marketFilters?: string[];
 }
 
-export function MatchDetailModal({ match, isOpen, onClose }: MatchDetailModalProps) {
+export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }: MatchDetailModalProps) {
   if (!match) return null;
 
   const flagInfo = leagueToFlag(match.league);
@@ -58,10 +59,16 @@ export function MatchDetailModal({ match, isOpen, onClose }: MatchDetailModalPro
   const getBestRecommendation = () => {
     const markets = [];
 
+    // Vérifier si les filtres de marchés permettent les marchés BTTS
+    const allowBttsYes = marketFilters.length === 0 || marketFilters.includes('btts_yes');
+    const allowBttsNo = marketFilters.length === 0 || marketFilters.includes('btts_no');
+    const allowOver25 = marketFilters.length === 0 || marketFilters.includes('over25');
+    const allowUnder25 = marketFilters.length === 0 || marketFilters.includes('under25');
+
     // Marché BTTS - évaluer les deux options et garder la meilleure (seulement si on a des données)
     const bttsSuggestions = [];
     
-    if (match.odds_btts_yes && match.odds_btts_yes >= 1.3 && match.p_btts_yes_fair && match.p_btts_yes_fair > 0.45) {
+    if (allowBttsYes && match.odds_btts_yes && match.odds_btts_yes >= 1.3 && match.p_btts_yes_fair && match.p_btts_yes_fair > 0.45) {
       const score = match.p_btts_yes_fair * match.odds_btts_yes * (1 + match.vig_btts);
       bttsSuggestions.push({
         type: 'BTTS',
@@ -74,7 +81,7 @@ export function MatchDetailModal({ match, isOpen, onClose }: MatchDetailModalPro
       });
     }
     
-    if (match.odds_btts_no && match.odds_btts_no >= 1.3 && match.p_btts_no_fair && match.p_btts_no_fair > 0.45) {
+    if (allowBttsNo && match.odds_btts_no && match.odds_btts_no >= 1.3 && match.p_btts_no_fair && match.p_btts_no_fair > 0.45) {
       const score = match.p_btts_no_fair * match.odds_btts_no * (1 + match.vig_btts);
       bttsSuggestions.push({
         type: 'BTTS',
@@ -104,7 +111,7 @@ export function MatchDetailModal({ match, isOpen, onClose }: MatchDetailModalPro
 
     // Marché Over/Under 2.5 - évaluer les deux options et garder la meilleure
     const ouSuggestions = [];
-    if (match.odds_over_2_5 && match.odds_over_2_5 >= 1.3 && match.p_over_2_5_fair > 0.45) {
+    if (allowOver25 && match.odds_over_2_5 && match.odds_over_2_5 >= 1.3 && match.p_over_2_5_fair > 0.45) {
       const score = match.p_over_2_5_fair * match.odds_over_2_5 * (1 + match.vig_ou_2_5);
       ouSuggestions.push({
         type: 'O/U 2.5',
@@ -117,7 +124,7 @@ export function MatchDetailModal({ match, isOpen, onClose }: MatchDetailModalPro
       });
     }
     
-    if (match.odds_under_2_5 && match.odds_under_2_5 >= 1.3 && match.p_under_2_5_fair > 0.45) {
+    if (allowUnder25 && match.odds_under_2_5 && match.odds_under_2_5 >= 1.3 && match.p_under_2_5_fair > 0.45) {
       const score = match.p_under_2_5_fair * match.odds_under_2_5 * (1 + match.vig_ou_2_5);
       ouSuggestions.push({
         type: 'O/U 2.5',

@@ -161,7 +161,8 @@ export function Dashboard({ currentLang, matches: _matches }: DashboardProps) {
           </div>
           <MatchesTable 
             matches={matches} 
-            onMatchClick={handleMatchClick} 
+            onMatchClick={handleMatchClick}
+            marketFilters={filters.marketFilters}
           />
         </div>
       </div>
@@ -174,6 +175,7 @@ export function Dashboard({ currentLang, matches: _matches }: DashboardProps) {
           setIsModalOpen(false);
           setSelectedMatch(null);
         }}
+        marketFilters={filters.marketFilters}
       />
     </div>
   );
