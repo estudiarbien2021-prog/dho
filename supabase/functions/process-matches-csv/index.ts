@@ -380,14 +380,51 @@ serve(async (req) => {
           continue;
         }
         
+        // Find kickoff time - look for date_gmt column
+        const dateGmt = allKeys.find(key => 
+          key.toLowerCase().includes('date_gmt') || 
+          key.toLowerCase().includes('kickoff') ||
+          key.toLowerCase().includes('datetime')
+        ) ? row[allKeys.find(key => 
+          key.toLowerCase().includes('date_gmt') || 
+          key.toLowerCase().includes('kickoff') ||
+          key.toLowerCase().includes('datetime')
+        )!] : '';
+
+        // Parse date_gmt format like "Aug 14 2025 - 11:00pm"
+        let kickoffUtc = new Date();
+        let kickoffLocal = new Date();
+        
+        if (dateGmt) {
+          try {
+            // Convert format "Aug 14 2025 - 11:00pm" to a proper date
+            const dateStr = dateGmt.toString().trim();
+            console.log(`📅 Parsing date: "${dateStr}"`);
+            
+            // Replace " - " with " " and parse
+            const cleanedDate = dateStr.replace(' - ', ' ');
+            const parsedDate = new Date(cleanedDate);
+            
+            if (!isNaN(parsedDate.getTime())) {
+              kickoffUtc = parsedDate;
+              kickoffLocal = parsedDate;
+              console.log(`✅ Date parsed successfully: ${kickoffUtc.toISOString()}`);
+            } else {
+              console.log(`⚠️ Failed to parse date: "${dateStr}", using current time`);
+            }
+          } catch (error) {
+            console.log(`❌ Error parsing date: ${error.message}`);
+          }
+        }
+        
         const matchData = {
           match_date: uploadDate,
           league: finalLeague,
           home_team: finalHomeTeam,
           away_team: finalAwayTeam,
           country: country || null,
-          kickoff_utc: new Date().toISOString(),
-          kickoff_local: new Date().toISOString(),
+          kickoff_utc: kickoffUtc.toISOString(),
+          kickoff_local: kickoffLocal.toISOString(),
           category: getCategoryFromLeague(finalLeague),
           
           // Extract fair probabilities from CSV for AI recommendations
