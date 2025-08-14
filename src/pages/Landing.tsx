@@ -227,13 +227,27 @@ const Landing = () => {
                 </>
               ) : (
                 <>
-                  <Button 
-                    variant="ghost" 
-                    onClick={() => navigate('/auth')}
-                    className="text-foreground hover:text-primary hover:scale-105 transition-all duration-300"
-                  >
-                    Sign In
-                  </Button>
+                <Button 
+                  variant="ghost" 
+                  onClick={() => navigate('/admin')}
+                  className="text-foreground hover:text-primary hover:scale-105 transition-all duration-300"
+                >
+                  Admin
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  onClick={() => navigate('/archives')}
+                  className="text-foreground hover:text-primary hover:scale-105 transition-all duration-300"
+                >
+                  Archives
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  onClick={() => navigate('/test')}
+                  className="text-foreground hover:text-primary hover:scale-105 transition-all duration-300"
+                >
+                  🧪 Test
+                </Button>
                   <Button 
                     onClick={handleGetStarted}
                     className="bg-gradient-primary hover:shadow-glow hover:scale-105 transition-all duration-300"

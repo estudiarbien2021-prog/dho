@@ -1,34 +1,26 @@
 import React, { useState } from 'react';
-import { ProcessedMatch } from '@/types/match';
-import { Language } from '@/lib/i18n';
-import { useMatchesData } from '@/hooks/useMatchesData';
-import { KPIHeader } from '@/components/dashboard/KPIHeader';
+import { useDatabaseMatches } from '@/hooks/useDatabaseMatches';
 import { FilterPanel } from '@/components/dashboard/FilterPanel';
 import { MatchesTable } from '@/components/dashboard/MatchesTable';
-
 import { MatchDetailModal } from '@/components/dashboard/MatchDetailModal';
+import { KPIHeader } from '@/components/dashboard/KPIHeader';
+import { ProcessedMatch } from '@/types/match';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Download, RefreshCw, AlertCircle, LogOut, Brain } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { Download, LogOut, Settings, Archive, Calendar, RefreshCw } from 'lucide-react';
+import { Language } from '@/lib/i18n';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 interface DashboardProps {
   currentLang: Language;
   matches: ProcessedMatch[];
 }
 
-export function Dashboard({ currentLang, matches: _matches }: DashboardProps) {
-  const { user, signOut } = useAuth();
-  const { 
-    matches, 
-    isLoading, 
-    error, 
-    filters, 
-    setFilters, 
-    availableLeagues, 
-    stats 
-  } = useMatchesData();
-
+export function Dashboard({ currentLang }: DashboardProps) {
+  const { signOut } = useAuth();
+  const { matches, isLoading, error, filters, setFilters, availableLeagues, stats } = useDatabaseMatches();
   const [selectedMatch, setSelectedMatch] = useState<ProcessedMatch | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -40,112 +32,144 @@ export function Dashboard({ currentLang, matches: _matches }: DashboardProps) {
   const exportToCSV = () => {
     if (matches.length === 0) return;
 
-    const headers = [
-      'League', 'Home_Team', 'Away_Team', 'Kickoff_UTC', 'Category',
-      'Vig_1X2', 'P_Home_Fair', 'P_Draw_Fair', 'P_Away_Fair',
-      'Odds_Home', 'Odds_Draw', 'Odds_Away',
-      'Is_Low_Vig', 'Watch_BTTS', 'Watch_Over25'
+    const csvHeaders = [
+      'League', 'Home Team', 'Away Team', 'Country', 'Kickoff UTC', 'Category',
+      'P Home Fair', 'P Draw Fair', 'P Away Fair', 'P BTTS Yes Fair', 'P BTTS No Fair',
+      'P Over 2.5 Fair', 'P Under 2.5 Fair', 'Vig 1X2', 'Vig BTTS', 'Vig OU 2.5',
+      'Is Low Vig 1X2', 'Watch BTTS', 'Watch Over25', 'Odds Home', 'Odds Draw', 'Odds Away',
+      'Odds BTTS Yes', 'Odds BTTS No', 'Odds Over 2.5', 'Odds Under 2.5'
     ];
 
-    const csvData = [
-      headers.join(','),
-      ...matches.map(match => [
-        `"${match.league}"`,
-        `"${match.home_team}"`,
-        `"${match.away_team}"`,  
-        match.kickoff_utc.toISOString(),
-        match.category,
-        match.vig_1x2.toFixed(4),
-        match.p_home_fair.toFixed(4),
-        match.p_draw_fair.toFixed(4),
-        match.p_away_fair.toFixed(4),
-        match.odds_home.toFixed(2),
-        match.odds_draw.toFixed(2),
-        match.odds_away.toFixed(2),
-        match.is_low_vig_1x2,
-        match.watch_btts,
-        match.watch_over25
-      ].join(','))
-    ].join('\n');
+    const csvRows = matches.map(match => [
+      match.league,
+      match.home_team,
+      match.away_team,
+      match.country || '',
+      match.kickoff_utc.toISOString(),
+      match.category,
+      match.p_home_fair,
+      match.p_draw_fair,
+      match.p_away_fair,
+      match.p_btts_yes_fair,
+      match.p_btts_no_fair,
+      match.p_over_2_5_fair,
+      match.p_under_2_5_fair,
+      match.vig_1x2,
+      match.vig_btts,
+      match.vig_ou_2_5,
+      match.is_low_vig_1x2,
+      match.watch_btts,
+      match.watch_over25,
+      match.odds_home,
+      match.odds_draw,
+      match.odds_away,
+      match.odds_btts_yes || '',
+      match.odds_btts_no || '',
+      match.odds_over_2_5 || '',
+      match.odds_under_2_5 || ''
+    ]);
 
-    const blob = new Blob([csvData], { type: 'text/csv' });
+    const csvContent = [csvHeaders, ...csvRows]
+      .map(row => row.map(field => `"${field}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `matches-filtered-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `matches-export-${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
+  // Loading state
   if (isLoading) {
     return (
-      <div className="p-8">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="flex items-center gap-3">
-            <RefreshCw className="h-6 w-6 animate-spin text-primary" />
-            <p className="text-lg">Chargement des données...</p>
-          </div>
-        </div>
+      <div className="min-h-screen bg-surface flex items-center justify-center">
+        <Card className="p-12 text-center">
+          <RefreshCw className="h-12 w-12 animate-spin mx-auto mb-4 text-brand" />
+          <p className="text-text-weak text-lg">Chargement des matchs depuis la base de données...</p>
+        </Card>
       </div>
     );
   }
 
+  // Error state
   if (error) {
     return (
-      <div className="p-8">
-        <Card className="p-8 text-center border-destructive/50">
-          <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Erreur de chargement</h2>
-          <p className="text-muted-foreground">{error}</p>
+      <div className="min-h-screen bg-surface flex items-center justify-center">
+        <Card className="p-12 text-center max-w-md">
+          <p className="text-red-600 mb-4 text-lg">Erreur: {error}</p>
+          <p className="text-text-weak mb-6">
+            Impossible de charger les matchs. Vérifiez qu'un CSV a été traité aujourd'hui.
+          </p>
+          <div className="space-y-3">
+            <Button onClick={() => window.location.reload()} className="w-full">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Réessayer
+            </Button>
+            <Button variant="outline" onClick={() => window.location.href = '/admin'} className="w-full">
+              <Settings className="h-4 w-4 mr-2" />
+              Aller à l'administration
+            </Button>
+          </div>
         </Card>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-8">
+    <div className="min-h-screen bg-surface">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="p-2 rounded-xl bg-gradient-to-r from-brand/20 to-brand-400/20 border border-brand/30">
-            <Brain className="h-6 w-6 text-brand" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold">Dashboard Analytics</h1>
-            <p className="text-muted-foreground mt-1">
-              Analyse des paris sportifs avec données en temps réel
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          {user && (
-            <div className="text-right mr-4">
-              <p className="text-sm text-muted-foreground">Connecté en tant que</p>
-              <p className="font-medium">{user.email}</p>
+      <div className="bg-surface-soft border-b border-surface-strong">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-6">
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-brand to-brand-400 bg-clip-text text-transparent">
+                ⚽ Analytics Dashboard
+              </h1>
+              <div className="hidden md:flex items-center space-x-4">
+                <Button variant="ghost" size="sm" onClick={() => window.location.href = '/dashboard'}>
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Aujourd'hui
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => window.location.href = '/archives'}>
+                  <Archive className="h-4 w-4 mr-2" />
+                  Archives
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => window.location.href = '/admin'}>
+                  <Settings className="h-4 w-4 mr-2" />
+                  Admin
+                </Button>
+              </div>
             </div>
-          )}
-          <Button variant="outline" size="sm" onClick={exportToCSV} disabled={matches.length === 0}>
-            <Download className="h-4 w-4 mr-2" />
-            Export CSV ({matches.length})
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={signOut}
-            className="border-destructive/30 text-destructive hover:bg-destructive/10"
-          >
-            <LogOut className="h-4 w-4 mr-2" />
-            Déconnexion
-          </Button>
+            
+            <div className="flex items-center space-x-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={exportToCSV}
+                disabled={matches.length === 0}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export CSV
+              </Button>
+              <Button variant="ghost" size="sm" onClick={signOut}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Déconnexion
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* KPIs */}
-      <KPIHeader stats={stats} />
+      <div className="container mx-auto px-4 py-8 space-y-8">
+        {/* KPIs */}
+        <KPIHeader stats={stats} />
 
-      {/* Main Content */}
-      <div className="space-y-6">
-        {/* Filters Panel */}
+        {/* Filters */}
         <FilterPanel
           filters={filters}
           onFiltersChange={setFilters}
@@ -153,10 +177,13 @@ export function Dashboard({ currentLang, matches: _matches }: DashboardProps) {
         />
 
         {/* Matches Table */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">
-              Matchs ({matches.length})
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-semibold flex items-center gap-2">
+              📊 Matchs d'aujourd'hui
+              <span className="text-sm text-text-weak">
+                ({format(new Date(), 'dd MMMM yyyy', { locale: fr })})
+              </span>
             </h2>
           </div>
           <MatchesTable 
