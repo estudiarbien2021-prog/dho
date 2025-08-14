@@ -182,6 +182,12 @@ serve(async (req) => {
     const csvRows = parseCSV(csvText);
     console.log(`🔍 ${csvRows.length} lignes trouvées dans le CSV`);
     
+    // Log first row structure for debugging
+    if (csvRows.length > 0) {
+      console.log(`📋 Structure de la première ligne:`, JSON.stringify(csvRows[0], null, 2));
+      console.log(`🔑 Clés disponibles:`, Object.keys(csvRows[0]));
+    }
+    
     // Update total matches count
     await supabase
       .from('match_uploads')
@@ -195,6 +201,16 @@ serve(async (req) => {
     for (const row of csvRows) {
       try {
         // Try to find the right column names (flexible mapping)
+        console.log(`🔍 Traitement ligne ${csvRows.indexOf(row) + 1}:`, {
+          'Home Team': row['Home Team'],
+          'Away Team': row['Away Team'], 
+          'League': row['League'],
+          'Country': row['Country'],
+          'Odds_Home_Win': row['Odds_Home_Win'],
+          'Odds_Draw': row['Odds_Draw'],
+          'Odds_Away_Win': row['Odds_Away_Win']
+        });
+        
         const homeTeam = row['Home Team'] || row.home_team || row.home;
         const awayTeam = row['Away Team'] || row.away_team || row.away;
         const league = row.League || row.league || row.competition;
@@ -202,6 +218,8 @@ serve(async (req) => {
         const oddsHome = row['Odds_Home_Win'] || row.odds_1x2_home || row.odds_home || row['1'];
         const oddsDraw = row['Odds_Draw'] || row.odds_1x2_draw || row.odds_draw || row['X'];
         const oddsAway = row['Odds_Away_Win'] || row.odds_1x2_away || row.odds_away || row['2'];
+
+        console.log(`🎯 Valeurs extraites:`, { homeTeam, awayTeam, league, country, oddsHome, oddsDraw, oddsAway });
 
         // Skip rows with missing critical data
         if (!homeTeam || !awayTeam || !league || !oddsHome || !oddsDraw || !oddsAway) {
