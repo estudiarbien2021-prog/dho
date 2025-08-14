@@ -37,15 +37,15 @@ export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
         aiRec: generateAIRecommendation(match, [])
       }))
       .filter(({ match, aiRec }) => {
-        if (!aiRec || aiRec.odds < 1.0) return false;
+        if (!aiRec || aiRec.odds < 1.5) return false;
         
         // Vérifier la probabilité selon le type de pari
         if (aiRec.betType === 'BTTS') {
           const prob = aiRec.prediction === 'Oui' ? match.p_btts_yes_fair : match.p_btts_no_fair;
-          return prob >= 0.55;
+          return prob >= 0.51;
         } else if (aiRec.betType === 'O/U 2.5') {
           const prob = aiRec.prediction === '+2,5 buts' ? match.p_over_2_5_fair : match.p_under_2_5_fair;
-          return prob >= 0.55;
+          return prob >= 0.51;
         }
         
         return false;
