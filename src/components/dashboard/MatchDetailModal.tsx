@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ProcessedMatch } from '@/types/match';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
@@ -10,7 +10,7 @@ import { FlagMini } from '@/components/Flag';
 import { leagueToFlag } from '@/lib/leagueCountry';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Clock, TrendingDown, Target, Eye, Download } from 'lucide-react';
+import { Clock, TrendingDown, Target, Eye, Download, Loader2 } from 'lucide-react';
 
 interface MatchDetailModalProps {
   match: ProcessedMatch | null;
@@ -23,23 +23,6 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
   if (!match) return null;
 
   const flagInfo = leagueToFlag(match.league, match.country, match.home_team, match.away_team);
-
-  // Calculate fair odds from probabilities
-  const fairOdds1x2 = {
-    home: match.p_home_fair > 0 ? (1 / match.p_home_fair).toFixed(2) : '0.00',
-    draw: match.p_draw_fair > 0 ? (1 / match.p_draw_fair).toFixed(2) : '0.00',
-    away: match.p_away_fair > 0 ? (1 / match.p_away_fair).toFixed(2) : '0.00'
-  };
-
-  const fairOddsBtts = {
-    yes: match.p_btts_yes_fair > 0 ? (1 / match.p_btts_yes_fair).toFixed(2) : '0.00',
-    no: match.p_btts_no_fair > 0 ? (1 / match.p_btts_no_fair).toFixed(2) : '0.00'
-  };
-
-  const fairOddsOver25 = {
-    over: match.p_over_2_5_fair > 0 ? (1 / match.p_over_2_5_fair).toFixed(2) : '0.00',
-    under: match.p_under_2_5_fair > 0 ? (1 / match.p_under_2_5_fair).toFixed(2) : '0.00'
-  };
 
   // Determine winning predictions
   const get1x2Winner = () => {
@@ -236,59 +219,131 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     { name: 'Under 2.5', value: match.p_under_2_5_fair * 100, color: 'hsl(var(--brand-300))' },
   ] : [];
 
-  const DonutChart = ({ data, title, prediction }: { data: any[], title: string, prediction: string }) => (
-    <Card className="group relative p-4 bg-gradient-to-br from-surface-soft to-surface-strong border border-brand/30 hover:border-brand/50 transition-all duration-500 hover:shadow-xl hover:shadow-brand/20 backdrop-blur-sm transform hover:scale-[1.02]">
-      <div className="absolute inset-0 bg-gradient-to-br from-brand/5 to-brand-300/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-      <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-transparent via-brand/5 to-transparent animate-pulse" />
-      <h4 className="font-semibold text-center mb-3 text-base text-text relative z-10 bg-gradient-to-r from-brand to-brand-400 bg-clip-text text-transparent transform group-hover:scale-105 transition-transform duration-300">
-        {title}
-      </h4>
-      <div className="h-40 relative z-10 transform group-hover:scale-105 transition-transform duration-500">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={data}
-              cx="50%"
-              cy="50%"
-              innerRadius={35}
-              outerRadius={65}
-              paddingAngle={3}
-              dataKey="value"
-              animationBegin={0}
-              animationDuration={1200}
-              animationEasing="ease-in-out"
-            >
-              {data.map((entry, index) => (
-                <Cell 
-                  key={`cell-${index}`} 
-                  fill={entry.color} 
-                  stroke={entry.color} 
-                  strokeWidth={2}
-                  className="drop-shadow-lg hover:drop-shadow-xl transition-all duration-300"
+  // Loading states for progressive chart animation
+  const [chartLoading, setChartLoading] = useState<{ [key: string]: number }>({});
+  
+  // Initialize loading states when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setChartLoading({
+        results1x2: 0,
+        btts: 0,
+        over25: 0
+      });
+
+      // Progressive loading animation
+      const charts = ['results1x2', 'btts', 'over25'];
+      charts.forEach((chart, index) => {
+        setTimeout(() => {
+          const interval = setInterval(() => {
+            setChartLoading(prev => {
+              const current = prev[chart] || 0;
+              if (current >= 100) {
+                clearInterval(interval);
+                return prev;
+              }
+              return { ...prev, [chart]: Math.min(current + Math.random() * 8 + 2, 100) };
+            });
+          }, 50);
+        }, index * 800);
+      });
+    }
+  }, [isOpen]);
+
+  const DonutChart = ({ data, title, prediction, chartKey }: { 
+    data: any[], 
+    title: string, 
+    prediction: string,
+    chartKey: string 
+  }) => {
+    const progress = chartLoading[chartKey] || 0;
+    const isLoading = progress < 100;
+
+    return (
+      <Card className="group relative p-4 bg-gradient-to-br from-surface-soft to-surface-strong border border-brand/30 hover:border-brand/50 transition-all duration-500 hover:shadow-xl hover:shadow-brand/20 backdrop-blur-sm transform hover:scale-[1.02]">
+        <div className="absolute inset-0 bg-gradient-to-br from-brand/5 to-brand-300/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+        <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-transparent via-brand/5 to-transparent animate-pulse" />
+        
+        <h4 className="font-semibold text-center mb-3 text-base text-text relative z-10 bg-gradient-to-r from-brand to-brand-400 bg-clip-text text-transparent transform group-hover:scale-105 transition-transform duration-300">
+          {title}
+        </h4>
+
+        {isLoading ? (
+          <div className="h-40 relative z-10 flex flex-col items-center justify-center">
+            <div className="relative w-24 h-24 mb-4">
+              <div className="absolute inset-0 rounded-full border-4 border-brand/20"></div>
+              <div 
+                className="absolute inset-0 rounded-full border-4 border-transparent border-t-brand transition-all duration-300 animate-spin"
+                style={{
+                  borderTopColor: `hsl(var(--brand))`,
+                  transform: `rotate(${progress * 3.6}deg)`
+                }}
+              ></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Loader2 className="h-6 w-6 text-brand animate-spin" />
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-brand mb-1 animate-pulse">
+                {Math.round(progress)}%
+              </div>
+              <div className="text-xs text-text-weak animate-fade-in">
+                Analyse en cours...
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="h-40 relative z-10 transform group-hover:scale-105 transition-transform duration-500 animate-fade-in">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={data}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={35}
+                  outerRadius={65}
+                  paddingAngle={3}
+                  dataKey="value"
+                  animationBegin={0}
+                  animationDuration={1200}
+                  animationEasing="ease-in-out"
+                >
+                  {data.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={entry.color} 
+                      stroke={entry.color} 
+                      strokeWidth={2}
+                      className="drop-shadow-lg hover:drop-shadow-xl transition-all duration-300"
+                    />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  formatter={(value: number, name: string) => [`${name}: ${value.toFixed(1)}%`, '']}
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--surface))',
+                    border: '1px solid hsl(var(--brand) / 0.3)',
+                    borderRadius: '12px',
+                    color: 'hsl(var(--text))',
+                    backdropFilter: 'blur(12px)',
+                    boxShadow: '0 8px 32px hsl(var(--brand) / 0.2)'
+                  }}
                 />
-              ))}
-            </Pie>
-            <Tooltip 
-              formatter={(value: number, name: string) => [`${name}: ${value.toFixed(1)}%`, '']}
-              contentStyle={{
-                backgroundColor: 'hsl(var(--surface))',
-                border: '1px solid hsl(var(--brand) / 0.3)',
-                borderRadius: '12px',
-                color: 'hsl(var(--text))',
-                backdropFilter: 'blur(12px)',
-                boxShadow: '0 8px 32px hsl(var(--brand) / 0.2)'
-              }}
-            />
-          </PieChart>
-        </ResponsiveContainer>
-      </div>
-      <div className="mt-3 text-center relative z-10">
-        <Badge className="bg-gradient-to-r from-brand/30 to-brand-400/30 border-brand/40 text-text font-bold text-sm px-3 py-1 animate-pulse">
-          🎯 {prediction}
-        </Badge>
-      </div>
-    </Card>
-  );
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        <div className="mt-3 text-center relative z-10">
+          {!isLoading && (
+            <Badge className="bg-gradient-to-r from-brand/30 to-brand-400/30 border-brand/40 text-text font-bold text-sm px-3 py-1 animate-fade-in">
+              🎯 {prediction}
+            </Badge>
+          )}
+        </div>
+      </Card>
+    );
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -371,9 +426,9 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
               Analyse des Probabilités IA
             </h3>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <DonutChart data={results1x2Data} title="Résultat 1X2" prediction={get1x2Winner()} />
-              {bttsData.length > 0 && <DonutChart data={bttsData} title="Les Deux Équipes Marquent" prediction={getBttsWinner()} />}
-              {over25Data.length > 0 && <DonutChart data={over25Data} title="Plus/Moins 2,5 Buts" prediction={getOver25Winner()} />}
+              <DonutChart data={results1x2Data} title="Résultat 1X2" prediction={get1x2Winner()} chartKey="results1x2" />
+              {bttsData.length > 0 && <DonutChart data={bttsData} title="Les Deux Équipes Marquent" prediction={getBttsWinner()} chartKey="btts" />}
+              {over25Data.length > 0 && <DonutChart data={over25Data} title="Plus/Moins 2,5 Buts" prediction={getOver25Winner()} chartKey="over25" />}
             </div>
           </div>
 
@@ -423,7 +478,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
           <Separator className="bg-gradient-to-r from-transparent via-brand/30 to-transparent" />
 
           {/* Odds & Analysis */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Odds */}
             <Card className="group relative p-6 bg-gradient-to-br from-surface-soft to-surface-strong border border-brand/30 hover:border-brand/50 transition-all duration-500 hover:shadow-xl hover:shadow-brand/20 backdrop-blur-sm transform hover:scale-[1.01]">
               <div className="absolute inset-0 bg-gradient-to-br from-brand/5 to-brand-300/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -505,68 +560,6 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                       {(match.vig_ou_2_5 * 100).toFixed(2)}%
                     </Badge>
                   </div>
-                )}
-              </div>
-            </Card>
-
-            {/* Fair Odds */}
-            <Card className="group relative p-6 bg-gradient-to-br from-surface-soft to-surface-strong border border-brand-400/30 hover:border-brand-400/50 transition-all duration-500 hover:shadow-xl hover:shadow-brand-400/20 backdrop-blur-sm transform hover:scale-[1.01]">
-              <div className="absolute inset-0 bg-gradient-to-br from-brand-400/5 to-brand-500/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <h4 className="font-semibold mb-4 flex items-center gap-2 text-text relative z-10">
-                <Eye className="h-5 w-5 text-brand-400" />
-                Odds Fairs IA
-              </h4>
-              <div className="space-y-4 relative z-10">
-                <div className="flex justify-between items-center p-3 bg-brand/10 rounded-lg border border-brand/30 hover:border-brand/40 transition-colors duration-300">
-                  <span className="font-medium text-text">Domicile:</span>
-                  <span className="font-mono text-lg font-bold text-brand">
-                    {fairOdds1x2.home}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-brand-300/10 rounded-lg border border-brand-300/30 hover:border-brand-300/40 transition-colors duration-300">
-                  <span className="font-medium text-text">Nul:</span>
-                  <span className="font-mono text-lg font-bold text-brand-300">
-                    {fairOdds1x2.draw}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-brand-400/10 rounded-lg border border-brand-400/30 hover:border-brand-400/40 transition-colors duration-300">
-                  <span className="font-medium text-text">Extérieur:</span>
-                  <span className="font-mono text-lg font-bold text-brand-400">
-                    {fairOdds1x2.away}
-                  </span>
-                </div>
-                {match.p_btts_yes_fair > 0 && (
-                  <>
-                    <Separator className="bg-gradient-to-r from-transparent via-brand-400/30 to-transparent" />
-                    <div className="flex justify-between items-center p-3 bg-surface-strong/50 rounded-lg border border-brand-400/20 hover:border-brand-400/30 transition-colors duration-300">
-                      <span className="font-medium text-text">BTTS Oui:</span>
-                      <span className="font-mono text-lg font-bold text-brand-400">
-                        {fairOddsBtts.yes}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-surface-strong/50 rounded-lg border border-brand-400/20 hover:border-brand-400/30 transition-colors duration-300">
-                      <span className="font-medium text-text">BTTS Non:</span>
-                      <span className="font-mono text-lg font-bold text-brand-400">
-                        {fairOddsBtts.no}
-                      </span>
-                    </div>
-                  </>
-                )}
-                {match.p_over_2_5_fair > 0 && (
-                  <>
-                    <div className="flex justify-between items-center p-3 bg-surface-strong/50 rounded-lg border border-brand-400/20 hover:border-brand-400/30 transition-colors duration-300">
-                      <span className="font-medium text-text">Over 2.5:</span>
-                      <span className="font-mono text-lg font-bold text-brand-400">
-                        {fairOddsOver25.over}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-surface-strong/50 rounded-lg border border-brand-400/20 hover:border-brand-400/30 transition-colors duration-300">
-                      <span className="font-medium text-text">Under 2.5:</span>
-                      <span className="font-mono text-lg font-bold text-brand-400">
-                        {fairOddsOver25.under}
-                      </span>
-                    </div>
-                  </>
                 )}
               </div>
             </Card>
