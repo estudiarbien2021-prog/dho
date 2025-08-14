@@ -41,6 +41,17 @@ export function Admin() {
     loadUploadHistory();
   }, []);
 
+  // Auto-generate filename based on match date
+  useEffect(() => {
+    if (matchDate && !filename) {
+      const date = new Date(matchDate);
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const year = date.getFullYear().toString().slice(-2);
+      setFilename(`${day}${month}${year}.csv`);
+    }
+  }, [matchDate, filename]);
+
   const loadUploadHistory = async () => {
     try {
       const { data, error } = await supabase
@@ -359,20 +370,33 @@ export function Admin() {
                 id="matchDate"
                 type="date"
                 value={matchDate}
-                onChange={(e) => setMatchDate(e.target.value)}
+                onChange={(e) => {
+                  setMatchDate(e.target.value);
+                  // Auto-update filename when date changes
+                  if (e.target.value) {
+                    const date = new Date(e.target.value);
+                    const day = date.getDate().toString().padStart(2, '0');
+                    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                    const year = date.getFullYear().toString().slice(-2);
+                    setFilename(`${day}${month}${year}.csv`);
+                  }
+                }}
                 disabled={isProcessing}
               />
             </div>
 
             <div>
-              <Label htmlFor="filename">Nom du fichier (optionnel)</Label>
+              <Label htmlFor="filename">Nom du fichier</Label>
               <Input
                 id="filename"
-                placeholder="matches-2024-08-14.csv"
+                placeholder="DDMMYY.csv"
                 value={filename}
                 onChange={(e) => setFilename(e.target.value)}
                 disabled={isProcessing}
               />
+              <p className="text-xs text-text-weak mt-1">
+                Généré automatiquement basé sur la date des matchs
+              </p>
             </div>
           </div>
 
