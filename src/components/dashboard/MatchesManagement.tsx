@@ -18,17 +18,18 @@ interface Match {
   league: string;
   home_team: string;
   away_team: string;
-  country?: string;
+  country?: string | null;
   match_date: string;
   kickoff_utc: string;
+  kickoff_local: string;
   category: string;
   odds_home: number;
   odds_draw: number;
   odds_away: number;
-  odds_btts_yes?: number;
-  odds_btts_no?: number;
-  odds_over_2_5?: number;
-  odds_under_2_5?: number;
+  odds_btts_yes?: number | null;
+  odds_btts_no?: number | null;
+  odds_over_2_5?: number | null;
+  odds_under_2_5?: number | null;
   p_home_fair: number;
   p_draw_fair: number;
   p_away_fair: number;
@@ -42,8 +43,10 @@ interface Match {
   is_low_vig_1x2: boolean;
   watch_btts: boolean;
   watch_over25: boolean;
-  ai_prediction?: string;
-  ai_confidence?: number;
+  ai_prediction?: string | null;
+  ai_confidence?: number | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export function MatchesManagement() {
