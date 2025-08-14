@@ -37,7 +37,7 @@ export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
         aiRec: generateAIRecommendation(match, [])
       }))
       .filter(({ match, aiRec }) => {
-        if (!aiRec || aiRec.odds < 1.6) return false;
+        if (!aiRec || aiRec.odds < 1.0) return false;
         
         // Vérifier la probabilité selon le type de pari
         if (aiRec.betType === 'BTTS') {
