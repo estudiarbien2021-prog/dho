@@ -25,6 +25,8 @@ interface UploadHistory {
 
 export function Admin() {
   const [csvUrl, setCsvUrl] = useState('');
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
   const [matchDate, setMatchDate] = useState(new Date().toISOString().split('T')[0]);
   const [filename, setFilename] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -62,10 +64,10 @@ export function Admin() {
   };
 
   const handleProcessCSV = async () => {
-    if (!csvUrl.trim()) {
+    if (!csvFile) {
       toast({
         title: "Erreur",
-        description: "Veuillez entrer une URL CSV valide",
+        description: "Veuillez sélectionner un fichier CSV",
         variant: "destructive",
       });
       return;
@@ -73,13 +75,15 @@ export function Admin() {
 
     setIsProcessing(true);
     try {
-      console.log('🚀 Appel de l\'Edge Function process-matches-csv...');
+      console.log('🚀 Lecture du fichier CSV...');
+      
+      const fileContent = await csvFile.text();
       
       const { data, error } = await supabase.functions.invoke('process-matches-csv', {
         body: {
-          csvUrl: csvUrl.trim(),
+          csvContent: fileContent,
           matchDate,
-          filename: filename.trim() || undefined
+          filename: filename.trim() || csvFile.name
         }
       });
 
@@ -95,7 +99,7 @@ export function Admin() {
       });
 
       // Clear form
-      setCsvUrl('');
+      setCsvFile(null);
       setFilename('');
       
       // Reload history
@@ -226,6 +230,47 @@ export function Admin() {
     }
   };
 
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    
+    const files = Array.from(e.dataTransfer.files);
+    const csvFile = files.find(file => file.name.toLowerCase().endsWith('.csv'));
+    
+    if (csvFile) {
+      setCsvFile(csvFile);
+      if (!filename) {
+        setFilename(csvFile.name);
+      }
+    } else {
+      toast({
+        title: "Erreur",
+        description: "Veuillez déposer un fichier CSV",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.name.toLowerCase().endsWith('.csv')) {
+      setCsvFile(file);
+      if (!filename) {
+        setFilename(file.name);
+      }
+    }
+  };
+
   return (
     <div className="container mx-auto py-8 space-y-8">
       {/* Header */}
@@ -248,15 +293,64 @@ export function Admin() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <div>
-              <Label htmlFor="csvUrl">URL du fichier CSV *</Label>
-              <Input
-                id="csvUrl"
-                type="url"
-                placeholder="https://example.com/matches.csv"
-                value={csvUrl}
-                onChange={(e) => setCsvUrl(e.target.value)}
-                disabled={isProcessing}
-              />
+              <Label htmlFor="csvFile">Fichier CSV *</Label>
+              <div
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                  isDragOver 
+                    ? 'border-brand bg-brand/5' 
+                    : csvFile 
+                      ? 'border-green-500 bg-green-50' 
+                      : 'border-gray-300 hover:border-brand'
+                }`}
+              >
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  id="csvFileInput"
+                  disabled={isProcessing}
+                />
+                {csvFile ? (
+                  <div className="space-y-2">
+                    <div className="text-green-600 font-medium">✓ Fichier sélectionné</div>
+                    <div className="text-sm text-gray-600">{csvFile.name}</div>
+                    <div className="text-xs text-gray-500">
+                      {(csvFile.size / 1024).toFixed(1)} KB
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCsvFile(null)}
+                      disabled={isProcessing}
+                    >
+                      Changer de fichier
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Upload className="h-8 w-8 mx-auto text-gray-400" />
+                    <div className="text-gray-600">
+                      Glissez votre fichier CSV ici ou{' '}
+                      <button
+                        type="button"
+                        onClick={() => document.getElementById('csvFileInput')?.click()}
+                        className="text-brand hover:underline"
+                        disabled={isProcessing}
+                      >
+                        cliquez pour parcourir
+                      </button>
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      Formats acceptés: .csv (max 10MB)
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div>
@@ -286,8 +380,8 @@ export function Admin() {
             <div className="p-4 bg-surface-soft rounded-lg">
               <h3 className="font-semibold mb-2">ℹ️ Instructions</h3>
               <ul className="text-sm text-text-weak space-y-1">
-                <li>• Entrez l'URL directe du fichier CSV</li>
-                <li>• Le fichier sera téléchargé et traité automatiquement</li>
+                <li>• Glissez-déposez votre fichier CSV dans la zone ci-dessus</li>
+                <li>• Le fichier sera traité automatiquement</li>
                 <li>• Les doublons sont automatiquement gérés</li>
                 <li>• Ajoutez une colonne "country" pour des drapeaux précis</li>
               </ul>
@@ -295,7 +389,7 @@ export function Admin() {
 
             <Button 
               onClick={handleProcessCSV}
-              disabled={isProcessing || !csvUrl.trim()}
+              disabled={isProcessing || !csvFile}
               className="w-full"
               size="lg"
             >

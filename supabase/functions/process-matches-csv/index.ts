@@ -134,10 +134,10 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
     
-    const { csvUrl, matchDate, filename } = await req.json();
+    const { csvContent, csvUrl, matchDate, filename } = await req.json();
     
-    if (!csvUrl) {
-      return new Response(JSON.stringify({ error: 'csvUrl requis' }), {
+    if (!csvContent && !csvUrl) {
+      return new Response(JSON.stringify({ error: 'Contenu CSV ou URL CSV requis' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -148,11 +148,28 @@ serve(async (req) => {
     
     // Convert GitHub URL to raw URL if needed
     let actualCsvUrl = csvUrl;
-    if (csvUrl.includes('github.com') && csvUrl.includes('/blob/')) {
+    if (csvUrl && csvUrl.includes('github.com') && csvUrl.includes('/blob/')) {
       actualCsvUrl = csvUrl.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/');
     }
     
-    console.log(`📥 Téléchargement du CSV depuis: ${actualCsvUrl}`);
+    let csvText = '';
+    
+    if (csvContent) {
+      // Use provided CSV content directly
+      console.log(`📄 Utilisation du contenu CSV fourni`);
+      csvText = csvContent;
+    } else {
+      // Download CSV from URL (rétrocompatibilité)
+      console.log(`📥 Téléchargement du CSV depuis: ${actualCsvUrl}`);
+      const response = await fetch(actualCsvUrl);
+      if (!response.ok) {
+        throw new Error(`Erreur téléchargement CSV: ${response.status} ${response.statusText}`);
+      }
+      csvText = await response.text();
+    }
+    
+    console.log(`📊 CSV traité, taille: ${csvText.length} caractères`);
+    
     console.log(`📅 Date des matchs: ${uploadDate}`);
     
     // Create upload record
@@ -174,15 +191,6 @@ serve(async (req) => {
       console.error('❌ Erreur création upload record:', uploadError);
       throw uploadError;
     }
-    
-    // Download CSV
-    const response = await fetch(actualCsvUrl);
-    if (!response.ok) {
-      throw new Error(`Erreur téléchargement CSV: ${response.status} ${response.statusText}`);
-    }
-    
-    const csvText = await response.text();
-    console.log(`📊 CSV téléchargé, taille: ${csvText.length} caractères`);
     
     // Parse CSV
     const csvRows = parseCSV(csvText);
