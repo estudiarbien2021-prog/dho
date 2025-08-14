@@ -140,3 +140,5 @@ export function AIRecommendationDisplay({
 
   return null;
 }
+
+export default AIRecommendationDisplay;

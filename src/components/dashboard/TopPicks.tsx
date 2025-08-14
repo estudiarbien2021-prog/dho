@@ -7,7 +7,7 @@ import { FlagMini } from '@/components/Flag';
 import { leagueToFlag } from '@/lib/leagueCountry';
 import { generateConfidenceScore } from '@/lib/confidence';
 import { generateAIRecommendation } from '@/lib/aiRecommendation';
-import { AIRecommendationDisplay } from '@/components/AIRecommendationDisplay';
+import AIRecommendationDisplay from '@/components/AIRecommendationDisplay';
 import { Trophy, Target, TrendingUp, Zap } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';

@@ -12,7 +12,7 @@ import { fr } from 'date-fns/locale';
 import { generateConfidenceScore } from '@/lib/confidence';
 
 import { generateAIRecommendation, AIRecommendation } from '@/lib/aiRecommendation';
-import { AIRecommendationDisplay } from '@/components/AIRecommendationDisplay';
+import AIRecommendationDisplay from '@/components/AIRecommendationDisplay';
 
 interface MatchesTableProps {
   matches: ProcessedMatch[];
