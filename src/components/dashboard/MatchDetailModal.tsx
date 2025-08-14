@@ -38,17 +38,25 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
 
   const getBttsWinner = () => match.p_btts_yes_fair > match.p_btts_no_fair ? 'Oui' : 'Non';
   const getOver25Winner = () => {
-    // Utiliser la même logique de score que getBestRecommendation pour éviter les incohérences
+    // Utiliser la même logique que le dashboard : d'abord probabilité IA, puis score
     if (!match.odds_over_2_5 || !match.odds_under_2_5) {
       return match.p_over_2_5_fair > match.p_under_2_5_fair ? '+2,5 buts' : '-2,5 buts';
     }
+    
+    // PRIORITÉ 1: Respect des probabilités IA - choisir celui avec la plus haute probabilité
+    if (Math.abs(match.p_over_2_5_fair - match.p_under_2_5_fair) > 0.01) { // Différence significative
+      return match.p_over_2_5_fair > match.p_under_2_5_fair ? '+2,5 buts' : '-2,5 buts';
+    }
+    
+    // PRIORITÉ 2: Si probabilités similaires, utiliser le score
     const overScore = match.p_over_2_5_fair * match.odds_over_2_5 * (1 + match.vig_ou_2_5);
     const underScore = match.p_under_2_5_fair * match.odds_under_2_5 * (1 + match.vig_ou_2_5);
     return overScore > underScore ? '+2,5 buts' : '-2,5 buts';
   };
 
-  // Calculate best recommendation using same formula as table
+  // Calculate best recommendation using the same logic as dashboard table
   const getBestRecommendation = () => {
+    // Analyser uniquement les marchés BTTS et Over/Under selon les filtres
     const markets = [];
 
     // Vérifier si les filtres de marchés permettent les marchés BTTS
@@ -86,16 +94,18 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
       });
     }
 
-    // Garder seulement la meilleure option BTTS
+    // Garder seulement la meilleure option BTTS en priorisant d'abord la probabilité IA
     if (bttsSuggestions.length > 0) {
       const bestBtts = bttsSuggestions.reduce((prev, current) => {
+        // PRIORITÉ 1: Respect des probabilités IA - choisir celui avec la plus haute probabilité
+        if (Math.abs(current.probability - prev.probability) > 0.01) { // Différence significative
+          return current.probability > prev.probability ? current : prev;
+        }
+        // PRIORITÉ 2: Si probabilités similaires, utiliser le score
         const scoreDifference = Math.abs(current.score - prev.score);
-        
-        // Si les scores sont très proches (différence < 0.001), choisir celui avec la plus haute probabilité
         if (scoreDifference < 0.001) {
           return current.probability > prev.probability ? current : prev;
         }
-        
         return current.score > prev.score ? current : prev;
       });
       markets.push(bestBtts);
@@ -129,15 +139,20 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
       });
     }
 
-    // Garder seulement la meilleure option Over/Under
+    // Garder seulement la meilleure option Over/Under en priorisant d'abord la probabilité IA
     if (ouSuggestions.length > 0) {
-      const bestOU = ouSuggestions.reduce((prev, current) => 
-        current.score > prev.score ? current : prev
-      );
+      const bestOU = ouSuggestions.reduce((prev, current) => {
+        // PRIORITÉ 1: Respect des probabilités IA - choisir celui avec la plus haute probabilité
+        if (Math.abs(current.probability - prev.probability) > 0.01) { // Différence significative
+          return current.probability > prev.probability ? current : prev;
+        }
+        // PRIORITÉ 2: Si probabilités similaires, utiliser le score
+        return current.score > prev.score ? current : prev;
+      });
       markets.push(bestOU);
     }
 
-    // Retourner le marché avec le meilleur score global
+    // Retourner le marché avec la meilleure cohérence IA (probabilité d'abord, puis score)
     if (markets.length === 0) {
       return {
         type: 'Aucune',
@@ -150,9 +165,14 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
       };
     }
     
-    const bestMarket = markets.reduce((prev, current) => 
-      current.score > prev.score ? current : prev
-    );
+    const bestMarket = markets.reduce((prev, current) => {
+      // PRIORITÉ 1: Respect des probabilités IA - choisir celui avec la plus haute probabilité
+      if (Math.abs(current.probability - prev.probability) > 0.01) { // Différence significative
+        return current.probability > prev.probability ? current : prev;
+      }
+      // PRIORITÉ 2: Si probabilités similaires, utiliser le score
+      return current.score > prev.score ? current : prev;
+    });
     
     return bestMarket;
   };
