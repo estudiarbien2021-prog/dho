@@ -203,23 +203,25 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
 
   const formatTime = (date: Date) => {
     // Convert UTC date to local time zone for display
-    return format(date, 'HH:mm', { locale: fr });
+    const localDate = new Date(date.toLocaleString());
+    return format(localDate, 'HH:mm', { locale: fr });
   };
 
   const formatDate = (date: Date) => {
-    // Convert UTC date to local time zone for display
-    return format(date, 'dd/MM', { locale: fr });
+    // Convert UTC date to local time zone for display - IMPORTANT for correct local date
+    const localDate = new Date(date.toLocaleString());
+    return format(localDate, 'dd/MM', { locale: fr });
   };
 
   const formatTimeWithTimeZone = (date: Date) => {
-    // Show both UTC time and local time with timezone
-    const localTime = format(date, 'HH:mm', { locale: fr });
-    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const timeZoneAbbr = new Intl.DateTimeFormat('fr', { 
-      timeZoneName: 'short' 
-    }).formatToParts(date).find(part => part.type === 'timeZoneName')?.value || '';
+    // Show both UTC time and local time with timezone - using actual local date/time
+    const localTime = date.toLocaleTimeString('fr-FR', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      timeZoneName: 'short'
+    });
     
-    return `${localTime} ${timeZoneAbbr}`;
+    return localTime;
   };
 
   // Group matches by competition if needed
