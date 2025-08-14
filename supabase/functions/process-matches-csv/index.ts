@@ -477,6 +477,53 @@ serve(async (req) => {
       }
       
       console.log(`🎉 Total inséré: ${totalInserted} matchs`);
+      
+      // Filter out matches without AI recommendations
+      console.log('🤖 Suppression des matchs sans opportunité AI...');
+      const { data: insertedMatches, error: fetchError } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('match_date', uploadDate);
+      
+      if (fetchError) {
+        console.error('❌ Erreur récupération matchs:', fetchError);
+      } else {
+        const matchesToDelete = [];
+        
+        for (const match of insertedMatches) {
+          // Check BTTS AI recommendation
+          const bttsYesValid = match.odds_btts_yes && match.odds_btts_yes >= 1.3 && match.p_btts_yes_fair > 0.45;
+          const bttsNoValid = match.odds_btts_no && match.odds_btts_no >= 1.3 && match.p_btts_no_fair > 0.45;
+          const hasBTTSRecommendation = bttsYesValid || bttsNoValid;
+          
+          // Check Over/Under AI recommendation
+          const overValid = match.odds_over_2_5 && match.odds_over_2_5 >= 1.3 && match.p_over_2_5_fair > 0.45;
+          const underValid = match.odds_under_2_5 && match.odds_under_2_5 >= 1.3 && match.p_under_2_5_fair > 0.45;
+          const hasOURecommendation = overValid || underValid;
+          
+          // If no AI recommendation for either market, mark for deletion
+          if (!hasBTTSRecommendation && !hasOURecommendation) {
+            matchesToDelete.push(match.id);
+          }
+        }
+        
+        if (matchesToDelete.length > 0) {
+          console.log(`🗑️ Suppression de ${matchesToDelete.length} matchs sans opportunité AI`);
+          const { error: deleteError } = await supabase
+            .from('matches')
+            .delete()
+            .in('id', matchesToDelete);
+          
+          if (deleteError) {
+            console.error('❌ Erreur suppression matchs sans AI:', deleteError);
+          } else {
+            console.log(`✅ ${matchesToDelete.length} matchs sans opportunité AI supprimés`);
+            totalInserted -= matchesToDelete.length;
+          }
+        } else {
+          console.log('✅ Aucun match à supprimer - tous ont des opportunités AI');
+        }
+      }
     }
     
     // Update upload record as completed
