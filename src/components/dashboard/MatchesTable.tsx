@@ -21,10 +21,10 @@ function generateAIRecommendation(match: ProcessedMatch): AIRecommendation | nul
   // Analyser uniquement les marchés BTTS et Over/Under
   const markets = [];
 
-  // Marché BTTS - évaluer les deux options et garder la meilleure
+  // Marché BTTS - évaluer les deux options et garder la meilleure (seulement si on a des données)
   const bttsSuggestions = [];
   
-  if (match.odds_btts_yes && match.odds_btts_yes >= 1.3 && match.p_btts_yes_fair > 0.45) {
+  if (match.odds_btts_yes && match.odds_btts_yes >= 1.3 && match.p_btts_yes_fair && match.p_btts_yes_fair > 0.45) {
     const score = match.p_btts_yes_fair * match.odds_btts_yes * (1 + match.vig_btts);
     bttsSuggestions.push({
       betType: 'BTTS',
@@ -37,7 +37,7 @@ function generateAIRecommendation(match: ProcessedMatch): AIRecommendation | nul
     });
   }
   
-  if (match.odds_btts_no && match.odds_btts_no >= 1.3 && match.p_btts_no_fair > 0.45) {
+  if (match.odds_btts_no && match.odds_btts_no >= 1.3 && match.p_btts_no_fair && match.p_btts_no_fair > 0.45) {
     const score = match.p_btts_no_fair * match.odds_btts_no * (1 + match.vig_btts);
     bttsSuggestions.push({
       betType: 'BTTS',
