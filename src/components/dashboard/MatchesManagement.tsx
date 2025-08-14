@@ -86,6 +86,15 @@ export function MatchesManagement() {
 
       if (error) throw error;
       console.log('✅ Matchs chargés:', data?.length, 'matchs');
+      
+      // Chercher le match qui a été modifié pour vérifier ses valeurs AI
+      const matchAvecAI = data?.find(m => m.ai_prediction || m.ai_confidence > 0);
+      if (matchAvecAI) {
+        console.log('🎯 Match trouvé avec AI prediction:', matchAvecAI.ai_prediction, 'confidence:', matchAvecAI.ai_confidence);
+      } else {
+        console.log('❌ Aucun match trouvé avec des valeurs AI');
+      }
+      
       console.log('📝 Premier match avec AI prediction:', data?.[0]?.ai_prediction, 'confidence:', data?.[0]?.ai_confidence);
       setMatches(data || []);
     } catch (error) {
@@ -152,14 +161,19 @@ export function MatchesManagement() {
         description: "Match mis à jour avec succès",
       });
 
-      // Attendre un peu avant de fermer le dialogue pour que l'utilisateur voie le toast
-      setTimeout(() => {
-        setIsEditDialogOpen(false);
-        setEditingMatch(null);
-      }, 1000);
-      
-      await loadMatches();
-      console.log('🔄 Liste des matchs rechargée');
+      // Attendre 2 secondes pour que la base de données propage les changements
+      console.log('⏳ Attente de 2 secondes avant rechargement...');
+      setTimeout(async () => {
+        console.log('🔄 Début du rechargement des matchs...');
+        await loadMatches();
+        console.log('🔄 Liste des matchs rechargée');
+        
+        // Attendre encore un peu avant de fermer le dialogue
+        setTimeout(() => {
+          setIsEditDialogOpen(false);
+          setEditingMatch(null);
+        }, 500);
+      }, 2000);
     } catch (error) {
       console.error('❌ Erreur lors de la sauvegarde du match:', error);
       toast({
