@@ -430,12 +430,6 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
                         
                         <TableCell>
                           {(() => {
-                            // Debug pour voir les valeurs AI
-                            console.log('🔍 Debug AI values for match:', match.home_team, 'vs', match.away_team, {
-                              ai_prediction: match.ai_prediction,
-                              ai_confidence: match.ai_confidence
-                            });
-                            
                             // Afficher d'abord les recommandations sauvegardées par l'admin
                             if (match.ai_prediction) {
                               const predictions = {
@@ -446,8 +440,6 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
                               const predictionText = predictions[match.ai_prediction as keyof typeof predictions] || match.ai_prediction;
                               const confidenceLevel = match.ai_confidence && match.ai_confidence > 0.8 ? 'high' : 
                                 match.ai_confidence && match.ai_confidence > 0.6 ? 'medium' : 'low';
-                              
-                              console.log('✅ Affichage prédiction AI:', predictionText, 'confiance:', match.ai_confidence);
                               
                               return (
                                 <div className="flex flex-col gap-1">
@@ -462,8 +454,6 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
                                   </div>
                                 </div>
                               );
-                            } else {
-                              console.log('❌ Pas de prédiction AI pour ce match');
                             }
                             
                             const aiRec = generateAIRecommendation(match, marketFilters);

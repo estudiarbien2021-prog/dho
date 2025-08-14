@@ -217,6 +217,40 @@ export function Admin() {
     }
   };
 
+  const handleGenerateAIPredictions = async () => {
+    setIsProcessing(true);
+    try {
+      console.log('🤖 Génération des prédictions IA...');
+      
+      const { data, error } = await supabase.functions.invoke('generate-ai-predictions', {
+        body: {
+          matchIds: [] // Traiter tous les matchs sans prédiction
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      console.log('✅ Réponse génération IA:', data);
+
+      toast({
+        title: "Succès !",
+        description: `${data.processed} prédictions IA générées avec succès`,
+      });
+      
+    } catch (error) {
+      console.error('❌ Erreur génération IA:', error);
+      toast({
+        title: "Erreur",
+        description: error.message || "Erreur lors de la génération des prédictions IA",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed':
@@ -737,6 +771,26 @@ export function Admin() {
                     <>
                       <Upload className="h-4 w-4 mr-2" />
                       Traiter le CSV
+                    </>
+                  )}
+                </Button>
+
+                <Button 
+                  onClick={handleGenerateAIPredictions}
+                  disabled={isProcessing}
+                  className="w-full"
+                  size="lg"
+                  variant="outline"
+                >
+                  {isProcessing ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Génération en cours...
+                    </>
+                  ) : (
+                    <>
+                      <Trophy className="h-4 w-4 mr-2" />
+                      Générer prédictions IA
                     </>
                   )}
                 </Button>

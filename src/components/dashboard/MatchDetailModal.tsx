@@ -741,15 +741,6 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
               
               {/* Afficher d'abord les prédictions sauvegardées par l'admin */}
               {(() => {
-                // Debug pour voir les valeurs AI
-                console.log('🔍 Modal Debug AI values for match:', match.home_team, 'vs', match.away_team, {
-                  ai_prediction: match.ai_prediction,
-                  ai_confidence: match.ai_confidence
-                });
-                return null;
-              })()}
-              
-              {(() => {
                 // Si on a une prédiction AI de l'admin, on l'utilise, sinon on utilise la recommandation automatique
                 const useAdminPrediction = match.ai_prediction;
                 const adminRecommendation = useAdminPrediction ? {

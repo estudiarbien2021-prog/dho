@@ -623,6 +623,23 @@ serve(async (req) => {
     
     console.log('🎊 Traitement terminé avec succès !');
     
+    // Générer automatiquement les prédictions IA pour les nouveaux matchs
+    console.log('🤖 Génération automatique des prédictions IA...');
+    try {
+      const aiPredictionsResponse = await supabase.functions.invoke('generate-ai-predictions', {
+        body: { matchIds: [] } // Traiter tous les matchs sans prédiction
+      });
+
+      if (aiPredictionsResponse.error) {
+        console.error('❌ Erreur lors de la génération des prédictions IA:', aiPredictionsResponse.error);
+      } else {
+        console.log('✅ Prédictions IA générées:', aiPredictionsResponse.data);
+      }
+    } catch (aiError) {
+      console.error('❌ Erreur appel fonction génération IA:', aiError);
+      // Ne pas faire échouer le processus principal si la génération IA échoue
+    }
+    
     return new Response(JSON.stringify({
       success: true,
       uploadDate,
