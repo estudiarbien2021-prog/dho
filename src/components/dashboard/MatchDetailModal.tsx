@@ -911,24 +911,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" 
-              className="bg-gradient-to-r from-surface-soft to-surface-strong border-brand/30 text-text hover:from-surface-strong hover:to-surface border-brand/40 transition-all duration-300"
-              onClick={() => {
-                // Export match data as CSV
-                const csvData = `League,Home,Away,Kickoff,Vig_1X2,P_Home,P_Draw,P_Away
-${match.league},${match.home_team},${match.away_team},${match.kickoff_utc.toISOString()},${match.vig_1x2},${match.p_home_fair},${match.p_draw_fair},${match.p_away_fair}`;
-                
-                const blob = new Blob([csvData], { type: 'text/csv' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `match-${match.home_team.replace(/\s+/g, '-')}-vs-${match.away_team.replace(/\s+/g, '-')}.csv`;
-                a.click();
-              }}>
-              <Download className="h-4 w-4 mr-2" />
-              Export CSV
-            </Button>
+          <div className="flex justify-center">
             <Button 
               className="bg-gradient-to-r from-brand to-brand-400 hover:from-brand-600 hover:to-brand-700 border-0 text-brand-fg font-medium px-6 transition-all duration-300 hover:shadow-lg hover:shadow-brand/20"
               onClick={onClose}>
