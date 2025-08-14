@@ -455,16 +455,12 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
                                     🎯 {predictionText}
                                   </Badge>
                                    <div className="text-xs text-muted-foreground">
-                                     Confiance: {(() => {
-                                       const { generateConfidenceScore } = require('@/lib/confidence');
-                                       const recommendation = {
-                                         type: match.ai_prediction?.includes('BTTS') ? 'BTTS' : 
-                                               match.ai_prediction?.includes('buts') ? 'O/U 2.5' : '1X2',
-                                         prediction: match.ai_prediction,
-                                         confidence: match.ai_confidence
-                                       };
-                                       return generateConfidenceScore(match.id, recommendation);
-                                     })()}%
+                                     Confiance: {generateConfidenceScore(match.id, {
+                                       type: match.ai_prediction?.includes('BTTS') ? 'BTTS' : 
+                                             match.ai_prediction?.includes('buts') ? 'O/U 2.5' : '1X2',
+                                       prediction: match.ai_prediction,
+                                       confidence: match.ai_confidence
+                                     })}%
                                    </div>
                                 </div>
                               );
@@ -507,10 +503,7 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
                                   </div>
                                  </div>
                                  <div className="text-xs text-muted-foreground mt-1">
-                                   Confiance: {(() => {
-                                     const { generateConfidenceScore } = require('@/lib/confidence');
-                                     return generateConfidenceScore(match.id, aiRec);
-                                   })()}%
+                                   Confiance: {generateConfidenceScore(match.id, aiRec)}%
                                  </div>
                                </div>
                              );
@@ -623,10 +616,7 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
                               </span>
                             </div>
                             <div className="text-xs text-muted-foreground">
-                              Confiance: {(() => {
-                                const { generateConfidenceScore } = require('@/lib/confidence');
-                                return generateConfidenceScore(match.id, aiRec);
-                              })()}%
+                              Confiance: {generateConfidenceScore(match.id, aiRec)}%
                             </div>
                           </div>
                         </div>
