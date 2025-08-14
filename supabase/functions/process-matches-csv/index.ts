@@ -287,15 +287,36 @@ serve(async (req) => {
         const oddsAway = row['odds_1x2_away'] || (potentialOddsKeys[2] ? row[potentialOddsKeys[2]] : '');
         
         // Fallback: if we have exactly 2 team names in the row, use them
-        const teamValues = allKeys.filter(key => {
+        let teamValues = allKeys.filter(key => {
           const value = row[key];
           return value && typeof value === 'string' && value.length > 2 && 
                  !value.includes('.') && !value.match(/^\d/);
-        }).slice(0, 2);
+        });
         
-        const finalHomeTeam = homeTeam || (teamValues[0] ? row[teamValues[0]] : '');
-        const finalAwayTeam = awayTeam || (teamValues[1] ? row[teamValues[1]] : '');
-        const finalLeague = league || 'Unknown League';
+        // If no team values found, try ANY string values
+        if (teamValues.length < 2) {
+          teamValues = allKeys.filter(key => {
+            const value = row[key];
+            return value && typeof value === 'string' && value.trim().length > 1;
+          });
+        }
+        
+        // Use the first available values as teams
+        let finalHomeTeam = homeTeam || (teamValues[0] ? row[teamValues[0]] : '');
+        let finalAwayTeam = awayTeam || (teamValues[1] ? row[teamValues[1]] : '');
+        
+        // Ultra fallback: use ANY non-empty values from the first few columns
+        if (!finalHomeTeam || !finalAwayTeam) {
+          const allValues = Object.values(row).filter(v => v && v.toString().trim().length > 0);
+          if (!finalHomeTeam && allValues[1]) finalHomeTeam = allValues[1].toString().trim();
+          if (!finalAwayTeam && allValues[2]) finalAwayTeam = allValues[2].toString().trim();
+          // If still no away team, try next value
+          if (!finalAwayTeam && allValues[3]) finalAwayTeam = allValues[3].toString().trim();
+        }
+        
+        // Get all values for league fallback
+        const allValues = Object.values(row).filter(v => v && v.toString().trim().length > 0);
+        const finalLeague = league || (allValues[0] ? allValues[0].toString().trim() : 'Unknown League');
 
         console.log(`🎯 Valeurs extraites:`, { 
           finalHomeTeam, finalAwayTeam, finalLeague, country, 
