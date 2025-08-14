@@ -145,6 +145,9 @@ export function processCSVData(csvText: string): ProcessedMatch[] {
     transformHeader: (header) => header.trim()
   });
   
+  console.log('CSV Headers:', parseResult.meta.fields);
+  console.log('First CSV row sample:', parseResult.data[0]);
+  
   if (parseResult.errors.length > 0) {
     console.warn('CSV parsing errors:', parseResult.errors);
   }
