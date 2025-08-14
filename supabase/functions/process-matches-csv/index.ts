@@ -322,14 +322,14 @@ serve(async (req) => {
           kickoff_local: new Date().toISOString(),
           category: getCategoryFromLeague(finalLeague),
           
-          // Default values for missing data - adapt to actual CSV structure
-          p_home_fair: 0, // Not available in this CSV format
-          p_draw_fair: 0,
-          p_away_fair: 0,
-          p_btts_yes_fair: 0,
-          p_btts_no_fair: 0,
-          p_over_2_5_fair: 0,
-          p_under_2_5_fair: 0,
+          // Extract fair probabilities from CSV for AI recommendations
+          p_home_fair: row['p_home_fair'] ? parseFloat(row['p_home_fair']) : 0,
+          p_draw_fair: row['p_draw_fair'] ? parseFloat(row['p_draw_fair']) : 0,
+          p_away_fair: row['p_away_fair'] ? parseFloat(row['p_away_fair']) : 0,
+          p_btts_yes_fair: row['p_btts_yes_fair'] ? parseFloat(row['p_btts_yes_fair']) : 0,
+          p_btts_no_fair: row['p_btts_no_fair'] ? parseFloat(row['p_btts_no_fair']) : 0,
+          p_over_2_5_fair: row['p_over_2_5_fair'] ? parseFloat(row['p_over_2_5_fair']) : 0,
+          p_under_2_5_fair: row['p_under_2_5_fair'] ? parseFloat(row['p_under_2_5_fair']) : 0,
           
           // Default vigorish values
           vig_1x2: 0,
