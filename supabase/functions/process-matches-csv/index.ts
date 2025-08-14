@@ -61,14 +61,56 @@ function parseCSV(csvText: string): CSVRow[] {
   const lines = csvText.trim().split('\n');
   if (lines.length < 2) throw new Error('CSV doit avoir au moins un header et une ligne de données');
   
-  const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+  // Improved CSV parsing to handle quoted fields and commas within fields
+  function parseCSVLine(line: string): string[] {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    let i = 0;
+    
+    while (i < line.length) {
+      const char = line[i];
+      
+      if (char === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          // Escaped quote
+          current += '"';
+          i += 2;
+        } else {
+          // Toggle quote state
+          inQuotes = !inQuotes;
+          i++;
+        }
+      } else if (char === ',' && !inQuotes) {
+        // End of field
+        result.push(current.trim());
+        current = '';
+        i++;
+      } else {
+        current += char;
+        i++;
+      }
+    }
+    
+    // Add the last field
+    result.push(current.trim());
+    return result;
+  }
+  
+  const headers = parseCSVLine(lines[0]);
+  console.log(`📋 Headers détectés: ${JSON.stringify(headers)}`);
+  
   const rows: CSVRow[] = [];
   
   for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+    const values = parseCSVLine(lines[i]);
     const row: CSVRow = {};
     
     headers.forEach((header, index) => {
+      // Normalize header names for easier matching
+      const normalizedHeader = header.toLowerCase().replace(/\s+/g, '_');
+      row[normalizedHeader] = values[index] || '';
+      // Also keep original header
       row[header] = values[index] || '';
     });
     
@@ -152,50 +194,58 @@ serve(async (req) => {
     
     for (const row of csvRows) {
       try {
+        // Try to find the right column names (flexible mapping)
+        const homeTeam = row.home_team || row['Home Team'] || row.home || row['Équipe Domicile'];
+        const awayTeam = row.away_team || row['Away Team'] || row.away || row['Équipe Extérieur'];
+        const league = row.league || row.League || row.competition || row.Competition;
+        const oddsHome = row.odds_1x2_home || row['Odds Home'] || row.odds_home || row['1'];
+        const oddsDraw = row.odds_1x2_draw || row['Odds Draw'] || row.odds_draw || row['X'];
+        const oddsAway = row.odds_1x2_away || row['Odds Away'] || row.odds_away || row['2'];
+
         // Skip rows with missing critical data
-        if (!row.home_team || !row.away_team || !row.league || 
-            !row.odds_1x2_home || !row.odds_1x2_draw || !row.odds_1x2_away) {
-          console.log(`⚠️ Ligne ignorée - données manquantes: ${row.home_team} vs ${row.away_team}`);
+        if (!homeTeam || !awayTeam || !league || !oddsHome || !oddsDraw || !oddsAway) {
+          console.log(`⚠️ Ligne ignorée - données manquantes: ${homeTeam} vs ${awayTeam}, league: ${league}, odds: ${oddsHome}/${oddsDraw}/${oddsAway}`);
+          console.log(`🔍 Colonnes disponibles: ${Object.keys(row).join(', ')}`);
           continue;
         }
         
         const matchData = {
           match_date: uploadDate,
-          league: row.league,
-          home_team: row.home_team,
-          away_team: row.away_team,
-          country: row.country || null,
-          kickoff_utc: row.kickoff_utc ? new Date(row.kickoff_utc).toISOString() : new Date().toISOString(),
-          kickoff_local: row.kickoff_sao_paulo ? new Date(row.kickoff_sao_paulo).toISOString() : new Date().toISOString(),
-          category: getCategoryFromLeague(row.league),
+          league: league,
+          home_team: homeTeam,
+          away_team: awayTeam,
+          country: row.country || row.Country || row.pays || null,
+          kickoff_utc: row.kickoff_utc || row['Kickoff UTC'] ? new Date(row.kickoff_utc || row['Kickoff UTC']).toISOString() : new Date().toISOString(),
+          kickoff_local: row.kickoff_sao_paulo || row['Kickoff Local'] ? new Date(row.kickoff_sao_paulo || row['Kickoff Local']).toISOString() : new Date().toISOString(),
+          category: getCategoryFromLeague(league),
           
           // Fair probabilities
-          p_home_fair: parseFloat(row.p_home_fair || '0'),
-          p_draw_fair: parseFloat(row.p_draw_fair || '0'),
-          p_away_fair: parseFloat(row.p_away_fair || '0'),
-          p_btts_yes_fair: parseFloat(row.p_btts_yes_fair || '0'),
-          p_btts_no_fair: parseFloat(row.p_btts_no_fair || '0'),
-          p_over_2_5_fair: parseFloat(row.p_over_2_5_fair || '0'),
-          p_under_2_5_fair: parseFloat(row.p_under_2_5_fair || '0'),
+          p_home_fair: parseFloat(row.p_home_fair || row['P Home Fair'] || '0'),
+          p_draw_fair: parseFloat(row.p_draw_fair || row['P Draw Fair'] || '0'),
+          p_away_fair: parseFloat(row.p_away_fair || row['P Away Fair'] || '0'),
+          p_btts_yes_fair: parseFloat(row.p_btts_yes_fair || row['P BTTS Yes Fair'] || '0'),
+          p_btts_no_fair: parseFloat(row.p_btts_no_fair || row['P BTTS No Fair'] || '0'),
+          p_over_2_5_fair: parseFloat(row.p_over_2_5_fair || row['P Over 2.5 Fair'] || '0'),
+          p_under_2_5_fair: parseFloat(row.p_under_2_5_fair || row['P Under 2.5 Fair'] || '0'),
           
           // Vigorish
-          vig_1x2: parseFloat(row.vig_1x2 || '0'),
-          vig_btts: parseFloat(row.vig_btts || '0'),
-          vig_ou_2_5: parseFloat(row.vig_ou_2_5 || '0'),
+          vig_1x2: parseFloat(row.vig_1x2 || row['Vig 1X2'] || '0'),
+          vig_btts: parseFloat(row.vig_btts || row['Vig BTTS'] || '0'),
+          vig_ou_2_5: parseFloat(row.vig_ou_2_5 || row['Vig OU 2.5'] || '0'),
           
           // Flags
-          is_low_vig_1x2: row.is_low_vig_1x2 === 'True',
-          watch_btts: row.watch_btts === 'True',
-          watch_over25: row.watch_over25 === 'True',
+          is_low_vig_1x2: (row.is_low_vig_1x2 || row['Is Low Vig 1X2']) === 'True',
+          watch_btts: (row.watch_btts || row['Watch BTTS']) === 'True',
+          watch_over25: (row.watch_over25 || row['Watch Over25']) === 'True',
           
           // Odds
-          odds_home: parseFloat(row.odds_1x2_home),
-          odds_draw: parseFloat(row.odds_1x2_draw),
-          odds_away: parseFloat(row.odds_1x2_away),
-          odds_btts_yes: row.odds_btts_yes ? parseFloat(row.odds_btts_yes) : null,
-          odds_btts_no: row.odds_btts_no ? parseFloat(row.odds_btts_no) : null,
-          odds_over_2_5: row.odds_over_2_5 ? parseFloat(row.odds_over_2_5) : null,
-          odds_under_2_5: row.odds_under_2_5 ? parseFloat(row.odds_under_2_5) : null,
+          odds_home: parseFloat(oddsHome),
+          odds_draw: parseFloat(oddsDraw),
+          odds_away: parseFloat(oddsAway),
+          odds_btts_yes: row.odds_btts_yes || row['Odds BTTS Yes'] ? parseFloat(row.odds_btts_yes || row['Odds BTTS Yes']) : null,
+          odds_btts_no: row.odds_btts_no || row['Odds BTTS No'] ? parseFloat(row.odds_btts_no || row['Odds BTTS No']) : null,
+          odds_over_2_5: row.odds_over_2_5 || row['Odds Over 2.5'] ? parseFloat(row.odds_over_2_5 || row['Odds Over 2.5']) : null,
+          odds_under_2_5: row.odds_under_2_5 || row['Odds Under 2.5'] ? parseFloat(row.odds_under_2_5 || row['Odds Under 2.5']) : null,
         };
         
         processedMatches.push(matchData);
