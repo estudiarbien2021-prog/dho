@@ -28,11 +28,9 @@ export function generateConfidenceScore(matchId: string, recommendation?: any): 
     return x - Math.floor(x);
   };
 
-  // Handle confidence score properly - dynamic score between 70 and 89.5
-  // This is the EXACT same logic as in MatchDetailModal
-  const confidence = recommendation?.confidence && !isNaN(recommendation.confidence) && recommendation.confidence > 0
-    ? Math.min((recommendation.confidence * 100), 89.5).toFixed(1)
-    : (70 + seededRandom(matchSeed, 2) * 19.5).toFixed(1); // Seeded between 70-89.5
+  // Handle confidence score properly - always use deterministic scoring for consistency
+  // This ensures each match has a unique confidence score based on its ID
+  const confidence = (70 + seededRandom(matchSeed, 2) * 19.5).toFixed(1); // Seeded between 70-89.5
 
   console.log('generateConfidenceScore result:', confidence);
   return confidence;
