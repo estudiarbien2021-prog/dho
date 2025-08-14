@@ -58,10 +58,11 @@ export function MatchDetailModal({ match, isOpen, onClose }: MatchDetailModalPro
   const getBestRecommendation = () => {
     const markets = [];
 
-    // Marché BTTS
+    // Marché BTTS - évaluer les deux options et garder la meilleure
+    const bttsSuggestions = [];
     if (match.odds_btts_yes && match.odds_btts_yes >= 1.3 && match.p_btts_yes_fair > 0.45) {
       const score = match.p_btts_yes_fair * match.odds_btts_yes * (1 + match.vig_btts);
-      markets.push({
+      bttsSuggestions.push({
         type: 'BTTS',
         prediction: 'Oui',
         odds: match.odds_btts_yes,
@@ -74,7 +75,7 @@ export function MatchDetailModal({ match, isOpen, onClose }: MatchDetailModalPro
     
     if (match.odds_btts_no && match.odds_btts_no >= 1.3 && match.p_btts_no_fair > 0.45) {
       const score = match.p_btts_no_fair * match.odds_btts_no * (1 + match.vig_btts);
-      markets.push({
+      bttsSuggestions.push({
         type: 'BTTS',
         prediction: 'Non',
         odds: match.odds_btts_no,
@@ -85,10 +86,19 @@ export function MatchDetailModal({ match, isOpen, onClose }: MatchDetailModalPro
       });
     }
 
-    // Marché Over/Under 2.5
+    // Garder seulement la meilleure option BTTS
+    if (bttsSuggestions.length > 0) {
+      const bestBtts = bttsSuggestions.reduce((prev, current) => 
+        current.score > prev.score ? current : prev
+      );
+      markets.push(bestBtts);
+    }
+
+    // Marché Over/Under 2.5 - évaluer les deux options et garder la meilleure
+    const ouSuggestions = [];
     if (match.odds_over_2_5 && match.odds_over_2_5 >= 1.3 && match.p_over_2_5_fair > 0.45) {
       const score = match.p_over_2_5_fair * match.odds_over_2_5 * (1 + match.vig_ou_2_5);
-      markets.push({
+      ouSuggestions.push({
         type: 'O/U 2.5',
         prediction: '+2,5 buts',
         odds: match.odds_over_2_5,
@@ -101,7 +111,7 @@ export function MatchDetailModal({ match, isOpen, onClose }: MatchDetailModalPro
     
     if (match.odds_under_2_5 && match.odds_under_2_5 >= 1.3 && match.p_under_2_5_fair > 0.45) {
       const score = match.p_under_2_5_fair * match.odds_under_2_5 * (1 + match.vig_ou_2_5);
-      markets.push({
+      ouSuggestions.push({
         type: 'O/U 2.5',
         prediction: '-2,5 buts',
         odds: match.odds_under_2_5,
@@ -112,7 +122,15 @@ export function MatchDetailModal({ match, isOpen, onClose }: MatchDetailModalPro
       });
     }
 
-    // Retourner le marché avec le meilleur score (priorisant vigorish élevé)
+    // Garder seulement la meilleure option Over/Under
+    if (ouSuggestions.length > 0) {
+      const bestOU = ouSuggestions.reduce((prev, current) => 
+        current.score > prev.score ? current : prev
+      );
+      markets.push(bestOU);
+    }
+
+    // Retourner le marché avec le meilleur score global
     if (markets.length === 0) {
       return {
         type: 'Aucune',
