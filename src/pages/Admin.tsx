@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Upload, RefreshCw, Calendar, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Upload, RefreshCw, Calendar, CheckCircle, XCircle, Clock, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -29,6 +30,8 @@ export function Admin() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadHistory, setUploadHistory] = useState<UploadHistory[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [selectedUploads, setSelectedUploads] = useState<string[]>([]);
+  const [isDeletingUploads, setIsDeletingUploads] = useState(false);
 
   // Load upload history
   useEffect(() => {
@@ -144,6 +147,53 @@ export function Admin() {
     );
   };
 
+  const handleSelectUpload = (uploadId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedUploads([...selectedUploads, uploadId]);
+    } else {
+      setSelectedUploads(selectedUploads.filter(id => id !== uploadId));
+    }
+  };
+
+  const handleSelectAllUploads = (checked: boolean) => {
+    if (checked) {
+      setSelectedUploads(uploadHistory.map(upload => upload.id));
+    } else {
+      setSelectedUploads([]);
+    }
+  };
+
+  const handleDeleteSelectedUploads = async () => {
+    if (selectedUploads.length === 0) return;
+
+    setIsDeletingUploads(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('delete-uploads', {
+        body: { uploadIds: selectedUploads }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Succès !",
+        description: data.message,
+      });
+
+      setSelectedUploads([]);
+      await loadUploadHistory();
+      
+    } catch (error) {
+      console.error('❌ Erreur suppression uploads:', error);
+      toast({
+        title: "Erreur",
+        description: error.message || "Erreur lors de la suppression",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeletingUploads(false);
+    }
+  };
+
   return (
     <div className="container mx-auto py-8 space-y-8">
       {/* Header */}
@@ -240,10 +290,27 @@ export function Admin() {
             <Calendar className="h-6 w-6 text-brand" />
             <h2 className="text-2xl font-semibold">Historique des traitements</h2>
           </div>
-          <Button variant="outline" onClick={loadUploadHistory} disabled={isLoadingHistory}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingHistory ? 'animate-spin' : ''}`} />
-            Actualiser
-          </Button>
+          <div className="flex items-center gap-2">
+            {selectedUploads.length > 0 && (
+              <Button 
+                variant="destructive" 
+                onClick={handleDeleteSelectedUploads}
+                disabled={isDeletingUploads}
+                size="sm"
+              >
+                {isDeletingUploads ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4 mr-2" />
+                )}
+                Supprimer ({selectedUploads.length})
+              </Button>
+            )}
+            <Button variant="outline" onClick={loadUploadHistory} disabled={isLoadingHistory}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingHistory ? 'animate-spin' : ''}`} />
+              Actualiser
+            </Button>
+          </div>
         </div>
 
         {isLoadingHistory ? (
@@ -256,6 +323,13 @@ export function Admin() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={selectedUploads.length === uploadHistory.length && uploadHistory.length > 0}
+                      onCheckedChange={handleSelectAllUploads}
+                      disabled={isDeletingUploads}
+                    />
+                  </TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Fichier</TableHead>
                   <TableHead>Statut</TableHead>
@@ -267,6 +341,13 @@ export function Admin() {
               <TableBody>
                 {uploadHistory.map((upload) => (
                   <TableRow key={upload.id}>
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedUploads.includes(upload.id)}
+                        onCheckedChange={(checked) => handleSelectUpload(upload.id, checked as boolean)}
+                        disabled={isDeletingUploads}
+                      />
+                    </TableCell>
                     <TableCell className="font-medium">
                       {format(new Date(upload.upload_date), 'dd/MM/yyyy', { locale: fr })}
                     </TableCell>
