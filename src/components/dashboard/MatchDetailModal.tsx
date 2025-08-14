@@ -288,6 +288,19 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
       const league = match.league.toLowerCase();
       const country = match.country?.toLowerCase() || '';
       
+      // FIRST: Check smaller/newer competitions to avoid being caught by broader conditions
+      if (country.includes('bhutan') || country.includes('nepal') ||
+          country.includes('cambodia') || country.includes('laos') ||
+          country.includes('maldives') || country.includes('andorra') ||
+          country.includes('liechtenstein') || country.includes('san marino') ||
+          country.includes('montenegro') || country.includes('albania') ||
+          country.includes('malta') || country.includes('gibraltar') ||
+          country.includes('faroe islands') || country.includes('brunei') ||
+          country.includes('timor-leste') || country.includes('guam') ||
+          country.includes('american samoa') || country.includes('cook islands')) {
+        return Math.floor(20000 + seededRandom(matchSeed, 26) * 15000); // 20k-35k
+      }
+      
       // Major European leagues - most historical data
       if (league.includes('premier league') || league.includes('la liga') || 
           league.includes('serie a') || league.includes('bundesliga') || 
@@ -298,44 +311,58 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
       
       // Secondary European leagues
       if (league.includes('primeira liga') || league.includes('eredivisie') ||
-          league.includes('championship') || country.includes('england') ||
+          league.includes('championship') || 
+          (country.includes('england') && !country.includes('new zealand')) ||
           country.includes('spain') || country.includes('italy') ||
-          country.includes('germany') || country.includes('france')) {
+          country.includes('germany') || country.includes('france') ||
+          country.includes('portugal') || country.includes('netherlands') ||
+          country.includes('belgium') || country.includes('poland') ||
+          country.includes('czech') || country.includes('austria') ||
+          country.includes('switzerland') || country.includes('croatia') ||
+          country.includes('serbia') || country.includes('greece') ||
+          country.includes('turkey') || country.includes('ukraine') ||
+          country.includes('russia') || country.includes('sweden') ||
+          country.includes('norway') || country.includes('denmark')) {
         return Math.floor(50000 + seededRandom(matchSeed, 21) * 30000); // 50k-80k
       }
       
       // Major South American competitions
       if (league.includes('copa libertadores') || league.includes('brasileirao') ||
           league.includes('argentina') || country.includes('brazil') ||
-          country.includes('argentina')) {
+          country.includes('argentina') || country.includes('chile') ||
+          country.includes('colombia') || country.includes('peru') ||
+          country.includes('uruguay') || country.includes('ecuador')) {
         return Math.floor(40000 + seededRandom(matchSeed, 22) * 25000); // 40k-65k
       }
       
       // North American major leagues
       if (league.includes('mls') || league.includes('liga mx') ||
-          country.includes('usa') || country.includes('mexico')) {
+          country.includes('usa') || country.includes('mexico') ||
+          country.includes('canada')) {
         return Math.floor(35000 + seededRandom(matchSeed, 23) * 20000); // 35k-55k
       }
       
       // African major competitions
       if (league.includes('african') || league.includes('caf') ||
           country.includes('morocco') || country.includes('egypt') ||
-          country.includes('nigeria') || country.includes('south africa')) {
+          country.includes('nigeria') || country.includes('south africa') ||
+          country.includes('algeria') || country.includes('tunisia') ||
+          country.includes('ghana') || country.includes('senegal') ||
+          country.includes('cameroon') || country.includes('ivory')) {
         return Math.floor(25000 + seededRandom(matchSeed, 24) * 20000); // 25k-45k
       }
       
       // Asian established leagues
       if (league.includes('j-league') || country.includes('japan') ||
           country.includes('korea') || country.includes('australia') ||
-          country.includes('saudi') || country.includes('qatar')) {
+          country.includes('saudi') || country.includes('qatar') ||
+          country.includes('uae') || country.includes('iran') ||
+          country.includes('china') || country.includes('thailand') ||
+          country.includes('vietnam') || country.includes('indonesia') ||
+          country.includes('malaysia') || country.includes('singapore') ||
+          country.includes('india') || country.includes('pakistan') ||
+          country.includes('bangladesh') || country.includes('sri lanka')) {
         return Math.floor(30000 + seededRandom(matchSeed, 25) * 15000); // 30k-45k
-      }
-      
-      // Smaller/newer competitions
-      if (country.includes('bhutan') || country.includes('nepal') ||
-          country.includes('cambodia') || country.includes('laos') ||
-          country.includes('maldives') || country.includes('andorra')) {
-        return Math.floor(20000 + seededRandom(matchSeed, 26) * 15000); // 20k-35k
       }
       
       // Default for other competitions
