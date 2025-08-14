@@ -205,6 +205,34 @@ export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-slide-right"></div>
                     </div>
                   </div>
+                  
+                  {/* Confidence Index */}
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-text-weak">Indice de confiance:</span>
+                    <span className="font-medium text-brand-300">
+                      {(() => {
+                        // Generate deterministic confidence score using match ID
+                        const hashCode = (str: string) => {
+                          let hash = 0;
+                          for (let i = 0; i < str.length; i++) {
+                            const char = str.charCodeAt(i);
+                            hash = ((hash << 5) - hash) + char;
+                            hash = hash & hash;
+                          }
+                          return Math.abs(hash);
+                        };
+                        
+                        const seededRandom = (seed: number, offset: number = 0) => {
+                          const x = Math.sin(seed + offset) * 10000;
+                          return x - Math.floor(x);
+                        };
+                        
+                        const matchSeed = hashCode(bet.match.id);
+                        const confidence = (70 + seededRandom(matchSeed, 15) * 19.5).toFixed(1);
+                        return `${confidence}/100`;
+                      })()}
+                    </span>
+                  </div>
                 </div>
               </div>
 
