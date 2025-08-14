@@ -22,7 +22,7 @@ function generateAIRecommendation(match: ProcessedMatch): AIRecommendation | nul
   const markets = [];
 
   // Marché 1X2 - évaluer chaque possibilité
-  if (match.p_home_fair > 0.4) {
+  if (match.p_home_fair > 0.4 && match.odds_home >= 1.3) {
     const score = match.p_home_fair * match.odds_home * (1 + match.vig_1x2);
     markets.push({
       betType: '1X2',
@@ -35,7 +35,7 @@ function generateAIRecommendation(match: ProcessedMatch): AIRecommendation | nul
     });
   }
   
-  if (match.p_draw_fair > 0.3) {
+  if (match.p_draw_fair > 0.3 && match.odds_draw >= 1.3) {
     const score = match.p_draw_fair * match.odds_draw * (1 + match.vig_1x2);
     markets.push({
       betType: '1X2',
@@ -48,7 +48,7 @@ function generateAIRecommendation(match: ProcessedMatch): AIRecommendation | nul
     });
   }
   
-  if (match.p_away_fair > 0.4) {
+  if (match.p_away_fair > 0.4 && match.odds_away >= 1.3) {
     const score = match.p_away_fair * match.odds_away * (1 + match.vig_1x2);
     markets.push({
       betType: '1X2',
@@ -62,7 +62,7 @@ function generateAIRecommendation(match: ProcessedMatch): AIRecommendation | nul
   }
 
   // Marché BTTS
-  if (match.odds_btts_yes && match.p_btts_yes_fair > 0.45) {
+  if (match.odds_btts_yes && match.odds_btts_yes >= 1.3 && match.p_btts_yes_fair > 0.45) {
     const score = match.p_btts_yes_fair * match.odds_btts_yes * (1 + match.vig_btts);
     markets.push({
       betType: 'BTTS',
@@ -75,7 +75,7 @@ function generateAIRecommendation(match: ProcessedMatch): AIRecommendation | nul
     });
   }
   
-  if (match.odds_btts_no && match.p_btts_no_fair > 0.45) {
+  if (match.odds_btts_no && match.odds_btts_no >= 1.3 && match.p_btts_no_fair > 0.45) {
     const score = match.p_btts_no_fair * match.odds_btts_no * (1 + match.vig_btts);
     markets.push({
       betType: 'BTTS',
@@ -89,7 +89,7 @@ function generateAIRecommendation(match: ProcessedMatch): AIRecommendation | nul
   }
 
   // Marché Over/Under 2.5
-  if (match.odds_over_2_5 && match.p_over_2_5_fair > 0.45) {
+  if (match.odds_over_2_5 && match.odds_over_2_5 >= 1.3 && match.p_over_2_5_fair > 0.45) {
     const score = match.p_over_2_5_fair * match.odds_over_2_5 * (1 + match.vig_ou_2_5);
     markets.push({
       betType: 'O/U 2.5',
@@ -102,7 +102,7 @@ function generateAIRecommendation(match: ProcessedMatch): AIRecommendation | nul
     });
   }
   
-  if (match.odds_under_2_5 && match.p_under_2_5_fair > 0.45) {
+  if (match.odds_under_2_5 && match.odds_under_2_5 >= 1.3 && match.p_under_2_5_fair > 0.45) {
     const score = match.p_under_2_5_fair * match.odds_under_2_5 * (1 + match.vig_ou_2_5);
     markets.push({
       betType: 'O/U 2.5',
