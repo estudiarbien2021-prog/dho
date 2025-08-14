@@ -10,7 +10,7 @@ import { FlagMini } from '@/components/Flag';
 import { leagueToFlag } from '@/lib/leagueCountry';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Clock, TrendingDown, Target, Eye, Download, Loader2 } from 'lucide-react';
+import { Clock, TrendingDown, Target, Eye, Download, Loader2, Zap } from 'lucide-react';
 
 interface MatchDetailModalProps {
   match: ProcessedMatch | null;
@@ -259,50 +259,79 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     const progress = chartLoading[chartKey] || 0;
     const isLoading = progress < 100;
 
+    // Check if this chart matches the AI recommendation
+    const isAIRecommended = () => {
+      if (bestRecommendation.type === 'BTTS' && chartKey === 'btts' && 
+          ((bestRecommendation.prediction === 'Oui' && prediction === 'Oui') || 
+           (bestRecommendation.prediction === 'Non' && prediction === 'Non'))) {
+        return true;
+      }
+      if (bestRecommendation.type === 'O/U 2.5' && chartKey === 'over25' && 
+          ((bestRecommendation.prediction === '+2,5 buts' && prediction === '+2,5 buts') || 
+           (bestRecommendation.prediction === '-2,5 buts' && prediction === '-2,5 buts'))) {
+        return true;
+      }
+      return false;
+    };
+
+    const aiRecommended = isAIRecommended();
+
     return (
-      <Card className="group relative p-4 bg-gradient-to-br from-surface-soft to-surface-strong border border-brand/30 hover:border-brand/50 transition-all duration-500 hover:shadow-xl hover:shadow-brand/20 backdrop-blur-sm transform hover:scale-[1.02]">
-        <div className="absolute inset-0 bg-gradient-to-br from-brand/5 to-brand-300/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-        <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-transparent via-brand/5 to-transparent animate-pulse" />
+      <Card className={`group relative p-3 bg-gradient-to-br from-surface-soft to-surface-strong border transition-all duration-500 hover:shadow-xl backdrop-blur-sm transform hover:scale-[1.02] ${
+        aiRecommended 
+          ? 'border-brand/60 shadow-[0_0_20px_hsl(var(--brand)/0.4)] hover:shadow-[0_0_30px_hsl(var(--brand)/0.6)]' 
+          : 'border-brand/30 hover:border-brand/50 hover:shadow-brand/20'
+      }`}>
+        <div className={`absolute inset-0 rounded-lg transition-opacity duration-500 ${
+          aiRecommended 
+            ? 'bg-gradient-to-br from-brand/15 to-brand-300/20 opacity-100' 
+            : 'bg-gradient-to-br from-brand/5 to-brand-300/10 opacity-0 group-hover:opacity-100'
+        }`} />
+        {aiRecommended && (
+          <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-transparent via-brand/10 to-transparent animate-pulse border-2 border-brand/30" />
+        )}
         
-        <h4 className="font-semibold text-center mb-3 text-base text-text relative z-10 bg-gradient-to-r from-brand to-brand-400 bg-clip-text text-transparent transform group-hover:scale-105 transition-transform duration-300">
+        <h4 className={`font-semibold text-center mb-2 text-sm text-text relative z-10 bg-gradient-to-r from-brand to-brand-400 bg-clip-text text-transparent transform group-hover:scale-105 transition-transform duration-300 ${
+          aiRecommended ? 'drop-shadow-sm' : ''
+        }`}>
           {title}
         </h4>
 
         {isLoading ? (
-          <div className="h-40 relative z-10 flex flex-col items-center justify-center">
-            <div className="relative w-24 h-24 mb-4">
-              <div className="absolute inset-0 rounded-full border-4 border-brand/20"></div>
+          <div className="h-28 relative z-10 flex flex-col items-center justify-center">
+            <div className="relative w-16 h-16 mb-2">
+              <div className="absolute inset-0 rounded-full border-3 border-brand/20"></div>
               <div 
-                className="absolute inset-0 rounded-full border-4 border-transparent border-t-brand transition-all duration-300 animate-spin"
+                className="absolute inset-0 rounded-full border-3 border-transparent border-t-brand transition-all duration-300 animate-spin"
                 style={{
                   borderTopColor: `hsl(var(--brand))`,
                   transform: `rotate(${progress * 3.6}deg)`
                 }}
               ></div>
               <div className="absolute inset-0 flex items-center justify-center">
-                <Loader2 className="h-6 w-6 text-brand animate-spin" />
+                <Loader2 className="h-4 w-4 text-brand animate-spin" />
               </div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-brand mb-1 animate-pulse">
+              <div className="text-lg font-bold text-brand mb-1 animate-pulse">
                 {Math.round(progress)}%
               </div>
               <div className="text-xs text-text-weak animate-fade-in">
-                Analyse en cours...
+                Analyse...
               </div>
             </div>
           </div>
         ) : (
-          <div className="h-40 relative z-10 transform group-hover:scale-105 transition-transform duration-500 animate-fade-in">
+          <div className="h-28 relative z-10 transform group-hover:scale-105 transition-transform duration-500 animate-fade-in">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={data}
                   cx="50%"
                   cy="50%"
-                  innerRadius={35}
-                  outerRadius={65}
-                  paddingAngle={3}
+                  innerRadius={20}
+                  outerRadius={45}
+                  paddingAngle={2}
                   dataKey="value"
                   animationBegin={0}
                   animationDuration={1200}
@@ -313,8 +342,12 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                       key={`cell-${index}`} 
                       fill={entry.color} 
                       stroke={entry.color} 
-                      strokeWidth={2}
-                      className="drop-shadow-lg hover:drop-shadow-xl transition-all duration-300"
+                      strokeWidth={aiRecommended ? 3 : 2}
+                      className={`transition-all duration-300 ${
+                        aiRecommended 
+                          ? 'drop-shadow-[0_0_8px_hsl(var(--brand)/0.6)]' 
+                          : 'drop-shadow-lg hover:drop-shadow-xl'
+                      }`}
                     />
                   ))}
                 </Pie>
@@ -323,10 +356,11 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                   contentStyle={{
                     backgroundColor: 'hsl(var(--surface))',
                     border: '1px solid hsl(var(--brand) / 0.3)',
-                    borderRadius: '12px',
+                    borderRadius: '8px',
                     color: 'hsl(var(--text))',
                     backdropFilter: 'blur(12px)',
-                    boxShadow: '0 8px 32px hsl(var(--brand) / 0.2)'
+                    boxShadow: '0 8px 32px hsl(var(--brand) / 0.2)',
+                    fontSize: '12px'
                   }}
                 />
               </PieChart>
@@ -334,9 +368,13 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
           </div>
         )}
 
-        <div className="mt-3 text-center relative z-10">
+        <div className="mt-2 text-center relative z-10">
           {!isLoading && (
-            <Badge className="bg-gradient-to-r from-brand/30 to-brand-400/30 border-brand/40 text-text font-bold text-sm px-3 py-1 animate-fade-in">
+            <Badge className={`font-bold text-xs px-2 py-1 animate-fade-in ${
+              aiRecommended 
+                ? 'bg-gradient-to-r from-brand/50 to-brand-400/50 border-brand/60 text-brand-fg shadow-lg' 
+                : 'bg-gradient-to-r from-brand/30 to-brand-400/30 border-brand/40 text-text'
+            }`}>
               🎯 {prediction}
             </Badge>
           )}
@@ -419,7 +457,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
               <div className="w-1 h-8 bg-gradient-to-b from-brand to-brand-400 rounded-full animate-pulse"></div>
               Analyse des Probabilités IA
             </h3>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <DonutChart data={results1x2Data} title="Résultat 1X2" prediction={get1x2Winner()} chartKey="results1x2" />
               {bttsData.length > 0 && <DonutChart data={bttsData} title="Les Deux Équipes Marquent" prediction={getBttsWinner()} chartKey="btts" />}
               {over25Data.length > 0 && <DonutChart data={over25Data} title="Plus/Moins 2,5 Buts" prediction={getOver25Winner()} chartKey="over25" />}
@@ -480,65 +518,65 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                 <TrendingDown className="h-4 w-4 text-brand" />
                 Cotes Originales
               </h4>
-              <div className="space-y-2 relative z-10">
+              <div className="space-y-1.5 relative z-10">
                 <div className={`flex justify-between items-center p-2 rounded-lg border transition-all duration-300 ${
                   get1x2Winner() === match.home_team 
-                    ? 'bg-surface-strong border-brand/40 shadow-lg ring-2 ring-brand/20' 
+                    ? 'bg-gradient-to-r from-surface-strong to-surface/80 border-brand/50 shadow-lg ring-2 ring-brand/30 backdrop-blur-sm' 
                     : 'bg-surface-strong/30 border-brand/10 hover:border-brand/20'
                 }`}>
                   <span className="font-medium text-text text-sm flex items-center gap-2">
-                    {get1x2Winner() === match.home_team && <span className="text-brand">🏆</span>}
+                    {get1x2Winner() === match.home_team && <Zap className="h-3.5 w-3.5 text-brand" />}
                     Domicile:
                   </span>
-                  <span className="font-mono text-base text-brand font-bold">{match.odds_home.toFixed(2)}</span>
+                  <span className="font-mono text-sm text-brand font-bold">{match.odds_home.toFixed(2)}</span>
                 </div>
                 <div className={`flex justify-between items-center p-2 rounded-lg border transition-all duration-300 ${
                   get1x2Winner() === 'Nul' 
-                    ? 'bg-surface-strong border-brand-300/40 shadow-lg ring-2 ring-brand-300/20' 
+                    ? 'bg-gradient-to-r from-surface-strong to-surface/80 border-brand-300/50 shadow-lg ring-2 ring-brand-300/30 backdrop-blur-sm' 
                     : 'bg-surface-strong/30 border-brand-300/10 hover:border-brand-300/20'
                 }`}>
                   <span className="font-medium text-text text-sm flex items-center gap-2">
-                    {get1x2Winner() === 'Nul' && <span className="text-brand-300">🏆</span>}
+                    {get1x2Winner() === 'Nul' && <Zap className="h-3.5 w-3.5 text-brand-300" />}
                     Nul:
                   </span>
-                  <span className="font-mono text-base text-brand-300 font-bold">{match.odds_draw.toFixed(2)}</span>
+                  <span className="font-mono text-sm text-brand-300 font-bold">{match.odds_draw.toFixed(2)}</span>
                 </div>
                 <div className={`flex justify-between items-center p-2 rounded-lg border transition-all duration-300 ${
                   get1x2Winner() === match.away_team 
-                    ? 'bg-surface-strong border-brand-400/40 shadow-lg ring-2 ring-brand-400/20' 
+                    ? 'bg-gradient-to-r from-surface-strong to-surface/80 border-brand-400/50 shadow-lg ring-2 ring-brand-400/30 backdrop-blur-sm' 
                     : 'bg-surface-strong/30 border-brand-400/10 hover:border-brand-400/20'
                 }`}>
                   <span className="font-medium text-text text-sm flex items-center gap-2">
-                    {get1x2Winner() === match.away_team && <span className="text-brand-400">🏆</span>}
+                    {get1x2Winner() === match.away_team && <Zap className="h-3.5 w-3.5 text-brand-400" />}
                     Extérieur:
                   </span>
-                  <span className="font-mono text-base text-brand-400 font-bold">{match.odds_away.toFixed(2)}</span>
+                  <span className="font-mono text-sm text-brand-400 font-bold">{match.odds_away.toFixed(2)}</span>
                 </div>
                 {match.odds_btts_yes && (
                   <>
-                    <Separator className="bg-gradient-to-r from-transparent via-brand/20 to-transparent my-2" />
+                    <Separator className="bg-gradient-to-r from-transparent via-brand/20 to-transparent my-1.5" />
                     <div className={`flex justify-between items-center p-2 rounded-lg border transition-all duration-300 ${
                       getBttsWinner() === 'Oui' 
-                        ? 'bg-surface-strong border-brand/40 shadow-lg ring-2 ring-brand/20' 
+                        ? 'bg-gradient-to-r from-surface-strong to-surface/80 border-brand/50 shadow-lg ring-2 ring-brand/30 backdrop-blur-sm' 
                         : 'bg-surface-strong/30 border-brand/10 hover:border-brand/20'
                     }`}>
                       <span className="font-medium text-text text-sm flex items-center gap-2">
-                        {getBttsWinner() === 'Oui' && <span className="text-brand">🏆</span>}
+                        {getBttsWinner() === 'Oui' && <Zap className="h-3.5 w-3.5 text-brand" />}
                         BTTS Oui:
                       </span>
-                      <span className="font-mono text-base text-brand font-bold">{match.odds_btts_yes.toFixed(2)}</span>
+                      <span className="font-mono text-sm text-brand font-bold">{match.odds_btts_yes.toFixed(2)}</span>
                     </div>
                     {match.odds_btts_no && (
                       <div className={`flex justify-between items-center p-2 rounded-lg border transition-all duration-300 ${
                         getBttsWinner() === 'Non' 
-                          ? 'bg-surface-strong border-brand-300/40 shadow-lg ring-2 ring-brand-300/20' 
+                          ? 'bg-gradient-to-r from-surface-strong to-surface/80 border-brand-300/50 shadow-lg ring-2 ring-brand-300/30 backdrop-blur-sm' 
                           : 'bg-surface-strong/30 border-brand-300/10 hover:border-brand-300/20'
                       }`}>
                         <span className="font-medium text-text text-sm flex items-center gap-2">
-                          {getBttsWinner() === 'Non' && <span className="text-brand-300">🏆</span>}
+                          {getBttsWinner() === 'Non' && <Zap className="h-3.5 w-3.5 text-brand-300" />}
                           BTTS Non:
                         </span>
-                        <span className="font-mono text-base text-brand-300 font-bold">{match.odds_btts_no.toFixed(2)}</span>
+                        <span className="font-mono text-sm text-brand-300 font-bold">{match.odds_btts_no.toFixed(2)}</span>
                       </div>
                     )}
                   </>
@@ -547,26 +585,26 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                   <>
                     <div className={`flex justify-between items-center p-2 rounded-lg border transition-all duration-300 ${
                       getOver25Winner() === '+2,5 buts' 
-                        ? 'bg-surface-strong border-brand/40 shadow-lg ring-2 ring-brand/20' 
+                        ? 'bg-gradient-to-r from-surface-strong to-surface/80 border-brand/50 shadow-lg ring-2 ring-brand/30 backdrop-blur-sm' 
                         : 'bg-surface-strong/30 border-brand/10 hover:border-brand/20'
                     }`}>
                       <span className="font-medium text-text text-sm flex items-center gap-2">
-                        {getOver25Winner() === '+2,5 buts' && <span className="text-brand">🏆</span>}
+                        {getOver25Winner() === '+2,5 buts' && <Zap className="h-3.5 w-3.5 text-brand" />}
                         Over 2.5:
                       </span>
-                      <span className="font-mono text-base text-brand font-bold">{match.odds_over_2_5.toFixed(2)}</span>
+                      <span className="font-mono text-sm text-brand font-bold">{match.odds_over_2_5.toFixed(2)}</span>
                     </div>
                     {match.odds_under_2_5 && (
                       <div className={`flex justify-between items-center p-2 rounded-lg border transition-all duration-300 ${
                         getOver25Winner() === '-2,5 buts' 
-                          ? 'bg-surface-strong border-brand-300/40 shadow-lg ring-2 ring-brand-300/20' 
+                          ? 'bg-gradient-to-r from-surface-strong to-surface/80 border-brand-300/50 shadow-lg ring-2 ring-brand-300/30 backdrop-blur-sm' 
                           : 'bg-surface-strong/30 border-brand-300/10 hover:border-brand-300/20'
                       }`}>
                         <span className="font-medium text-text text-sm flex items-center gap-2">
-                          {getOver25Winner() === '-2,5 buts' && <span className="text-brand-300">🏆</span>}
+                          {getOver25Winner() === '-2,5 buts' && <Zap className="h-3.5 w-3.5 text-brand-300" />}
                           Under 2.5:
                         </span>
-                        <span className="font-mono text-base text-brand-300 font-bold">{match.odds_under_2_5.toFixed(2)}</span>
+                        <span className="font-mono text-sm text-brand-300 font-bold">{match.odds_under_2_5.toFixed(2)}</span>
                       </div>
                     )}
                   </>
@@ -575,31 +613,31 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
             </Card>
 
             {/* Vigorish */}
-            <Card className="group relative p-4 bg-gradient-to-br from-surface-soft to-surface-strong border border-brand-300/30 hover:border-brand-300/50 transition-all duration-500 hover:shadow-xl hover:shadow-brand-300/20 backdrop-blur-sm transform hover:scale-[1.01]">
+            <Card className="group relative p-3 bg-gradient-to-br from-surface-soft to-surface-strong border border-brand-300/30 hover:border-brand-300/50 transition-all duration-500 hover:shadow-xl hover:shadow-brand-300/20 backdrop-blur-sm transform hover:scale-[1.01]">
               <div className="absolute inset-0 bg-gradient-to-br from-brand-300/5 to-brand-400/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <h4 className="font-semibold mb-3 flex items-center gap-2 text-text relative z-10 text-sm">
+              <h4 className="font-semibold mb-2 flex items-center gap-2 text-text relative z-10 text-sm">
                 <Target className="h-4 w-4 text-brand-300" />
                 Marges (Vigorish)
               </h4>
-              <div className="space-y-2 relative z-10">
-                <div className="flex justify-between items-center p-2 bg-surface-strong/30 rounded-lg border border-brand-300/10 hover:border-brand-300/20 transition-colors duration-300">
+              <div className="space-y-1.5 relative z-10">
+                <div className="flex justify-between items-center p-1.5 bg-surface-strong/30 rounded-lg border border-brand-300/10 hover:border-brand-300/20 transition-colors duration-300">
                   <span className="font-medium text-text text-sm">1X2:</span>
-                  <Badge variant={match.vig_1x2 <= 0.12 ? "default" : "secondary"} className="text-xs bg-gradient-to-r from-brand-300/30 to-brand-400/30 border-brand-300/40 text-text font-bold px-2 py-1">
+                  <Badge variant={match.vig_1x2 <= 0.12 ? "default" : "secondary"} className="text-xs bg-gradient-to-r from-brand-300/30 to-brand-400/30 border-brand-300/40 text-text font-bold px-2 py-0.5">
                     {(match.vig_1x2 * 100).toFixed(1)}%
                   </Badge>
                 </div>
                 {match.vig_btts > 0 && (
-                  <div className="flex justify-between items-center p-2 bg-surface-strong/30 rounded-lg border border-brand-300/10 hover:border-brand-300/20 transition-colors duration-300">
+                  <div className="flex justify-between items-center p-1.5 bg-surface-strong/30 rounded-lg border border-brand-300/10 hover:border-brand-300/20 transition-colors duration-300">
                     <span className="font-medium text-text text-sm">BTTS:</span>
-                    <Badge variant={match.vig_btts <= 0.15 ? "default" : "secondary"} className="text-xs bg-gradient-to-r from-brand-300/30 to-brand-400/30 border-brand-300/40 text-text font-bold px-2 py-1">
+                    <Badge variant={match.vig_btts <= 0.15 ? "default" : "secondary"} className="text-xs bg-gradient-to-r from-brand-300/30 to-brand-400/30 border-brand-300/40 text-text font-bold px-2 py-0.5">
                       {(match.vig_btts * 100).toFixed(1)}%
                     </Badge>
                   </div>
                 )}
                 {match.vig_ou_2_5 > 0 && (
-                  <div className="flex justify-between items-center p-2 bg-surface-strong/30 rounded-lg border border-brand-300/10 hover:border-brand-300/20 transition-colors duration-300">
+                  <div className="flex justify-between items-center p-1.5 bg-surface-strong/30 rounded-lg border border-brand-300/10 hover:border-brand-300/20 transition-colors duration-300">
                     <span className="font-medium text-text text-sm">O/U 2.5:</span>
-                    <Badge variant={match.vig_ou_2_5 <= 0.15 ? "default" : "secondary"} className="text-xs bg-gradient-to-r from-brand-300/30 to-brand-400/30 border-brand-300/40 text-text font-bold px-2 py-1">
+                    <Badge variant={match.vig_ou_2_5 <= 0.15 ? "default" : "secondary"} className="text-xs bg-gradient-to-r from-brand-300/30 to-brand-400/30 border-brand-300/40 text-text font-bold px-2 py-0.5">
                       {(match.vig_ou_2_5 * 100).toFixed(1)}%
                     </Badge>
                   </div>
