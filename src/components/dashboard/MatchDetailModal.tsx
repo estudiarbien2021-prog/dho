@@ -785,11 +785,33 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
               {(() => {
                 // Si on a une prédiction AI de l'admin, on l'utilise, sinon on utilise la recommandation automatique
                 const useAdminPrediction = match.ai_prediction;
-                const adminRecommendation = useAdminPrediction ? {
+                
+                // Validation de cohérence : vérifier si la prédiction admin est cohérente avec les probabilités IA
+                const validateAdminPrediction = (adminPred: string) => {
+                  if (adminPred === '+2,5 buts') {
+                    return match.p_over_2_5_fair > match.p_under_2_5_fair;
+                  }
+                  if (adminPred === '-2,5 buts') {
+                    return match.p_under_2_5_fair > match.p_over_2_5_fair;
+                  }
+                  if (adminPred === 'BTTS Oui') {
+                    return match.p_btts_yes_fair > match.p_btts_no_fair;
+                  }
+                  if (adminPred === 'BTTS Non') {
+                    return match.p_btts_no_fair > match.p_btts_yes_fair;
+                  }
+                  return true; // Pour les autres types (1X2), on accepte
+                };
+
+                // Si la prédiction admin n'est pas cohérente avec les probabilités, on utilise la recommandation automatique
+                const isAdminPredictionValid = useAdminPrediction ? validateAdminPrediction(match.ai_prediction) : false;
+                const shouldUseAdminPrediction = useAdminPrediction && isAdminPredictionValid;
+                
+                const adminRecommendation = shouldUseAdminPrediction ? {
                   type: match.ai_prediction?.includes('BTTS') ? 'BTTS' : 
                         match.ai_prediction?.includes('buts') ? 'O/U 2.5' : '1X2',
                   prediction: match.ai_prediction,
-                  confidence: match.ai_confidence, // Ajout de cette propriété manquante
+                  confidence: match.ai_confidence,
                   odds: match.ai_prediction === '1' ? match.odds_home :
                         match.ai_prediction === 'X' ? match.odds_draw :
                         match.ai_prediction === '2' ? match.odds_away :
@@ -803,7 +825,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                 
                 return (
                   <>
-                    {useAdminPrediction && (
+                    {shouldUseAdminPrediction && (
                       <div className="p-4 rounded-lg bg-blue-50 border border-blue-200 dark:bg-blue-950 dark:border-blue-800 mb-4">
                         <div className="flex items-center justify-between mb-2">
                           <span className="font-semibold text-sm">Prédiction IA</span>
@@ -829,7 +851,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                       <div className="text-center md:text-left">
-                        <p className="text-sm text-text-weak mb-2">Type de pari {useAdminPrediction ? '' : '(Auto)'}</p>
+                        <p className="text-sm text-text-weak mb-2">Type de pari {shouldUseAdminPrediction ? '' : '(Auto)'}</p>
                         <Badge className="bg-gradient-to-r from-brand/40 to-brand-400/40 border-brand/60 text-brand-fg font-bold px-3 py-1">
                           {currentRecommendation.type}
                         </Badge>

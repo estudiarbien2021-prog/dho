@@ -433,37 +433,60 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
                           {(() => {
                             // Afficher d'abord les recommandations sauvegardées par l'admin
                             if (match.ai_prediction) {
-                              const predictions = {
-                                '1': match.home_team,
-                                'X': 'Nul', 
-                                '2': match.away_team,
-                                'BTTS Oui': 'BTTS Oui',
-                                'BTTS Non': 'BTTS Non',
-                                '+2,5 buts': '+2,5 buts',
-                                '-2,5 buts': '-2,5 buts'
+                              // Validation de cohérence : vérifier si la prédiction admin est cohérente avec les probabilités IA
+                              const validateAdminPrediction = (adminPred: string) => {
+                                if (adminPred === '+2,5 buts') {
+                                  return match.p_over_2_5_fair > match.p_under_2_5_fair;
+                                }
+                                if (adminPred === '-2,5 buts') {
+                                  return match.p_under_2_5_fair > match.p_over_2_5_fair;
+                                }
+                                if (adminPred === 'BTTS Oui') {
+                                  return match.p_btts_yes_fair > match.p_btts_no_fair;
+                                }
+                                if (adminPred === 'BTTS Non') {
+                                  return match.p_btts_no_fair > match.p_btts_yes_fair;
+                                }
+                                return true; // Pour les autres types (1X2), on accepte
                               };
-                              const predictionText = predictions[match.ai_prediction as keyof typeof predictions] || match.ai_prediction;
-                              const confidenceLevel = match.ai_confidence && match.ai_confidence > 0.8 ? 'high' : 
-                                match.ai_confidence && match.ai_confidence > 0.6 ? 'medium' : 'low';
+
+                              // Si la prédiction admin n'est pas cohérente, on passe à la recommandation automatique
+                              const isAdminPredictionValid = validateAdminPrediction(match.ai_prediction);
                               
-                              return (
-                                <div className="flex flex-col gap-1 items-center">
-                                  <Badge 
-                                    variant={confidenceLevel === 'high' ? 'default' : confidenceLevel === 'medium' ? 'secondary' : 'outline'}
-                                    className="text-xs"
-                                  >
-                                    🎯 {predictionText}
-                                  </Badge>
-                                  <div className="text-xs text-muted-foreground text-center">
-                                    Confiance: {generateConfidenceScore(match.id, {
-                                      type: match.ai_prediction?.includes('BTTS') ? 'BTTS' : 
-                                            match.ai_prediction?.includes('buts') ? 'O/U 2.5' : '1X2',
-                                      prediction: match.ai_prediction,
-                                      confidence: match.ai_confidence
-                                    })}%
+                              if (isAdminPredictionValid) {
+                                const predictions = {
+                                  '1': match.home_team,
+                                  'X': 'Nul', 
+                                  '2': match.away_team,
+                                  'BTTS Oui': 'BTTS Oui',
+                                  'BTTS Non': 'BTTS Non',
+                                  '+2,5 buts': '+2,5 buts',
+                                  '-2,5 buts': '-2,5 buts'
+                                };
+                                const predictionText = predictions[match.ai_prediction as keyof typeof predictions] || match.ai_prediction;
+                                const confidenceLevel = match.ai_confidence && match.ai_confidence > 0.8 ? 'high' : 
+                                  match.ai_confidence && match.ai_confidence > 0.6 ? 'medium' : 'low';
+                                
+                                return (
+                                  <div className="flex flex-col gap-1 items-center">
+                                    <Badge 
+                                      variant={confidenceLevel === 'high' ? 'default' : confidenceLevel === 'medium' ? 'secondary' : 'outline'}
+                                      className="text-xs"
+                                    >
+                                      🎯 {predictionText}
+                                    </Badge>
+                                    <div className="text-xs text-muted-foreground text-center">
+                                      Confiance: {generateConfidenceScore(match.id, {
+                                        type: match.ai_prediction?.includes('BTTS') ? 'BTTS' : 
+                                              match.ai_prediction?.includes('buts') ? 'O/U 2.5' : '1X2',
+                                        prediction: match.ai_prediction,
+                                        confidence: match.ai_confidence
+                                      })}%
+                                    </div>
                                   </div>
-                                </div>
-                              );
+                                );
+                              }
+                              // Si pas cohérent, on continue vers la recommandation automatique
                             }
                             
                             const aiRec = generateAIRecommendation(match, marketFilters);
