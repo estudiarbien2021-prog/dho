@@ -397,16 +397,24 @@ serve(async (req) => {
         
         if (dateGmt) {
           try {
-            // Custom parser for format "Aug 14 2025 - 11:00pm"
             const dateStr = dateGmt.toString().trim();
             console.log(`📅 Parsing date: "${dateStr}"`);
             
-            // Parse custom format: "Aug 14 2025 - 11:00pm"
+            // More robust parser for format "Aug 14 2025 - 11:00pm"
             const parseCustomDate = (dateString: string): Date | null => {
-              const match = dateString.match(/^(\w{3})\s+(\d{1,2})\s+(\d{4})\s+-\s+(\d{1,2}):(\d{2})(am|pm)$/);
-              if (!match) return null;
+              console.log(`🔍 Attempting to parse: "${dateString}"`);
               
-              const [, monthName, day, year, hour, minute, ampm] = match;
+              // More flexible regex to handle variations
+              const match = dateString.match(/^(\w{3})\s+(\d{1,2})\s+(\d{4})\s*-\s*(\d{1,2}):(\d{2})(am|pm)$/i);
+              console.log(`🎯 Regex match result:`, match);
+              
+              if (!match) {
+                console.log(`❌ No regex match for: "${dateString}"`);
+                return null;
+              }
+              
+              const [fullMatch, monthName, day, year, hour, minute, ampm] = match;
+              console.log(`📋 Parsed components:`, { monthName, day, year, hour, minute, ampm });
               
               // Convert month name to number
               const months: { [key: string]: number } = {
@@ -415,17 +423,30 @@ serve(async (req) => {
               };
               
               const monthIndex = months[monthName.toLowerCase()];
-              if (monthIndex === undefined) return null;
+              console.log(`📅 Month "${monthName}" -> index ${monthIndex}`);
+              
+              if (monthIndex === undefined) {
+                console.log(`❌ Unknown month: "${monthName}"`);
+                return null;
+              }
               
               // Convert 12-hour to 24-hour format
               let hour24 = parseInt(hour);
+              console.log(`🕐 Original hour: ${hour24}, period: ${ampm}`);
+              
               if (ampm.toLowerCase() === 'pm' && hour24 !== 12) {
                 hour24 += 12;
               } else if (ampm.toLowerCase() === 'am' && hour24 === 12) {
                 hour24 = 0;
               }
               
-              return new Date(parseInt(year), monthIndex, parseInt(day), hour24, parseInt(minute));
+              console.log(`🕐 Converted to 24h: ${hour24}`);
+              
+              const finalDate = new Date(parseInt(year), monthIndex, parseInt(day), hour24, parseInt(minute), 0, 0);
+              console.log(`📅 Final date object:`, finalDate);
+              console.log(`📅 Final date ISO:`, finalDate.toISOString());
+              
+              return finalDate;
             };
             
             const parsedDate = parseCustomDate(dateStr);
@@ -433,13 +454,15 @@ serve(async (req) => {
             if (parsedDate && !isNaN(parsedDate.getTime())) {
               kickoffUtc = parsedDate;
               kickoffLocal = parsedDate;
-              console.log(`✅ Date parsed successfully: ${kickoffUtc.toISOString()}, local: ${kickoffLocal.toLocaleString()}`);
+              console.log(`✅ SUCCESS! Parsed date: ${kickoffUtc.toISOString()}`);
             } else {
-              console.log(`⚠️ Failed to parse date: "${dateStr}", using current time`);
+              console.log(`❌ FAILED to parse date: "${dateStr}", using current time`);
             }
           } catch (error) {
-            console.log(`❌ Error parsing date: ${error.message}`);
+            console.log(`💥 ERROR parsing date: ${error.message}`);
           }
+        } else {
+          console.log(`⚠️ No dateGmt found in row`);
         }
         
         const matchData = {
