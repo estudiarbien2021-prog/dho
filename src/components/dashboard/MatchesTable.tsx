@@ -9,6 +9,7 @@ import { FlagMini } from '@/components/Flag';
 import { leagueToFlag } from '@/lib/leagueCountry';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { generateConfidenceScore } from '@/lib/confidence';
 
 interface AIRecommendation {
   betType: string;
@@ -453,9 +454,18 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
                                   >
                                     🎯 {predictionText}
                                   </Badge>
-                                  <div className="text-xs text-muted-foreground">
-                                    Confiance: {((match.ai_confidence || 0) * 100).toFixed(0)}%
-                                  </div>
+                                   <div className="text-xs text-muted-foreground">
+                                     Confiance: {(() => {
+                                       const { generateConfidenceScore } = require('@/lib/confidence');
+                                       const recommendation = {
+                                         type: match.ai_prediction?.includes('BTTS') ? 'BTTS' : 
+                                               match.ai_prediction?.includes('buts') ? 'O/U 2.5' : '1X2',
+                                         prediction: match.ai_prediction,
+                                         confidence: match.ai_confidence
+                                       };
+                                       return generateConfidenceScore(match.id, recommendation);
+                                     })()}%
+                                   </div>
                                 </div>
                               );
                             }
@@ -495,10 +505,16 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
                                       {aiRec.odds.toFixed(2)}
                                     </div>
                                   </div>
-                                </div>
-                              </div>
-                            );
-                          })()}
+                                 </div>
+                                 <div className="text-xs text-muted-foreground mt-1">
+                                   Confiance: {(() => {
+                                     const { generateConfidenceScore } = require('@/lib/confidence');
+                                     return generateConfidenceScore(match.id, aiRec);
+                                   })()}%
+                                 </div>
+                               </div>
+                             );
+                           })()}
                         </TableCell>
                         
                         <TableCell>
@@ -607,7 +623,10 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
                               </span>
                             </div>
                             <div className="text-xs text-muted-foreground">
-                              Confiance: {aiRec.confidence}
+                              Confiance: {(() => {
+                                const { generateConfidenceScore } = require('@/lib/confidence');
+                                return generateConfidenceScore(match.id, aiRec);
+                              })()}%
                             </div>
                           </div>
                         </div>

@@ -821,7 +821,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                         </p>
                         
                         <div className="text-sm text-muted-foreground">
-                          <span>Confiance IA: {((match.ai_confidence || 0) * 100).toFixed(0)}%</span>
+                          <span>Confiance: {generateConfidenceScore(match.id, adminRecommendation)}%</span>
                         </div>
                       </div>
                     )}
