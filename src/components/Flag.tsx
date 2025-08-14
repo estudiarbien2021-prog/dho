@@ -1,14 +1,21 @@
 import React from "react";
 import ReactCountryFlag from "react-country-flag";
+import { Globe } from "lucide-react";
 
 export function FlagMini({ code, confed }:{code?:string; confed?:"UEFA"|"CONMEBOL"}) {
   if (confed){
     return (
-      <span className="inline-flex items-center px-1.5 py-0.5 text-[10px] rounded bg-primary/10 text-primary border border-primary/20">
-        {confed}
-      </span>
+      <Globe size={16} className="text-primary" />
     );
   }
+  
+  // Check if country is international
+  if (code?.toLowerCase() === 'international') {
+    return (
+      <Globe size={16} className="text-primary" />
+    );
+  }
+  
   if (!code) return null;
   return (
     <ReactCountryFlag
