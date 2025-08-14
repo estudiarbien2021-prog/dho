@@ -10,6 +10,7 @@ import { FlagMini } from '@/components/Flag';
 import { leagueToFlag } from '@/lib/leagueCountry';
 import { generateConfidenceScore } from '@/lib/confidence';
 import { generateAIRecommendation } from '@/lib/aiRecommendation';
+import { AIRecommendationDisplay } from '@/components/AIRecommendationDisplay';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Clock, TrendingDown, Target, Eye, Download, Loader2, Zap } from 'lucide-react';
@@ -37,43 +38,21 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     }
   };
 
-  const getBttsWinner = () => match.p_btts_yes_fair > match.p_btts_no_fair ? 'Oui' : 'Non';
-  const getOver25Winner = () => {
-    const aiRec = generateAIRecommendation(match, marketFilters);
-    if (aiRec && aiRec.betType === 'O/U 2.5') {
-      return aiRec.prediction;
-    }
-    // Fallback to probability comparison
-    return match.p_over_2_5_fair > match.p_under_2_5_fair ? '+2,5 buts' : '-2,5 buts';
-  };
-
-  // Use the exact same AI recommendation logic as dashboard
-  const getBestRecommendation = () => {
-    const aiRec = generateAIRecommendation(match, marketFilters);
-    if (!aiRec) {
-      return {
-        type: 'Aucune',
-        prediction: 'Aucune opportunité détectée',
-        odds: 0,
-        probability: 0,
-        vigorish: 0,
-        score: 0,
-        confidence: 'low'
-      };
-    }
-    
+  // Helper function to normalize recommendation object
+  const normalizeRecommendation = (rec: any) => {
+    if (!rec) return null;
     return {
-      type: aiRec.betType,
-      prediction: aiRec.prediction,
-      odds: aiRec.odds,
-      confidence: aiRec.confidence,
-      probability: 0, // Not needed for display
-      vigorish: 0,    // Not needed for display
-      score: 0        // Not needed for display
+      type: rec.betType || rec.type || 'Aucune',
+      prediction: rec.prediction || 'Aucune',
+      odds: rec.odds || 0,
+      confidence: rec.confidence || 'low'
     };
   };
 
-  const bestRecommendation = getBestRecommendation();
+  const getBttsWinner = () => match.p_btts_yes_fair > match.p_btts_no_fair ? 'Oui' : 'Non';
+  const getOver25Winner = () => {
+    return match.p_over_2_5_fair > match.p_under_2_5_fair ? '+2,5 buts' : '-2,5 buts';
+  };
 
   // Generate AI recommendation explanation combining all 3 styles
   const generateRecommendationExplanation = (recommendation: any) => {
@@ -451,14 +430,17 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
 
     // Check if this chart matches the AI recommendation
     const isAIRecommended = () => {
-      if (bestRecommendation.type === 'BTTS' && chartKey === 'btts' && 
-          ((bestRecommendation.prediction === 'Oui' && prediction === 'Oui') || 
-           (bestRecommendation.prediction === 'Non' && prediction === 'Non'))) {
+      const aiRec = generateAIRecommendation(match, marketFilters);
+      if (!aiRec) return false;
+      
+      if (aiRec.betType === 'BTTS' && chartKey === 'btts' && 
+          ((aiRec.prediction === 'Oui' && prediction === 'Oui') || 
+           (aiRec.prediction === 'Non' && prediction === 'Non'))) {
         return true;
       }
-      if (bestRecommendation.type === 'O/U 2.5' && chartKey === 'over25' && 
-          ((bestRecommendation.prediction === '+2,5 buts' && prediction === '+2,5 buts') || 
-           (bestRecommendation.prediction === '-2,5 buts' && prediction === '-2,5 buts'))) {
+      if (aiRec.betType === 'O/U 2.5' && chartKey === 'over25' && 
+          ((aiRec.prediction === '+2,5 buts' && prediction === '+2,5 buts') || 
+           (aiRec.prediction === '-2,5 buts' && prediction === '-2,5 buts'))) {
         return true;
       }
       return false;
@@ -712,7 +694,10 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                         match.ai_prediction === '-2,5 buts' ? (match.odds_under_2_5 || 0) : 1.0
                 } : null;
                 
-                const currentRecommendation = adminRecommendation || bestRecommendation;
+                const aiRec = generateAIRecommendation(match, marketFilters);
+                const normalizedAiRec = normalizeRecommendation(aiRec);
+                const normalizedAdminRec = normalizeRecommendation(adminRecommendation);
+                const currentRecommendation = normalizedAdminRec || normalizedAiRec;
                 
                 return (
                   <>
@@ -744,28 +729,33 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                       <div className="text-center md:text-left">
                         <p className="text-sm text-text-weak mb-2">Type de pari {shouldUseAdminPrediction ? '' : '(Auto)'}</p>
                         <Badge className="bg-gradient-to-r from-brand/40 to-brand-400/40 border-brand/60 text-brand-fg font-bold px-3 py-1">
-                          {currentRecommendation.type}
+                          {currentRecommendation?.type || 'Aucune'}
                         </Badge>
                       </div>
                       <div className="text-center md:text-left">
                         <p className="text-sm text-text-weak mb-2">Prédiction</p>
                         <p className="font-bold text-lg text-brand">
-                          {currentRecommendation.prediction}
+                          {currentRecommendation?.prediction || 'Aucune'}
                         </p>
                       </div>
                       <div className="text-center md:text-left">
                         <p className="text-sm text-text-weak mb-2">Cote</p>
-                        <Badge variant="outline" className="bg-gradient-to-r from-brand/30 to-brand-400/30 border-brand/50 text-text font-bold text-lg">
-                          {currentRecommendation.odds.toFixed(2)}
-                        </Badge>
+                         <Badge variant="outline" className="bg-gradient-to-r from-brand/30 to-brand-400/30 border-brand/50 text-text font-bold text-lg">
+                           {currentRecommendation?.odds?.toFixed(2) || '0.00'}
+                         </Badge>
                       </div>
                     </div>
                     
                     {/* AI Explanation */}
                     <div className="mt-4 p-4 bg-gradient-to-r from-brand/5 to-brand-400/5 rounded-lg border border-brand/20">
                       <div className="text-sm text-text leading-relaxed">
-                        <div dangerouslySetInnerHTML={{ 
-                          __html: generateRecommendationExplanation(currentRecommendation).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
+                         <div dangerouslySetInnerHTML={{ 
+                           __html: generateRecommendationExplanation(currentRecommendation || {
+                             type: 'Aucune',
+                             prediction: 'Aucune',
+                             odds: 0,
+                             confidence: 'low'
+                           }).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                         }} />
                       </div>
                     </div>

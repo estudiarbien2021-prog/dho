@@ -12,6 +12,7 @@ import { fr } from 'date-fns/locale';
 import { generateConfidenceScore } from '@/lib/confidence';
 
 import { generateAIRecommendation, AIRecommendation } from '@/lib/aiRecommendation';
+import { AIRecommendationDisplay } from '@/components/AIRecommendationDisplay';
 
 interface MatchesTableProps {
   matches: ProcessedMatch[];
@@ -278,129 +279,12 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
                         </TableCell>
                         
                         <TableCell>
-                          {(() => {
-                            // Afficher d'abord les recommandations sauvegardées par l'admin
-                            if (match.ai_prediction) {
-                              // Validation de cohérence : vérifier si la prédiction admin est cohérente avec les probabilités IA
-                              const validateAdminPrediction = (adminPred: string) => {
-                                console.log('🔍 VALIDATION ADMIN PREDICTION:', {
-                                  adminPred,
-                                  p_over_2_5_fair: match.p_over_2_5_fair,
-                                  p_under_2_5_fair: match.p_under_2_5_fair,
-                                  p_btts_yes_fair: match.p_btts_yes_fair,
-                                  p_btts_no_fair: match.p_btts_no_fair,
-                                  home_team: match.home_team,
-                                  away_team: match.away_team
-                                });
-                                
-                                if (adminPred === '+2,5 buts') {
-                                  const isValid = match.p_over_2_5_fair > match.p_under_2_5_fair;
-                                  console.log('✅ +2,5 buts validation:', isValid);
-                                  return isValid;
-                                }
-                                if (adminPred === '-2,5 buts') {
-                                  const isValid = match.p_under_2_5_fair > match.p_over_2_5_fair;
-                                  console.log('✅ -2,5 buts validation:', isValid);
-                                  return isValid;
-                                }
-                                if (adminPred === 'BTTS Oui') {
-                                  const isValid = match.p_btts_yes_fair > match.p_btts_no_fair;
-                                  console.log('✅ BTTS Oui validation:', isValid);
-                                  return isValid;
-                                }
-                                if (adminPred === 'BTTS Non') {
-                                  const isValid = match.p_btts_no_fair > match.p_btts_yes_fair;
-                                  console.log('✅ BTTS Non validation:', isValid);
-                                  return isValid;
-                                }
-                                console.log('✅ Other prediction type accepted:', adminPred);
-                                return true; // Pour les autres types (1X2), on accepte
-                              };
-
-                              // Si la prédiction admin n'est pas cohérente, on passe à la recommandation automatique
-                              const isAdminPredictionValid = validateAdminPrediction(match.ai_prediction);
-                              console.log('🎯 FINAL VALIDATION RESULT:', isAdminPredictionValid);
-                              
-                              if (isAdminPredictionValid) {
-                                const predictions = {
-                                  '1': match.home_team,
-                                  'X': 'Nul', 
-                                  '2': match.away_team,
-                                  'BTTS Oui': 'BTTS Oui',
-                                  'BTTS Non': 'BTTS Non',
-                                  '+2,5 buts': '+2,5 buts',
-                                  '-2,5 buts': '-2,5 buts'
-                                };
-                                const predictionText = predictions[match.ai_prediction as keyof typeof predictions] || match.ai_prediction;
-                                const confidenceLevel = match.ai_confidence && match.ai_confidence > 0.8 ? 'high' : 
-                                  match.ai_confidence && match.ai_confidence > 0.6 ? 'medium' : 'low';
-                                
-                                return (
-                                  <div className="flex flex-col gap-1 items-center">
-                                    <Badge 
-                                      variant={confidenceLevel === 'high' ? 'default' : confidenceLevel === 'medium' ? 'secondary' : 'outline'}
-                                      className="text-xs"
-                                    >
-                                      🎯 {predictionText}
-                                    </Badge>
-                                    <div className="text-xs text-muted-foreground text-center">
-                                      Confiance: {generateConfidenceScore(match.id, {
-                                        type: match.ai_prediction?.includes('BTTS') ? 'BTTS' : 
-                                              match.ai_prediction?.includes('buts') ? 'O/U 2.5' : '1X2',
-                                        prediction: match.ai_prediction,
-                                        confidence: match.ai_confidence
-                                      })}%
-                                    </div>
-                                  </div>
-                                );
-                              } else {
-                                console.log('❌ ADMIN PREDICTION REJECTED - Using automatic recommendation instead');
-                                // Si pas cohérent, on continue vers la recommandation automatique  
-                              }
-                            }
-                            
-                            const aiRec = generateAIRecommendation(match, marketFilters);
-                            
-                            if (!aiRec) {
-                              return (
-                                <div className="text-xs text-muted-foreground">
-                                  Aucune opportunité détectée
-                                </div>
-                              );
-                            }
-
-                            return (
-                              <div className="bg-green-100 p-2 rounded-lg border border-green-200 min-w-[180px] text-center">
-                                <div className="flex items-center justify-center gap-2 mb-2">
-                                  <Brain className="h-3 w-3 text-green-600" />
-                                  <span className="text-xs font-semibold text-green-700">Recommandation IA</span>
-                                </div>
-                                <div className="grid grid-cols-3 gap-2 text-xs">
-                                  <div>
-                                    <span className="text-green-600">Type de pari</span>
-                                    <div className="bg-green-200 text-green-800 px-2 py-1 rounded mt-1 font-medium">
-                                      {aiRec.betType}
-                                    </div>
-                                  </div>
-                                  <div>
-                                    <span className="text-green-600">Prédiction</span>
-                                    <div className="text-green-800 font-medium mt-1">
-                                      {aiRec.prediction}
-                                    </div>
-                                  </div>
-                                  <div>
-                                    <span className="text-green-600">Cote</span>
-                                    <div className="bg-green-200 text-green-800 px-2 py-1 rounded mt-1 font-bold">
-                                      {aiRec.odds.toFixed(2)}
-                                    </div>
-                                  </div>
-                                 </div>
-                                 <div className="text-xs text-muted-foreground mt-1 text-center">
-                                   Confiance: {generateConfidenceScore(match.id, aiRec)}%
-                                 </div>
-                               </div>
-                             );
-                           })()}
+                          <AIRecommendationDisplay
+                            match={match}
+                            marketFilters={marketFilters}
+                            variant="detailed"
+                            showIcon={true}
+                          />
                         </TableCell>
                         
                         <TableCell>
