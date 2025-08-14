@@ -2,3 +2,6 @@ project_id = "dnasdyvakwsvngajpuds"
 
 [functions.scrape-odds]
 verify_jwt = false
+
+[functions.process-matches-csv]
+verify_jwt = false

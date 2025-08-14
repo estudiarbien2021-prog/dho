@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Dashboard } from './pages/Dashboard';
+import { Admin } from './pages/Admin';
+import { Archives } from './pages/Archives';
 import Landing from './pages/Landing';
 import Auth from './pages/Auth';
 import { Language } from './lib/i18n';
@@ -20,6 +22,8 @@ const App: React.FC = () => {
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/admin" element={<Admin />} />
+          <Route path="/archives" element={<Archives />} />
           <Route 
             path="/dashboard" 
             element={

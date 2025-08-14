@@ -1,133 +1,292 @@
-import React from 'react';
-import { Download, Calendar, FileText } from 'lucide-react';
-import { Language, useTranslation } from '@/lib/i18n';
+import React, { useState, useEffect } from 'react';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Calendar, Search, Archive, TrendingUp } from 'lucide-react';
+import { useDatabaseMatches } from '@/hooks/useDatabaseMatches';
+import { MatchesTable } from '@/components/dashboard/MatchesTable';
+import { MatchDetailModal } from '@/components/dashboard/MatchDetailModal';
+import { KPIHeader } from '@/components/dashboard/KPIHeader';
+import { ProcessedMatch } from '@/types/match';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import { supabase } from '@/integrations/supabase/client';
 
-interface ArchivesProps {
-  currentLang: Language;
+interface ArchiveDate {
+  date: string;
+  count: number;
 }
 
-export function Archives({ currentLang }: ArchivesProps) {
-  const t = useTranslation(currentLang);
+export function Archives() {
+  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [availableDates, setAvailableDates] = useState<ArchiveDate[]>([]);
+  const [selectedMatch, setSelectedMatch] = useState<ProcessedMatch | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  const { matches, isLoading, error, filters, setFilters, availableLeagues, stats } = useDatabaseMatches(selectedDate);
 
-  // Mock data for demonstration
-  const mockArchives = [
-    {
-      date: '2024-01-15',
-      total_matches: 150,
-      iffhs_matches: 89,
-      shortlist_count: 23
-    },
-    {
-      date: '2024-01-14',
-      total_matches: 132,
-      iffhs_matches: 76,
-      shortlist_count: 18
-    },
-    {
-      date: '2024-01-13',
-      total_matches: 98,
-      iffhs_matches: 54,
-      shortlist_count: 12
+  // Load available archive dates
+  useEffect(() => {
+    loadAvailableDates();
+  }, []);
+
+  const loadAvailableDates = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('matches')
+        .select('match_date')
+        .order('match_date', { ascending: false });
+
+      if (error) throw error;
+
+      // Group by date and count matches
+      const dateMap = new Map<string, number>();
+      data?.forEach(match => {
+        const date = match.match_date;
+        dateMap.set(date, (dateMap.get(date) || 0) + 1);
+      });
+
+      const dates: ArchiveDate[] = Array.from(dateMap.entries()).map(([date, count]) => ({
+        date,
+        count
+      }));
+
+      setAvailableDates(dates);
+      
+      // Auto-select the most recent date if no date is selected
+      if (!selectedDate && dates.length > 0) {
+        setSelectedDate(dates[0].date);
+      }
+    } catch (error) {
+      console.error('Error loading available dates:', error);
     }
-  ];
+  };
 
-  const exportTypes = [
-    { key: 'clean', label: 'Données nettoyées', desc: 'Toutes les données normalisées' },
-    { key: 'iffhs', label: 'IFFHS + Coupes', desc: 'Scope compétitions appliqué' },
-    { key: 'shortlist', label: 'Shortlist', desc: 'Low-vig + Watch signals' }
-  ];
+  const handleMatchClick = (match: ProcessedMatch) => {
+    setSelectedMatch(match);
+    setIsModalOpen(true);
+  };
+
+  const updateFilters = (updates: Partial<typeof filters>) => {
+    setFilters({ ...filters, ...updates });
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      search: '',
+      leagues: [],
+      timeWindow: 'all',
+      groupBy: 'time',
+      marketFilters: []
+    });
+  };
+
+  const hasActiveFilters = filters.search || filters.leagues.length > 0 || 
+    (filters.marketFilters && filters.marketFilters.length > 0);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-text">{t.archives}</h1>
-        <div className="text-sm text-text-mute">
-          Les exports sont archivés par date d'import
-        </div>
+    <div className="container mx-auto py-8 space-y-8">
+      {/* Header */}
+      <div className="text-center">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-brand to-brand-400 bg-clip-text text-transparent mb-2">
+          Archives des Matchs
+        </h1>
+        <p className="text-text-weak">
+          Consultez l'historique complet des matchs par date
+        </p>
       </div>
 
-      {mockArchives.length === 0 ? (
-        <div className="bg-surface-soft rounded-xl p-12 text-center border border-surface-strong">
-          <FileText className="w-12 h-12 text-text-mute mx-auto mb-4" />
-          <p className="text-lg text-text-mute">Aucun archive disponible</p>
-          <p className="text-text-mute mt-2">Importez votre premier fichier CSV pour commencer</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {mockArchives.map((archive) => (
-            <div key={archive.date} className="bg-surface-soft rounded-xl p-6 border border-surface-strong">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-brand-100 rounded-full flex items-center justify-center">
-                    <Calendar className="w-5 h-5 text-brand" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-text">
-                      {new Date(archive.date).toLocaleDateString(currentLang === 'fr' ? 'fr-FR' : 'en-US', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })}
-                    </h3>
-                    <p className="text-sm text-text-mute">
-                      {archive.total_matches} matchs • {archive.iffhs_matches} IFFHS • {archive.shortlist_count} shortlist
-                    </p>
-                  </div>
-                </div>
-              </div>
+      {/* Date Selection & Stats */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Date Selection */}
+        <Card className="p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <Calendar className="h-5 w-5 text-brand" />
+            <h3 className="font-semibold">Sélectionner une date</h3>
+          </div>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="archiveDate">Date des matchs</Label>
+              <Input
+                id="archiveDate"
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+              />
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {exportTypes.map((type) => (
-                  <div key={type.key} className="bg-surface rounded-lg p-4 border border-surface-strong">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium text-text">{type.label}</h4>
-                      <button className="p-1 rounded text-text-weak hover:text-brand hover:bg-brand-50 transition-colors">
-                        <Download className="w-4 h-4" />
-                      </button>
-                    </div>
-                    <p className="text-xs text-text-mute">{type.desc}</p>
-                  </div>
+            <div className="space-y-2">
+              <Label className="text-sm">Dates récentes disponibles</Label>
+              <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto">
+                {availableDates.slice(0, 10).map(({ date, count }) => (
+                  <Button
+                    key={date}
+                    variant={selectedDate === date ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedDate(date)}
+                    className="justify-between"
+                  >
+                    <span>{format(new Date(date), 'dd/MM/yyyy', { locale: fr })}</span>
+                    <Badge variant="secondary" className="ml-2">
+                      {count}
+                    </Badge>
+                  </Button>
                 ))}
               </div>
             </div>
-          ))}
+          </div>
+        </Card>
+
+        {/* Stats */}
+        <div className="lg:col-span-2">
+          {selectedDate && !isLoading && (
+            <KPIHeader
+              stats={stats}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* Filters */}
+      {selectedDate && (
+        <Card className="p-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Search className="h-5 w-5 text-muted-foreground" />
+              <h3 className="font-semibold">Filtres</h3>
+            </div>
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" onClick={clearFilters}>
+                Reset
+              </Button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Search */}
+            <div className="space-y-2">
+              <Label htmlFor="search" className="text-sm font-medium">Recherche</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="search"
+                  placeholder="Équipes, ligues..."
+                  value={filters.search}
+                  onChange={(e) => updateFilters({ search: e.target.value })}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+
+            {/* Market Filters */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Marchés</Label>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { id: 'btts_yes', label: 'BTTS Oui' },
+                  { id: 'btts_no', label: 'BTTS Non' },
+                  { id: 'over25', label: '+2.5' },
+                  { id: 'under25', label: '-2.5' }
+                ].map(market => (
+                  <Button
+                    key={market.id}
+                    variant={filters.marketFilters && filters.marketFilters.includes(market.id) ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                      const currentMarkets = filters.marketFilters || [];
+                      const newMarkets = currentMarkets.includes(market.id)
+                        ? currentMarkets.filter(m => m !== market.id)
+                        : [...currentMarkets, market.id];
+                      updateFilters({ marketFilters: newMarkets });
+                    }}
+                    className="text-xs h-8"
+                  >
+                    {market.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* League Quick Filters */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Ligues populaires</Label>
+              <div className="flex flex-wrap gap-2">
+                {availableLeagues.slice(0, 3).map(league => (
+                  <Button
+                    key={league}
+                    variant={filters.leagues.includes(league) ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                      const newLeagues = filters.leagues.includes(league)
+                        ? filters.leagues.filter(l => l !== league)
+                        : [...filters.leagues, league];
+                      updateFilters({ leagues: newLeagues });
+                    }}
+                    className="text-xs h-8"
+                  >
+                    {league}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Results */}
+      {!selectedDate ? (
+        <Card className="p-12 text-center">
+          <Archive className="h-16 w-16 mx-auto mb-4 text-text-weak" />
+          <h3 className="text-xl font-semibold mb-2">Sélectionnez une date</h3>
+          <p className="text-text-weak">
+            Choisissez une date dans le calendrier pour voir les matchs archivés
+          </p>
+        </Card>
+      ) : isLoading ? (
+        <Card className="p-12 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand mx-auto mb-4"></div>
+          <p className="text-text-weak">Chargement des matchs...</p>
+        </Card>
+      ) : error ? (
+        <Card className="p-12 text-center">
+          <p className="text-red-600 mb-4">Erreur: {error}</p>
+          <Button onClick={() => window.location.reload()}>
+            Réessayer
+          </Button>
+        </Card>
+      ) : (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-semibold flex items-center gap-2">
+              <TrendingUp className="h-6 w-6 text-brand" />
+              Matchs du {format(new Date(selectedDate), 'dd MMMM yyyy', { locale: fr })}
+            </h2>
+            <Badge variant="outline" className="text-lg px-3 py-1">
+              {matches.length} match{matches.length > 1 ? 's' : ''}
+            </Badge>
+          </div>
+          
+          <MatchesTable 
+            matches={matches} 
+            onMatchClick={handleMatchClick}
+            marketFilters={filters.marketFilters}
+          />
         </div>
       )}
 
-      {/* Info Panel */}
-      <div className="bg-surface-soft rounded-xl p-6 border border-surface-strong">
-        <h3 className="text-lg font-semibold text-text mb-4">À propos des exports</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
-          <div>
-            <h4 className="font-medium text-text mb-2">Données nettoyées</h4>
-            <ul className="space-y-1 text-text-weak">
-              <li>• Normalisation des datetime</li>
-              <li>• Calcul des probas fair</li>
-              <li>• Calcul du vigorish</li>
-              <li>• Flags low-vig et watch</li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-medium text-text mb-2">IFFHS + Coupes</h4>
-            <ul className="space-y-1 text-text-weak">
-              <li>• 1ère div des 50 pays IFFHS</li>
-              <li>• 2ème div des 10 premiers</li>
-              <li>• Coupes continentales</li>
-              <li>• Coupes nationales</li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-medium text-text mb-2">Shortlist</h4>
-            <ul className="space-y-1 text-text-weak">
-              <li>• Low-vig 1X2 (≤ 12%)</li>
-              <li>• Watch BTTS (≥60%, vig≤15%)</li>
-              <li>• Watch Over 2.5 (≥60%, vig≤15%)</li>
-              <li>• Seulement les signaux forts</li>
-            </ul>
-          </div>
-        </div>
-      </div>
+      {/* Match Detail Modal */}
+      <MatchDetailModal
+        match={selectedMatch}
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedMatch(null);
+        }}
+        marketFilters={filters.marketFilters}
+      />
     </div>
   );
 }

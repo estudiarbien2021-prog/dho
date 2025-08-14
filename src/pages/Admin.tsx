@@ -1,0 +1,317 @@
+import React, { useState, useEffect } from 'react';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { toast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { Upload, RefreshCw, Calendar, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+
+interface UploadHistory {
+  id: string;
+  upload_date: string;
+  filename: string;
+  total_matches: number;
+  processed_matches: number;
+  status: 'pending' | 'processing' | 'completed' | 'error';
+  error_message?: string;
+  created_at: string;
+}
+
+export function Admin() {
+  const [csvUrl, setCsvUrl] = useState('');
+  const [matchDate, setMatchDate] = useState(new Date().toISOString().split('T')[0]);
+  const [filename, setFilename] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [uploadHistory, setUploadHistory] = useState<UploadHistory[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+
+  // Load upload history
+  useEffect(() => {
+    loadUploadHistory();
+  }, []);
+
+  const loadUploadHistory = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('match_uploads')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+      setUploadHistory((data || []) as UploadHistory[]);
+    } catch (error) {
+      console.error('Error loading upload history:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger l'historique des uploads",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
+  const handleProcessCSV = async () => {
+    if (!csvUrl.trim()) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez entrer une URL CSV valide",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      console.log('🚀 Appel de l\'Edge Function process-matches-csv...');
+      
+      const { data, error } = await supabase.functions.invoke('process-matches-csv', {
+        body: {
+          csvUrl: csvUrl.trim(),
+          matchDate,
+          filename: filename.trim() || undefined
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      console.log('✅ Réponse Edge Function:', data);
+
+      toast({
+        title: "Succès !",
+        description: `${data.processedMatches} matchs traités avec succès pour le ${data.uploadDate}`,
+      });
+
+      // Clear form
+      setCsvUrl('');
+      setFilename('');
+      
+      // Reload history
+      await loadUploadHistory();
+      
+    } catch (error) {
+      console.error('❌ Erreur traitement CSV:', error);
+      toast({
+        title: "Erreur",
+        description: error.message || "Erreur lors du traitement du CSV",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return <CheckCircle className="h-4 w-4 text-green-600" />;
+      case 'error':
+        return <XCircle className="h-4 w-4 text-red-600" />;
+      case 'processing':
+        return <RefreshCw className="h-4 w-4 text-blue-600 animate-spin" />;
+      default:
+        return <Clock className="h-4 w-4 text-yellow-600" />;
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    const variants = {
+      completed: 'default',
+      error: 'destructive',
+      processing: 'secondary',
+      pending: 'outline'
+    } as const;
+
+    const labels = {
+      completed: 'Terminé',
+      error: 'Erreur',
+      processing: 'En cours',
+      pending: 'En attente'
+    };
+
+    return (
+      <Badge variant={variants[status as keyof typeof variants] || 'outline'}>
+        {labels[status as keyof typeof labels] || status}
+      </Badge>
+    );
+  };
+
+  return (
+    <div className="container mx-auto py-8 space-y-8">
+      {/* Header */}
+      <div className="text-center">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-brand to-brand-400 bg-clip-text text-transparent mb-2">
+          Administration des Matchs
+        </h1>
+        <p className="text-text-weak">
+          Gérez le téléchargement et le traitement automatique des fichiers CSV de matchs
+        </p>
+      </div>
+
+      {/* CSV Upload Form */}
+      <Card className="p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <Upload className="h-6 w-6 text-brand" />
+          <h2 className="text-2xl font-semibold">Traiter un nouveau CSV</h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="csvUrl">URL du fichier CSV *</Label>
+              <Input
+                id="csvUrl"
+                type="url"
+                placeholder="https://example.com/matches.csv"
+                value={csvUrl}
+                onChange={(e) => setCsvUrl(e.target.value)}
+                disabled={isProcessing}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="matchDate">Date des matchs</Label>
+              <Input
+                id="matchDate"
+                type="date"
+                value={matchDate}
+                onChange={(e) => setMatchDate(e.target.value)}
+                disabled={isProcessing}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="filename">Nom du fichier (optionnel)</Label>
+              <Input
+                id="filename"
+                placeholder="matches-2024-08-14.csv"
+                value={filename}
+                onChange={(e) => setFilename(e.target.value)}
+                disabled={isProcessing}
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col justify-center space-y-4">
+            <div className="p-4 bg-surface-soft rounded-lg">
+              <h3 className="font-semibold mb-2">ℹ️ Instructions</h3>
+              <ul className="text-sm text-text-weak space-y-1">
+                <li>• Entrez l'URL directe du fichier CSV</li>
+                <li>• Le fichier sera téléchargé et traité automatiquement</li>
+                <li>• Les doublons sont automatiquement gérés</li>
+                <li>• Ajoutez une colonne "country" pour des drapeaux précis</li>
+              </ul>
+            </div>
+
+            <Button 
+              onClick={handleProcessCSV}
+              disabled={isProcessing || !csvUrl.trim()}
+              className="w-full"
+              size="lg"
+            >
+              {isProcessing ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Traitement en cours...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Traiter le CSV
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      {/* Upload History */}
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <Calendar className="h-6 w-6 text-brand" />
+            <h2 className="text-2xl font-semibold">Historique des traitements</h2>
+          </div>
+          <Button variant="outline" onClick={loadUploadHistory} disabled={isLoadingHistory}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingHistory ? 'animate-spin' : ''}`} />
+            Actualiser
+          </Button>
+        </div>
+
+        {isLoadingHistory ? (
+          <div className="text-center py-8">
+            <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-brand" />
+            <p className="text-text-weak">Chargement de l'historique...</p>
+          </div>
+        ) : uploadHistory.length > 0 ? (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Fichier</TableHead>
+                  <TableHead>Statut</TableHead>
+                  <TableHead>Matchs</TableHead>
+                  <TableHead>Traités</TableHead>
+                  <TableHead>Créé le</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {uploadHistory.map((upload) => (
+                  <TableRow key={upload.id}>
+                    <TableCell className="font-medium">
+                      {format(new Date(upload.upload_date), 'dd/MM/yyyy', { locale: fr })}
+                    </TableCell>
+                    <TableCell>
+                      <code className="text-sm bg-surface-soft px-2 py-1 rounded">
+                        {upload.filename}
+                      </code>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {getStatusIcon(upload.status)}
+                        {getStatusBadge(upload.status)}
+                      </div>
+                      {upload.error_message && (
+                        <p className="text-xs text-red-600 mt-1">
+                          {upload.error_message}
+                        </p>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{upload.total_matches}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={upload.processed_matches === upload.total_matches ? 'default' : 'secondary'}>
+                        {upload.processed_matches}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-text-weak">
+                      {format(new Date(upload.created_at), 'dd/MM HH:mm', { locale: fr })}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <Calendar className="h-12 w-12 mx-auto mb-4 text-text-weak" />
+            <p className="text-text-weak">Aucun traitement trouvé</p>
+            <p className="text-sm text-text-weak mt-2">
+              Commencez par traiter votre premier fichier CSV
+            </p>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}

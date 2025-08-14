@@ -14,7 +14,141 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      match_uploads: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          filename: string
+          id: string
+          processed_matches: number
+          status: string
+          total_matches: number
+          upload_date: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          filename: string
+          id?: string
+          processed_matches?: number
+          status?: string
+          total_matches?: number
+          upload_date?: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          filename?: string
+          id?: string
+          processed_matches?: number
+          status?: string
+          total_matches?: number
+          upload_date?: string
+        }
+        Relationships: []
+      }
+      matches: {
+        Row: {
+          away_team: string
+          category: string
+          country: string | null
+          created_at: string
+          home_team: string
+          id: string
+          is_low_vig_1x2: boolean
+          kickoff_local: string
+          kickoff_utc: string
+          league: string
+          match_date: string
+          odds_away: number
+          odds_btts_no: number | null
+          odds_btts_yes: number | null
+          odds_draw: number
+          odds_home: number
+          odds_over_2_5: number | null
+          odds_under_2_5: number | null
+          p_away_fair: number
+          p_btts_no_fair: number
+          p_btts_yes_fair: number
+          p_draw_fair: number
+          p_home_fair: number
+          p_over_2_5_fair: number
+          p_under_2_5_fair: number
+          updated_at: string
+          vig_1x2: number
+          vig_btts: number
+          vig_ou_2_5: number
+          watch_btts: boolean
+          watch_over25: boolean
+        }
+        Insert: {
+          away_team: string
+          category: string
+          country?: string | null
+          created_at?: string
+          home_team: string
+          id?: string
+          is_low_vig_1x2?: boolean
+          kickoff_local: string
+          kickoff_utc: string
+          league: string
+          match_date?: string
+          odds_away?: number
+          odds_btts_no?: number | null
+          odds_btts_yes?: number | null
+          odds_draw?: number
+          odds_home?: number
+          odds_over_2_5?: number | null
+          odds_under_2_5?: number | null
+          p_away_fair?: number
+          p_btts_no_fair?: number
+          p_btts_yes_fair?: number
+          p_draw_fair?: number
+          p_home_fair?: number
+          p_over_2_5_fair?: number
+          p_under_2_5_fair?: number
+          updated_at?: string
+          vig_1x2?: number
+          vig_btts?: number
+          vig_ou_2_5?: number
+          watch_btts?: boolean
+          watch_over25?: boolean
+        }
+        Update: {
+          away_team?: string
+          category?: string
+          country?: string | null
+          created_at?: string
+          home_team?: string
+          id?: string
+          is_low_vig_1x2?: boolean
+          kickoff_local?: string
+          kickoff_utc?: string
+          league?: string
+          match_date?: string
+          odds_away?: number
+          odds_btts_no?: number | null
+          odds_btts_yes?: number | null
+          odds_draw?: number
+          odds_home?: number
+          odds_over_2_5?: number | null
+          odds_under_2_5?: number | null
+          p_away_fair?: number
+          p_btts_no_fair?: number
+          p_btts_yes_fair?: number
+          p_draw_fair?: number
+          p_home_fair?: number
+          p_over_2_5_fair?: number
+          p_under_2_5_fair?: number
+          updated_at?: string
+          vig_1x2?: number
+          vig_btts?: number
+          vig_ou_2_5?: number
+          watch_btts?: boolean
+          watch_over25?: boolean
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
