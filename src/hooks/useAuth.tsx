@@ -16,6 +16,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // User activity tracking moved here to avoid circular dependencies
+  useEffect(() => {
+    const updateLastLogin = async () => {
+      if (!user) return;
+
+      try {
+        // Update last_login_at for the current user
+        const { error } = await supabase
+          .from('profiles')
+          .update({ last_login_at: new Date().toISOString() })
+          .eq('user_id', user.id);
+
+        if (error) {
+          console.error('Error updating last login:', error);
+        }
+      } catch (error) {
+        console.error('Error updating user activity:', error);
+      }
+    };
+
+    // Update on first load if user is logged in
+    if (user) {
+      updateLastLogin();
+    }
+  }, [user]);
+
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(

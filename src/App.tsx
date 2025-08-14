@@ -9,13 +9,9 @@ import Auth from './pages/Auth';
 import { Language } from './lib/i18n';
 import { AuthProvider } from './hooks/useAuth';
 import { ProtectedRoute } from './components/ProtectedRoute';
-import { useUserActivity } from './hooks/useUserActivity';
 
 const AppContent: React.FC = () => {
   const [currentLang] = useState<Language>('fr');
-  
-  // Track user activity for login timestamps
-  useUserActivity();
 
   return (
     <Routes>
