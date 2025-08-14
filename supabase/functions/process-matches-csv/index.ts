@@ -305,10 +305,20 @@ serve(async (req) => {
 
         // Be VERY lenient - accept if we have at least 2 team names
         if (!finalHomeTeam || !finalAwayTeam) {
-          console.log(`⚠️ LIGNE REJETÉE - Pas assez d'équipes trouvées`);
+          console.log(`⚠️ LIGNE ${csvRows.indexOf(row) + 1} REJETÉE - Pas assez d'équipes trouvées`);
           console.log(`   - Home: "${finalHomeTeam}"`);
           console.log(`   - Away: "${finalAwayTeam}"`);
-          console.log(`   - Clés: ${Object.keys(row).join(', ')}`);
+          console.log(`   - League: "${finalLeague}"`);
+          console.log(`   - Toutes les clés: ${Object.keys(row).join(', ')}`);
+          console.log(`   - Valeurs importantes:`, {
+            home_team: row.home_team,
+            away_team: row.away_team,
+            Home_Team: row.Home_Team,
+            Away_Team: row.Away_Team,
+            HomeTeam: row.HomeTeam,
+            AwayTeam: row.AwayTeam
+          });
+          errorCount++; // Count as error so it's reflected in the stats
           continue;
         }
         
