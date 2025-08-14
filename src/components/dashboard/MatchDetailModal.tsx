@@ -90,6 +90,13 @@ export function MatchDetailModal({ match, isOpen, onClose }: MatchDetailModalPro
     // Garder seulement la meilleure option BTTS
     if (bttsSuggestions.length > 0) {
       const bestBtts = bttsSuggestions.reduce((prev, current) => {
+        const scoreDifference = Math.abs(current.score - prev.score);
+        
+        // Si les scores sont très proches (différence < 0.001), choisir celui avec la plus haute probabilité
+        if (scoreDifference < 0.001) {
+          return current.probability > prev.probability ? current : prev;
+        }
+        
         return current.score > prev.score ? current : prev;
       });
       markets.push(bestBtts);
