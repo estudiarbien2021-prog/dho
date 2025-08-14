@@ -31,9 +31,23 @@ export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
     const allBets: BestBet[] = [];
 
     matches.forEach(match => {
+      // Category weight system - prioritize national championships and continental competitions  
+      const getCategoryWeight = (category: string) => {
+        switch (category) {
+          case 'first_div': return 1.3; // National championships (priority)
+          case 'continental_cup': return 1.25; // Continental competitions (high priority)
+          case 'second_div': return 1.0; // Second division (neutral)
+          case 'national_cup': return 0.7; // National cups (deprioritized)
+          default: return 1.0;
+        }
+      };
+
+      const categoryWeight = getCategoryWeight(match.category);
+
       // BTTS markets - probability > 55% and odds >= 1.5
       if (match.odds_btts_yes && match.odds_btts_yes >= 1.5 && match.p_btts_yes_fair && match.p_btts_yes_fair > 0.55) {
-        const score = match.p_btts_yes_fair * match.odds_btts_yes * (1 + match.vig_btts);
+        const baseScore = match.p_btts_yes_fair * match.odds_btts_yes * (1 + match.vig_btts);
+        const score = baseScore * categoryWeight; // Apply category weight
         const edge = ((match.odds_btts_yes * match.p_btts_yes_fair) - 1) * 100;
         allBets.push({
           match,
@@ -48,7 +62,8 @@ export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
       }
 
       if (match.odds_btts_no && match.odds_btts_no >= 1.5 && match.p_btts_no_fair && match.p_btts_no_fair > 0.55) {
-        const score = match.p_btts_no_fair * match.odds_btts_no * (1 + match.vig_btts);
+        const baseScore = match.p_btts_no_fair * match.odds_btts_no * (1 + match.vig_btts);
+        const score = baseScore * categoryWeight; // Apply category weight
         const edge = ((match.odds_btts_no * match.p_btts_no_fair) - 1) * 100;
         allBets.push({
           match,
@@ -64,7 +79,8 @@ export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
 
       // Over/Under markets - probability > 55% and odds >= 1.5
       if (match.odds_over_2_5 && match.odds_over_2_5 >= 1.5 && match.p_over_2_5_fair > 0.55) {
-        const score = match.p_over_2_5_fair * match.odds_over_2_5 * (1 + match.vig_ou_2_5);
+        const baseScore = match.p_over_2_5_fair * match.odds_over_2_5 * (1 + match.vig_ou_2_5);
+        const score = baseScore * categoryWeight; // Apply category weight
         const edge = ((match.odds_over_2_5 * match.p_over_2_5_fair) - 1) * 100;
         allBets.push({
           match,
@@ -79,7 +95,8 @@ export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
       }
 
       if (match.odds_under_2_5 && match.odds_under_2_5 >= 1.5 && match.p_under_2_5_fair > 0.55) {
-        const score = match.p_under_2_5_fair * match.odds_under_2_5 * (1 + match.vig_ou_2_5);
+        const baseScore = match.p_under_2_5_fair * match.odds_under_2_5 * (1 + match.vig_ou_2_5);
+        const score = baseScore * categoryWeight; // Apply category weight
         const edge = ((match.odds_under_2_5 * match.p_under_2_5_fair) - 1) * 100;
         allBets.push({
           match,
