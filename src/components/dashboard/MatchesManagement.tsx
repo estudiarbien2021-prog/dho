@@ -597,11 +597,11 @@ function EditMatchForm({ match, onSave, onCancel }: EditMatchFormProps) {
             <Label>Confiance (%)</Label>
             <Input
               type="number"
-              step="0.01"
+              step="1"
               min="0"
-              max="1"
-              value={formData.ai_confidence}
-              onChange={(e) => setFormData({...formData, ai_confidence: parseFloat(e.target.value)})}
+              max="100"
+              value={formData.ai_confidence * 100}
+              onChange={(e) => setFormData({...formData, ai_confidence: parseFloat(e.target.value) / 100})}
             />
           </div>
         </div>
