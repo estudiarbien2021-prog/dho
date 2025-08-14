@@ -154,7 +154,7 @@ export function MatchDetailModal({ match, isOpen, onClose }: MatchDetailModalPro
               ))}
             </Pie>
             <Tooltip 
-              formatter={(value: number) => [`${value.toFixed(1)}%`, '']}
+              formatter={(value: number, name: string) => [`${name}: ${value.toFixed(1)}%`, '']}
               contentStyle={{
                 backgroundColor: 'hsl(var(--surface))',
                 border: '1px solid hsl(var(--brand) / 0.3)',
