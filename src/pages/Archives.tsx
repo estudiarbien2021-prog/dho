@@ -9,6 +9,7 @@ import { useDatabaseMatches } from '@/hooks/useDatabaseMatches';
 import { MatchesTable } from '@/components/dashboard/MatchesTable';
 import { MatchDetailModal } from '@/components/dashboard/MatchDetailModal';
 import { KPIHeader } from '@/components/dashboard/KPIHeader';
+import { TopPicks } from '@/components/dashboard/TopPicks';
 import { ProcessedMatch } from '@/types/match';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -149,6 +150,11 @@ export function Archives() {
           )}
         </div>
       </div>
+
+      {/* Top 3 Picks */}
+      {selectedDate && !isLoading && matches.length > 0 && (
+        <TopPicks matches={matches} onMatchClick={handleMatchClick} />
+      )}
 
       {/* Filters */}
       {selectedDate && (
