@@ -749,60 +749,91 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                 return null;
               })()}
               
-              {match.ai_prediction && (
-                <div className="p-4 rounded-lg bg-blue-50 border border-blue-200 dark:bg-blue-950 dark:border-blue-800 mb-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-semibold text-sm">Prédiction IA (Admin)</span>
-                    <Badge variant="default">
-                      {match.ai_confidence && match.ai_confidence > 0.8 ? 'Très forte' : 
-                       match.ai_confidence && match.ai_confidence > 0.6 ? 'Forte' : 
-                       match.ai_confidence && match.ai_confidence > 0.4 ? 'Moyenne' : 'Faible'}
-                    </Badge>
-                  </div>
-                  
-                  <p className="font-bold text-lg mb-1">
-                    {match.ai_prediction === '1' ? match.home_team : 
-                     match.ai_prediction === 'X' ? 'Nul' : 
-                     match.ai_prediction === '2' ? match.away_team : 
-                     match.ai_prediction}
-                  </p>
-                  
-                  <div className="flex justify-between text-sm text-muted-foreground">
-                    <span>Confiance IA: {((match.ai_confidence || 0) * 100).toFixed(0)}%</span>
-                    <span>Sauvegardé par admin</span>
-                  </div>
-                </div>
-              )}
+              {(() => {
+                // Si on a une prédiction AI de l'admin, on l'utilise, sinon on utilise la recommandation automatique
+                const useAdminPrediction = match.ai_prediction;
+                const adminRecommendation = useAdminPrediction ? {
+                  type: '1X2',
+                  prediction: match.ai_prediction === '1' ? match.home_team : 
+                             match.ai_prediction === 'X' ? 'Nul' : 
+                             match.ai_prediction === '2' ? match.away_team : 
+                             match.ai_prediction,
+                  odds: match.ai_prediction === '1' ? match.odds_home :
+                        match.ai_prediction === 'X' ? match.odds_draw :
+                        match.ai_prediction === '2' ? match.odds_away : 1.0
+                } : null;
+                
+                const currentRecommendation = adminRecommendation || bestRecommendation;
+                
+                return (
+                  <>
+                    {useAdminPrediction && (
+                      <div className="p-4 rounded-lg bg-blue-50 border border-blue-200 dark:bg-blue-950 dark:border-blue-800 mb-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-semibold text-sm">Prédiction IA</span>
+                          <Badge variant="default">
+                            {match.ai_confidence && match.ai_confidence > 0.8 ? 'Très forte' : 
+                             match.ai_confidence && match.ai_confidence > 0.6 ? 'Forte' : 
+                             match.ai_confidence && match.ai_confidence > 0.4 ? 'Moyenne' : 'Faible'}
+                          </Badge>
+                        </div>
+                        
+                        <p className="font-bold text-lg mb-1">
+                          {match.ai_prediction === '1' ? match.home_team : 
+                           match.ai_prediction === 'X' ? 'Nul' : 
+                           match.ai_prediction === '2' ? match.away_team : 
+                           match.ai_prediction}
+                        </p>
+                        
+                        <div className="text-sm text-muted-foreground">
+                          <span>Confiance IA: {((match.ai_confidence || 0) * 100).toFixed(0)}%</span>
+                        </div>
+                      </div>
+                    )}
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div className="text-center md:text-left">
-                  <p className="text-sm text-text-weak mb-2">Type de pari (Auto)</p>
-                  <Badge className="bg-gradient-to-r from-brand/40 to-brand-400/40 border-brand/60 text-brand-fg font-bold px-3 py-1">
-                    {bestRecommendation.type}
-                  </Badge>
-                </div>
-                <div className="text-center md:text-left">
-                  <p className="text-sm text-text-weak mb-2">Prédiction</p>
-                  <p className="font-bold text-lg text-brand">
-                    {bestRecommendation.prediction}
-                  </p>
-                </div>
-                <div className="text-center md:text-left">
-                  <p className="text-sm text-text-weak mb-2">Cote</p>
-                  <Badge variant="outline" className="bg-gradient-to-r from-brand/30 to-brand-400/30 border-brand/50 text-text font-bold text-lg">
-                    {bestRecommendation.odds.toFixed(2)}
-                  </Badge>
-                </div>
-              </div>
-              
-              {/* AI Explanation */}
-              <div className="mt-4 p-4 bg-gradient-to-r from-brand/5 to-brand-400/5 rounded-lg border border-brand/20">
-                <div className="text-sm text-text leading-relaxed">
-                  <div dangerouslySetInnerHTML={{ 
-                    __html: generateRecommendationExplanation(bestRecommendation).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
-                  }} />
-                </div>
-              </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                      <div className="text-center md:text-left">
+                        <p className="text-sm text-text-weak mb-2">Type de pari {useAdminPrediction ? '' : '(Auto)'}</p>
+                        <Badge className="bg-gradient-to-r from-brand/40 to-brand-400/40 border-brand/60 text-brand-fg font-bold px-3 py-1">
+                          {currentRecommendation.type}
+                        </Badge>
+                      </div>
+                      <div className="text-center md:text-left">
+                        <p className="text-sm text-text-weak mb-2">Prédiction</p>
+                        <p className="font-bold text-lg text-brand">
+                          {currentRecommendation.prediction}
+                        </p>
+                      </div>
+                      <div className="text-center md:text-left">
+                        <p className="text-sm text-text-weak mb-2">Cote</p>
+                        <Badge variant="outline" className="bg-gradient-to-r from-brand/30 to-brand-400/30 border-brand/50 text-text font-bold text-lg">
+                          {currentRecommendation.odds.toFixed(2)}
+                        </Badge>
+                      </div>
+                    </div>
+                    
+                    {/* AI Explanation */}
+                    <div className="mt-4 p-4 bg-gradient-to-r from-brand/5 to-brand-400/5 rounded-lg border border-brand/20">
+                      <div className="text-sm text-text leading-relaxed">
+                        {useAdminPrediction ? (
+                          <div>
+                            <strong>Analyse IA personnalisée:</strong> Notre intelligence artificielle recommande de miser sur <strong>{currentRecommendation.prediction}</strong> avec une confiance de <strong>{((match.ai_confidence || 0) * 100).toFixed(0)}%</strong>. 
+                            {match.ai_confidence && match.ai_confidence > 0.8 ? 
+                              " Cette prédiction présente un niveau de confiance très élevé, basé sur une analyse approfondie des données historiques et des statistiques actuelles." :
+                              match.ai_confidence && match.ai_confidence > 0.6 ?
+                              " Cette prédiction présente un bon niveau de confiance, s'appuyant sur des indicateurs statistiques favorables." :
+                              " Cette prédiction est accompagnée d'une confiance modérée, à considérer avec prudence dans votre stratégie de mise."}
+                          </div>
+                        ) : (
+                          <div dangerouslySetInnerHTML={{ 
+                            __html: generateRecommendationExplanation(bestRecommendation).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
+                          }} />
+                        )}
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           </Card>
 
