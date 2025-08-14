@@ -112,9 +112,30 @@ export function useDatabaseMatches(specificDate?: string) {
     loadMatches();
   }, [specificDate]);
 
+  // Function to check if match has AI recommendation for specific market
+  const hasAIRecommendation = (match: ProcessedMatch, marketType: 'BTTS' | 'OU') => {
+    if (marketType === 'BTTS') {
+      const bttsYesValid = match.odds_btts_yes && match.odds_btts_yes >= 1.3 && match.p_btts_yes_fair > 0.45;
+      const bttsNoValid = match.odds_btts_no && match.odds_btts_no >= 1.3 && match.p_btts_no_fair > 0.45;
+      return bttsYesValid || bttsNoValid;
+    } else if (marketType === 'OU') {
+      const overValid = match.odds_over_2_5 && match.odds_over_2_5 >= 1.3 && match.p_over_2_5_fair > 0.45;
+      const underValid = match.odds_under_2_5 && match.odds_under_2_5 >= 1.3 && match.p_under_2_5_fair > 0.45;
+      return overValid || underValid;
+    }
+    return false;
+  };
+
   // Filter matches
   const filteredMatches = useMemo(() => {
     let matches = rawMatches.filter(match => {
+      // Filter out matches without AI recommendations
+      const hasBTTSRecommendation = hasAIRecommendation(match, 'BTTS');
+      const hasOURecommendation = hasAIRecommendation(match, 'OU');
+      if (!hasBTTSRecommendation && !hasOURecommendation) {
+        return false;
+      }
+
       // Search filter
       if (filters.search) {
         const searchTerm = filters.search.toLowerCase();
@@ -180,20 +201,6 @@ export function useDatabaseMatches(specificDate?: string) {
   const availableLeagues = useMemo(() => 
     [...new Set(rawMatches.map(m => m.league))].sort(), [rawMatches]
   );
-
-  // Function to check if match has AI recommendation for specific market
-  const hasAIRecommendation = (match: ProcessedMatch, marketType: 'BTTS' | 'OU') => {
-    if (marketType === 'BTTS') {
-      const bttsYesValid = match.odds_btts_yes && match.odds_btts_yes >= 1.3 && match.p_btts_yes_fair > 0.45;
-      const bttsNoValid = match.odds_btts_no && match.odds_btts_no >= 1.3 && match.p_btts_no_fair > 0.45;
-      return bttsYesValid || bttsNoValid;
-    } else if (marketType === 'OU') {
-      const overValid = match.odds_over_2_5 && match.odds_over_2_5 >= 1.3 && match.p_over_2_5_fair > 0.45;
-      const underValid = match.odds_under_2_5 && match.odds_under_2_5 >= 1.3 && match.p_under_2_5_fair > 0.45;
-      return overValid || underValid;
-    }
-    return false;
-  };
 
   // Stats
   const stats = useMemo(() => ({
