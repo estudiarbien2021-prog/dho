@@ -153,12 +153,16 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
   // Generate AI recommendation explanation combining all 3 styles
   const generateRecommendationExplanation = (recommendation: any) => {
     if (recommendation.type === 'Aucune') {
-      return "🔍 **Analyse Quantitative** : Après avoir examiné 47 variables statistiques et analysé les patterns historiques, notre algorithme n'a détecté aucune inefficience de marché exploitable. Les bookmakers ont calibré leurs cotes avec une précision remarquable cette fois-ci.";
+      const noOpportunityTexts = [
+        "🔍 **Scan Complet** : Après analyse de 47 métriques avancées, notre IA n'a trouvé aucune faille exploitable. Les bookmakers ont parfaitement calibré leurs prix cette fois.",
+        "🎯 **Radar Silencieux** : Notre système de détection d'opportunités reste muet sur ce match. Les cotes reflètent parfaitement les probabilités réelles calculées.",
+        "📡 **Signal Faible** : Malgré un balayage exhaustif des données, aucune distorsion de marché n'émerge. Les algorithmes confirment l'équilibre parfait des cotes."
+      ];
+      return noOpportunityTexts[Math.floor(Math.random() * noOpportunityTexts.length)];
     }
 
     const probPercent = (recommendation.probability * 100).toFixed(1);
     const vigPercent = (recommendation.vigorish * 100).toFixed(1);
-    const fairOdds = recommendation.probability > 0 ? (1 / recommendation.probability).toFixed(2) : '0.00';
     const edge = recommendation.odds > 0 && recommendation.probability > 0 
       ? Math.abs(((recommendation.odds * recommendation.probability) - 1) * 100).toFixed(1) 
       : '0.0';
@@ -168,35 +172,96 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
       ? (recommendation.confidence * 100).toFixed(1)
       : (70 + Math.random() * 25).toFixed(1); // Random between 70-95
 
-    let explanation = `🎯 **Signal Détecté** | Confidence Score: ${confidence}/100\n\n`;
-    explanation += `📊 **L'Histoire des Données** : Notre modèle prédictif, entraîné sur +50,000 matchs avec contextes similaires (enjeux, déplacements, fatigues, conditions météo), a identifié une anomalie de marché. `;
+    // Varied signal detection intros
+    const signalIntros = [
+      `🎯 **Opportunité Détectée** | Niveau de Confiance: ${confidence}/100`,
+      `⚡ **Alerte Système** | Score de Fiabilité: ${confidence}/100`,
+      `🔥 **Signal Actif** | Indice de Certitude: ${confidence}/100`,
+      `💎 **Pépite Identifiée** | Taux de Confiance: ${confidence}/100`
+    ];
+
+    let explanation = `${signalIntros[Math.floor(Math.random() * signalIntros.length)]}\n\n`;
+    
+    // Varied data story intros
+    const dataIntros = [
+      "📊 **Intelligence Artificielle** : Notre réseau neuronal, nourri de +50,000 parties historiques",
+      "🧠 **Deep Learning** : L'algorithme, entraîné sur une base massive de données contextuelles", 
+      "⚙️ **Machine Learning** : Le modèle prédictif, alimenté par des milliers d'affrontements similaires",
+      "🎰 **Algorithme Quantitatif** : Notre IA, formée sur un dataset colossal de matchs européens"
+    ];
+    
+    explanation += `${dataIntros[Math.floor(Math.random() * dataIntros.length)]} avec contextes identiques (enjeux, déplacements, fatigue, météo), `;
     
     if (recommendation.type === 'BTTS') {
       if (recommendation.prediction === 'Oui') {
-        explanation += `L'algorithme calcule **${probPercent}%** de probabilité que les deux équipes marquent, en se basant sur l'efficacité offensive récente, la porosité défensive observée et les confrontations directes. `;
-        explanation += `Les xG moyens et la forme récente plaident pour du spectacle offensif.`;
+        const bttsYesTexts = [
+          `révèle **${probPercent}%** de chances que les deux formations trouvent le chemin des filets. L'analyse des corridors offensifs, des faiblesses défensives latérales et des duels individuels converge vers un festival de buts.`,
+          `calcule **${probPercent}%** de probabilité d'un double marquage. Les metrics d'Expected Goals, la porosité défensive constatée et l'agressivité offensive récente dessinent un scénario spectaculaire.`,
+          `estime à **${probPercent}%** la probabilité que chaque équipe inscrive au moins un but. L'efficacité des transitions, les failles dans les blocs bas et l'historique des confrontations directes militent pour cette issue.`,
+          `prédit **${probPercent}%** de chances d'un double marquage. L'analyse des centres dangereux, des phases d'arrêt de jeu et des changements tactiques en cours de match suggère une rencontre prolifique.`
+        ];
+        explanation += bttsYesTexts[Math.floor(Math.random() * bttsYesTexts.length)];
       } else {
-        explanation += `Le modèle estime à **${probPercent}%** la probabilité qu'au moins une équipe reste muette. `;
-        explanation += `Cette prédiction s'appuie sur l'analyse des systèmes défensifs, des carences offensives identifiées et du contexte tactique du match.`;
+        const bttsNoTexts = [
+          `détecte **${probPercent}%** de probabilité qu'une équipe au minimum reste bredouille. L'examen des dispositifs défensifs compacts, des carences créatives et du contexte psychologique plaide pour la stérilité offensive.`,
+          `révèle **${probPercent}%** de chances d'un "clean sheet" au minimum. L'étude des blocs défensifs, de l'efficacité des pressing et des faiblesses dans les derniers gestes techniques convergent vers ce scénario.`,
+          `calcule **${probPercent}%** de probabilité que l'une des formations reste muette. Les patterns tactiques identifiés, la solidité défensive observée et les difficultés à conclure plaident pour cette issue.`,
+          `estime à **${probPercent}%** la probabilité d'au moins un zéro au tableau d'affichage. L'analyse des systèmes de marquage, des duels aériens et de la gestion des temps faibles indique cette tendance.`
+        ];
+        explanation += bttsNoTexts[Math.floor(Math.random() * bttsNoTexts.length)];
       }
     } else if (recommendation.type === 'O/U 2.5') {
       if (recommendation.prediction === '+2,5 buts') {
-        explanation += `Les algorithmes convergent vers **${probPercent}%** de chances de dépasser 2,5 buts. `;
-        explanation += `Cette projection combine l'analyse des Expected Goals (xG), le rythme de jeu historique des équipes et les enjeux tactiques du contexte.`;
+        const overTexts = [
+          `projette **${probPercent}%** de chances d'explosivité offensive avec 3+ réalisations. La conjugaison des Expected Goals, du tempo de jeu élevé et des espaces laissés en transition dessine un match débridé.`,
+          `anticipe **${probPercent}%** de probabilité d'un festival offensif dépassant 2,5 buts. L'analyse des phases de pressing haut, des contres rapides et des situations de face-à-face suggère du spectacle.`,
+          `révèle **${probPercent}%** de chances d'un carton plein offensif. Les métriques de dangerosité, l'intensité prévue et les failles dans les récupérations défensives convergent vers un match ouvert.`,
+          `calcule **${probPercent}%** de probabilité d'une avalanche de buts. L'étude des couloirs préférentiels, des déséquilibres tactiques et de l'état de forme des finisseurs indique une rencontre prolifique.`
+        ];
+        explanation += overTexts[Math.floor(Math.random() * overTexts.length)];
       } else {
-        explanation += `La modélisation statistique indique **${probPercent}%** de probabilité de rester sous 2,5 buts. `;
-        explanation += `Ce scénario est supporté par l'analyse défensive, la gestion prudente observée récemment et les patterns tactiques identifiés.`;
+        const underTexts = [
+          `indique **${probPercent}%** de probabilité d'une sobriété offensive sous les 2,5 buts. L'examen des blocs défensifs organisés, de la gestion tactique prudente et des enjeux du match milite pour la retenue.`,
+          `prédit **${probPercent}%** de chances d'un match verrouillé tactiquement. L'analyse des systèmes défensifs, de la discipline positionnelle et des difficultés à créer du danger suggère un score étriqué.`,
+          `détecte **${probPercent}%** de probabilité d'une rencontre sous contrôle offensif. Les patterns identifiés dans la gestion des temps forts, la compacité défensive et l'efficacité des récupérations convergent vers ce scénario.`,
+          `estime à **${probPercent}%** la probabilité d'un match en dessous de 2,5 réalisations. L'étude des duels individuels, de la pression défensive et des choix tactiques conservateurs plaide pour cette issue.`
+        ];
+        explanation += underTexts[Math.floor(Math.random() * underTexts.length)];
       }
     }
 
-    explanation += `\n\n💰 **Edge Mathématique** : La cote **${recommendation.odds.toFixed(2)}** présente une valeur supérieure qui génère un **avantage théorique de +${edge}%** - ce qu'on appelle une "positive expected value" en analyse quantitative. `;
+    // Varied mathematical edge explanations
+    const edgeTexts = [
+      `\n\n💰 **Avantage Mathématique** : La cote **${recommendation.odds.toFixed(2)}** offre une "positive expected value" de **+${edge}%** selon nos calculs quantitatifs.`,
+      `\n\n🎯 **Edge Statistique** : Avec **${recommendation.odds.toFixed(2)}**, vous bénéficiez d'un avantage théorique de **+${edge}%** - une distorsion de marché rare à exploiter.`,
+      `\n\n⚡ **Profit Attendu** : La cote **${recommendation.odds.toFixed(2)}** génère une espérance de gain positive de **+${edge}%** sur le long terme.`,
+      `\n\n💎 **Valeur Pure** : À **${recommendation.odds.toFixed(2)}**, cette cote présente un surplus de valeur quantifié à **+${edge}%** par nos algorithmes.`
+    ];
     
+    explanation += edgeTexts[Math.floor(Math.random() * edgeTexts.length)];
+    
+    // Varied vigorish conclusions
     if (recommendation.vigorish < 0.06) {
-      explanation += `\n\n🚀 **Bonus Exceptionnel** : Vigorish de seulement ${vigPercent}% ! Ce bookmaker offre des conditions premium aujourd'hui.`;
+      const lowVigTexts = [
+        `\n\n🚀 **Conditions Exceptionnelles** : Marge bookmaker de seulement ${vigPercent}% ! Une opportunité premium à saisir.`,
+        `\n\n⭐ **Deal Exceptionnel** : Vigorish ultra-compétitif à ${vigPercent}% - ce bookmaker casse les prix aujourd'hui !`,
+        `\n\n🔥 **Aubaine Rare** : Avec ${vigPercent}% de commission, ces conditions sont parmi les meilleures du marché.`
+      ];
+      explanation += lowVigTexts[Math.floor(Math.random() * lowVigTexts.length)];
     } else if (recommendation.vigorish < 0.08) {
-      explanation += `\n\n✅ **Conditions Favorables** : Avec ${vigPercent}% de marge, ce marché reste attractif pour les parieurs éclairés.`;
+      const medVigTexts = [
+        `\n\n✅ **Environnement Favorable** : Marge de ${vigPercent}%, des conditions attractives pour optimiser vos gains.`,
+        `\n\n🎯 **Contexte Positif** : Vigorish de ${vigPercent}%, un niveau qui préserve la rentabilité à long terme.`,
+        `\n\n💫 **Cadre Optimal** : Avec ${vigPercent}% de frais, ce marché reste très jouable pour les parieurs avisés.`
+      ];
+      explanation += medVigTexts[Math.floor(Math.random() * medVigTexts.length)];
     } else {
-      explanation += `\n\n📊 **Marge Standard** : Vigorish à ${vigPercent}%, dans la moyenne du marché européen.`;
+      const highVigTexts = [
+        `\n\n📊 **Marché Standard** : Vigorish à ${vigPercent}%, dans la fourchette habituelle du secteur.`,
+        `\n\n⚖️ **Conditions Classiques** : Marge de ${vigPercent}%, un niveau typique des bookmakers européens.`,
+        `\n\n📈 **Tarification Normale** : Commission à ${vigPercent}%, conforme aux standards du marché des paris.`
+      ];
+      explanation += highVigTexts[Math.floor(Math.random() * highVigTexts.length)];
     }
 
     return explanation;
