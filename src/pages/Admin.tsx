@@ -194,6 +194,35 @@ export function Admin() {
     }
   };
 
+  const handleClearDashboard = async () => {
+    const confirmed = window.confirm('⚠️ ATTENTION: Cette action va supprimer TOUS les matchs du dashboard et l\'historique des uploads. Êtes-vous sûr ?');
+    if (!confirmed) return;
+
+    setIsProcessing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('clear-matches');
+
+      if (error) throw error;
+
+      toast({
+        title: "Dashboard vidé !",
+        description: data.message,
+      });
+
+      await loadUploadHistory();
+      
+    } catch (error) {
+      console.error('❌ Erreur vidage dashboard:', error);
+      toast({
+        title: "Erreur",
+        description: error.message || "Erreur lors du vidage du dashboard",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <div className="container mx-auto py-8 space-y-8">
       {/* Header */}
@@ -278,6 +307,21 @@ export function Admin() {
                   Traiter le CSV
                 </>
               )}
+            </Button>
+
+            <Button 
+              onClick={handleClearDashboard}
+              disabled={isProcessing || isDeletingUploads}
+              variant="destructive"
+              className="w-full"
+              size="sm"
+            >
+              {isProcessing ? (
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <XCircle className="h-4 w-4 mr-2" />
+              )}
+              Vider le Dashboard
             </Button>
           </div>
         </div>
