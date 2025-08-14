@@ -210,9 +210,19 @@ export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
                   {/* Confidence Index */}
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-text-weak">Indice de confiance:</span>
-                    <span className="font-medium text-brand-300">
-                      {generateConfidenceScore(bet.match.id)}/100
-                    </span>
+                    <span className="font-medium text-green-700">{generateConfidenceScore(bet.match.id)}%</span>
+                  </div>
+                  <div className="relative h-2 bg-surface-strong/50 rounded-full overflow-hidden">
+                    <div 
+                      className="absolute top-0 left-0 h-full bg-gradient-to-r from-green-600 via-green-700 to-green-800 rounded-full shadow-lg animate-pulse"
+                      style={{ 
+                        width: `${generateConfidenceScore(bet.match.id)}%`,
+                        boxShadow: '0 0 10px rgb(34 197 94 / 0.6), 0 0 20px rgb(34 197 94 / 0.4)',
+                        animation: 'pulse 2s ease-in-out infinite'
+                      }}
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-slide-right"></div>
+                    </div>
                   </div>
                 </div>
               </div>
