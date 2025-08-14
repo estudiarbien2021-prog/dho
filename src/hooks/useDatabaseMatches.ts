@@ -128,12 +128,31 @@ export function useDatabaseMatches(specificDate?: string) {
 
   // Filter matches
   const filteredMatches = useMemo(() => {
+    console.log('🔍 Filtering matches, total rawMatches:', rawMatches.length);
+    
     let matches = rawMatches.filter(match => {
-      // Filter out matches without AI recommendations
+      // Filter out matches without AI recommendations - THIS IS CRITICAL
       const hasBTTSRecommendation = hasAIRecommendation(match, 'BTTS');
       const hasOURecommendation = hasAIRecommendation(match, 'OU');
+      
+      console.log(`🔍 Checking: ${match.home_team} vs ${match.away_team}`, {
+        btts_yes_odds: match.odds_btts_yes,
+        btts_yes_prob: match.p_btts_yes_fair,
+        btts_no_odds: match.odds_btts_no,
+        btts_no_prob: match.p_btts_no_fair,
+        over_odds: match.odds_over_2_5,
+        over_prob: match.p_over_2_5_fair,
+        under_odds: match.odds_under_2_5,
+        under_prob: match.p_under_2_5_fair,
+        hasBTTSRec: hasBTTSRecommendation,
+        hasOURec: hasOURecommendation
+      });
+      
       if (!hasBTTSRecommendation && !hasOURecommendation) {
+        console.log(`❌ FILTERED OUT: ${match.home_team} vs ${match.away_team} - No AI recommendation`);
         return false;
+      } else {
+        console.log(`✅ KEPT: ${match.home_team} vs ${match.away_team} - Has AI recommendation`);
       }
 
       // Search filter
