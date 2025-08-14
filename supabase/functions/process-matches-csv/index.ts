@@ -401,16 +401,35 @@ serve(async (req) => {
             const dateStr = dateGmt.toString().trim();
             console.log(`📅 Parsing date: "${dateStr}"`);
             
-            // Replace " - " with " " and parse
-            const cleanedDate = dateStr.replace(' - ', ' ');
-            const parsedDate = new Date(cleanedDate);
-            
-            if (!isNaN(parsedDate.getTime())) {
-              kickoffUtc = parsedDate;
-              kickoffLocal = parsedDate;
-              console.log(`✅ Date parsed successfully: ${kickoffUtc.toISOString()}`);
+            // Split the date and time parts
+            const parts = dateStr.split(' - ');
+            if (parts.length === 2) {
+              const datePart = parts[0]; // "Aug 14 2025"
+              const timePart = parts[1]; // "11:00pm"
+              
+              // Convert to ISO format
+              const isoString = `${datePart} ${timePart}`;
+              const parsedDate = new Date(isoString);
+              
+              if (!isNaN(parsedDate.getTime())) {
+                kickoffUtc = parsedDate;
+                kickoffLocal = parsedDate;
+                console.log(`✅ Date parsed successfully: ${kickoffUtc.toISOString()}`);
+              } else {
+                // Try alternative parsing method
+                const cleanedDate = dateStr.replace(' - ', ' ');
+                const altParsedDate = new Date(cleanedDate);
+                
+                if (!isNaN(altParsedDate.getTime())) {
+                  kickoffUtc = altParsedDate;
+                  kickoffLocal = altParsedDate;
+                  console.log(`✅ Date parsed with alternative method: ${kickoffUtc.toISOString()}`);
+                } else {
+                  console.log(`⚠️ Failed to parse date: "${dateStr}", using current time`);
+                }
+              }
             } else {
-              console.log(`⚠️ Failed to parse date: "${dateStr}", using current time`);
+              console.log(`⚠️ Invalid date format: "${dateStr}", using current time`);
             }
           } catch (error) {
             console.log(`❌ Error parsing date: ${error.message}`);
