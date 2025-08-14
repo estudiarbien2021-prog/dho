@@ -395,6 +395,34 @@ export function Admin() {
     }
   };
 
+  const updateLastLoginNow = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ last_login_at: new Date().toISOString() })
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Succès",
+        description: "Dernière connexion mise à jour",
+      });
+
+      await loadUsers();
+    } catch (error) {
+      console.error('Error updating last login:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour la dernière connexion",
+        variant: "destructive",
+      });
+    }
+  };
+
   const filteredUsers = users.filter(user => 
     user.email?.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
     user.full_name?.toLowerCase().includes(userSearchTerm.toLowerCase())
@@ -477,10 +505,16 @@ export function Admin() {
                 <Shield className="h-6 w-6 text-brand" />
                 <h2 className="text-2xl font-semibold">Gestion des utilisateurs</h2>
               </div>
-              <Button variant="outline" onClick={loadUsers} disabled={isLoadingUsers}>
-                <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingUsers ? 'animate-spin' : ''}`} />
-                Actualiser
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={loadUsers} disabled={isLoadingUsers}>
+                  <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingUsers ? 'animate-spin' : ''}`} />
+                  Actualiser
+                </Button>
+                <Button variant="outline" onClick={updateLastLoginNow} size="sm">
+                  <Clock className="h-4 w-4 mr-2" />
+                  Test Connexion
+                </Button>
+              </div>
             </div>
 
             {/* Search */}

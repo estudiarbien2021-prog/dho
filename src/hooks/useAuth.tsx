@@ -19,8 +19,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // User activity tracking moved here to avoid circular dependencies
   useEffect(() => {
     const updateLastLogin = async () => {
-      if (!user) return;
+      if (!user) {
+        console.log('🔐 Pas d\'utilisateur connecté pour mettre à jour last_login_at');
+        return;
+      }
 
+      console.log('🔐 Mise à jour de last_login_at pour l\'utilisateur:', user.id);
+      
       try {
         // Update last_login_at for the current user
         const { error } = await supabase
@@ -29,15 +34,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           .eq('user_id', user.id);
 
         if (error) {
-          console.error('Error updating last login:', error);
+          console.error('❌ Erreur lors de la mise à jour de last_login_at:', error);
+        } else {
+          console.log('✅ last_login_at mis à jour avec succès');
         }
       } catch (error) {
-        console.error('Error updating user activity:', error);
+        console.error('❌ Erreur lors de la mise à jour de l\'activité utilisateur:', error);
       }
     };
 
     // Update on first load if user is logged in
     if (user) {
+      console.log('👤 Utilisateur détecté, mise à jour de last_login_at...');
       updateLastLogin();
     }
   }, [user]);
