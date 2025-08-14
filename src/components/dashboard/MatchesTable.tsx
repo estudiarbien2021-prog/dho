@@ -261,7 +261,7 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [] }: Matc
           </TableHeader>
           <TableBody>
             {sortedMatches.map((match) => {
-              const flagInfo = leagueToFlag(match.league);
+              const flagInfo = leagueToFlag(match.league, match.country, match.home_team, match.away_team);
               
               return (
                 <TableRow 

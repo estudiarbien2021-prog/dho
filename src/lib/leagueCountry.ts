@@ -64,8 +64,107 @@ export const leagueCountryRules: Rule[] = [
   { re:/\bconcacaf\b/i, code:"MX" },
 ];
 
-export function leagueToFlag(league:string): FlagInfo {
-  const text = (league||"").toLowerCase();
-  for (const r of leagueCountryRules){ if (r.re.test(text)) return { code:r.code, confed:r.confed }; }
-  return { code:"" };
+export function leagueToFlag(league: string, country?: string, homeTeam?: string, awayTeam?: string): FlagInfo {
+  // 1. Priorité à la colonne country du CSV si elle existe
+  if (country && country.length === 2) {
+    return { code: country.toUpperCase() };
+  }
+  
+  // 2. Recherche par nom de ligue (logique existante)
+  const text = (league || "").toLowerCase();
+  for (const r of leagueCountryRules) { 
+    if (r.re.test(text)) return { code: r.code, confed: r.confed }; 
+  }
+  
+  // 3. Fallback : analyse des noms d'équipes si pas de match par ligue
+  if (homeTeam || awayTeam) {
+    const teamCountry = detectCountryFromTeams(homeTeam || '', awayTeam || '');
+    if (teamCountry) {
+      return { code: teamCountry };
+    }
+  }
+  
+  return { code: "" };
+}
+
+// Nouvelle fonction pour détecter le pays par les noms d'équipes
+function detectCountryFromTeams(homeTeam: string, awayTeam: string): string | null {
+  const teams = `${homeTeam} ${awayTeam}`.toLowerCase();
+  
+  // Équipes brésiliennes caractéristiques
+  if (teams.match(/\b(flameng|corinthians|palmeiras|santos|são paulo|fluminense|grêmio|internacional|atlético mineiro|cruzeiro|vasco|botafogo|bahia|sport|ceará|fortaleza|goiás|coritiba|atlético paranaense|chapecoense|avaí|figueirense|ponte preta|guarani|américa mineiro)\b/i)) {
+    return 'BR';
+  }
+  
+  // Équipes argentines
+  if (teams.match(/\b(boca juniors|river plate|racing|independiente|san lorenzo|estudiantes|newells|rosario central|lanús|banfield|defensa y justicia|arsenal|colón|talleres|gimnasia|huracán|vélez|godoy cruz)\b/i)) {
+    return 'AR';
+  }
+  
+  // Équipes uruguayennes
+  if (teams.match(/\b(peñarol|nacional|montevideo wanderers|defensor sporting|danubio|cerro|liverpool|plaza colonia|montevideo city)\b/i)) {
+    return 'UY';
+  }
+  
+  // Équipes chiliennes
+  if (teams.match(/\b(colo colo|universidad de chile|universidad católica|la serena|everton|palestino|unión española|audax italiano|huachipato|cobresal)\b/i)) {
+    return 'CL';
+  }
+  
+  // Équipes colombiennes
+  if (teams.match(/\b(millonarios|américa de cali|atlético nacional|junior|once caldas|deportivo cali|santa fe|deportivo pasto|envigado|medellín)\b/i)) {
+    return 'CO';
+  }
+  
+  // Équipes péruviennes
+  if (teams.match(/\b(alianza lima|universitario|sporting cristal|melgar|cienciano|cusco|ayacucho|césar vallejo)\b/i)) {
+    return 'PE';
+  }
+  
+  // Équipes équatoriennes
+  if (teams.match(/\b(barcelona|emelec|liga de quito|el nacional|independiente del valle|delfín|macará|técnico universitario)\b/i)) {
+    return 'EC';
+  }
+  
+  // Équipes paraguayennes
+  if (teams.match(/\b(olimpia|cerro porteño|libertad|nacional|guaraní|sol de américa|sportivo luqueño)\b/i)) {
+    return 'PY';
+  }
+  
+  // Équipes boliviennes
+  if (teams.match(/\b(the strongest|bolívar|oriente petrolero|blooming|wilstermann|san josé|nacional potosí)\b/i)) {
+    return 'BO';
+  }
+  
+  // Équipes vénézuéliennes
+  if (teams.match(/\b(caracas|deportivo táchira|estudiantes de mérida|zamora|carabobo|zulia|metropolitanos)\b/i)) {
+    return 'VE';
+  }
+  
+  // Équipes espagnoles
+  if (teams.match(/\b(real madrid|barcelona|atlético madrid|sevilla|valencia|villarreal|athletic bilbao|real sociedad|betis|getafe|osasuna|cádiz|elche|espanyol|mallorca|celta|levante|granada|alavés|valladolid|eibar|huesca|leganés|girona|rayo vallecano)\b/i)) {
+    return 'ES';
+  }
+  
+  // Équipes italiennes
+  if (teams.match(/\b(juventus|milan|inter|napoli|roma|lazio|atalanta|fiorentina|torino|sassuolo|udinese|sampdoria|bologna|hellas verona|spezia|cagliari|genoa|venezia|salernitana|empoli|lecce|monza|cremonese)\b/i)) {
+    return 'IT';
+  }
+  
+  // Équipes anglaises
+  if (teams.match(/\b(manchester united|manchester city|liverpool|chelsea|arsenal|tottenham|leicester|west ham|everton|aston villa|newcastle|brighton|crystal palace|burnley|southampton|watford|norwich|leeds|wolverhampton|sheffield|fulham|brentford)\b/i)) {
+    return 'GB';
+  }
+  
+  // Équipes allemandes
+  if (teams.match(/\b(bayern münchen|borussia dortmund|rb leipzig|bayer leverkusen|borussia mönchengladbach|vfl wolfsburg|eintracht frankfurt|union berlin|sc freiburg|hoffenheim|mainz|köln|augsburg|hertha berlin|stuttgart|werder bremen|schalke|hannover|nürnberg)\b/i)) {
+    return 'DE';
+  }
+  
+  // Équipes françaises
+  if (teams.match(/\b(psg|paris saint.germain|marseille|lyon|monaco|lille|nice|rennes|strasbourg|montpellier|nantes|lens|reims|brest|clermont|troyes|lorient|metz|bordeaux|saint.étienne|angers|dijon)\b/i)) {
+    return 'FR';
+  }
+  
+  return null;
 }

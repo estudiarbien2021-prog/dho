@@ -22,7 +22,7 @@ interface MatchDetailModalProps {
 export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }: MatchDetailModalProps) {
   if (!match) return null;
 
-  const flagInfo = leagueToFlag(match.league);
+  const flagInfo = leagueToFlag(match.league, match.country, match.home_team, match.away_team);
 
   // Calculate fair odds from probabilities
   const fairOdds1x2 = {

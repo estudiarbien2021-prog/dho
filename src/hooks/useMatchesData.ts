@@ -59,6 +59,7 @@ export function useMatchesData() {
                 league: row.league || '',
                 home_team: row.home_team || '',
                 away_team: row.away_team || '',
+                country: row.country || '', // Support de la nouvelle colonne country
                 kickoff_utc: new Date(row.kickoff_utc || Date.now()),
                 kickoff_local: new Date(row.kickoff_sao_paulo || Date.now()),
                 category: getCategoryFromLeague(row.league || ''),
