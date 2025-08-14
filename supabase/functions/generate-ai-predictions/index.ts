@@ -120,6 +120,10 @@ function generateAIRecommendation(match: ProcessedMatch, marketFilters: string[]
       return current.score > prev.score ? current : prev;
     });
     console.log('Best BTTS chosen:', bestBtts.prediction, 'with score:', bestBtts.score, 'and probability:', bestBtts.probability);
+    
+    // Ajouter le préfixe BTTS à la prédiction
+    bestBtts.prediction = `BTTS ${bestBtts.prediction}`;
+    
     markets.push(bestBtts);
   }
 

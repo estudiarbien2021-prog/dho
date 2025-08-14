@@ -744,14 +744,16 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                 // Si on a une prédiction AI de l'admin, on l'utilise, sinon on utilise la recommandation automatique
                 const useAdminPrediction = match.ai_prediction;
                 const adminRecommendation = useAdminPrediction ? {
-                  type: '1X2',
-                  prediction: match.ai_prediction === '1' ? match.home_team : 
-                             match.ai_prediction === 'X' ? 'Nul' : 
-                             match.ai_prediction === '2' ? match.away_team : 
-                             match.ai_prediction,
+                  type: match.ai_prediction?.includes('BTTS') ? 'BTTS' : 
+                        match.ai_prediction?.includes('buts') ? 'O/U 2.5' : '1X2',
+                  prediction: match.ai_prediction,
                   odds: match.ai_prediction === '1' ? match.odds_home :
                         match.ai_prediction === 'X' ? match.odds_draw :
-                        match.ai_prediction === '2' ? match.odds_away : 1.0
+                        match.ai_prediction === '2' ? match.odds_away :
+                        match.ai_prediction === 'BTTS Oui' ? (match.odds_btts_yes || 0) :
+                        match.ai_prediction === 'BTTS Non' ? (match.odds_btts_no || 0) :
+                        match.ai_prediction === '+2,5 buts' ? (match.odds_over_2_5 || 0) :
+                        match.ai_prediction === '-2,5 buts' ? (match.odds_under_2_5 || 0) : 1.0
                 } : null;
                 
                 const currentRecommendation = adminRecommendation || bestRecommendation;

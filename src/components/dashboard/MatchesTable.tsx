@@ -435,7 +435,11 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
                               const predictions = {
                                 '1': match.home_team,
                                 'X': 'Nul', 
-                                '2': match.away_team
+                                '2': match.away_team,
+                                'BTTS Oui': 'BTTS Oui',
+                                'BTTS Non': 'BTTS Non',
+                                '+2,5 buts': '+2,5 buts',
+                                '-2,5 buts': '-2,5 buts'
                               };
                               const predictionText = predictions[match.ai_prediction as keyof typeof predictions] || match.ai_prediction;
                               const confidenceLevel = match.ai_confidence && match.ai_confidence > 0.8 ? 'high' : 
