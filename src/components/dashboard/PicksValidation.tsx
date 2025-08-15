@@ -154,14 +154,13 @@ export function PicksValidation() {
       
       setMatches(processedMatches);
       
-      // Générer les picks potentiels directement
-      if (processedMatches.length > 0) {
-        console.log('🚨 APPEL loadPotentialPicks avec', processedMatches.length, 'matchs');
-        loadPotentialPicks(processedMatches);
-      } else {
-        console.log('🚨 AUCUN MATCH TRAITÉ - pas d\'appel à loadPotentialPicks');
-        setPotentialPicks([]);
+      // Ne pas appeler loadPotentialPicks automatiquement ici car cela limite aux matchs de la date
+      // L'utilisateur peut utiliser le bouton "Actualiser" pour analyser tous les matchs
+      if (processedMatches.length === 0) {
+        console.log('🚨 AUCUN MATCH TRAITÉ pour la date sélectionnée');
         console.log(`❌ Aucun match trouvé pour le ${dateFilter}`);
+      } else {
+        console.log(`✅ ${processedMatches.length} matchs chargés pour la date ${dateFilter}`);
       }
       
     } catch (error) {
