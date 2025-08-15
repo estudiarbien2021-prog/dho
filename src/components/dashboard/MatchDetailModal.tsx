@@ -769,42 +769,131 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
               </p>
             </div>
             
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Confidence Score Bars */}
-              <ConfidenceScoreBars
-                isActive={showAIGraphics}
-                predictions={[
-                  {
-                    label: recommendation?.type === 'BTTS' && recommendation?.prediction === 'Oui' ? 'BTTS Oui' : 
-                           recommendation?.type === 'BTTS' && recommendation?.prediction === 'Non' ? 'BTTS Non' :
-                           recommendation?.type === 'O/U 2.5' && recommendation?.prediction === 'Over' ? 'Plus de 2.5 Buts' :
-                           recommendation?.type === 'O/U 2.5' && recommendation?.prediction === 'Under' ? 'Moins de 2.5 Buts' :
-                           recommendation?.type ? `${recommendation.type}: ${recommendation.prediction}` :
-                           '1X2 ' + get1x2Winner(),
-                    value: Number(generateConfidenceScore(match.id, recommendation || {})),
-                    color: 'hsl(var(--primary))',
-                    icon: '🎯'
-                  },
-                  {
-                    label: 'Analyse Alternative',
-                    value: Math.max(30, 100 - Number(generateConfidenceScore(match.id, recommendation || {}))),
-                    color: '#10b981',
-                    icon: '📊'
-                  },
-                  {
-                    label: 'Facteur Risque (Marge)',
-                    value: Math.round(match.vig_1x2 * 100),
-                    color: '#ef4444',
-                    icon: '⚠️'
-                  }
-                ]}
-              />
-                
-              {/* Influence Factors */}
-              <InfluenceFactors 
-                matchId={match.id}
-                isActive={showAIGraphics}
-              />
+            <div className="grid grid-cols-1 gap-6">
+              {/* Enhanced AI Recommendation Section with Influence Factors */}
+              <Card className="p-6 bg-gradient-to-br from-slate-50 to-white dark:from-slate-900/50 dark:to-slate-800/50 border-0 shadow-lg">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-r from-emerald-500 to-green-500 rounded-xl shadow-lg">
+                    <Target className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">Recommandation de l'IA</h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">Analyse complète avec facteurs d'influence</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* AI Recommendation */}
+                  <div className="space-y-4">
+                    {recommendation ? (
+                      <div className="p-4 bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-950/20 dark:to-green-950/20 rounded-xl border border-emerald-200 dark:border-emerald-800">
+                        <div className="flex items-center justify-between mb-3">
+                          <Badge className="bg-emerald-500 text-white px-3 py-1">
+                            {recommendation.type} {recommendation.prediction}
+                          </Badge>
+                          <div className="text-xl font-bold text-emerald-700 dark:text-emerald-300">
+                            {recommendation.odds.toFixed(2)}
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-slate-600 dark:text-slate-400">Niveau de confiance:</span>
+                            <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                              {generateConfidenceScore(match.id, recommendation)}%
+                            </span>
+                          </div>
+                          <div className="relative h-2 bg-emerald-200 dark:bg-emerald-800 rounded-full overflow-hidden">
+                            <div 
+                              className="absolute top-0 left-0 h-full bg-gradient-to-r from-emerald-500 to-green-500 rounded-full transition-all duration-1000"
+                              style={{ width: `${showAIGraphics ? generateConfidenceScore(match.id, recommendation) : 0}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-center">
+                        <span className="text-slate-600 dark:text-slate-400">Aucune recommandation disponible</span>
+                      </div>
+                    )}
+
+                    {/* Compact Confidence Bars */}
+                    <div className="space-y-3">
+                      <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">Scores de Confiance</div>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-slate-600 dark:text-slate-400">🎯 Recommandation IA</span>
+                          <span className="text-xs font-semibold text-emerald-600">
+                            {generateConfidenceScore(match.id, recommendation || {})}%
+                          </span>
+                        </div>
+                        <div className="h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-gradient-to-r from-emerald-500 to-green-500 rounded-full transition-all duration-1000"
+                            style={{ width: `${showAIGraphics ? generateConfidenceScore(match.id, recommendation || {}) : 0}%` }}
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-slate-600 dark:text-slate-400">⚠️ Facteur Risque</span>
+                          <span className="text-xs font-semibold text-red-600">
+                            {Math.round(match.vig_1x2 * 100)}%
+                          </span>
+                        </div>
+                        <div className="h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-gradient-to-r from-red-500 to-orange-500 rounded-full transition-all duration-1000 delay-200"
+                            style={{ width: `${showAIGraphics ? Math.round(match.vig_1x2 * 100) : 0}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Influence Factors - Compact Version */}
+                  <div className="space-y-4">
+                    <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">Facteurs d'Influence</div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full" />
+                          <span className="text-xs font-medium text-blue-700 dark:text-blue-300">Cotes</span>
+                        </div>
+                        <div className="text-lg font-bold text-blue-800 dark:text-blue-200">85%</div>
+                        <div className="text-xs text-blue-600 dark:text-blue-400">Impact fort</div>
+                      </div>
+                      
+                      <div className="p-3 bg-purple-50 dark:bg-purple-950/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="w-2 h-2 bg-purple-500 rounded-full" />
+                          <span className="text-xs font-medium text-purple-700 dark:text-purple-300">Historique</span>
+                        </div>
+                        <div className="text-lg font-bold text-purple-800 dark:text-purple-200">72%</div>
+                        <div className="text-xs text-purple-600 dark:text-purple-400">Modéré</div>
+                      </div>
+                      
+                      <div className="p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="w-2 h-2 bg-amber-500 rounded-full" />
+                          <span className="text-xs font-medium text-amber-700 dark:text-amber-300">Forme</span>
+                        </div>
+                        <div className="text-lg font-bold text-amber-800 dark:text-amber-200">68%</div>
+                        <div className="text-xs text-amber-600 dark:text-amber-400">Positif</div>
+                      </div>
+                      
+                      <div className="p-3 bg-cyan-50 dark:bg-cyan-950/20 rounded-lg border border-cyan-200 dark:border-cyan-800">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="w-2 h-2 bg-cyan-500 rounded-full" />
+                          <span className="text-xs font-medium text-cyan-700 dark:text-cyan-300">Contexte</span>
+                        </div>
+                        <div className="text-lg font-bold text-cyan-800 dark:text-cyan-200">91%</div>
+                        <div className="text-xs text-cyan-600 dark:text-cyan-400">Excellent</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Card>
             </div>
 
             {/* New Advanced Charts Grid */}
