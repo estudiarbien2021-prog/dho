@@ -769,40 +769,40 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
               </p>
             </div>
             
-            <div className="grid grid-cols-1 gap-6">
+            <div className="grid grid-cols-1 gap-8">
               {/* Enhanced AI Recommendation Section with Influence Factors */}
-              <Card className="p-6 bg-gradient-to-br from-slate-50 to-white dark:from-slate-900/50 dark:to-slate-800/50 border-0 shadow-lg">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-r from-emerald-500 to-green-500 rounded-xl shadow-lg">
-                    <Target className="w-5 h-5 text-white" />
+              <Card className="p-8 bg-gradient-to-br from-slate-50 to-white dark:from-slate-900/50 dark:to-slate-800/50 border-0 shadow-lg">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-r from-emerald-500 to-green-500 rounded-xl shadow-lg">
+                    <Target className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">Recommandation de l'IA</h3>
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">Recommandation de l'IA</h3>
                     <p className="text-sm text-slate-600 dark:text-slate-400">Analyse complète avec facteurs d'influence</p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                   {/* AI Recommendation */}
-                  <div className="space-y-4">
+                  <div className="lg:col-span-2 space-y-6">
                     {recommendation ? (
-                      <div className="p-4 bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-950/20 dark:to-green-950/20 rounded-xl border border-emerald-200 dark:border-emerald-800">
-                        <div className="flex items-center justify-between mb-3">
-                          <Badge className="bg-emerald-500 text-white px-3 py-1">
+                      <div className="p-6 bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-950/20 dark:to-green-950/20 rounded-xl border border-emerald-200 dark:border-emerald-800">
+                        <div className="flex items-center justify-between mb-4">
+                          <Badge className="bg-emerald-500 text-white px-4 py-2 text-base font-semibold">
                             {recommendation.type} {recommendation.prediction}
                           </Badge>
-                          <div className="text-xl font-bold text-emerald-700 dark:text-emerald-300">
+                          <div className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">
                             {recommendation.odds.toFixed(2)}
                           </div>
                         </div>
-                        <div className="space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-slate-600 dark:text-slate-400">Niveau de confiance:</span>
-                            <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                        <div className="space-y-4">
+                          <div className="flex justify-between text-base">
+                            <span className="text-slate-600 dark:text-slate-400 font-medium">Niveau de confiance:</span>
+                            <span className="font-bold text-emerald-600 dark:text-emerald-400 text-lg">
                               {generateConfidenceScore(match.id, recommendation)}%
                             </span>
                           </div>
-                          <div className="relative h-2 bg-emerald-200 dark:bg-emerald-800 rounded-full overflow-hidden">
+                          <div className="relative h-3 bg-emerald-200 dark:bg-emerald-800 rounded-full overflow-hidden">
                             <div 
                               className="absolute top-0 left-0 h-full bg-gradient-to-r from-emerald-500 to-green-500 rounded-full transition-all duration-1000"
                               style={{ width: `${showAIGraphics ? generateConfidenceScore(match.id, recommendation) : 0}%` }}
@@ -811,7 +811,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                         </div>
                         
                         {/* Detailed AI Commentary */}
-                        <div className="mt-4 p-3 bg-white/60 dark:bg-slate-800/60 rounded-lg border border-emerald-100 dark:border-emerald-800">
+                        <div className="mt-6 p-4 bg-white/80 dark:bg-slate-800/80 rounded-lg border border-emerald-100 dark:border-emerald-800">
                           <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
                             <div dangerouslySetInnerHTML={{ 
                               __html: (typeof generateRecommendationExplanation === 'function' 
@@ -823,22 +823,24 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                         </div>
                       </div>
                     ) : (
-                      <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-center">
-                        <span className="text-slate-600 dark:text-slate-400">Aucune recommandation disponible</span>
+                      <div className="p-6 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-center">
+                        <span className="text-slate-600 dark:text-slate-400 text-base">Aucune recommandation disponible</span>
                       </div>
                     )}
+                  </div>
 
-                    {/* Compact Confidence Bars */}
-                    <div className="space-y-3">
-                      <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">Scores de Confiance</div>
-                      <div className="space-y-2">
+                  {/* Compact Confidence Bars */}
+                  <div className="space-y-6">
+                    <div className="text-base font-bold text-slate-700 dark:text-slate-300">Scores de Confiance</div>
+                    <div className="space-y-6">
+                      <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs text-slate-600 dark:text-slate-400">🎯 Recommandation IA</span>
-                          <span className="text-xs font-semibold text-emerald-600">
+                          <span className="text-sm text-slate-600 dark:text-slate-400 font-medium">🎯 Recommandation IA</span>
+                          <span className="text-sm font-bold text-emerald-600">
                             {generateConfidenceScore(match.id, recommendation || {})}%
                           </span>
                         </div>
-                        <div className="h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                        <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                           <div 
                             className="h-full bg-gradient-to-r from-emerald-500 to-green-500 rounded-full transition-all duration-1000"
                             style={{ width: `${showAIGraphics ? generateConfidenceScore(match.id, recommendation || {}) : 0}%` }}
@@ -846,14 +848,14 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                         </div>
                       </div>
                       
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs text-slate-600 dark:text-slate-400">⚠️ Facteur Risque</span>
-                          <span className="text-xs font-semibold text-red-600">
+                          <span className="text-sm text-slate-600 dark:text-slate-400 font-medium">⚠️ Facteur Risque</span>
+                          <span className="text-sm font-bold text-red-600">
                             {Math.round(match.vig_1x2 * 100)}%
                           </span>
                         </div>
-                        <div className="h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                        <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                           <div 
                             className="h-full bg-gradient-to-r from-red-500 to-orange-500 rounded-full transition-all duration-1000 delay-200"
                             style={{ width: `${showAIGraphics ? Math.round(match.vig_1x2 * 100) : 0}%` }}
