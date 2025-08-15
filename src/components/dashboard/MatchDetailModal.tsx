@@ -114,12 +114,24 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     
     const highestVigorish = vigorishData[0];
     
-    // Check if we should mask AI recommendation
+    // Check if we should mask AI recommendation - SEULEMENT si on peut inverser
     if (highestVigorish.type === 'BTTS' && highestVigorish.value >= 0.08) {
-      return { shouldMaskBTTS: true };
+      // Vérifier l'exception des 60% - ne pas masquer si >= 60%
+      const bttsYesProb = match.p_btts_yes_fair;
+      const bttsNoProb = match.p_btts_no_fair;
+      const highestBTTSProb = Math.max(bttsYesProb, bttsNoProb);
+      
+      // Masquer seulement si on peut inverser (probabilité < 60%)
+      return { shouldMaskBTTS: highestBTTSProb < 0.6 };
     }
     if (highestVigorish.type === 'O/U2.5' && highestVigorish.value >= 0.08) {
-      return { shouldMaskOU: true };
+      // Vérifier l'exception des 60% - ne pas masquer si >= 60%
+      const overProb = match.p_over_2_5_fair;
+      const underProb = match.p_under_2_5_fair;
+      const highestOUProb = Math.max(overProb, underProb);
+      
+      // Masquer seulement si on peut inverser (probabilité < 60%)
+      return { shouldMaskOU: highestOUProb < 0.6 };
     }
     
     return { shouldMaskBTTS: false, shouldMaskOU: false };
