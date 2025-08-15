@@ -69,9 +69,9 @@ export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
       }
     });
     
-    // Filtrer les odds >= 1.5, puis trier par vigorish décroissant ET probabilité décroissante
+    // Filtrer les odds >= 1.5 ET probabilité >= 55%, puis trier par vigorish décroissant ET probabilité décroissante
     return validBets
-      .filter(bet => bet.odds >= 1.5)
+      .filter(bet => bet.odds >= 1.5 && bet.probability >= 0.55)
       .sort((a, b) => {
         // D'abord trier par vigorish décroissant
         const vigorishDiff = b.vigorish - a.vigorish;
