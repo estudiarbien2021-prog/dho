@@ -129,6 +129,12 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
   const shouldShowAIRecommendation = () => {
     if (!recommendation) return false;
     
+    // NOUVELLE RÈGLE : Toujours afficher les recommandations inversées (opportunités détectées)
+    if (aiRecommendation && aiRecommendation.isInverted) {
+      return true;
+    }
+    
+    // Logique originale pour les autres cas
     if (recommendation.type === 'BTTS' && marketDistortion.shouldMaskBTTS) {
       return false;
     }
@@ -910,14 +916,19 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                   <Card className="p-6 bg-gradient-to-br from-brand/10 to-brand/20 border-border/50 min-h-[600px]">
                     {recommendation && shouldShowAIRecommendation() ? (
                       <div className="space-y-6 h-full flex flex-col">
-                        <div className="flex items-center justify-between">
-                          <Badge className="bg-brand text-brand-fg px-4 py-2 text-base font-semibold">
-                            {recommendation.type} {recommendation.prediction}
-                          </Badge>
-                          <div className="text-2xl font-bold text-brand">
-                            {recommendation.odds.toFixed(2)}
-                          </div>
-                        </div>
+                         <div className="flex items-center justify-between">
+                           <Badge className="bg-brand text-brand-fg px-4 py-2 text-base font-semibold">
+                             {recommendation.type} {recommendation.prediction}
+                             {aiRecommendation?.isInverted && (
+                               <span className="ml-2 text-xs bg-amber-500/20 text-amber-700 px-2 py-1 rounded">
+                                 Opportunité détectée
+                               </span>
+                             )}
+                           </Badge>
+                           <div className="text-2xl font-bold text-brand">
+                             {recommendation.odds.toFixed(2)}
+                           </div>
+                         </div>
                         <div className="space-y-4">
                           <div className="flex justify-between text-base">
                             <span className="text-text-weak font-medium">Niveau de confiance:</span>
