@@ -53,7 +53,26 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
 
   const flagInfo = leagueToFlag(match.league, match.country, match.home_team, match.away_team);
 
-  // Determine winning predictions
+  // Determine winning predictions with percentages display
+  const get1x2Percentages = () => {
+    const homePercent = (match.p_home_fair * 100).toFixed(1);
+    const drawPercent = (match.p_draw_fair * 100).toFixed(1);
+    const awayPercent = (match.p_away_fair * 100).toFixed(1);
+    return `${homePercent}% | ${drawPercent}% | ${awayPercent}%`;
+  };
+
+  const getBttsPercentages = () => {
+    const yesPercent = (match.p_btts_yes_fair * 100).toFixed(1);
+    const noPercent = (match.p_btts_no_fair * 100).toFixed(1);
+    return `${yesPercent}% | ${noPercent}%`;
+  };
+
+  const getOver25Percentages = () => {
+    const overPercent = (match.p_over_2_5_fair * 100).toFixed(1);
+    const underPercent = (match.p_under_2_5_fair * 100).toFixed(1);
+    return `${overPercent}% | ${underPercent}%`;
+  };
+
   const get1x2Winner = () => {
     if (match.p_home_fair > match.p_draw_fair && match.p_home_fair > match.p_away_fair) {
       return match.home_team;
@@ -735,7 +754,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Résultat 1X2 */}
               <Card className="p-4">
-                <DonutChart data={results1x2Data} title="Résultat 1X2" prediction={get1x2Winner()} chartKey="results1x2" />
+                <DonutChart data={results1x2Data} title="Résultat 1X2" prediction={get1x2Percentages()} chartKey="results1x2" />
                 <div className="mt-4 grid grid-cols-3 gap-2 text-center">
                   <div>
                     <div className="text-xs text-muted-foreground mb-1">Domicile</div>
@@ -767,7 +786,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
               {/* BTTS */}
               {bttsData.length > 0 && (
                 <Card className="p-4">
-                  <DonutChart data={bttsData} title="Les Deux Équipes Marquent" prediction={getBttsWinner()} chartKey="btts" />
+                  <DonutChart data={bttsData} title="Les Deux Équipes Marquent" prediction={getBttsPercentages()} chartKey="btts" />
                   <div className="mt-4 grid grid-cols-2 gap-2 text-center">
                     <div>
                       <div className="text-xs text-muted-foreground mb-1">BTTS Oui</div>
@@ -792,7 +811,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
               {/* Over/Under 2.5 */}
               {over25Data.length > 0 && (
                 <Card className="p-4">
-                  <DonutChart data={over25Data} title="Plus/Moins 2,5 Buts" prediction={getOver25Winner()} chartKey="over25" />
+                  <DonutChart data={over25Data} title="Plus/Moins 2,5 Buts" prediction={getOver25Percentages()} chartKey="over25" />
                   <div className="mt-4 grid grid-cols-2 gap-2 text-center">
                     <div>
                       <div className="text-xs text-muted-foreground mb-1">Plus de 2,5</div>
