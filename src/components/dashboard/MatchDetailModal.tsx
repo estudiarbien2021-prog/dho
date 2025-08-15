@@ -700,7 +700,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm ${
-                      match.vig_1x2 && match.vig_1x2 <= 0.12 ? 'bg-green-500' : 'bg-red-500'
+                      match.vig_1x2 && match.vig_1x2 <= 0.12 ? 'bg-green-500' : 'bg-orange-500'
                     }`}>
                       📊
                     </div>
@@ -711,12 +711,12 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                   </div>
                   <div className="text-right">
                     <div className={`text-lg font-bold ${
-                      match.vig_1x2 && match.vig_1x2 <= 0.12 ? 'text-green-500' : 'text-red-500'
+                      match.vig_1x2 && match.vig_1x2 <= 0.12 ? 'text-green-500' : 'text-orange-500'
                     }`}>
                       {(match.vig_1x2 && !isNaN(match.vig_1x2) ? match.vig_1x2 * 100 : 0).toFixed(1)}%
                     </div>
                     <div className={`text-xs font-medium ${
-                      match.vig_1x2 && match.vig_1x2 <= 0.12 ? 'text-green-500' : 'text-red-500'
+                      match.vig_1x2 && match.vig_1x2 <= 0.12 ? 'text-green-500' : 'text-orange-500'
                     }`}>
                       {match.vig_1x2 && match.vig_1x2 <= 0.12 ? 'Favorable' : 'Élevé'}
                     </div>
@@ -725,7 +725,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                 <div className="h-2 bg-muted rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${
-                      match.vig_1x2 && match.vig_1x2 <= 0.12 ? 'bg-green-500' : 'bg-red-500'
+                      match.vig_1x2 && match.vig_1x2 <= 0.12 ? 'bg-green-500' : 'bg-orange-500'
                     }`}
                     style={{ width: `${Math.min(100, (match.vig_1x2 || 0) * 100 * 4)}%` }}
                   />
@@ -894,34 +894,123 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
 
           {/* Analysis */}
           <div className="grid grid-cols-1 gap-6">
-            {/* Vigorish */}
-            <Card className="group relative p-3 bg-gradient-to-br from-surface-soft to-surface-strong border border-brand-300/30 hover:border-brand-300/50 transition-all duration-500 hover:shadow-xl hover:shadow-brand-300/20 backdrop-blur-sm transform hover:scale-[1.01]">
-              <div className="absolute inset-0 bg-gradient-to-br from-brand-300/5 to-brand-400/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <h4 className="font-semibold mb-2 flex items-center gap-2 text-text relative z-10 text-sm">
-                <Target className="h-4 w-4 text-brand-300" />
-                Marges (Vigorish)
-              </h4>
-              <div className="space-y-1.5 relative z-10">
-                <div className="flex justify-between items-center p-1.5 bg-surface-strong/30 rounded-lg border border-brand-300/10 hover:border-brand-300/20 transition-colors duration-300">
-                  <span className="font-medium text-text text-sm">1X2:</span>
-                  <Badge variant={match.vig_1x2 <= 0.12 ? "default" : "secondary"} className="text-xs bg-gradient-to-r from-brand-300/30 to-brand-400/30 border-brand-300/40 text-text font-bold px-2 py-0.5">
-                    {(match.vig_1x2 && !isNaN(match.vig_1x2) ? match.vig_1x2 * 100 : 0).toFixed(1)}%
-                  </Badge>
+            {/* Marges Vigorish - Style cohérent avec Facteurs d'Influence */}
+            <Card className="p-6">
+              <div className="flex items-center gap-2 mb-6">
+                <div className="w-2 h-2 bg-orange-500 rounded-full" />
+                <h3 className="font-semibold text-sm">Marges (Vigorish)</h3>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm ${
+                        match.vig_1x2 <= 0.12 ? 'bg-green-500' : 'bg-orange-500'
+                      }`}>
+                        📊
+                      </div>
+                      <div>
+                        <div className="font-medium text-sm">Marge 1X2</div>
+                        <div className="text-xs text-muted-foreground">Commission sur résultat</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className={`text-lg font-bold ${
+                        match.vig_1x2 <= 0.12 ? 'text-green-500' : 'text-orange-500'
+                      }`}>
+                        {(match.vig_1x2 && !isNaN(match.vig_1x2) ? match.vig_1x2 * 100 : 0).toFixed(1)}%
+                      </div>
+                      <div className={`text-xs font-medium ${
+                        match.vig_1x2 <= 0.12 ? 'text-green-500' : 'text-orange-500'
+                      }`}>
+                        {match.vig_1x2 <= 0.12 ? 'Favorable' : 'Standard'}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="h-2 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        match.vig_1x2 <= 0.12 ? 'bg-green-500' : 'bg-orange-500'
+                      }`}
+                      style={{ width: `${Math.min(100, (match.vig_1x2 || 0) * 100 * 4)}%` }}
+                    />
+                  </div>
                 </div>
+
                 {match.vig_btts > 0 && (
-                  <div className="flex justify-between items-center p-1.5 bg-surface-strong/30 rounded-lg border border-brand-300/10 hover:border-brand-300/20 transition-colors duration-300">
-                    <span className="font-medium text-text text-sm">BTTS:</span>
-                    <Badge variant={match.vig_btts <= 0.15 ? "default" : "secondary"} className="text-xs bg-gradient-to-r from-brand-300/30 to-brand-400/30 border-brand-300/40 text-text font-bold px-2 py-0.5">
-                      {(match.vig_btts && !isNaN(match.vig_btts) ? match.vig_btts * 100 : 0).toFixed(1)}%
-                    </Badge>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm ${
+                          match.vig_btts <= 0.15 ? 'bg-green-500' : 'bg-orange-500'
+                        }`}>
+                          ⚽
+                        </div>
+                        <div>
+                          <div className="font-medium text-sm">Marge BTTS</div>
+                          <div className="text-xs text-muted-foreground">Commission sur buts</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className={`text-lg font-bold ${
+                          match.vig_btts <= 0.15 ? 'text-green-500' : 'text-orange-500'
+                        }`}>
+                          {(match.vig_btts && !isNaN(match.vig_btts) ? match.vig_btts * 100 : 0).toFixed(1)}%
+                        </div>
+                        <div className={`text-xs font-medium ${
+                          match.vig_btts <= 0.15 ? 'text-green-500' : 'text-orange-500'
+                        }`}>
+                          {match.vig_btts <= 0.15 ? 'Favorable' : 'Standard'}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          match.vig_btts <= 0.15 ? 'bg-green-500' : 'bg-orange-500'
+                        }`}
+                        style={{ width: `${Math.min(100, (match.vig_btts || 0) * 100 * 3)}%` }}
+                      />
+                    </div>
                   </div>
                 )}
+
                 {match.vig_ou_2_5 > 0 && (
-                  <div className="flex justify-between items-center p-1.5 bg-surface-strong/30 rounded-lg border border-brand-300/10 hover:border-brand-300/20 transition-colors duration-300">
-                    <span className="font-medium text-text text-sm">O/U 2.5:</span>
-                    <Badge variant={match.vig_ou_2_5 <= 0.15 ? "default" : "secondary"} className="text-xs bg-gradient-to-r from-brand-300/30 to-brand-400/30 border-brand-300/40 text-text font-bold px-2 py-0.5">
-                      {(match.vig_ou_2_5 && !isNaN(match.vig_ou_2_5) ? match.vig_ou_2_5 * 100 : 0).toFixed(1)}%
-                    </Badge>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm ${
+                          match.vig_ou_2_5 <= 0.15 ? 'bg-green-500' : 'bg-orange-500'
+                        }`}>
+                          📈
+                        </div>
+                        <div>
+                          <div className="font-medium text-sm">Marge O/U 2.5</div>
+                          <div className="text-xs text-muted-foreground">Commission sur total</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className={`text-lg font-bold ${
+                          match.vig_ou_2_5 <= 0.15 ? 'text-green-500' : 'text-orange-500'
+                        }`}>
+                          {(match.vig_ou_2_5 && !isNaN(match.vig_ou_2_5) ? match.vig_ou_2_5 * 100 : 0).toFixed(1)}%
+                        </div>
+                        <div className={`text-xs font-medium ${
+                          match.vig_ou_2_5 <= 0.15 ? 'text-green-500' : 'text-orange-500'
+                        }`}>
+                          {match.vig_ou_2_5 <= 0.15 ? 'Favorable' : 'Standard'}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          match.vig_ou_2_5 <= 0.15 ? 'bg-green-500' : 'bg-orange-500'
+                        }`}
+                        style={{ width: `${Math.min(100, (match.vig_ou_2_5 || 0) * 100 * 3)}%` }}
+                      />
+                    </div>
                   </div>
                 )}
               </div>
