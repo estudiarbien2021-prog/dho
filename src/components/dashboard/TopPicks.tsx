@@ -28,24 +28,38 @@ interface ValidatedPick {
 interface TopPicksProps {
   matches: ProcessedMatch[];
   onMatchClick: (match: ProcessedMatch) => void;
+  selectedDate?: Date;
 }
 
-export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
+export function TopPicks({ matches, onMatchClick, selectedDate }: TopPicksProps) {
   const [validatedPicks, setValidatedPicks] = useState<ValidatedPick[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    console.log('🎯 TopPicks: Loading validated picks...');
+    console.log('🎯 TopPicks: Loading validated picks...', selectedDate ? `for date ${selectedDate.toISOString().split('T')[0]}` : 'for all dates');
     loadValidatedPicks();
-  }, []);
+  }, [selectedDate]);
 
   const loadValidatedPicks = async () => {
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
+      let query = supabase
         .from('validated_picks')
         .select('*')
-        .eq('is_validated', true)
+        .eq('is_validated', true);
+
+      // Filtrer par date si une date est sélectionnée
+      if (selectedDate) {
+        const dateStr = selectedDate.toISOString().split('T')[0];
+        const startOfDay = `${dateStr}T00:00:00.000Z`;
+        const endOfDay = `${dateStr}T23:59:59.999Z`;
+        
+        query = query
+          .gte('kickoff_utc', startOfDay)
+          .lte('kickoff_utc', endOfDay);
+      }
+
+      const { data, error } = await query
         .order('vigorish', { ascending: false })
         .order('probability', { ascending: false })
         .limit(3);

@@ -17,6 +17,7 @@ import { leagueToFlag } from '@/lib/leagueCountry';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { DatePickerFilter } from './DatePickerFilter';
+import { TopPicks } from './TopPicks';
 // Supprimer useMatchesData pour utiliser directement Supabase
 
 interface PotentialPick {
@@ -58,6 +59,12 @@ export function PicksValidation() {
   const [editingPick, setEditingPick] = useState<ValidatedPick | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [matches, setMatches] = useState<ProcessedMatch[]>([]);
+
+  // Handler pour les clics sur les matchs depuis TopPicks
+  const handleMatchClick = (match: ProcessedMatch) => {
+    // Vous pouvez implémenter une logique personnalisée ici si nécessaire
+    console.log('Match clicked from TopPicks:', match);
+  };
 
   // Fonction utilitaire pour convertir Date en string YYYY-MM-DD (locale)
   const formatDateForFilter = (date: Date): string => {
@@ -591,6 +598,15 @@ export function PicksValidation() {
           </div>
         )}
       </Card>
+
+      {/* Top 3 Picks IA */}
+      {selectedDate && matches.length > 0 && (
+        <TopPicks
+          matches={matches}
+          onMatchClick={handleMatchClick}
+          selectedDate={selectedDate}
+        />
+      )}
 
       {/* Validated Picks */}
       <Card className="p-6">

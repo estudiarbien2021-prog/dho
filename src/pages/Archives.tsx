@@ -153,7 +153,11 @@ export function Archives() {
 
       {/* Top 3 Picks */}
       {selectedDate && !isLoading && matches.length > 0 && (
-        <TopPicks matches={matches} onMatchClick={handleMatchClick} />
+        <TopPicks 
+          matches={matches} 
+          onMatchClick={handleMatchClick} 
+          selectedDate={new Date(selectedDate + 'T00:00:00.000Z')}
+        />
       )}
 
       {/* Filters */}
