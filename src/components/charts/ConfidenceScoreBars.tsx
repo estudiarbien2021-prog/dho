@@ -159,6 +159,11 @@ export function ConfidenceScoreBars({ predictions, isActive }: ConfidenceScoreBa
             <div>• 0-29% : Faible probabilité</div>
           </div>
         )}
+        
+        {/* Commentaire explicatif */}
+        <div className="mt-3 p-2 bg-slate-800/30 rounded text-xs text-muted-foreground">
+          💡 Plus le vigorish est faible, plus les cotes sont favorables aux parieurs
+        </div>
       </div>
     </Card>
   );
