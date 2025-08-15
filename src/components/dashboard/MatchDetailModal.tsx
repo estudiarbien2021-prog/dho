@@ -809,6 +809,13 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                             />
                           </div>
                         </div>
+                        
+                        {/* Detailed AI Commentary */}
+                        <div className="mt-4 p-3 bg-white/60 dark:bg-slate-800/60 rounded-lg border border-emerald-100 dark:border-emerald-800">
+                          <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                            <div dangerouslySetInnerHTML={{ __html: generateRecommendationExplanation(recommendation).replace(/\n/g, '<br/>') }} />
+                          </div>
+                        </div>
                       </div>
                     ) : (
                       <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-center">
