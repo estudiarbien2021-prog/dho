@@ -71,7 +71,7 @@ export function ConfidenceScoreBars({ predictions, isActive }: ConfidenceScoreBa
           <div className="w-3 h-3 bg-white rounded-full animate-pulse" />
         </div>
         <div>
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white">Scores de Confiance IA</h3>
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white">Recommandation de l'IA</h3>
           <p className="text-sm text-slate-600 dark:text-slate-400">Analyse prédictive avancée</p>
         </div>
       </div>
