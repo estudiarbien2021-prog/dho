@@ -37,7 +37,7 @@ export function MarketEfficiencyGauge({ match, className = "" }: MarketEfficienc
     return flaws;
   };
 
-  // Calculer les recommandations alternatives basées sur les vigorish élevés
+  // Calculer les recommandations alternatives basées sur les vigorish élevés et marges négatives
   const getAlternativeRecommendation = () => {
     // Créer un tableau des vigorish avec leurs types et les trier
     const vigorishData = [
@@ -48,9 +48,46 @@ export function MarketEfficiencyGauge({ match, className = "" }: MarketEfficienc
     
     const highestVigorish = vigorishData[0];
     
-    // 1X2 : si c'est le plus élevé ou le deuxième plus élevé ET >= 9%
+    // Vérifier les marges négatives d'abord
+    if (match.vig_1x2 < 0) {
+      const aiRecommendation = generateAIRecommendation(match, ['1x2']);
+      if (aiRecommendation && aiRecommendation.betType === '1X2') {
+        return {
+          type: '1X2_NEGATIVE',
+          prediction: aiRecommendation.prediction,
+          odds: aiRecommendation.odds,
+          reason: 'Marge négative détectée'
+        };
+      }
+    }
+    
+    if (match.vig_btts < 0 && match.odds_btts_yes && match.odds_btts_no) {
+      const aiRecommendation = generateAIRecommendation(match, ['btts']);
+      if (aiRecommendation && aiRecommendation.betType === 'BTTS') {
+        return {
+          type: 'BTTS_NEGATIVE',
+          prediction: aiRecommendation.prediction,
+          odds: aiRecommendation.odds,
+          reason: 'Marge négative détectée'
+        };
+      }
+    }
+    
+    if (match.vig_ou_2_5 < 0 && match.odds_over_2_5 && match.odds_under_2_5) {
+      const aiRecommendation = generateAIRecommendation(match, ['over_under']);
+      if (aiRecommendation && aiRecommendation.betType === 'O/U 2.5') {
+        return {
+          type: 'OU_NEGATIVE',
+          prediction: aiRecommendation.prediction,
+          odds: aiRecommendation.odds,
+          reason: 'Marge négative détectée'
+        };
+      }
+    }
+    
+    // 1X2 : si c'est le plus élevé ou le deuxième plus élevé ET >= 8%
     const is1X2TopTwo = vigorishData[0].type === '1X2' || vigorishData[1].type === '1X2';
-    const is1X2HighVigorish = match.vig_1x2 >= 0.09;
+    const is1X2HighVigorish = match.vig_1x2 >= 0.08;
     
     if (is1X2TopTwo && is1X2HighVigorish) {
       // Calculer les probabilités implicites
@@ -99,13 +136,14 @@ export function MarketEfficiencyGauge({ match, className = "" }: MarketEfficienc
           secondChoice, 
           thirdChoice, 
           doubleChance, 
-          doubleChanceOdds 
+          doubleChanceOdds,
+          shouldMaskAI: false // Pour 1X2, on ne masque pas l'IA
         };
       }
     }
     
-    // BTTS : si c'est le vigorish le plus élevé ET >= 9%
-    if (highestVigorish.type === 'BTTS' && highestVigorish.value >= 0.09 && match.odds_btts_yes && match.odds_btts_no) {
+    // BTTS : si c'est le vigorish le plus élevé ET >= 8%
+    if (highestVigorish.type === 'BTTS' && highestVigorish.value >= 0.08 && match.odds_btts_yes && match.odds_btts_no) {
       const aiRecommendation = generateAIRecommendation(match, ['btts']);
       if (aiRecommendation && aiRecommendation.betType === 'BTTS') {
         // Proposer l'inverse de la recommandation IA
@@ -116,13 +154,14 @@ export function MarketEfficiencyGauge({ match, className = "" }: MarketEfficienc
           type: 'BTTS',
           inversePrediction,
           inverseOdds,
-          originalAI: aiRecommendation.prediction
+          originalAI: aiRecommendation.prediction,
+          shouldMaskAI: true // Masquer la recommandation IA si contradictoire
         };
       }
     }
     
-    // O/U 2.5 : si c'est le vigorish le plus élevé ET >= 9%
-    if (highestVigorish.type === 'O/U2.5' && highestVigorish.value >= 0.09 && match.odds_over_2_5 && match.odds_under_2_5) {
+    // O/U 2.5 : si c'est le vigorish le plus élevé ET >= 8%
+    if (highestVigorish.type === 'O/U2.5' && highestVigorish.value >= 0.08 && match.odds_over_2_5 && match.odds_under_2_5) {
       const aiRecommendation = generateAIRecommendation(match, ['over_under']);
       if (aiRecommendation && aiRecommendation.betType === 'O/U 2.5') {
         // Proposer l'inverse de la recommandation IA
@@ -133,7 +172,8 @@ export function MarketEfficiencyGauge({ match, className = "" }: MarketEfficienc
           type: 'O/U 2.5',
           inversePrediction,
           inverseOdds,
-          originalAI: aiRecommendation.prediction
+          originalAI: aiRecommendation.prediction,
+          shouldMaskAI: true // Masquer la recommandation IA si contradictoire
         };
       }
     }
@@ -351,6 +391,21 @@ export function MarketEfficiencyGauge({ match, className = "" }: MarketEfficienc
                           @{altRecommendation.thirdChoice.odds.toFixed(2)}
                         </span>
                       </div>
+                    </div>
+                  </div>
+                </>
+              ) : altRecommendation.type === '1X2_NEGATIVE' || altRecommendation.type === 'BTTS_NEGATIVE' || altRecommendation.type === 'OU_NEGATIVE' ? (
+                <>
+                  {/* Recommandation pour marge négative */}
+                  <div className="text-sm text-foreground mb-3">
+                    <span className="text-muted-foreground">{altRecommendation.reason} :</span>
+                    <div className="font-bold mt-2 animate-pulse">
+                      <span className="text-lg text-chart-2 font-extrabold animate-bounce">
+                        {altRecommendation.prediction}
+                      </span>
+                      <span className="ml-2 px-3 py-1 bg-chart-2/20 text-chart-2 rounded text-sm font-bold animate-pulse">
+                        @{altRecommendation.odds?.toFixed(2)}
+                      </span>
                     </div>
                   </div>
                 </>

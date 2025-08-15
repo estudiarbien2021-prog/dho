@@ -84,6 +84,43 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
   const aiRecommendation = generateAIRecommendation(match, marketFilters);
   const recommendation = normalizeRecommendation(aiRecommendation);
   
+  // Check for market distortions first
+  const marketDistortion = (() => {
+    // Create vigorish data and sort
+    const vigorishData = [
+      { type: '1X2', value: match.vig_1x2 },
+      { type: 'BTTS', value: match.vig_btts },
+      { type: 'O/U2.5', value: match.vig_ou_2_5 }
+    ].sort((a, b) => b.value - a.value);
+    
+    const highestVigorish = vigorishData[0];
+    
+    // Check if we should mask AI recommendation
+    if (highestVigorish.type === 'BTTS' && highestVigorish.value >= 0.08) {
+      return { shouldMaskBTTS: true };
+    }
+    if (highestVigorish.type === 'O/U2.5' && highestVigorish.value >= 0.08) {
+      return { shouldMaskOU: true };
+    }
+    
+    return { shouldMaskBTTS: false, shouldMaskOU: false };
+  })();
+
+  // Function to check if AI recommendation should be shown
+  const shouldShowAIRecommendation = () => {
+    if (!recommendation) return false;
+    
+    if (recommendation.type === 'BTTS' && marketDistortion.shouldMaskBTTS) {
+      return false;
+    }
+    
+    if (recommendation.type === 'O/U 2.5' && marketDistortion.shouldMaskOU) {
+      return false;
+    }
+    
+    return true;
+  };
+  
   // Debug logs
   console.log('🔍 DEBUG MatchDetailModal:', {
     matchId: match.id,
@@ -808,7 +845,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   {/* AI Recommendation */}
                   <div className="space-y-6">
-                    {recommendation ? (
+                    {recommendation && shouldShowAIRecommendation() ? (
                       <div className="p-6 bg-gradient-to-br from-brand/10 to-brand/20 rounded-xl border border-brand/20">
                         <div className="flex items-center justify-between mb-4">
                           <Badge className="bg-brand text-brand-fg px-4 py-2 text-base font-semibold">
