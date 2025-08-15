@@ -764,19 +764,25 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                 <div className="mt-4 grid grid-cols-3 gap-2 text-center">
                   <div>
                     <div className="text-xs text-muted-foreground mb-1">Domicile</div>
-                    <div className="px-2 py-1 bg-brand/10 rounded text-sm font-mono font-bold text-brand">
+                    <div className={`px-2 py-1 bg-green-50 dark:bg-green-950/20 rounded text-sm font-mono ${
+                      get1x2Winner() === match.home_team ? 'font-bold text-green-600' : 'font-normal text-muted-foreground'
+                    }`}>
                       {match.odds_home && !isNaN(match.odds_home) ? match.odds_home.toFixed(2) : '0.00'}
                     </div>
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground mb-1">Nul</div>
-                    <div className="px-2 py-1 bg-brand-300/10 rounded text-sm font-mono font-bold text-brand-300">
+                    <div className={`px-2 py-1 bg-green-50 dark:bg-green-950/20 rounded text-sm font-mono ${
+                      get1x2Winner() === 'Nul' ? 'font-bold text-green-600' : 'font-normal text-muted-foreground'
+                    }`}>
                       {match.odds_draw && !isNaN(match.odds_draw) ? match.odds_draw.toFixed(2) : '0.00'}
                     </div>
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground mb-1">Extérieur</div>
-                    <div className="px-2 py-1 bg-brand-400/10 rounded text-sm font-mono font-bold text-brand-400">
+                    <div className={`px-2 py-1 bg-green-50 dark:bg-green-950/20 rounded text-sm font-mono ${
+                      get1x2Winner() === match.away_team ? 'font-bold text-green-600' : 'font-normal text-muted-foreground'
+                    }`}>
                       {match.odds_away && !isNaN(match.odds_away) ? match.odds_away.toFixed(2) : '0.00'}
                     </div>
                   </div>
@@ -790,13 +796,17 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                   <div className="mt-4 grid grid-cols-2 gap-2 text-center">
                     <div>
                       <div className="text-xs text-muted-foreground mb-1">BTTS Oui</div>
-                      <div className="px-2 py-1 bg-green-500/10 rounded text-sm font-mono font-bold text-green-500">
+                      <div className={`px-2 py-1 bg-green-50 dark:bg-green-950/20 rounded text-sm font-mono ${
+                        getBttsWinner() === 'Oui' ? 'font-bold text-green-600' : 'font-normal text-muted-foreground'
+                      }`}>
                         {match.odds_btts_yes && !isNaN(match.odds_btts_yes) ? match.odds_btts_yes.toFixed(2) : '0.00'}
                       </div>
                     </div>
                     <div>
                       <div className="text-xs text-muted-foreground mb-1">BTTS Non</div>
-                      <div className="px-2 py-1 bg-red-500/10 rounded text-sm font-mono font-bold text-red-500">
+                      <div className={`px-2 py-1 bg-green-50 dark:bg-green-950/20 rounded text-sm font-mono ${
+                        getBttsWinner() === 'Non' ? 'font-bold text-green-600' : 'font-normal text-muted-foreground'
+                      }`}>
                         {match.odds_btts_no && !isNaN(match.odds_btts_no) ? match.odds_btts_no.toFixed(2) : '0.00'}
                       </div>
                     </div>
@@ -811,13 +821,17 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                   <div className="mt-4 grid grid-cols-2 gap-2 text-center">
                     <div>
                       <div className="text-xs text-muted-foreground mb-1">Plus de 2,5</div>
-                      <div className="px-2 py-1 bg-orange-500/10 rounded text-sm font-mono font-bold text-orange-500">
+                      <div className={`px-2 py-1 bg-green-50 dark:bg-green-950/20 rounded text-sm font-mono ${
+                        getOver25Winner() === '+2,5 buts' ? 'font-bold text-green-600' : 'font-normal text-muted-foreground'
+                      }`}>
                         {match.odds_over_2_5 && !isNaN(match.odds_over_2_5) ? match.odds_over_2_5.toFixed(2) : '0.00'}
                       </div>
                     </div>
                     <div>
                       <div className="text-xs text-muted-foreground mb-1">Moins de 2,5</div>
-                      <div className="px-2 py-1 bg-blue-500/10 rounded text-sm font-mono font-bold text-blue-500">
+                      <div className={`px-2 py-1 bg-green-50 dark:bg-green-950/20 rounded text-sm font-mono ${
+                        getOver25Winner() === '-2,5 buts' ? 'font-bold text-green-600' : 'font-normal text-muted-foreground'
+                      }`}>
                         {match.odds_under_2_5 && !isNaN(match.odds_under_2_5) ? match.odds_under_2_5.toFixed(2) : '0.00'}
                       </div>
                     </div>
