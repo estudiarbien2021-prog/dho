@@ -98,16 +98,29 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     const safeProbability = normalizedRecommendation.probability && !isNaN(normalizedRecommendation.probability) && normalizedRecommendation.probability > 0 
       ? Math.min(0.95, Math.max(0.05, normalizedRecommendation.probability))
       : 0.5;
-    const safeVigorish = normalizedRecommendation.vigorish && !isNaN(normalizedRecommendation.vigorish) && normalizedRecommendation.vigorish >= 0
-      ? Math.min(0.25, Math.max(0.001, normalizedRecommendation.vigorish))
+    
+    // Récupérer la marge vigorish du marché choisi (BTTS ou O/U 2.5)
+    let marketVigorish = 0.05; // valeur par défaut
+    if (normalizedRecommendation.type === 'BTTS') {
+      marketVigorish = match.vig_btts || 0.05;
+    } else if (normalizedRecommendation.type === 'O/U 2.5') {
+      marketVigorish = match.vig_ou_2_5 || 0.05;
+    }
+    
+    const safeVigorish = !isNaN(marketVigorish) && marketVigorish >= 0
+      ? Math.min(0.25, Math.max(0.001, marketVigorish))
       : 0.05;
+      
     const safeOdds = normalizedRecommendation.odds && !isNaN(normalizedRecommendation.odds) && normalizedRecommendation.odds > 1
       ? Math.min(10.0, Math.max(1.01, normalizedRecommendation.odds))
       : 1.5;
     
     const probPercent = (safeProbability * 100).toFixed(1);
     const vigPercent = (safeVigorish * 100).toFixed(1);
-    const edge = Math.max(0, ((safeOdds * safeProbability) - 1) * 100).toFixed(1);
+    
+    // Edge forcé entre 2.0 et 6.0 selon les règles définies
+    const calculatedEdge = Math.max(0, ((safeOdds * safeProbability) - 1) * 100);
+    const edge = Math.max(2.0, Math.min(6.0, calculatedEdge)).toFixed(1);
     
     // Handle confidence score using shared function to ensure consistency
     const confidence = generateConfidenceScore(match.id, normalizedRecommendation);
