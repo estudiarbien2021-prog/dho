@@ -81,10 +81,32 @@ export function MarketEfficiencyGauge({ match, className = "" }: MarketEfficienc
       }
       
       return { 
+        type: '1X2',
         secondChoice, 
         thirdChoice, 
         doubleChance, 
         doubleChanceOdds 
+      };
+    } else if (match.vig_btts === vigMax && match.odds_btts_yes > 0 && match.odds_btts_no > 0) {
+      // Calculer les probabilités implicites BTTS
+      const probBttsYes = 1 / match.odds_btts_yes;
+      const probBttsNo = 1 / match.odds_btts_no;
+      
+      // Trouver la moins probable (meilleure valeur)
+      const bttsOptions = [
+        { label: 'BTTS Oui', prob: probBttsYes, odds: match.odds_btts_yes, type: 'yes' },
+        { label: 'BTTS Non', prob: probBttsNo, odds: match.odds_btts_no, type: 'no' }
+      ];
+      
+      // Trier par probabilité croissante (moins probable = meilleure valeur)
+      bttsOptions.sort((a, b) => a.prob - b.prob);
+      
+      // La deuxième moins probable (donc la plus probable) 
+      const recommendedChoice = bttsOptions[1];
+      
+      return {
+        type: 'BTTS',
+        bttsChoice: recommendedChoice
       };
     }
     
@@ -252,7 +274,7 @@ export function MarketEfficiencyGauge({ match, className = "" }: MarketEfficienc
           </div>
         </div>
 
-        {/* Recommandation alternative si 1X2 a le vigorish le plus élevé */}
+        {/* Recommandation alternative basée sur le vigorish le plus élevé */}
         {(() => {
           const altRecommendation = getAlternativeRecommendation();
           return altRecommendation ? (
@@ -262,45 +284,67 @@ export function MarketEfficiencyGauge({ match, className = "" }: MarketEfficienc
                 <span className="text-sm font-semibold text-chart-2">Opportunité Détectée</span>
               </div>
               
-              {/* Chance Double Recommandée */}
-              <div className="text-sm text-foreground mb-3">
-                <span className="text-muted-foreground">Chance Double recommandée :</span>
-                <div className="font-bold mt-2 animate-pulse">
-                  <span className="text-lg text-chart-2 font-extrabold animate-bounce">
-                    {altRecommendation.doubleChance}
-                  </span>
-                  <span className="ml-2 px-3 py-1 bg-chart-2/20 text-chart-2 rounded text-sm font-bold animate-pulse">
-                    @{altRecommendation.doubleChanceOdds.toFixed(2)}
-                  </span>
-                </div>
-              </div>
+              {altRecommendation.type === '1X2' ? (
+                <>
+                  {/* Chance Double Recommandée */}
+                  <div className="text-sm text-foreground mb-3">
+                    <span className="text-muted-foreground">Chance Double recommandée :</span>
+                    <div className="font-bold mt-2 animate-pulse">
+                      <span className="text-lg text-chart-2 font-extrabold animate-bounce">
+                        {altRecommendation.doubleChance}
+                      </span>
+                      <span className="ml-2 px-3 py-1 bg-chart-2/20 text-chart-2 rounded text-sm font-bold animate-pulse">
+                        @{altRecommendation.doubleChanceOdds.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
 
-              {/* Détail des probabilités */}
-              <div className="space-y-2 text-xs border-t border-chart-2/20 pt-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">2ème choix :</span>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-foreground animate-pulse">
-                      {altRecommendation.secondChoice.label}
-                    </span>
-                    <span className="px-2 py-1 bg-muted text-muted-foreground rounded text-xs">
-                      @{altRecommendation.secondChoice.odds.toFixed(2)}
-                    </span>
+                  {/* Détail des probabilités */}
+                  <div className="space-y-2 text-xs border-t border-chart-2/20 pt-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">2ème choix :</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-foreground animate-pulse">
+                          {altRecommendation.secondChoice.label}
+                        </span>
+                        <span className="px-2 py-1 bg-muted text-muted-foreground rounded text-xs">
+                          @{altRecommendation.secondChoice.odds.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">3ème choix :</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-foreground animate-pulse">
+                          {altRecommendation.thirdChoice.label}
+                        </span>
+                        <span className="px-2 py-1 bg-muted text-muted-foreground rounded text-xs">
+                          @{altRecommendation.thirdChoice.odds.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">3ème choix :</span>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-foreground animate-pulse">
-                      {altRecommendation.thirdChoice.label}
-                    </span>
-                    <span className="px-2 py-1 bg-muted text-muted-foreground rounded text-xs">
-                      @{altRecommendation.thirdChoice.odds.toFixed(2)}
-                    </span>
+                </>
+              ) : (
+                <>
+                  {/* Recommandation BTTS */}
+                  <div className="text-sm text-foreground">
+                    <span className="text-muted-foreground">BTTS recommandé (meilleure valeur) :</span>
+                    <div className="font-bold mt-2 animate-pulse">
+                      <span className="text-lg text-chart-2 font-extrabold animate-bounce">
+                        {altRecommendation.bttsChoice.label}
+                      </span>
+                      <span className="ml-2 px-3 py-1 bg-chart-2/20 text-chart-2 rounded text-sm font-bold animate-pulse">
+                        @{altRecommendation.bttsChoice.odds.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-2">
+                      Choix basé sur la probabilité la plus favorable
+                    </div>
                   </div>
-                </div>
-              </div>
+                </>
+              )}
             </div>
           ) : null;
         })()}
