@@ -294,12 +294,14 @@ export function PicksValidation() {
             return false;
           }
           
-          return isValidCategory && isValidRegion;
+          console.log(`   ✅ ACCEPTÉ: ${match.home_team} vs ${match.away_team} - first_div asiatique/africain`);
+          return true;
         }
         
         // Pour les compétitions continentales, autoriser TOUTES les régions
-        console.log(`🏆 ${match.home_team} vs ${match.away_team} - Continental_cup - Toutes régions autorisées: ${isValidCategory}`);
-        return isValidCategory;
+        console.log(`🏆 ${match.home_team} vs ${match.away_team} - Continental_cup - Toutes régions autorisées`);
+        console.log(`   ✅ ACCEPTÉ: ${match.home_team} vs ${match.away_team} - continental_cup`);
+        return true;
       });
 
       console.log(`📊 Matchs filtrés par critères: ${filteredMatches.length}/${matchesToAnalyze.length}`);
