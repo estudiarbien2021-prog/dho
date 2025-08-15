@@ -19,7 +19,14 @@ export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
   const getTopBets = () => {
     const validBets = [];
     
-    matches.forEach(match => {
+    // Filtrer d'abord par catégorie : grands championnats et compétitions continentales/internationales
+    const filteredMatches = matches.filter(match => 
+      match.category === 'first_div' || 
+      match.category === 'continental_cup' || 
+      match.category === 'national_cup'
+    );
+    
+    filteredMatches.forEach(match => {
       // Utiliser generateAIRecommendation pour avoir la même logique que le popup
       const aiRec = generateAIRecommendation(match, []);
       
