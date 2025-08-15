@@ -1,415 +1,304 @@
-import React, { useEffect, useState } from 'react';
+import React, { useMemo } from 'react';
 import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { TrendingUp, TrendingDown, Target, AlertTriangle, DollarSign } from 'lucide-react';
 
 interface NeuralNetworkVisualizationProps {
   isActive: boolean;
   confidence: number;
+  match?: {
+    home_team: string;
+    away_team: string;
+    league: string;
+    odds_home: number;
+    odds_draw: number;
+    odds_away: number;
+    odds_btts_yes?: number;
+    odds_over_2_5?: number;
+    p_home_fair: number;
+    p_draw_fair: number;
+    p_away_fair: number;
+    p_btts_yes_fair: number;
+    p_over_2_5_fair: number;
+    vig_1x2: number;
+    vig_btts: number;
+    vig_ou_2_5: number;
+    ai_prediction?: string | null;
+    ai_confidence?: number;
+  };
 }
 
-interface Neuron {
-  id: string;
-  x: number;
-  y: number;
-  size: number;
-  active: boolean;
-  intensity: number;
+interface ValueBet {
+  market: string;
+  odds: number;
+  fairProb: number;
+  impliedProb: number;
+  value: number;
   color: string;
-  type: 'input' | 'processing' | 'memory' | 'output';
+  icon: React.ReactNode;
 }
 
-interface Connection {
-  id: string;
-  from: string;
-  to: string;
-  startX: number;
-  startY: number;
-  endX: number;
-  endY: number;
-  active: boolean;
-  strength: number;
-}
-
-export function NeuralNetworkVisualization({ isActive, confidence }: NeuralNetworkVisualizationProps) {
-  const [neurons, setNeurons] = useState<Neuron[]>([]);
-  const [connections, setConnections] = useState<Connection[]>([]);
-  const [animationPhase, setAnimationPhase] = useState(0);
-  const [pulseWave, setPulseWave] = useState(0);
-
-  // Initialize beautiful brain structure
-  useEffect(() => {
-    const brainNeurons: Neuron[] = [
-      // Input layer (sensory cortex) - Blue/Cyan
-      { id: 'i1', x: 100, y: 120, size: 8, active: false, intensity: 0, color: '#06b6d4', type: 'input' },
-      { id: 'i2', x: 120, y: 100, size: 6, active: false, intensity: 0, color: '#0ea5e9', type: 'input' },
-      { id: 'i3', x: 140, y: 140, size: 7, active: false, intensity: 0, color: '#0284c7', type: 'input' },
-      { id: 'i4', x: 80, y: 150, size: 6, active: false, intensity: 0, color: '#0369a1', type: 'input' },
-
-      // Processing layer (frontal cortex) - Purple/Magenta  
-      { id: 'p1', x: 200, y: 80, size: 10, active: false, intensity: 0, color: '#8b5cf6', type: 'processing' },
-      { id: 'p2', x: 180, y: 110, size: 9, active: false, intensity: 0, color: '#a855f7', type: 'processing' },
-      { id: 'p3', x: 220, y: 120, size: 8, active: false, intensity: 0, color: '#9333ea', type: 'processing' },
-      { id: 'p4', x: 200, y: 150, size: 9, active: false, intensity: 0, color: '#7c3aed', type: 'processing' },
-      { id: 'p5', x: 240, y: 100, size: 7, active: false, intensity: 0, color: '#6d28d9', type: 'processing' },
-
-      // Memory layer (hippocampus) - Green/Emerald
-      { id: 'm1', x: 160, y: 180, size: 7, active: false, intensity: 0, color: '#10b981', type: 'memory' },
-      { id: 'm2', x: 200, y: 200, size: 8, active: false, intensity: 0, color: '#059669', type: 'memory' },
-      { id: 'm3', x: 240, y: 185, size: 6, active: false, intensity: 0, color: '#047857', type: 'memory' },
-
-      // Output layer (motor cortex) - Orange/Red
-      { id: 'o1', x: 320, y: 130, size: 12, active: false, intensity: 0, color: '#f59e0b', type: 'output' },
-      { id: 'o2', x: 300, y: 160, size: 10, active: false, intensity: 0, color: '#ea580c', type: 'output' },
-    ];
-
-    const brainConnections: Connection[] = [
-      // Input to processing
-      { id: 'c1', from: 'i1', to: 'p1', startX: 100, startY: 120, endX: 200, endY: 80, active: false, strength: 0.8 },
-      { id: 'c2', from: 'i1', to: 'p2', startX: 100, startY: 120, endX: 180, endY: 110, active: false, strength: 0.9 },
-      { id: 'c3', from: 'i2', to: 'p1', startX: 120, startY: 100, endX: 200, endY: 80, active: false, strength: 0.7 },
-      { id: 'c4', from: 'i2', to: 'p5', startX: 120, startY: 100, endX: 240, endY: 100, active: false, strength: 0.6 },
-      { id: 'c5', from: 'i3', to: 'p3', startX: 140, startY: 140, endX: 220, endY: 120, active: false, strength: 0.8 },
-      { id: 'c6', from: 'i4', to: 'p2', startX: 80, startY: 150, endX: 180, endY: 110, active: false, strength: 0.7 },
-
-      // Processing interconnections
-      { id: 'c7', from: 'p1', to: 'p2', startX: 200, startY: 80, endX: 180, endY: 110, active: false, strength: 0.9 },
-      { id: 'c8', from: 'p2', to: 'p3', startX: 180, startY: 110, endX: 220, endY: 120, active: false, strength: 0.8 },
-      { id: 'c9', from: 'p3', to: 'p4', startX: 220, startY: 120, endX: 200, endY: 150, active: false, strength: 0.9 },
-      { id: 'c10', from: 'p1', to: 'p5', startX: 200, startY: 80, endX: 240, endY: 100, active: false, strength: 0.7 },
-
-      // Processing to memory
-      { id: 'c11', from: 'p2', to: 'm1', startX: 180, startY: 110, endX: 160, endY: 180, active: false, strength: 0.8 },
-      { id: 'c12', from: 'p3', to: 'm2', startX: 220, startY: 120, endX: 200, endY: 200, active: false, strength: 0.9 },
-      { id: 'c13', from: 'p4', to: 'm2', startX: 200, startY: 150, endX: 200, endY: 200, active: false, strength: 0.8 },
-      { id: 'c14', from: 'p5', to: 'm3', startX: 240, startY: 100, endX: 240, endY: 185, active: false, strength: 0.7 },
-
-      // Memory to output
-      { id: 'c15', from: 'm1', to: 'o1', startX: 160, startY: 180, endX: 320, endY: 130, active: false, strength: 0.9 },
-      { id: 'c16', from: 'm2', to: 'o1', startX: 200, startY: 200, endX: 320, endY: 130, active: false, strength: 0.8 },
-      { id: 'c17', from: 'm2', to: 'o2', startX: 200, startY: 200, endX: 300, endY: 160, active: false, strength: 0.9 },
-      { id: 'c18', from: 'm3', to: 'o2', startX: 240, startY: 185, endX: 300, endY: 160, active: false, strength: 0.7 },
-
-      // Processing to output (direct paths)
-      { id: 'c19', from: 'p3', to: 'o1', startX: 220, startY: 120, endX: 320, endY: 130, active: false, strength: 0.6 },
-      { id: 'c20', from: 'p4', to: 'o2', startX: 200, startY: 150, endX: 300, endY: 160, active: false, strength: 0.5 },
-    ];
-
-    setNeurons(brainNeurons);
-    setConnections(brainConnections);
-  }, []);
-
-  // Sophisticated animation sequence
-  useEffect(() => {
-    if (!isActive) {
-      setAnimationPhase(0);
-      setPulseWave(0);
-      setNeurons(prev => prev.map(n => ({ ...n, active: false, intensity: 0 })));
-      setConnections(prev => prev.map(c => ({ ...c, active: false })));
-      return;
+export function NeuralNetworkVisualization({ isActive, confidence, match }: NeuralNetworkVisualizationProps) {
+  const insights = useMemo(() => {
+    if (!match || !isActive) return [];
+    
+    const valueBets: ValueBet[] = [];
+    
+    // Analyse 1X2
+    const homeImplied = (1 / match.odds_home) * 100;
+    const drawImplied = (1 / match.odds_draw) * 100;
+    const awayImplied = (1 / match.odds_away) * 100;
+    
+    const homeValue = ((match.p_home_fair / 100) * match.odds_home) - 1;
+    const drawValue = ((match.p_draw_fair / 100) * match.odds_draw) - 1;
+    const awayValue = ((match.p_away_fair / 100) * match.odds_away) - 1;
+    
+    if (homeValue > 0.05) {
+      valueBets.push({
+        market: `${match.home_team} Gagne`,
+        odds: match.odds_home,
+        fairProb: match.p_home_fair,
+        impliedProb: homeImplied,
+        value: homeValue * 100,
+        color: 'text-green-400',
+        icon: <TrendingUp className="w-4 h-4" />
+      });
     }
-
-    const runAnimation = async () => {
-      // Phase 1: Input activation
-      setAnimationPhase(1);
-      const inputNeurons = neurons.filter(n => n.type === 'input');
-      for (let i = 0; i < inputNeurons.length; i++) {
-        setTimeout(() => {
-          setNeurons(prev => prev.map(n => 
-            n.id === inputNeurons[i].id 
-              ? { ...n, active: true, intensity: 0.7 + Math.random() * 0.3 }
-              : n
-          ));
-        }, i * 200);
+    
+    if (drawValue > 0.05) {
+      valueBets.push({
+        market: 'Match Nul',
+        odds: match.odds_draw,
+        fairProb: match.p_draw_fair,
+        impliedProb: drawImplied,
+        value: drawValue * 100,
+        color: 'text-yellow-400',
+        icon: <Target className="w-4 h-4" />
+      });
+    }
+    
+    if (awayValue > 0.05) {
+      valueBets.push({
+        market: `${match.away_team} Gagne`,
+        odds: match.odds_away,
+        fairProb: match.p_away_fair,
+        impliedProb: awayImplied,
+        value: awayValue * 100,
+        color: 'text-blue-400',
+        icon: <TrendingUp className="w-4 h-4" />
+      });
+    }
+    
+    // BTTS Analysis
+    if (match.odds_btts_yes && match.p_btts_yes_fair) {
+      const bttsImplied = (1 / match.odds_btts_yes) * 100;
+      const bttsValue = ((match.p_btts_yes_fair / 100) * match.odds_btts_yes) - 1;
+      
+      if (bttsValue > 0.05) {
+        valueBets.push({
+          market: 'BTTS Oui',
+          odds: match.odds_btts_yes,
+          fairProb: match.p_btts_yes_fair,
+          impliedProb: bttsImplied,
+          value: bttsValue * 100,
+          color: 'text-purple-400',
+          icon: <Target className="w-4 h-4" />
+        });
       }
-
-      // Phase 2: Processing activation
-      setTimeout(() => {
-        setAnimationPhase(2);
-        
-        // Activate input-to-processing connections
-        const inputConnections = connections.filter(c => c.from.startsWith('i'));
-        inputConnections.forEach((conn, i) => {
-          setTimeout(() => {
-            setConnections(prev => prev.map(c => 
-              c.id === conn.id ? { ...c, active: true } : c
-            ));
-          }, i * 100);
+    }
+    
+    // Over 2.5 Analysis
+    if (match.odds_over_2_5 && match.p_over_2_5_fair) {
+      const overImplied = (1 / match.odds_over_2_5) * 100;
+      const overValue = ((match.p_over_2_5_fair / 100) * match.odds_over_2_5) - 1;
+      
+      if (overValue > 0.05) {
+        valueBets.push({
+          market: 'Plus de 2.5 buts',
+          odds: match.odds_over_2_5,
+          fairProb: match.p_over_2_5_fair,
+          impliedProb: overImplied,
+          value: overValue * 100,
+          color: 'text-orange-400',
+          icon: <TrendingUp className="w-4 h-4" />
         });
+      }
+    }
+    
+    // Tri par valeur décroissante
+    return valueBets.sort((a, b) => b.value - a.value);
+  }, [match, isActive]);
 
-        // Activate processing neurons
-        const processingNeurons = neurons.filter(n => n.type === 'processing');
-        processingNeurons.forEach((neuron, i) => {
-          setTimeout(() => {
-            setNeurons(prev => prev.map(n => 
-              n.id === neuron.id 
-                ? { ...n, active: true, intensity: 0.8 + Math.random() * 0.2 }
-                : n
-            ));
-          }, 300 + i * 150);
-        });
-      }, 1000);
+  const getVigorishLevel = (vig: number) => {
+    if (vig < 0.03) return { level: 'Excellent', color: 'text-green-400', bg: 'bg-green-400/20' };
+    if (vig < 0.05) return { level: 'Bon', color: 'text-yellow-400', bg: 'bg-yellow-400/20' };
+    if (vig < 0.08) return { level: 'Moyen', color: 'text-orange-400', bg: 'bg-orange-400/20' };
+    return { level: 'Élevé', color: 'text-red-400', bg: 'bg-red-400/20' };
+  };
 
-      // Phase 3: Memory integration
-      setTimeout(() => {
-        setAnimationPhase(3);
-        
-        // Activate processing connections
-        const processingConnections = connections.filter(c => 
-          c.from.startsWith('p') && (c.to.startsWith('p') || c.to.startsWith('m'))
-        );
-        processingConnections.forEach((conn, i) => {
-          setTimeout(() => {
-            setConnections(prev => prev.map(c => 
-              c.id === conn.id ? { ...c, active: true } : c
-            ));
-          }, i * 80);
-        });
-
-        // Activate memory neurons
-        const memoryNeurons = neurons.filter(n => n.type === 'memory');
-        memoryNeurons.forEach((neuron, i) => {
-          setTimeout(() => {
-            setNeurons(prev => prev.map(n => 
-              n.id === neuron.id 
-                ? { ...n, active: true, intensity: 0.6 + Math.random() * 0.4 }
-                : n
-            ));
-          }, 400 + i * 200);
-        });
-      }, 2500);
-
-      // Phase 4: Output and final decision
-      setTimeout(() => {
-        setAnimationPhase(4);
-        
-        // Activate all remaining connections
-        setConnections(prev => prev.map(c => ({ ...c, active: true })));
-
-        // Activate output neurons with confidence-based intensity
-        const outputNeurons = neurons.filter(n => n.type === 'output');
-        outputNeurons.forEach((neuron, i) => {
-          setTimeout(() => {
-            setNeurons(prev => prev.map(n => 
-              n.id === neuron.id 
-                ? { ...n, active: true, intensity: (confidence / 100) * 0.8 + 0.2 }
-                : n
-            ));
-          }, i * 300);
-        });
-
-        // Start pulse wave effect
-        const pulseInterval = setInterval(() => {
-          setPulseWave(prev => (prev + 1) % 4);
-        }, 600);
-
-        setTimeout(() => {
-          clearInterval(pulseInterval);
-          setAnimationPhase(5);
-        }, 3000);
-      }, 4000);
-    };
-
-    runAnimation();
-  }, [isActive, neurons.length, connections.length, confidence]);
+  if (!match || !isActive) {
+    return (
+      <Card className="p-6 bg-gradient-to-br from-slate-900/50 to-purple-900/20 border-purple-500/20">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-3 h-3 bg-slate-600 rounded-full" />
+          <h3 className="font-semibold text-sm text-slate-400">
+            Analyse en attente...
+          </h3>
+        </div>
+        <div className="text-center py-8 text-slate-500">
+          L'analyse détaillée du match sera affichée ici une fois les données chargées.
+        </div>
+      </Card>
+    );
+  }
 
   return (
-    <Card className="p-6 bg-gradient-to-br from-slate-900/50 to-purple-900/20 border-purple-500/20">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="relative">
-          <div className="w-3 h-3 bg-gradient-to-r from-cyan-400 to-purple-500 rounded-full animate-pulse" />
-          <div className="absolute inset-0 w-3 h-3 bg-gradient-to-r from-cyan-400 to-purple-500 rounded-full animate-ping opacity-30" />
+    <div className="space-y-4">
+      {/* En-tête du match */}
+      <Card className="p-4 bg-gradient-to-r from-slate-900/50 to-purple-900/20 border-purple-500/20">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-gradient-to-r from-cyan-400 to-purple-500 rounded-full animate-pulse" />
+            <h3 className="font-semibold text-sm bg-gradient-to-r from-cyan-300 to-purple-400 bg-clip-text text-transparent">
+              Analyse Intelligente
+            </h3>
+          </div>
+          <Badge variant="secondary" className="bg-purple-500/20 text-purple-300">
+            Confiance: {confidence}%
+          </Badge>
         </div>
-        <h3 className="font-semibold text-sm bg-gradient-to-r from-cyan-300 to-purple-400 bg-clip-text text-transparent">
-          Cerveau IA - Analyse Prédictive
-        </h3>
-        <div className="ml-auto flex items-center gap-2">
-          {animationPhase > 0 && (
-            <div className="text-xs text-slate-400 animate-fade-in">
-              {animationPhase === 1 && "🔍 Perception..."}
-              {animationPhase === 2 && "⚡ Traitement..."}
-              {animationPhase === 3 && "🧠 Analyse..."}
-              {animationPhase === 4 && "🎯 Décision..."}
-              {animationPhase === 5 && "✅ Terminé"}
+
+        <div className="text-center mb-4">
+          <div className="text-lg font-bold text-white">
+            {match.home_team} vs {match.away_team}
+          </div>
+          <div className="text-sm text-slate-400">{match.league}</div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-4 text-center">
+          <div className="space-y-1">
+            <div className="text-2xl font-bold text-blue-400">{match.odds_home}</div>
+            <div className="text-xs text-slate-400">Domicile</div>
+            <div className="text-xs text-slate-300">{match.p_home_fair.toFixed(1)}%</div>
+          </div>
+          <div className="space-y-1">
+            <div className="text-2xl font-bold text-yellow-400">{match.odds_draw}</div>
+            <div className="text-xs text-slate-400">Nul</div>
+            <div className="text-xs text-slate-300">{match.p_draw_fair.toFixed(1)}%</div>
+          </div>
+          <div className="space-y-1">
+            <div className="text-2xl font-bold text-red-400">{match.odds_away}</div>
+            <div className="text-xs text-slate-400">Extérieur</div>
+            <div className="text-xs text-slate-300">{match.p_away_fair.toFixed(1)}%</div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Value Bets détectés */}
+      {insights.length > 0 ? (
+        <Card className="p-4 bg-gradient-to-r from-green-900/20 to-emerald-900/20 border-green-500/20">
+          <div className="flex items-center gap-2 mb-3">
+            <DollarSign className="w-4 h-4 text-green-400" />
+            <h4 className="font-semibold text-green-300">Value Bets Détectés</h4>
+            <Badge variant="secondary" className="bg-green-500/20 text-green-300">
+              {insights.length} opportunité{insights.length > 1 ? 's' : ''}
+            </Badge>
+          </div>
+
+          <div className="space-y-3">
+            {insights.map((bet, index) => (
+              <div key={index} className="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg border border-green-500/10">
+                <div className="flex items-center gap-3">
+                  <div className={bet.color}>
+                    {bet.icon}
+                  </div>
+                  <div>
+                    <div className="font-medium text-white">{bet.market}</div>
+                    <div className="text-xs text-slate-400">
+                      Cote: {bet.odds} • Fair: {bet.fairProb.toFixed(1)}%
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="font-bold text-green-400">+{bet.value.toFixed(1)}%</div>
+                  <div className="text-xs text-slate-400">Valeur</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      ) : (
+        <Card className="p-4 bg-gradient-to-r from-orange-900/20 to-red-900/20 border-orange-500/20">
+          <div className="flex items-center gap-2 mb-2">
+            <AlertTriangle className="w-4 h-4 text-orange-400" />
+            <h4 className="font-semibold text-orange-300">Aucune Value Bet</h4>
+          </div>
+          <p className="text-sm text-slate-400">
+            Les cotes actuelles ne présentent pas d'opportunités de value betting significatives (seuil: 5%).
+          </p>
+        </Card>
+      )}
+
+      {/* Analyse du Vigorish */}
+      <Card className="p-4 bg-gradient-to-r from-slate-900/50 to-indigo-900/20 border-indigo-500/20">
+        <h4 className="font-semibold text-indigo-300 mb-3">Analyse des Marges</h4>
+        
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-slate-300">1X2</span>
+              <Badge className={`${getVigorishLevel(match.vig_1x2).bg} ${getVigorishLevel(match.vig_1x2).color} border-none`}>
+                {getVigorishLevel(match.vig_1x2).level}
+              </Badge>
             </div>
-          )}
-        </div>
-      </div>
-      
-      <div className="relative h-80 bg-gradient-to-br from-slate-800/30 to-purple-800/10 rounded-xl overflow-hidden border border-purple-500/10">
-        <svg width="100%" height="100%" viewBox="0 0 400 300">
-          {/* Beautiful brain outline with gradient */}
-          <defs>
-            <linearGradient id="brainGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="rgb(6, 182, 212)" stopOpacity="0.1" />
-              <stop offset="50%" stopColor="rgb(139, 92, 246)" stopOpacity="0.1" />
-              <stop offset="100%" stopColor="rgb(245, 158, 11)" stopOpacity="0.1" />
-            </linearGradient>
-            <filter id="glow">
-              <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-              <feMerge> 
-                <feMergeNode in="coloredBlur"/>
-                <feMergeNode in="SourceGraphic"/>
-              </feMerge>
-            </filter>
-          </defs>
+            <div className="flex items-center gap-2">
+              <Progress value={(1 - match.vig_1x2) * 100} className="w-20 h-2" />
+              <span className="text-sm font-mono text-slate-300">
+                {(match.vig_1x2 * 100).toFixed(1)}%
+              </span>
+            </div>
+          </div>
 
-          <path
-            d="M70 140 Q50 100 90 80 Q130 60 170 70 Q210 55 250 70 Q290 60 330 100 Q350 140 330 180 Q310 220 270 240 Q230 250 190 245 Q150 250 110 230 Q70 190 70 140 Z"
-            fill="url(#brainGradient)"
-            stroke="rgba(139, 92, 246, 0.3)"
-            strokeWidth="2"
-            strokeDasharray={animationPhase > 0 ? "none" : "8,4"}
-            className={animationPhase > 0 ? "animate-pulse" : ""}
-          />
-
-          {/* Render connections with beautiful gradients */}
-          {connections.map((conn) => (
-            <g key={conn.id}>
-              <line
-                x1={conn.startX}
-                y1={conn.startY}
-                x2={conn.endX}
-                y2={conn.endY}
-                stroke={conn.active ? `rgba(139, 92, 246, ${0.4 + conn.strength * 0.4})` : 'rgba(100, 116, 139, 0.2)'}
-                strokeWidth={conn.active ? 2 + conn.strength : 1}
-                className={conn.active ? 'animate-pulse' : ''}
-                filter={conn.active ? "url(#glow)" : "none"}
-              />
-              
-              {/* Data flow animation */}
-              {conn.active && animationPhase >= 4 && (
-                <circle
-                  r="2"
-                  fill="rgb(139, 92, 246)"
-                  opacity="0.8"
-                >
-                  <animateMotion
-                    dur="2s"
-                    repeatCount="indefinite"
-                    path={`M${conn.startX},${conn.startY} L${conn.endX},${conn.endY}`}
-                  />
-                </circle>
-              )}
-            </g>
-          ))}
-
-          {/* Render neurons with beautiful effects */}
-          {neurons.map((neuron) => (
-            <g key={neuron.id}>
-              {/* Outer glow ring */}
-              {neuron.active && (
-                <circle
-                  cx={neuron.x}
-                  cy={neuron.y}
-                  r={neuron.size + 8 + (pulseWave === Math.abs(neuron.x + neuron.y) % 4 ? 4 : 0)}
-                  fill="none"
-                  stroke={neuron.color}
-                  strokeWidth="1"
-                  opacity={0.2 + neuron.intensity * 0.3}
-                  className="animate-pulse"
-                />
-              )}
-              
-              {/* Main neuron */}
-              <circle
-                cx={neuron.x}
-                cy={neuron.y}
-                r={neuron.active ? neuron.size + neuron.intensity * 3 : neuron.size * 0.6}
-                fill={neuron.active ? neuron.color : 'rgba(100, 116, 139, 0.4)'}
-                opacity={neuron.active ? 0.8 + neuron.intensity * 0.2 : 0.3}
-                filter={neuron.active ? "url(#glow)" : "none"}
-                className={neuron.active ? 'animate-pulse' : ''}
-                style={{
-                  transition: 'all 0.5s ease-in-out'
-                }}
-              />
-
-              {/* Inner core */}
-              {neuron.active && (
-                <circle
-                  cx={neuron.x}
-                  cy={neuron.y}
-                  r={neuron.size * 0.4}
-                  fill="white"
-                  opacity={0.6 + neuron.intensity * 0.4}
-                  className="animate-pulse"
-                />
-              )}
-
-              {/* Output neuron labels */}
-              {neuron.type === 'output' && neuron.active && animationPhase >= 4 && (
-                <text
-                  x={neuron.x}
-                  y={neuron.y + neuron.size + 15}
-                  textAnchor="middle"
-                  fontSize="11"
-                  fill={neuron.color}
-                  fontWeight="bold"
-                  className="animate-fade-in"
-                >
-                  {Math.round(neuron.intensity * 100)}%
-                </text>
-              )}
-            </g>
-          ))}
-
-          {/* Status display */}
-          {animationPhase >= 4 && (
-            <g>
-              <rect
-                x="20"
-                y="20"
-                width="120"
-                height="40"
-                rx="8"
-                fill="rgba(0, 0, 0, 0.7)"
-                stroke="rgba(139, 92, 246, 0.5)"
-                strokeWidth="1"
-              />
-              <text x="30" y="35" fontSize="10" fill="rgb(139, 92, 246)" fontWeight="bold">
-                🧠 Activité Cérébrale
-              </text>
-              <text x="30" y="50" fontSize="9" fill="rgb(156, 163, 175)">
-                Confiance: {confidence}%
-              </text>
-            </g>
-          )}
-        </svg>
-
-        {/* Beautiful status bar */}
-        <div className="absolute bottom-4 left-4 right-4">
-          {animationPhase < 5 ? (
+          {match.vig_btts > 0 && (
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex gap-1">
-                  {[...Array(5)].map((_, i) => (
-                    <div
-                      key={i}
-                      className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                        i < animationPhase 
-                          ? 'bg-gradient-to-r from-cyan-400 to-purple-500 shadow-lg' 
-                          : 'bg-slate-600'
-                      } ${i === animationPhase - 1 ? 'animate-pulse scale-125' : ''}`}
-                    />
-                  ))}
-                </div>
-                <div className="text-xs text-slate-300 font-medium">
-                  Analyse neuronale en cours...
-                </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-slate-300">BTTS</span>
+                <Badge className={`${getVigorishLevel(match.vig_btts).bg} ${getVigorishLevel(match.vig_btts).color} border-none`}>
+                  {getVigorishLevel(match.vig_btts).level}
+                </Badge>
+              </div>
+              <div className="flex items-center gap-2">
+                <Progress value={(1 - match.vig_btts) * 100} className="w-20 h-2" />
+                <span className="text-sm font-mono text-slate-300">
+                  {(match.vig_btts * 100).toFixed(1)}%
+                </span>
               </div>
             </div>
-          ) : (
-            <div className="flex items-center justify-between p-3 bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-lg border border-green-500/30">
+          )}
+
+          {match.vig_ou_2_5 > 0 && (
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                <span className="text-sm text-green-300 font-medium">Cerveau IA Activé</span>
+                <span className="text-sm text-slate-300">O/U 2.5</span>
+                <Badge className={`${getVigorishLevel(match.vig_ou_2_5).bg} ${getVigorishLevel(match.vig_ou_2_5).color} border-none`}>
+                  {getVigorishLevel(match.vig_ou_2_5).level}
+                </Badge>
               </div>
-              <div className="text-sm font-bold bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">
-                🎯 Verdict: {confidence}% de confiance
+              <div className="flex items-center gap-2">
+                <Progress value={(1 - match.vig_ou_2_5) * 100} className="w-20 h-2" />
+                <span className="text-sm font-mono text-slate-300">
+                  {(match.vig_ou_2_5 * 100).toFixed(1)}%
+                </span>
               </div>
             </div>
           )}
         </div>
-      </div>
-    </Card>
+
+        <div className="mt-3 p-2 bg-slate-800/30 rounded text-xs text-slate-400">
+          💡 Plus le vigorish est faible, plus les cotes sont favorables aux parieurs
+        </div>
+      </Card>
+    </div>
   );
 }
