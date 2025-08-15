@@ -852,49 +852,49 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                     )}
                   </div>
 
-                  {/* Compact Confidence Bars */}
+                  {/* Market Efficiency Section */}
                   <div className="space-y-6">
-                    <div className="text-base font-bold text-text">Scores de Confiance</div>
-                    <div className="space-y-6">
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-text-weak font-medium">🎯 Recommandation IA</span>
-                          <span className="text-sm font-bold text-brand">
-                            {generateConfidenceScore(match.id, recommendation || {})}%
-                          </span>
-                        </div>
-                        <div className="h-2 bg-surface-strong rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-gradient-to-r from-brand to-brand-400 rounded-full transition-all duration-1000"
-                            style={{ width: `${showAIGraphics ? generateConfidenceScore(match.id, recommendation || {}) : 0}%` }}
-                          />
-                        </div>
+                    <Card className="p-6 bg-gradient-to-br from-background to-muted/20 border-border/50">
+                      <MarketEfficiencyGauge match={match} />
+                    </Card>
+                  </div>
+                </div>
+
+                {/* Compact Confidence Bars - moved below */}
+                <div className="mt-8">
+                  <div className="text-base font-bold text-text mb-4">Scores de Confiance</div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-text-weak font-medium">🎯 Recommandation IA</span>
+                        <span className="text-sm font-bold text-brand">
+                          {generateConfidenceScore(match.id, recommendation || {})}%
+                        </span>
                       </div>
-                      
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-text-weak font-medium">⚠️ Facteur Risque</span>
-                          <span className="text-sm font-bold text-destructive">
-                            {Math.round(match.vig_1x2 * 100)}%
-                          </span>
-                        </div>
-                        <div className="h-2 bg-surface-strong rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-gradient-to-r from-destructive to-destructive/80 rounded-full transition-all duration-1000 delay-200"
-                            style={{ width: `${showAIGraphics ? Math.round(match.vig_1x2 * 100) : 0}%` }}
-                          />
-                        </div>
+                      <div className="h-2 bg-surface-strong rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-brand to-brand-400 rounded-full transition-all duration-1000"
+                          style={{ width: `${showAIGraphics ? generateConfidenceScore(match.id, recommendation || {}) : 0}%` }}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-text-weak font-medium">⚠️ Facteur Risque</span>
+                        <span className="text-sm font-bold text-destructive">
+                          {Math.round(match.vig_1x2 * 100)}%
+                        </span>
+                      </div>
+                      <div className="h-2 bg-surface-strong rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-destructive to-destructive/80 rounded-full transition-all duration-1000 delay-200"
+                          style={{ width: `${showAIGraphics ? Math.round(match.vig_1x2 * 100) : 0}%` }}
+                        />
                       </div>
                     </div>
                   </div>
                 </div>
-              </Card>
-            </div>
-
-            {/* Efficacité du Marché */}
-            <div className="grid grid-cols-1 gap-6">
-              <Card className="p-6 bg-gradient-to-br from-background to-muted/20 border-border/50">
-                <MarketEfficiencyGauge match={match} />
               </Card>
             </div>
 
