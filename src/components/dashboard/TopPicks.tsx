@@ -37,10 +37,10 @@ export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
       }
     });
     
-    // Trier par cotes décroissantes (les plus hautes d'abord)
-    // La logique IA garantit déjà le vigorish le plus élevé
+    // Filtrer les odds entre 1.6 et 1.8, puis trier par vigorish décroissant
     return validBets
-      .sort((a, b) => b.odds - a.odds)
+      .filter(bet => bet.odds >= 1.6 && bet.odds <= 1.8)
+      .sort((a, b) => b.vigorish - a.vigorish)
       .slice(0, 3);
   };
 
