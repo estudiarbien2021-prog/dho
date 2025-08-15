@@ -279,13 +279,13 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
         // 3. Ajustement basé sur les recommandations IA BTTS (priorité à la recommandation principale)
         if (aiRecommendations.btts) {
           if (aiRecommendations.btts.prediction === 'Oui' && home > 0 && away > 0) {
-            probability *= aiRecommendations.btts.isInverted ? 1.18 : 1.12; // Plus forte pour opportunités détectées
+            probability *= aiRecommendations.btts.isInverted ? 1.25 : 1.15; // Boost significatif
             if (home <= 3 && away <= 3 && !isHighlighted) {
               isHighlighted = true;
               highlightReason = aiRecommendations.btts.isInverted ? 'BTTS Oui (Opportunité)' : 'BTTS Oui';
             }
           } else if (aiRecommendations.btts.prediction === 'Non' && (home === 0 || away === 0)) {
-            probability *= aiRecommendations.btts.isInverted ? 1.18 : 1.12; // Plus forte pour opportunités détectées
+            probability *= aiRecommendations.btts.isInverted ? 1.25 : 1.15; // Boost significatif
             if (!isHighlighted) {
               isHighlighted = true;
               highlightReason = aiRecommendations.btts.isInverted ? 'BTTS Non (Opportunité)' : 'BTTS Non';
@@ -294,13 +294,13 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
         } else if (aiRecommendations.bttsAnalysis) {
           // Compléter avec l'analyse des probabilités si pas de recommandation principale contradictoire
           if (aiRecommendations.bttsAnalysis === 'Oui' && home > 0 && away > 0) {
-            probability *= 1.05; // Impact moindre pour l'analyse complémentaire
+            probability *= 1.08; // Impact moindre pour l'analyse complémentaire
             if (home <= 3 && away <= 3 && !isHighlighted) {
               isHighlighted = true;
               highlightReason = 'Analyse BTTS Oui';
             }
           } else if (aiRecommendations.bttsAnalysis === 'Non' && (home === 0 || away === 0)) {
-            probability *= 1.05;
+            probability *= 1.08;
             if (!isHighlighted) {
               isHighlighted = true;
               highlightReason = 'Analyse BTTS Non';
@@ -312,14 +312,14 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
         if (aiRecommendations.overUnder) {
           const totalGoals = home + away;
           if (aiRecommendations.overUnder.prediction === '+2,5 buts' && totalGoals > 2) {
-            probability *= aiRecommendations.overUnder.isInverted ? 1.15 : 1.08; // Plus forte pour opportunités détectées
+            probability *= aiRecommendations.overUnder.isInverted ? 1.25 : 1.15; // Boost significatif
             if (totalGoals >= 3 && totalGoals <= 6 && !isHighlighted) {
               isHighlighted = true;
               highlightReason = aiRecommendations.overUnder.isInverted ? 'Over 2.5 (Opportunité)' : 'Over 2.5';
             }
           } else if (aiRecommendations.overUnder.prediction === '-2,5 buts' && totalGoals <= 2) {
-            probability *= aiRecommendations.overUnder.isInverted ? 1.15 : 1.08; // Plus forte pour opportunités détectées
-            if (totalGoals <= 2 && !isHighlighted) {
+            probability *= aiRecommendations.overUnder.isInverted ? 1.25 : 1.15; // Boost significatif
+            if (!isHighlighted) {
               isHighlighted = true;
               highlightReason = aiRecommendations.overUnder.isInverted ? 'Under 2.5 (Opportunité)' : 'Under 2.5';
             }
@@ -328,14 +328,14 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
           // Compléter avec l'analyse des probabilités si pas de recommandation principale contradictoire
           const totalGoals = home + away;
           if (aiRecommendations.overUnderAnalysis === '+2,5 buts' && totalGoals > 2) {
-            probability *= 1.04; // Impact moindre pour l'analyse complémentaire
+            probability *= 1.08; // Impact moindre pour l'analyse complémentaire
             if (totalGoals >= 3 && totalGoals <= 6 && !isHighlighted) {
               isHighlighted = true;
               highlightReason = 'Analyse Over 2.5';
             }
           } else if (aiRecommendations.overUnderAnalysis === '-2,5 buts' && totalGoals <= 2) {
-            probability *= 1.04;
-            if (totalGoals <= 2 && !isHighlighted) {
+            probability *= 1.08;
+            if (!isHighlighted) {
               isHighlighted = true;
               highlightReason = 'Analyse Under 2.5';
             }
