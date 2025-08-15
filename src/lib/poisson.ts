@@ -28,26 +28,43 @@ function estimateRho(pHome: number, pDraw: number, pAway: number): number {
   return 0.05; // Low draw probability
 }
 
-// Estimate lambda parameters from market probabilities
-function estimateLambdas(pHome: number, pDraw: number, pAway: number): { lambdaHome: number; lambdaAway: number } {
+// Estimate lambda parameters from market probabilities with BTTS and O/U constraints
+function estimateLambdas(pHome: number, pDraw: number, pAway: number, pBttsYes: number = 0.5, pOver25: number = 0.5): { lambdaHome: number; lambdaAway: number } {
   // Convert market probabilities to expected goals using empirical relationships
-  // These relationships are derived from historical data analysis
+  // Enhanced with BTTS and O/U 2.5 constraints
   
   const totalProb = pHome + pDraw + pAway;
   const normalizedHome = pHome / totalProb;
   const normalizedDraw = pDraw / totalProb;
   const normalizedAway = pAway / totalProb;
   
-  // Expected total goals based on draw probability (inverse relationship)
-  const expectedTotal = 2.8 - (normalizedDraw - 0.25) * 2;
+  // Expected total goals based on O/U 2.5 probability
+  // If pOver25 > 0.6, expect higher scoring game
+  // If pOver25 < 0.4, expect lower scoring game
+  let expectedTotal = 2.5; // neutral baseline
+  if (pOver25 > 0.6) {
+    expectedTotal = 2.5 + (pOver25 - 0.5) * 2; // Up to 3.5 goals for very high O/U prob
+  } else if (pOver25 < 0.4) {
+    expectedTotal = 2.5 - (0.5 - pOver25) * 2; // Down to 1.5 goals for very low O/U prob
+  }
+  
+  // Adjust for BTTS probability
+  // High BTTS means both teams likely to score, affects distribution
+  const bttsAdjustment = pBttsYes > 0.6 ? 1.1 : (pBttsYes < 0.4 ? 0.9 : 1.0);
   
   // Home advantage factor (typically 1.3-1.4)
   const homeAdvantage = 1.35;
   
   // Calculate lambdas based on win probabilities and total expected goals
   const ratio = normalizedHome / normalizedAway;
-  const lambdaAway = expectedTotal / (homeAdvantage * ratio + 1);
-  const lambdaHome = lambdaAway * homeAdvantage * ratio;
+  let lambdaAway = expectedTotal / (homeAdvantage * ratio + 1);
+  let lambdaHome = lambdaAway * homeAdvantage * ratio;
+  
+  // Apply BTTS adjustment - if high BTTS, ensure both lambdas are reasonably high
+  if (pBttsYes > 0.6) {
+    lambdaHome = Math.max(lambdaHome, 1.0) * bttsAdjustment;
+    lambdaAway = Math.max(lambdaAway, 1.0) * bttsAdjustment;
+  }
   
   return {
     lambdaHome: Math.max(0.5, Math.min(4.0, lambdaHome)),
@@ -96,8 +113,8 @@ function scoreProb(homeGoals: number, awayGoals: number, lambdaHome: number, lam
 export function calculatePoisson(inputs: PoissonInputs): PoissonResult {
   const { p_home_fair, p_draw_fair, p_away_fair, p_btts_yes_fair, p_over_2_5_fair } = inputs;
   
-  // Estimate model parameters
-  const { lambdaHome, lambdaAway } = estimateLambdas(p_home_fair, p_draw_fair, p_away_fair);
+  // Estimate model parameters with BTTS and O/U constraints
+  const { lambdaHome, lambdaAway } = estimateLambdas(p_home_fair, p_draw_fair, p_away_fair, p_btts_yes_fair, p_over_2_5_fair);
   const rho = estimateRho(p_home_fair, p_draw_fair, p_away_fair);
   
   // Calculate all score probabilities up to 6-6
