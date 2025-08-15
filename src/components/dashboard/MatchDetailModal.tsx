@@ -26,10 +26,11 @@ interface MatchDetailModalProps {
 }
 
 export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }: MatchDetailModalProps) {
-  const [showAIGraphics, setShowAIGraphics] = useState(false);
-  
+  // Early return BEFORE any hooks
   if (!match) return null;
 
+  const [showAIGraphics, setShowAIGraphics] = useState(false);
+  
   // Trigger AI graphics animation when modal opens
   useEffect(() => {
     if (isOpen) {
