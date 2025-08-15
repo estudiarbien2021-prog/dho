@@ -17,82 +17,36 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
   
   const recommendations: AIRecommendation[] = [];
   
-  // RÈGLE PRIORITAIRE : Si vigorish 1x2 >= 10%, utiliser l'opportunité détectée
+  // RÈGLE PRIORITAIRE : Si vigorish 1x2 >= 10%, recommander la double chance
   if (match.vig_1x2 >= HIGH_VIG_1X2_THRESHOLD) {
-    const includeBTTS = marketFilters.length === 0 || marketFilters.includes('btts');
-    const includeOU = marketFilters.length === 0 || marketFilters.includes('over_under');
+    // Calculer les probabilités des doubles chances
+    const prob1X = match.p_home_fair + match.p_draw_fair; // Victoire domicile ou match nul
+    const probX2 = match.p_draw_fair + match.p_away_fair; // Match nul ou victoire extérieur
+    const prob12 = match.p_home_fair + match.p_away_fair; // Victoire domicile ou extérieur
     
-    // Trouver la meilleure opportunité parmi les marchés disponibles
-    const opportunities = [];
+    // Calculer les cotes implicites de double chance (approximation)
+    const odds1X = 1 / prob1X;
+    const oddsX2 = 1 / probX2;
+    const odds12 = 1 / prob12;
     
-    if (includeBTTS && match.odds_btts_yes && match.odds_btts_no && match.vig_btts > 0) {
-      const bttsYesProb = match.p_btts_yes_fair;
-      const bttsNoProb = match.p_btts_no_fair;
-      
-      if (match.odds_btts_yes >= MIN_ODDS && bttsYesProb >= MIN_PROBABILITY) {
-        opportunities.push({
-          type: 'BTTS',
-          prediction: 'Oui',
-          odds: match.odds_btts_yes,
-          probability: bttsYesProb,
-          vigorish: match.vig_btts,
-          comment: `Vigorish 1x2 élevé (${(match.vig_1x2 * 100).toFixed(1)}%) - Opportunité BTTS détectée avec vigorish favorable (${(match.vig_btts * 100).toFixed(1)}%)`
-        });
-      }
-      
-      if (match.odds_btts_no >= MIN_ODDS && bttsNoProb >= MIN_PROBABILITY) {
-        opportunities.push({
-          type: 'BTTS',
-          prediction: 'Non',
-          odds: match.odds_btts_no,
-          probability: bttsNoProb,
-          vigorish: match.vig_btts,
-          comment: `Vigorish 1x2 élevé (${(match.vig_1x2 * 100).toFixed(1)}%) - Opportunité BTTS détectée avec vigorish favorable (${(match.vig_btts * 100).toFixed(1)}%)`
-        });
-      }
-    }
+    // Trouver la meilleure option de double chance
+    const doubleChances = [
+      { type: 'Double Chance', prediction: '1X', odds: odds1X, probability: prob1X },
+      { type: 'Double Chance', prediction: 'X2', odds: oddsX2, probability: probX2 },
+      { type: 'Double Chance', prediction: '12', odds: odds12, probability: prob12 }
+    ];
     
-    if (includeOU && match.odds_over_2_5 && match.odds_under_2_5 && match.vig_ou_2_5 > 0) {
-      const overProb = match.p_over_2_5_fair;
-      const underProb = match.p_under_2_5_fair;
-      
-      if (match.odds_over_2_5 >= MIN_ODDS && overProb >= MIN_PROBABILITY) {
-        opportunities.push({
-          type: 'O/U 2.5',
-          prediction: '+2,5 buts',
-          odds: match.odds_over_2_5,
-          probability: overProb,
-          vigorish: match.vig_ou_2_5,
-          comment: `Vigorish 1x2 élevé (${(match.vig_1x2 * 100).toFixed(1)}%) - Opportunité O/U 2.5 détectée avec vigorish favorable (${(match.vig_ou_2_5 * 100).toFixed(1)}%)`
-        });
-      }
-      
-      if (match.odds_under_2_5 >= MIN_ODDS && underProb >= MIN_PROBABILITY) {
-        opportunities.push({
-          type: 'O/U 2.5',
-          prediction: '-2,5 buts',
-          odds: match.odds_under_2_5,
-          probability: underProb,
-          vigorish: match.vig_ou_2_5,
-          comment: `Vigorish 1x2 élevé (${(match.vig_1x2 * 100).toFixed(1)}%) - Opportunité O/U 2.5 détectée avec vigorish favorable (${(match.vig_ou_2_5 * 100).toFixed(1)}%)`
-        });
-      }
-    }
+    // Choisir celle avec la meilleure probabilité et cote >= 1.3
+    const bestDoubleChance = doubleChances
+      .filter(dc => dc.odds >= MIN_ODDS && dc.probability >= MIN_PROBABILITY)
+      .sort((a, b) => b.probability - a.probability)[0];
     
-    if (opportunities.length > 0) {
-      // Trier par vigorish le plus faible, puis par probabilité la plus haute
-      const bestOpportunity = opportunities.sort((a, b) => {
-        if (a.vigorish !== b.vigorish) {
-          return a.vigorish - b.vigorish; // Plus faible vigorish d'abord
-        }
-        return b.probability - a.probability; // Plus haute probabilité ensuite
-      })[0];
-      
+    if (bestDoubleChance) {
       recommendations.push({
-        betType: bestOpportunity.type,
-        prediction: bestOpportunity.prediction,
-        odds: bestOpportunity.odds,
-        confidence: bestOpportunity.probability > 0.6 ? 'high' : bestOpportunity.probability > 0.5 ? 'medium' : 'low',
+        betType: bestDoubleChance.type,
+        prediction: bestDoubleChance.prediction,
+        odds: bestDoubleChance.odds,
+        confidence: bestDoubleChance.probability > 0.75 ? 'high' : bestDoubleChance.probability > 0.65 ? 'medium' : 'low',
         isInverted: false
       });
       
