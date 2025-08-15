@@ -437,7 +437,7 @@ export function MarketEfficiencyGauge({ match, className = "" }: MarketEfficienc
                 <>
                   {/* Recommandation BTTS Inverse */}
                   <div className="text-sm text-foreground mb-3">
-                    <span className="text-muted-foreground">Contraire de l'IA - BTTS :</span>
+                    <span className="text-muted-foreground">BTTS :</span>
                     <div className="font-bold mt-2 animate-pulse">
                       <span className="text-lg text-chart-2 font-extrabold animate-bounce">
                         {altRecommendation.inversePrediction}
@@ -448,16 +448,12 @@ export function MarketEfficiencyGauge({ match, className = "" }: MarketEfficienc
                     </div>
                   </div>
 
-                  {/* Explication */}
-                  <div className="text-xs text-muted-foreground border-t border-chart-2/20 pt-3">
-                    <span>IA recommandait : <strong>{altRecommendation.originalAI}</strong></span>
-                  </div>
                 </>
               ) : altRecommendation.type === 'O/U 2.5' ? (
                 <>
                   {/* Recommandation O/U 2.5 Inverse */}
                   <div className="text-sm text-foreground mb-3">
-                    <span className="text-muted-foreground">Contraire de l'IA - Buts :</span>
+                    <span className="text-muted-foreground">Plus/Moins 2,5 Buts :</span>
                     <div className="font-bold mt-2 animate-pulse">
                       <span className="text-lg text-chart-2 font-extrabold animate-bounce">
                         {altRecommendation.inversePrediction}
@@ -468,10 +464,6 @@ export function MarketEfficiencyGauge({ match, className = "" }: MarketEfficienc
                     </div>
                   </div>
 
-                  {/* Explication */}
-                  <div className="text-xs text-muted-foreground border-t border-chart-2/20 pt-3">
-                    <span>IA recommandait : <strong>{altRecommendation.originalAI}</strong></span>
-                  </div>
                 </>
               ) : null}
             </div>
