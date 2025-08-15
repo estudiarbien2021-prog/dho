@@ -107,16 +107,39 @@ export function PicksValidation() {
     try {
       console.log('🔍 Analyse des matchs pour les picks potentiels...');
       console.log(`📅 Filtrage par date: ${dateFilter}`);
+      console.log(`📊 Total matchs disponibles: ${matches.length}`);
+      
+      // Debug: afficher quelques dates de matchs pour vérifier
+      const sampleDates = matches.slice(0, 5).map(m => ({
+        team: `${m.home_team} vs ${m.away_team}`,
+        date: new Date(m.kickoff_utc).toDateString(),
+        kickoff: m.kickoff_utc
+      }));
+      console.log('📅 Échantillon des dates de matchs:', sampleDates);
       
       // Filtrer d'abord par date si spécifiée
       let matchesToAnalyze = matches;
       if (dateFilter) {
         const targetDate = new Date(dateFilter);
+        console.log(`🎯 Date cible recherchée: ${targetDate.toDateString()}`);
+        
         matchesToAnalyze = matches.filter(match => {
           const matchDate = new Date(match.kickoff_utc);
-          return matchDate.toDateString() === targetDate.toDateString();
+          const matchDateStr = matchDate.toDateString();
+          const targetDateStr = targetDate.toDateString();
+          const isMatch = matchDateStr === targetDateStr;
+          
+          if (isMatch) {
+            console.log(`✅ Match trouvé pour la date: ${match.home_team} vs ${match.away_team} - ${matchDateStr}`);
+          }
+          
+          return isMatch;
         });
         console.log(`📊 Matchs filtrés par date: ${matchesToAnalyze.length}/${matches.length}`);
+        
+        if (matchesToAnalyze.length === 0) {
+          console.log('❌ Aucun match trouvé pour cette date. Vérifiez les données CSV.');
+        }
       }
       
       // Filtrer par catégorie comme dans TopPicks mais avec les nouveaux critères
