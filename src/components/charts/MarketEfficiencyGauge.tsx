@@ -166,10 +166,20 @@ export function MarketEfficiencyGauge({ match, className = "" }: MarketEfficienc
       }
     }
     
-    // BTTS : si c'est le vigorish le plus élevé ET >= 8%
+    // BTTS : si c'est le vigorish le plus élevé ET >= 8% ET probabilité < 60%
     if (highestVigorish.type === 'BTTS' && highestVigorish.value >= 0.08 && match.odds_btts_yes && match.odds_btts_no) {
+      // Vérifier l'exception : ne pas inverser si la probabilité d'analyse >= 60%
+      const bttsYesProb = match.p_btts_yes_fair;
+      const bttsNoProb = match.p_btts_no_fair;
+      const highestBTTSProb = Math.max(bttsYesProb, bttsNoProb);
+      
+      // Si la probabilité >= 60%, ne pas appliquer l'inversion
+      if (highestBTTSProb >= 0.6) {
+        return null; // Pas d'opportunité détectée
+      }
+      
       // Utiliser la prédiction d'analyse (basée sur les probabilités) au lieu de la recommandation IA
-      const analysisOriginalPrediction = match.p_btts_yes_fair > match.p_btts_no_fair ? 'Oui' : 'Non';
+      const analysisOriginalPrediction = bttsYesProb > bttsNoProb ? 'Oui' : 'Non';
       
       // Proposer l'inverse de la prédiction d'analyse
       const inversePrediction = analysisOriginalPrediction === 'Oui' ? 'Non' : 'Oui';
@@ -184,10 +194,20 @@ export function MarketEfficiencyGauge({ match, className = "" }: MarketEfficienc
       };
     }
     
-    // O/U 2.5 : si c'est le vigorish le plus élevé ET >= 8%
+    // O/U 2.5 : si c'est le vigorish le plus élevé ET >= 8% ET probabilité < 60%
     if (highestVigorish.type === 'O/U2.5' && highestVigorish.value >= 0.08 && match.odds_over_2_5 && match.odds_under_2_5) {
+      // Vérifier l'exception : ne pas inverser si la probabilité d'analyse >= 60%
+      const overProb = match.p_over_2_5_fair;
+      const underProb = match.p_under_2_5_fair;
+      const highestOUProb = Math.max(overProb, underProb);
+      
+      // Si la probabilité >= 60%, ne pas appliquer l'inversion
+      if (highestOUProb >= 0.6) {
+        return null; // Pas d'opportunité détectée
+      }
+      
       // Utiliser la prédiction d'analyse (basée sur les probabilités) au lieu de la recommandation IA
-      const analysisOriginalPrediction = match.p_over_2_5_fair > match.p_under_2_5_fair ? '+2,5 buts' : '-2,5 buts';
+      const analysisOriginalPrediction = overProb > underProb ? '+2,5 buts' : '-2,5 buts';
       
       // Proposer l'inverse de la prédiction d'analyse
       const inversePrediction = analysisOriginalPrediction === '+2,5 buts' ? '-2,5 buts' : '+2,5 buts';
