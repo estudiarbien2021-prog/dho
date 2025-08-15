@@ -89,13 +89,16 @@ export function MarketEfficiencyGauge({ match, className = "" }: MarketEfficienc
         doubleChanceOdds = 1 / (probDraw + probAway);
       }
       
-      return { 
-        type: '1X2',
-        secondChoice, 
-        thirdChoice, 
-        doubleChance, 
-        doubleChanceOdds 
-      };
+      // Ne proposer que si les cotes de chance double sont <= 4
+      if (doubleChanceOdds <= 4) {
+        return { 
+          type: '1X2',
+          secondChoice, 
+          thirdChoice, 
+          doubleChance, 
+          doubleChanceOdds 
+        };
+      }
     }
     
     return null;
