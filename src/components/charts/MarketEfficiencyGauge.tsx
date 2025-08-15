@@ -73,7 +73,7 @@ export function MarketEfficiencyGauge({ match, className = "" }: MarketEfficienc
         type: '1X2_NEGATIVE',
         prediction,
         odds,
-        reason: 'Marge négative détectée'
+        reason: 'Opportunité Premium Disponible'
       };
     }
     
@@ -89,7 +89,7 @@ export function MarketEfficiencyGauge({ match, className = "" }: MarketEfficienc
         type: 'BTTS_NEGATIVE',
         prediction,
         odds,
-        reason: 'Marge négative détectée'
+        reason: 'Opportunité Premium Disponible'
       };
     }
     
@@ -105,7 +105,7 @@ export function MarketEfficiencyGauge({ match, className = "" }: MarketEfficienc
         type: 'OU_NEGATIVE',
         prediction,
         odds,
-        reason: 'Marge négative détectée'
+        reason: 'Opportunité Premium Disponible'
       };
     }
     
