@@ -24,9 +24,9 @@ export function AIProbabilitiesAnalysis({ match, className = "" }: AIProbabiliti
     return outcomes.sort((a, b) => b.prob - a.prob)[0];
   };
 
-  // Obtenir les recommandations IA pour BTTS et O/U
-  const bttsRecommendation = generateAIRecommendation(match, ['btts']);
-  const overUnderRecommendation = generateAIRecommendation(match, ['over_under']);
+  // Obtenir les prédictions d'analyse (basées sur les probabilités, sans inversion)
+  const bttsAnalysisPrediction = match.p_btts_yes_fair > match.p_btts_no_fair ? 'Oui' : 'Non';
+  const overUnderAnalysisPrediction = match.p_over_2_5_fair > match.p_under_2_5_fair ? '+2,5 buts' : '-2,5 buts';
 
   const prediction1X2 = get1X2Prediction();
 
@@ -50,8 +50,8 @@ export function AIProbabilitiesAnalysis({ match, className = "" }: AIProbabiliti
     const total = probYes + probNo;
     
     return [
-      { name: 'Oui', value: (probYes / total) * 100, isSelected: bttsRecommendation?.prediction === 'Oui' },
-      { name: 'Non', value: (probNo / total) * 100, isSelected: bttsRecommendation?.prediction === 'Non' }
+      { name: 'Oui', value: (probYes / total) * 100, isSelected: bttsAnalysisPrediction === 'Oui' },
+      { name: 'Non', value: (probNo / total) * 100, isSelected: bttsAnalysisPrediction === 'Non' }
     ];
   };
 
@@ -61,8 +61,8 @@ export function AIProbabilitiesAnalysis({ match, className = "" }: AIProbabiliti
     const total = probOver + probUnder;
     
     return [
-      { name: 'Plus de 2,5', value: (probOver / total) * 100, isSelected: overUnderRecommendation?.prediction === '+2,5 buts' },
-      { name: 'Moins de 2,5', value: (probUnder / total) * 100, isSelected: overUnderRecommendation?.prediction === '-2,5 buts' }
+      { name: 'Plus de 2,5', value: (probOver / total) * 100, isSelected: overUnderAnalysisPrediction === '+2,5 buts' },
+      { name: 'Moins de 2,5', value: (probUnder / total) * 100, isSelected: overUnderAnalysisPrediction === '-2,5 buts' }
     ];
   };
 
@@ -184,10 +184,10 @@ export function AIProbabilitiesAnalysis({ match, className = "" }: AIProbabiliti
             <div className="flex justify-between items-center text-xs">
               <span className="text-muted-foreground">BTTS Oui</span>
               <div className="flex items-center gap-2">
-                <span className={`text-xs ${getProbabilityDisplay(match.p_btts_yes_fair || 0.5, bttsRecommendation?.prediction === 'Oui').colorClass}`}>
-                  {getProbabilityDisplay(match.p_btts_yes_fair || 0.5, bttsRecommendation?.prediction === 'Oui').percent}%
+                <span className={`text-xs ${getProbabilityDisplay(match.p_btts_yes_fair || 0.5, bttsAnalysisPrediction === 'Oui').colorClass}`}>
+                  {getProbabilityDisplay(match.p_btts_yes_fair || 0.5, bttsAnalysisPrediction === 'Oui').percent}%
                 </span>
-                <span className={`font-bold ${bttsRecommendation?.prediction === 'Oui' ? 'text-brand' : 'text-foreground'}`}>
+                <span className={`font-bold ${bttsAnalysisPrediction === 'Oui' ? 'text-brand' : 'text-foreground'}`}>
                   {match.odds_btts_yes.toFixed(2)}
                 </span>
               </div>
@@ -195,10 +195,10 @@ export function AIProbabilitiesAnalysis({ match, className = "" }: AIProbabiliti
             <div className="flex justify-between items-center text-xs">
               <span className="text-muted-foreground">BTTS Non</span>
               <div className="flex items-center gap-2">
-                <span className={`text-xs ${getProbabilityDisplay(match.p_btts_no_fair || 0.5, bttsRecommendation?.prediction === 'Non').colorClass}`}>
-                  {getProbabilityDisplay(match.p_btts_no_fair || 0.5, bttsRecommendation?.prediction === 'Non').percent}%
+                <span className={`text-xs ${getProbabilityDisplay(match.p_btts_no_fair || 0.5, bttsAnalysisPrediction === 'Non').colorClass}`}>
+                  {getProbabilityDisplay(match.p_btts_no_fair || 0.5, bttsAnalysisPrediction === 'Non').percent}%
                 </span>
-                <span className={`font-bold ${bttsRecommendation?.prediction === 'Non' ? 'text-brand' : 'text-foreground'}`}>
+                <span className={`font-bold ${bttsAnalysisPrediction === 'Non' ? 'text-brand' : 'text-foreground'}`}>
                   {match.odds_btts_no.toFixed(2)}
                 </span>
               </div>
@@ -211,10 +211,10 @@ export function AIProbabilitiesAnalysis({ match, className = "" }: AIProbabiliti
             <div className="flex justify-between items-center text-xs">
               <span className="text-muted-foreground">Plus de 2,5</span>
               <div className="flex items-center gap-2">
-                <span className={`text-xs ${getProbabilityDisplay(match.p_over_2_5_fair || 0.5, overUnderRecommendation?.prediction === '+2,5 buts').colorClass}`}>
-                  {getProbabilityDisplay(match.p_over_2_5_fair || 0.5, overUnderRecommendation?.prediction === '+2,5 buts').percent}%
+                <span className={`text-xs ${getProbabilityDisplay(match.p_over_2_5_fair || 0.5, overUnderAnalysisPrediction === '+2,5 buts').colorClass}`}>
+                  {getProbabilityDisplay(match.p_over_2_5_fair || 0.5, overUnderAnalysisPrediction === '+2,5 buts').percent}%
                 </span>
-                <span className={`font-bold ${overUnderRecommendation?.prediction === '+2,5 buts' ? 'text-brand' : 'text-foreground'}`}>
+                <span className={`font-bold ${overUnderAnalysisPrediction === '+2,5 buts' ? 'text-brand' : 'text-foreground'}`}>
                   {match.odds_over_2_5.toFixed(2)}
                 </span>
               </div>
@@ -222,10 +222,10 @@ export function AIProbabilitiesAnalysis({ match, className = "" }: AIProbabiliti
             <div className="flex justify-between items-center text-xs">
               <span className="text-muted-foreground">Moins de 2,5</span>
               <div className="flex items-center gap-2">
-                <span className={`text-xs ${getProbabilityDisplay(match.p_under_2_5_fair || 0.5, overUnderRecommendation?.prediction === '-2,5 buts').colorClass}`}>
-                  {getProbabilityDisplay(match.p_under_2_5_fair || 0.5, overUnderRecommendation?.prediction === '-2,5 buts').percent}%
+                <span className={`text-xs ${getProbabilityDisplay(match.p_under_2_5_fair || 0.5, overUnderAnalysisPrediction === '-2,5 buts').colorClass}`}>
+                  {getProbabilityDisplay(match.p_under_2_5_fair || 0.5, overUnderAnalysisPrediction === '-2,5 buts').percent}%
                 </span>
-                <span className={`font-bold ${overUnderRecommendation?.prediction === '-2,5 buts' ? 'text-brand' : 'text-foreground'}`}>
+                <span className={`font-bold ${overUnderAnalysisPrediction === '-2,5 buts' ? 'text-brand' : 'text-foreground'}`}>
                   {match.odds_under_2_5.toFixed(2)}
                 </span>
               </div>
@@ -257,8 +257,8 @@ export function AIProbabilitiesAnalysis({ match, className = "" }: AIProbabiliti
           <CustomBarChart
             data={getBTTSData()}
             title="Les Deux Équipes Marquent"
-            selectedLabel={bttsRecommendation?.prediction || 'N/A'}
-            recommendation={bttsRecommendation}
+            selectedLabel={bttsAnalysisPrediction || 'N/A'}
+            recommendation={null}
           />
         )}
 
@@ -266,8 +266,8 @@ export function AIProbabilitiesAnalysis({ match, className = "" }: AIProbabiliti
           <CustomBarChart
             data={getOverUnderData()}
             title="Plus/Moins 2,5 Buts"
-            selectedLabel={overUnderRecommendation?.prediction === '+2,5 buts' ? '+2,5 buts' : '-2,5 buts'}
-            recommendation={overUnderRecommendation}
+            selectedLabel={overUnderAnalysisPrediction === '+2,5 buts' ? '+2,5 buts' : '-2,5 buts'}
+            recommendation={null}
           />
         )}
       </div>

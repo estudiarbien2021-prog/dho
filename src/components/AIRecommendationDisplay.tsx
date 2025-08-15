@@ -59,9 +59,11 @@ export function AIRecommendationDisplay({
                 className="text-xs"
               >
                 {showIcon && '🎯'} {aiRec.betType} {aiRec.prediction}
+                {aiRec.isInverted && <span className="ml-1 text-amber-600">(Opportunité détectée)</span>}
               </Badge>
               <div className="text-xs text-muted-foreground">
                 Cote: {aiRec.odds.toFixed(2)} | Confiance: {confidence}%
+                {aiRec.isInverted && <span className="text-amber-600 ml-1">- Vigorish élevé détecté</span>}
               </div>
             </div>
           );

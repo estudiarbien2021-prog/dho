@@ -5,6 +5,7 @@ export interface AIRecommendation {
   prediction: string;
   odds: number;
   confidence: 'high' | 'medium' | 'low';
+  isInverted?: boolean; // Nouvelle propriété pour identifier les recommandations inversées
 }
 
 export function generateAIRecommendations(match: ProcessedMatch, marketFilters: string[] = []): AIRecommendation[] {
@@ -24,11 +25,12 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
     // NOUVELLE RÈGLE : Si vigorish BTTS >= 8.1%, proposer l'inverse
     const isHighVigBTTS = match.vig_btts >= HIGH_VIG_THRESHOLD;
     
-    // Choisir la meilleure option BTTS (Oui ou Non)
+    // Choisir la meilleure option BTTS basée sur les probabilités (pour la recommandation)
     let bestBTTS = null;
     if (match.odds_btts_yes >= MIN_ODDS && bttsYesProb >= MIN_PROBABILITY) {
       bestBTTS = {
         type: 'BTTS',
+        originalPrediction: 'Oui', // Prédiction originale basée sur les probabilités
         prediction: isHighVigBTTS ? 'Non' : 'Oui', // Inverse si vigorish élevé
         odds: isHighVigBTTS ? match.odds_btts_no : match.odds_btts_yes,
         probability: isHighVigBTTS ? bttsNoProb : bttsYesProb,
@@ -41,6 +43,7 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
       if (!bestBTTS || bttsNoProb > bestBTTS.probability) {
         bestBTTS = {
           type: 'BTTS',
+          originalPrediction: 'Non', // Prédiction originale basée sur les probabilités
           prediction: isHighVigBTTS ? 'Oui' : 'Non', // Inverse si vigorish élevé
           odds: isHighVigBTTS ? match.odds_btts_yes : match.odds_btts_no,
           probability: isHighVigBTTS ? bttsYesProb : bttsNoProb,
@@ -108,14 +111,16 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
       betType: bttsMarket.type,
       prediction: bttsMarket.prediction,
       odds: bttsMarket.odds,
-      confidence: bttsMarket.probability > 0.6 ? 'high' : bttsMarket.probability > 0.5 ? 'medium' : 'low'
+      confidence: bttsMarket.probability > 0.6 ? 'high' : bttsMarket.probability > 0.5 ? 'medium' : 'low',
+      isInverted: bttsMarket.isInverted
     });
     
     recommendations.push({
       betType: ouMarket.type,
       prediction: ouMarket.prediction,
       odds: ouMarket.odds,
-      confidence: ouMarket.probability > 0.6 ? 'high' : ouMarket.probability > 0.5 ? 'medium' : 'low'
+      confidence: ouMarket.probability > 0.6 ? 'high' : ouMarket.probability > 0.5 ? 'medium' : 'low',
+      isInverted: false
     });
     
     return recommendations;
@@ -130,7 +135,8 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
     betType: bestMarket.type,
     prediction: bestMarket.prediction,
     odds: bestMarket.odds,
-    confidence: bestMarket.probability > 0.6 ? 'high' : bestMarket.probability > 0.5 ? 'medium' : 'low'
+    confidence: bestMarket.probability > 0.6 ? 'high' : bestMarket.probability > 0.5 ? 'medium' : 'low',
+    isInverted: bestMarket.isInverted || false
   });
   
   // Deuxième recommandation si disponible et suffisamment différente
@@ -140,7 +146,8 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
       betType: secondBestMarket.type,
       prediction: secondBestMarket.prediction,
       odds: secondBestMarket.odds,
-      confidence: secondBestMarket.probability > 0.6 ? 'high' : secondBestMarket.probability > 0.5 ? 'medium' : 'low'
+      confidence: secondBestMarket.probability > 0.6 ? 'high' : secondBestMarket.probability > 0.5 ? 'medium' : 'low',
+      isInverted: secondBestMarket.isInverted || false
     });
   }
   
@@ -151,4 +158,21 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
 export function generateAIRecommendation(match: ProcessedMatch, marketFilters: string[] = []): AIRecommendation | null {
   const recommendations = generateAIRecommendations(match, marketFilters);
   return recommendations.length > 0 ? recommendations[0] : null;
+}
+
+// Fonction pour obtenir la prédiction d'analyse (basée sur les probabilités, sans inversion)
+export function getAnalysisPrediction(match: ProcessedMatch, market: 'btts' | 'over_under'): string | null {
+  if (market === 'btts' && match.odds_btts_yes && match.odds_btts_no) {
+    const bttsYesProb = match.p_btts_yes_fair;
+    const bttsNoProb = match.p_btts_no_fair;
+    return bttsYesProb > bttsNoProb ? 'Oui' : 'Non';
+  }
+  
+  if (market === 'over_under' && match.odds_over_2_5 && match.odds_under_2_5) {
+    const overProb = match.p_over_2_5_fair;
+    const underProb = match.p_under_2_5_fair;
+    return overProb > underProb ? '+2,5 buts' : '-2,5 buts';
+  }
+  
+  return null;
 }
