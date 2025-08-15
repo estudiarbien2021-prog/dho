@@ -20,20 +20,34 @@ export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
     const validBets = [];
     
     // Filtrer d'abord par catégorie : grands championnats et compétitions continentales/internationales
-    // Exclure les coupes nationales et l'Asie (nationale et continentale)
+    // Exclure les coupes nationales, l'Asie, l'Amérique latine (sauf Brésil) et l'Afrique
     const filteredMatches = matches.filter(match => {
       // Garder seulement première division et coupes continentales (pas de coupes nationales)
       const isValidCategory = match.category === 'first_div' || match.category === 'continental_cup';
       
       // Exclure l'Asie complètement (pays asiatiques et compétitions continentales asiatiques)
       const asianCountries = ['Japan', 'South Korea', 'China', 'Thailand', 'Singapore', 'Malaysia', 'Indonesia', 'Vietnam', 'Philippines', 'India', 'Saudi Arabia', 'UAE', 'Qatar', 'Iran', 'Iraq', 'Jordan', 'Lebanon', 'Syria', 'Uzbekistan', 'Kazakhstan', 'Kyrgyzstan', 'Tajikistan', 'Turkmenistan', 'Afghanistan', 'Pakistan', 'Bangladesh', 'Sri Lanka', 'Myanmar', 'Cambodia', 'Laos', 'Nepal', 'Bhutan', 'Mongolia', 'North Korea'];
-      
-      // Exclure aussi les compétitions continentales asiatiques par nom de ligue
       const asianCompetitions = ['AFC Champions League', 'AFC Cup', 'AFC Asian Cup', 'J1 League', 'K League 1', 'Chinese Super League', 'Thai League 1', 'Malaysian Super League', 'Indonesian Liga 1', 'V.League 1', 'Philippine Football League', 'Indian Super League', 'Saudi Pro League', 'UAE Pro League', 'Qatar Stars League', 'Iran Pro League', 'Iraq Stars League'];
+      
+      // Exclure l'Amérique latine (sauf Brésil) pour les championnats domestiques
+      const latinAmericanCountries = ['Argentina', 'Chile', 'Colombia', 'Peru', 'Uruguay', 'Paraguay', 'Bolivia', 'Ecuador', 'Venezuela', 'Mexico', 'Guatemala', 'Honduras', 'El Salvador', 'Nicaragua', 'Costa Rica', 'Panama'];
+      
+      // Exclure l'Afrique pour les championnats domestiques
+      const africanCountries = ['South Africa', 'Nigeria', 'Ghana', 'Morocco', 'Egypt', 'Tunisia', 'Algeria', 'Kenya', 'Ethiopia', 'Tanzania', 'Uganda', 'Zimbabwe', 'Zambia', 'Botswana', 'Cameroon', 'Ivory Coast', 'Senegal', 'Mali', 'Burkina Faso', 'Guinea', 'Sierra Leone', 'Liberia', 'Gambia', 'Cape Verde', 'Mauritania', 'Chad', 'Central African Republic', 'Democratic Republic of Congo', 'Republic of Congo', 'Gabon', 'Equatorial Guinea', 'Angola', 'Namibia', 'Lesotho', 'Swaziland', 'Madagascar', 'Mauritius', 'Comoros', 'Seychelles'];
       
       const isNotAsianCountry = !asianCountries.includes(match.country || '');
       const isNotAsianCompetition = !asianCompetitions.some(comp => (match.league || '').toLowerCase().includes(comp.toLowerCase()));
       
+      // Pour les championnats domestiques (first_div), exclure Amérique latine sauf Brésil et Afrique
+      if (match.category === 'first_div') {
+        const isNotLatinAmerican = !latinAmericanCountries.includes(match.country || '');
+        const isBrazil = match.country === 'Brazil';
+        const isNotAfrican = !africanCountries.includes(match.country || '');
+        
+        return isValidCategory && isNotAsianCountry && isNotAsianCompetition && (isNotLatinAmerican || isBrazil) && isNotAfrican;
+      }
+      
+      // Pour les compétitions continentales, garder toutes sauf asiatiques
       return isValidCategory && isNotAsianCountry && isNotAsianCompetition;
     });
     
