@@ -164,7 +164,11 @@ export function TopPicks({ matches, onMatchClick, selectedDate }: TopPicksProps)
                       variant="default"
                       className="text-sm px-3 py-1"
                     >
-                      {pick.bet_type} {pick.prediction}
+                      {pick.bet_type === 'BTTS' && pick.prediction === 'Oui' ? 'BTTS Oui' :
+                       pick.bet_type === 'BTTS' && pick.prediction === 'Non' ? 'BTTS Non' :
+                       pick.bet_type === 'OU' && pick.prediction === 'Over' ? 'Plus de 2.5 Buts' :
+                       pick.bet_type === 'OU' && pick.prediction === 'Under' ? 'Moins de 2.5 Buts' :
+                       `${pick.bet_type} ${pick.prediction}`}
                     </Badge>
                     <div className="text-xl font-bold text-green-700">
                       {pick.odds.toFixed(2)}
