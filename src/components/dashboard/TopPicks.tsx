@@ -35,6 +35,7 @@ export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    console.log('🎯 TopPicks: Loading validated picks...');
     loadValidatedPicks();
   }, []);
 
