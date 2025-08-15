@@ -225,6 +225,21 @@ export function PicksValidation() {
       }));
       console.log('📅 Échantillon des dates de matchs:', sampleDates);
       
+      // Debug détaillé pour chaque match
+      console.log('🔍 Détail complet des matchs à analyser:');
+      matchData.forEach((match, index) => {
+        console.log(`\n  ${index + 1}. ${match.home_team} vs ${match.away_team}`);
+        console.log(`      - Catégorie: ${match.category}`);
+        console.log(`      - Pays: ${match.country}`);
+        console.log(`      - Ligue: ${match.league}`);
+        console.log(`      - P_BTTS_Yes: ${match.p_btts_yes_fair}, P_BTTS_No: ${match.p_btts_no_fair}`);
+        console.log(`      - P_Over2.5: ${match.p_over_2_5_fair}, P_Under2.5: ${match.p_under_2_5_fair}`);
+        console.log(`      - Vig_BTTS: ${match.vig_btts}, Vig_OU: ${match.vig_ou_2_5}`);
+        console.log(`      - Odds Home: ${match.odds_home}, Draw: ${match.odds_draw}, Away: ${match.odds_away}`);
+        console.log(`      - Odds BTTS: Yes=${match.odds_btts_yes}, No=${match.odds_btts_no}`);
+        console.log(`      - Odds O/U: Over=${match.odds_over_2_5}, Under=${match.odds_under_2_5}`);
+      });
+      
       // Pas besoin de filtrer par date - les matchs sont déjà pour la bonne date
       let matchesToAnalyze = matchData;
       console.log(`📊 Analysing ${matchesToAnalyze.length} matchs pour la date sélectionnée`);
@@ -233,6 +248,13 @@ export function PicksValidation() {
       // Filtrer par catégorie comme dans TopPicks mais avec les nouveaux critères
       const filteredMatches = matchesToAnalyze.filter(match => {
         const isValidCategory = match.category === 'first_div' || match.category === 'continental_cup';
+        console.log(`\n🏆 FILTRAGE - ${match.home_team} vs ${match.away_team}:`);
+        console.log(`   - Catégorie: ${match.category} - Valide: ${isValidCategory ? '✅' : '❌'}`);
+        
+        if (!isValidCategory) {
+          console.log(`   ❌ REJETÉ: catégorie ${match.category} non autorisée (seules first_div et continental_cup acceptées)`);
+          return false;
+        }
         
         // Exclure l'Asie complètement
         const asianCountries = ['Japan', 'South Korea', 'China', 'Thailand', 'Singapore', 'Malaysia', 'Indonesia', 'Vietnam', 'Philippines', 'India', 'Saudi Arabia', 'UAE', 'Qatar', 'Iran', 'Iraq', 'Jordan', 'Lebanon', 'Syria', 'Uzbekistan', 'Kazakhstan', 'Kyrgyzstan', 'Tajikistan', 'Turkmenistan', 'Afghanistan', 'Pakistan', 'Bangladesh', 'Sri Lanka', 'Myanmar', 'Cambodia', 'Laos', 'Nepal', 'Bhutan', 'Mongolia', 'North Korea'];
