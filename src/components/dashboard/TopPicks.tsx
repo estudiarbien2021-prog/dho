@@ -17,8 +17,9 @@ export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
   // Score Composite Optimisé : équilibre probabilité, rentabilité et valeur
   const getTopBets = () => {
     const allBets = [];
+    console.log('🔍 Analyse des matchs pour Top Picks IA:', matches.length, 'matchs');
     
-    matches.forEach(match => {
+    matches.forEach((match, matchIndex) => {
       const bets = [];
       
       // Helper function pour calculer l'edge et le score composite
@@ -27,9 +28,12 @@ export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
         const impliedProbability = 1 / odds;
         const edge = probability - impliedProbability;
         
-        // Critères de base
-        if (probability < 0.45 || odds < 1.5 || edge <= 0) {
-          return 0; // Éliminé
+        console.log(`Match ${matchIndex}: prob=${probability.toFixed(3)}, odds=${odds}, implied=${impliedProbability.toFixed(3)}, edge=${edge.toFixed(3)}`);
+        
+        // Critères de base - ASSOUPLIS POUR DIAGNOSTIC
+        if (probability < 0.35 || odds < 1.2) {  // Critères plus souples
+          console.log(`❌ Éliminé: prob trop faible (${probability.toFixed(3)} < 0.35) ou cote trop faible (${odds} < 1.2)`);
+          return 0;
         }
         
         // Facteur cote logarithmique (favorise 1.8-3.0)
@@ -39,10 +43,13 @@ export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
           Math.log(odds) / Math.log(2.5); // Logarithmique sinon
         
         // Bonus edge (toujours positif)
-        const edgeBonus = 1 + Math.abs(edge * 3); // Utilise valeur absolue
+        const edgeBonus = 1 + Math.abs(edge * 2); // Réduit le multiplicateur
         
         // Score final = Probabilité × Facteur_Cote × Bonus_Edge
-        return probability * oddsFactor * edgeBonus;
+        const score = probability * oddsFactor * edgeBonus;
+        console.log(`✅ Score calculé: ${score.toFixed(3)} (prob=${probability.toFixed(3)} × odds_factor=${oddsFactor.toFixed(2)} × edge_bonus=${edgeBonus.toFixed(2)})`);
+        
+        return score;
       };
       
       // 1X2 Markets
@@ -154,7 +161,18 @@ export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
       }
       
       allBets.push(...bets);
+      console.log(`Match ${matchIndex} (${match.home_team} vs ${match.away_team}): ${bets.length} paris validés`);
     });
+    
+    console.log('📊 Total des paris validés:', allBets.length);
+    console.log('🏆 Top 3 des scores:', allBets.sort((a, b) => b.score - a.score).slice(0, 3).map(bet => ({
+      match: `${bet.match.home_team} vs ${bet.match.away_team}`,
+      type: bet.type,
+      prediction: bet.prediction,
+      score: bet.score.toFixed(3),
+      odds: bet.odds,
+      probability: (bet.probability * 100).toFixed(1) + '%'
+    })));
     
     // Trier par score composite décroissant et prendre les 3 meilleurs
     return allBets
