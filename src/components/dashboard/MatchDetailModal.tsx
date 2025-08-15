@@ -907,13 +907,18 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
           <Separator className="bg-gradient-to-r from-transparent via-brand/30 to-transparent" />
 
 
-          {/* Analysis */}
+            {/* Analysis */}
           <div className="grid grid-cols-1 gap-6">
-            {/* Marges Vigorish - Style cohérent avec Facteurs d'Influence */}
-            <Card className="p-6">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="w-2 h-2 bg-orange-500 rounded-full" />
-                <h3 className="font-semibold text-sm">Marges (Vigorish)</h3>
+            {/* Marges Vigorish - Style cohérent avec les graphiques */}
+            <Card className="p-6 bg-gradient-to-br from-slate-50 to-white dark:from-slate-900/50 dark:to-slate-800/50 border-0 shadow-lg">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl shadow-lg">
+                  <div className="w-3 h-3 bg-white rounded-full animate-pulse" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">Marges (Vigorish)</h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">Commissions des bookmakers</p>
+                </div>
               </div>
 
               <div className="space-y-4">

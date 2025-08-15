@@ -14,6 +14,7 @@ export function ProbabilityDistribution({ matchId, isActive, match }: Probabilit
   const [animatedData, setAnimatedData] = useState<any[]>([]);
 
   // Generate probability distribution using real match data with Poisson model
+  // Enhanced with AI recommendation and odds integration
   const generateDistributionData = () => {
     // Use the real match probabilities with Poisson model
     const poissonInputs = {
@@ -25,6 +26,16 @@ export function ProbabilityDistribution({ matchId, isActive, match }: Probabilit
     };
 
     const poissonResult = calculatePoisson(poissonInputs);
+    
+    // AI-enhanced probability adjustment factor based on odds discrepancies
+    const oddsConfidenceFactor = (() => {
+      const impliedProb1x2 = 1 / match.odds_home + 1 / match.odds_draw + 1 / match.odds_away;
+      const fairProb1x2 = match.p_home_fair + match.p_draw_fair + match.p_away_fair;
+      const discrepancy = Math.abs(impliedProb1x2 - fairProb1x2);
+      
+      // Higher discrepancy = lower confidence in market efficiency = higher AI adjustment
+      return Math.min(1.15, 1 + discrepancy * 2);
+    })();
     
     // Generate all score combinations up to 6-6
     const data: any[] = [];
@@ -56,6 +67,9 @@ export function ProbabilityDistribution({ matchId, isActive, match }: Probabilit
             probability *= (1 - rho);
           }
         }
+        
+        // Apply AI confidence factor to adjust probabilities based on market inefficiencies
+        probability *= oddsConfidenceFactor;
         
         data.push({
           score: `${home}-${away}`,

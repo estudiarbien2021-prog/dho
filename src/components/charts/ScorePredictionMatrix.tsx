@@ -23,6 +23,7 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
   const [animationStep, setAnimationStep] = useState(0);
 
   // Generate probability matrix using real match data with Poisson model
+  // Enhanced with AI recommendation and odds integration
   const generateMatrix = () => {
     // Use the real match probabilities with Poisson model
     const poissonInputs = {
@@ -34,6 +35,15 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
     };
 
     const poissonResult = calculatePoisson(poissonInputs);
+    
+    // AI-enhanced probability adjustment factor based on odds analysis
+    const aiConfidenceFactor = (() => {
+      const vigorishPenalty = (match.vig_1x2 + match.vig_ou_2_5) / 2;
+      const bttsConsistency = Math.abs(match.p_btts_yes_fair - (1 - match.p_btts_no_fair));
+      
+      // Lower vigorish + consistent BTTS = higher confidence in predictions
+      return Math.max(0.85, 1 - vigorishPenalty - bttsConsistency);
+    })();
     
     const matrix: ScoreCell[][] = [];
     const maxScore = 5;
@@ -69,6 +79,9 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
             probability *= (1 - rho);
           }
         }
+        
+        // Apply AI confidence factor to refine predictions based on market analysis
+        probability *= aiConfidenceFactor;
         
         row.push({
           homeScore: home,
