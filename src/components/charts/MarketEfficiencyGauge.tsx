@@ -46,40 +46,46 @@ export function MarketEfficiencyGauge({ match, className = "" }: MarketEfficienc
       const probDraw = 1 / match.odds_draw;
       const probAway = 1 / match.odds_away;
       
-      // Trouver la plus probable
-      const maxProb = Math.max(probHome, probDraw, probAway);
+      // Créer un tableau des probabilités avec leurs labels
+      const outcomes = [
+        { label: match.home_team, prob: probHome, odds: match.odds_home, type: 'home' },
+        { label: 'Nul', prob: probDraw, odds: match.odds_draw, type: 'draw' },
+        { label: match.away_team, prob: probAway, odds: match.odds_away, type: 'away' }
+      ];
       
-      // Trouver la deuxième plus probable
-      let secondChoice = '';
-      let secondOdds = 0;
+      // Trier par probabilité décroissante
+      outcomes.sort((a, b) => b.prob - a.prob);
       
-      if (maxProb === probHome) {
-        if (probDraw >= probAway) {
-          secondChoice = 'Nul';
-          secondOdds = match.odds_draw;
-        } else {
-          secondChoice = match.away_team;
-          secondOdds = match.odds_away;
-        }
-      } else if (maxProb === probDraw) {
-        if (probHome >= probAway) {
-          secondChoice = match.home_team;
-          secondOdds = match.odds_home;
-        } else {
-          secondChoice = match.away_team;
-          secondOdds = match.odds_away;
-        }
-      } else {
-        if (probHome >= probDraw) {
-          secondChoice = match.home_team;
-          secondOdds = match.odds_home;
-        } else {
-          secondChoice = 'Nul';
-          secondOdds = match.odds_draw;
-        }
+      // Prendre la 2ème et 3ème option
+      const secondChoice = outcomes[1];
+      const thirdChoice = outcomes[2];
+      
+      // Calculer les chances doubles
+      let doubleChance = '';
+      let doubleChanceOdds = 0;
+      
+      // Déterminer la combinaison de chance double basée sur les 2ème et 3ème choix
+      if ((secondChoice.type === 'home' && thirdChoice.type === 'draw') || 
+          (secondChoice.type === 'draw' && thirdChoice.type === 'home')) {
+        doubleChance = '1X';
+        // Calcul approximatif des cotes de chance double
+        doubleChanceOdds = 1 / (probHome + probDraw);
+      } else if ((secondChoice.type === 'home' && thirdChoice.type === 'away') || 
+                 (secondChoice.type === 'away' && thirdChoice.type === 'home')) {
+        doubleChance = '12';
+        doubleChanceOdds = 1 / (probHome + probAway);
+      } else if ((secondChoice.type === 'draw' && thirdChoice.type === 'away') || 
+                 (secondChoice.type === 'away' && thirdChoice.type === 'draw')) {
+        doubleChance = 'X2';
+        doubleChanceOdds = 1 / (probDraw + probAway);
       }
       
-      return { choice: secondChoice, odds: secondOdds };
+      return { 
+        secondChoice, 
+        thirdChoice, 
+        doubleChance, 
+        doubleChanceOdds 
+      };
     }
     
     return null;
@@ -251,17 +257,48 @@ export function MarketEfficiencyGauge({ match, className = "" }: MarketEfficienc
           const altRecommendation = getAlternativeRecommendation();
           return altRecommendation ? (
             <div className="mt-4 p-3 bg-chart-2/10 border border-chart-2/30 rounded-lg">
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2 mb-3">
                 <TrendingUp className="w-4 h-4 text-chart-2" />
                 <span className="text-sm font-semibold text-chart-2">Opportunité Détectée</span>
               </div>
-              <div className="text-sm text-foreground">
-                <span className="text-muted-foreground">Alternative recommandée :</span>
-                <div className="font-medium mt-1">
-                  <span className="text-chart-2">{altRecommendation.choice}</span>
-                  <span className="ml-2 px-2 py-1 bg-chart-2/20 text-chart-2 rounded text-xs font-bold">
-                    @{altRecommendation.odds.toFixed(2)}
+              
+              {/* Chance Double Recommandée */}
+              <div className="text-sm text-foreground mb-3">
+                <span className="text-muted-foreground">Chance Double recommandée :</span>
+                <div className="font-bold mt-2 animate-pulse">
+                  <span className="text-lg text-chart-2 font-extrabold animate-bounce">
+                    {altRecommendation.doubleChance}
                   </span>
+                  <span className="ml-2 px-3 py-1 bg-chart-2/20 text-chart-2 rounded text-sm font-bold animate-pulse">
+                    @{altRecommendation.doubleChanceOdds.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Détail des probabilités */}
+              <div className="space-y-2 text-xs border-t border-chart-2/20 pt-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">2ème choix :</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-foreground animate-pulse">
+                      {altRecommendation.secondChoice.label}
+                    </span>
+                    <span className="px-2 py-1 bg-muted text-muted-foreground rounded text-xs">
+                      @{altRecommendation.secondChoice.odds.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">3ème choix :</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-foreground animate-pulse">
+                      {altRecommendation.thirdChoice.label}
+                    </span>
+                    <span className="px-2 py-1 bg-muted text-muted-foreground rounded text-xs">
+                      @{altRecommendation.thirdChoice.odds.toFixed(2)}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
