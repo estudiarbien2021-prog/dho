@@ -57,111 +57,100 @@ export function ConfidenceScoreBars({ predictions, isActive }: ConfidenceScoreBa
     animateBars();
   }, [isActive, predictions]);
 
+  const getConfidenceLabel = (value: number) => {
+    if (value >= 75) return { label: "Très Fort", color: "text-green-500" };
+    if (value >= 60) return { label: "Fort", color: "text-orange-500" };
+    if (value >= 45) return { label: "Modéré", color: "text-blue-500" };
+    return { label: "Faible", color: "text-red-500" };
+  };
+
   return (
     <Card className="p-6">
       <div className="flex items-center gap-2 mb-6">
-        <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+        <div className="w-2 h-2 bg-green-500 rounded-full" />
         <h3 className="font-semibold text-sm">Scores de Confiance IA</h3>
       </div>
 
-      <div className="space-y-6">
-        {predictions.map((prediction, index) => (
-          <div key={prediction.label} className="space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-sm">{prediction.icon}</span>
-                <span className="text-sm font-medium">{prediction.label}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div 
-                  className={`text-lg font-bold transition-all duration-300 ${
-                    currentlyAnimating === index ? 'animate-pulse text-primary' : ''
-                  }`}
-                  style={{ color: prediction.color }}
-                >
-                  {animatedValues[index].toFixed(1)}%
+      <div className="space-y-4">
+        {predictions.map((prediction, index) => {
+          const confidenceInfo = getConfidenceLabel(animatedValues[index]);
+          return (
+            <div key={prediction.label} className="space-y-3">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div 
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm"
+                    style={{ backgroundColor: prediction.color }}
+                  >
+                    {prediction.icon}
+                  </div>
+                  <div>
+                    <div className="font-medium text-sm">{prediction.label}</div>
+                    <div className="text-xs text-muted-foreground">Analyse prédictive avancée</div>
+                  </div>
                 </div>
-                {currentlyAnimating === index && (
-                  <div className="w-2 h-2 bg-primary rounded-full animate-bounce" />
-                )}
-              </div>
-            </div>
-            
-            <div className="relative">
-              <div 
-                className="h-3 rounded-full bg-muted overflow-hidden"
-                style={{
-                  background: `linear-gradient(90deg, 
-                    hsl(var(--muted)) 0%, 
-                    hsl(var(--muted)) ${animatedValues[index]}%, 
-                    hsl(var(--muted)) 100%)`
-                }}
-              >
-                <div
-                  className="h-full rounded-full relative overflow-hidden transition-all duration-75 ease-out"
-                  style={{
-                    width: `${animatedValues[index]}%`,
-                    backgroundColor: prediction.color,
-                    boxShadow: currentlyAnimating === index 
-                      ? `0 0 10px ${prediction.color}` 
-                      : 'none'
-                  }}
-                >
-                  {/* Animated shine effect */}
-                  {currentlyAnimating === index && (
-                    <div 
-                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse"
-                      style={{
-                        animation: 'shine 1s ease-in-out infinite'
-                      }}
-                    />
-                  )}
+                <div className="text-right">
+                  <div 
+                    className={`text-xl font-bold transition-all duration-300 ${
+                      currentlyAnimating === index ? 'animate-pulse' : ''
+                    }`}
+                    style={{ color: prediction.color }}
+                  >
+                    {animatedValues[index].toFixed(0)}%
+                  </div>
+                  <div className={`text-xs font-medium ${confidenceInfo.color}`}>
+                    {confidenceInfo.label}
+                  </div>
                 </div>
               </div>
               
-              {/* Progress markers */}
-              <div className="flex justify-between mt-1 text-xs text-muted-foreground">
-                <span>0%</span>
-                <span>25%</span>
-                <span>50%</span>
-                <span>75%</span>
-                <span>100%</span>
+              <div className="relative">
+                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-75 ease-out relative"
+                    style={{
+                      width: `${animatedValues[index]}%`,
+                      backgroundColor: prediction.color,
+                      boxShadow: currentlyAnimating === index 
+                        ? `0 0 8px ${prediction.color}40` 
+                        : 'none'
+                    }}
+                  >
+                    {currentlyAnimating === index && (
+                      <div 
+                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                        style={{
+                          animation: 'shine 1s ease-in-out infinite'
+                        }}
+                      />
+                    )}
+                  </div>
+                </div>
               </div>
+              
+              {currentlyAnimating === index && (
+                <div className="flex justify-end">
+                  <div className="w-2 h-2 bg-primary rounded-full animate-bounce" />
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      {/* Legend with verdict */}
-      <div className="mt-6 p-4 bg-muted/20 rounded-lg">
-        <div className="flex items-center gap-2 mb-2">
-          <div className="w-1.5 h-1.5 bg-primary rounded-full" />
-          <span className="text-xs font-medium">Verdict IA</span>
+      {/* Synthèse Algorithmique */}
+      <div className="mt-6 p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+          <span className="text-sm font-medium text-green-700 dark:text-green-400">Synthèse Algorithmique</span>
         </div>
         
-        {currentlyAnimating === -1 && predictions.length > 0 ? (
-          <div className="space-y-1">
-            <div className="text-sm font-bold text-primary">
-              🎯 Prédiction Principale: {predictions[0].label}
-            </div>
-            <div className="text-xs text-muted-foreground">
-              Confiance: {predictions[0].value.toFixed(1)}% • 
-              {predictions[0].value >= 75 ? " Très fiable" : 
-               predictions[0].value >= 60 ? " Modérément fiable" : 
-               " Incertain"}
-            </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-            <div>• 70-100% : Très forte confiance</div>
-            <div>• 50-69% : Confiance modérée</div>
-            <div>• 30-49% : Incertitude</div>
-            <div>• 0-29% : Faible probabilité</div>
-          </div>
-        )}
-        
+        <div className="text-sm text-green-800 dark:text-green-300 mb-3">
+          L'IA a analysé 6 facteurs critiques. Les algorithmes de machine learning identifient les variables les plus déterminantes pour prédire l'issue du match avec une précision optimisée.
+        </div>
+
         {/* Commentaire explicatif détaillé */}
-        <div className="mt-3 p-3 bg-slate-800/30 rounded text-xs text-muted-foreground space-y-2">
+        <div className="p-3 bg-slate-800/30 rounded text-xs text-muted-foreground space-y-2">
           <div>
             <span className="text-primary font-semibold">🤖 Machine Learning :</span> Le modèle prédictif, alimenté par +54 800 affrontements similaires du football sud-américain avec contextes identiques (blessures/suspensions, arbitre, pelouse, supporters, enjeux, déplacements, fatigue, météo), détecte 50.0% de probabilité qu'une équipe au minimum reste bredouille.
           </div>
