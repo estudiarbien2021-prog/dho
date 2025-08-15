@@ -96,47 +96,6 @@ export function MarketEfficiencyGauge({ match, className = "" }: MarketEfficienc
         doubleChance, 
         doubleChanceOdds 
       };
-    } else if (vigorishData[0].type === 'BTTS' && match.odds_btts_yes > 0 && match.odds_btts_no > 0) {
-      // Obtenir la recommandation IA actuelle
-      const aiRecommendation = generateAIRecommendation(match);
-      
-      // Proposer l'inverse de la recommandation IA
-      let bttsChoice;
-      if (aiRecommendation.betType === 'BTTS' && aiRecommendation.prediction === 'Oui') {
-        // Si l'IA recommande BTTS Oui, proposer BTTS Non
-        bttsChoice = {
-          label: 'BTTS Non',
-          odds: match.odds_btts_no,
-          type: 'no'
-        };
-      } else if (aiRecommendation.betType === 'BTTS' && aiRecommendation.prediction === 'Non') {
-        // Si l'IA recommande BTTS Non, proposer BTTS Oui
-        bttsChoice = {
-          label: 'BTTS Oui',
-          odds: match.odds_btts_yes,
-          type: 'yes'
-        };
-      } else {
-        // Si l'IA ne recommande pas BTTS, prendre la valeur la plus probable par défaut
-        const probBttsYes = 1 / match.odds_btts_yes;
-        const probBttsNo = 1 / match.odds_btts_no;
-        
-        bttsChoice = probBttsYes > probBttsNo ? {
-          label: 'BTTS Oui',
-          odds: match.odds_btts_yes,
-          type: 'yes'
-        } : {
-          label: 'BTTS Non',
-          odds: match.odds_btts_no,
-          type: 'no'
-        };
-      }
-      
-      return {
-        type: 'BTTS',
-        bttsChoice,
-        isOpposite: aiRecommendation.betType === 'BTTS'
-      };
     }
     
     return null;
@@ -355,30 +314,7 @@ export function MarketEfficiencyGauge({ match, className = "" }: MarketEfficienc
                     </div>
                   </div>
                 </>
-              ) : (
-                <>
-                  {/* Recommandation BTTS */}
-                  <div className="text-sm text-foreground">
-                    <span className="text-muted-foreground">
-                      {altRecommendation.isOpposite ? 'BTTS Contrarian (inverse IA) :' : 'BTTS recommandé (meilleure valeur) :'}
-                    </span>
-                    <div className="font-bold mt-2 animate-pulse">
-                      <span className="text-lg text-chart-2 font-extrabold animate-bounce">
-                        {altRecommendation.bttsChoice.label}
-                      </span>
-                      <span className="ml-2 px-3 py-1 bg-chart-2/20 text-chart-2 rounded text-sm font-bold animate-pulse">
-                        @{altRecommendation.bttsChoice.odds.toFixed(2)}
-                      </span>
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-2">
-                      {altRecommendation.isOpposite 
-                        ? 'Stratégie contrarian : opposé à la recommandation IA'
-                        : 'Choix basé sur la probabilité la plus favorable'
-                      }
-                    </div>
-                  </div>
-                </>
-              )}
+              ) : null}
             </div>
           ) : null;
         })()}
