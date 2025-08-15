@@ -2,13 +2,9 @@ import React from 'react';
 import { ProcessedMatch } from '@/types/match';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { FlagMini } from '@/components/Flag';
 import { leagueToFlag } from '@/lib/leagueCountry';
-import { generateConfidenceScore } from '@/lib/confidence';
-import { generateAIRecommendation } from '@/lib/aiRecommendation';
-import AIRecommendationDisplay from '@/components/AIRecommendationDisplay';
-import { Trophy, Target, TrendingUp, Zap } from 'lucide-react';
+import { Trophy, Target, Zap } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -17,56 +13,94 @@ interface TopPicksProps {
   onMatchClick: (match: ProcessedMatch) => void;
 }
 
-interface BestBet {
-  match: ProcessedMatch;
-  type: 'BTTS' | 'O/U 2.5';
-  prediction: string;
-  odds: number;
-  probability: number;
-  vigorish: number;
-  score: number;
-  edge: number;
-}
-
 export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
-  // Utiliser la même logique que les autres composants
+  // Nouvelle logique : évaluer tous les marchés et choisir les plus probables
   const getTopBets = () => {
-    const validMatches = matches
-      .map(match => ({
-        match,
-        aiRec: generateAIRecommendation(match, [])
-      }))
-      .filter(({ match, aiRec }) => {
-        if (!aiRec || aiRec.odds < 1.5) return false;
-        
-        // Vérifier la probabilité selon le type de pari
-        if (aiRec.betType === 'BTTS') {
-          const prob = aiRec.prediction === 'Oui' ? match.p_btts_yes_fair : match.p_btts_no_fair;
-          return prob >= 0.51;
-        } else if (aiRec.betType === 'O/U 2.5') {
-          const prob = aiRec.prediction === '+2,5 buts' ? match.p_over_2_5_fair : match.p_under_2_5_fair;
-          return prob >= 0.51;
-        }
-        
-        return false;
-      })
-      .sort((a, b) => {
-        // Trier par probabilité d'abord, puis par score
-        const aProbability = a.match.p_btts_yes_fair || a.match.p_over_2_5_fair || 0;
-        const bProbability = b.match.p_btts_yes_fair || b.match.p_over_2_5_fair || 0;
-        
-        if (Math.abs(aProbability - bProbability) > 0.01) {
-          return bProbability - aProbability;
-        }
-        
-        // Si probabilités similaires, utiliser le score
-        const aScore = aProbability * (a.aiRec?.odds || 1);
-        const bScore = bProbability * (b.aiRec?.odds || 1);
-        return bScore - aScore;
-      })
+    const allBets = [];
+    
+    matches.forEach(match => {
+      const bets = [];
+      
+      // 1X2 Markets
+      if (match.odds_home >= 1.5 && match.p_home_fair >= 0.01) {
+        bets.push({
+          match,
+          type: '1X2',
+          prediction: 'Domicile',
+          odds: match.odds_home,
+          probability: match.p_home_fair
+        });
+      }
+      
+      if (match.odds_draw >= 1.5 && match.p_draw_fair >= 0.01) {
+        bets.push({
+          match,
+          type: '1X2',
+          prediction: 'Nul',
+          odds: match.odds_draw,
+          probability: match.p_draw_fair
+        });
+      }
+      
+      if (match.odds_away >= 1.5 && match.p_away_fair >= 0.01) {
+        bets.push({
+          match,
+          type: '1X2',
+          prediction: 'Extérieur',
+          odds: match.odds_away,
+          probability: match.p_away_fair
+        });
+      }
+      
+      // BTTS Markets
+      if (match.odds_btts_yes && match.odds_btts_yes >= 1.5 && match.p_btts_yes_fair >= 0.01) {
+        bets.push({
+          match,
+          type: 'BTTS',
+          prediction: 'Oui',
+          odds: match.odds_btts_yes,
+          probability: match.p_btts_yes_fair
+        });
+      }
+      
+      if (match.odds_btts_no && match.odds_btts_no >= 1.5 && match.p_btts_no_fair >= 0.01) {
+        bets.push({
+          match,
+          type: 'BTTS',
+          prediction: 'Non',
+          odds: match.odds_btts_no,
+          probability: match.p_btts_no_fair
+        });
+      }
+      
+      // Over/Under 2.5 Markets
+      if (match.odds_over_2_5 && match.odds_over_2_5 >= 1.5 && match.p_over_2_5_fair >= 0.01) {
+        bets.push({
+          match,
+          type: 'O/U 2.5',
+          prediction: '+2,5 buts',
+          odds: match.odds_over_2_5,
+          probability: match.p_over_2_5_fair
+        });
+      }
+      
+      if (match.odds_under_2_5 && match.odds_under_2_5 >= 1.5 && match.p_under_2_5_fair >= 0.01) {
+        bets.push({
+          match,
+          type: 'O/U 2.5',
+          prediction: '-2,5 buts',
+          odds: match.odds_under_2_5,
+          probability: match.p_under_2_5_fair
+        });
+      }
+      
+      allBets.push(...bets);
+    });
+    
+    // Trier par probabilité décroissante et prendre les 3 meilleurs
+    return allBets
+      .sort((a, b) => b.probability - a.probability)
       .slice(0, 3);
-
-    return validMatches;
   };
 
   const topBets = getTopBets();
@@ -98,14 +132,14 @@ export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
       </div>
       
       <div className="grid gap-4 md:grid-cols-3">
-        {topBets.map(({ match, aiRec }, index) => {
-          const flagInfo = leagueToFlag(match.league, match.country, match.home_team, match.away_team);
+        {topBets.map((bet, index) => {
+          const flagInfo = leagueToFlag(bet.match.league, bet.match.country, bet.match.home_team, bet.match.away_team);
           
           return (
             <Card 
-              key={`${match.id}-top-pick-${index}`}
+              key={`${bet.match.id}-top-pick-${index}`}
               className="group relative p-4 bg-gradient-to-br from-surface-soft to-surface border border-brand/30 hover:border-brand/50 transition-all duration-300 hover:shadow-xl hover:shadow-brand/20 cursor-pointer transform hover:scale-[1.02]"
-              onClick={() => onMatchClick(match)}
+              onClick={() => onMatchClick(bet.match)}
             >
               {/* Rank Badge */}
               <div className="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-br from-brand to-brand-400 rounded-full flex items-center justify-center text-brand-fg font-bold text-sm shadow-lg">
@@ -115,26 +149,52 @@ export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
               {/* Match Info */}
               <div className="flex items-center justify-center gap-2 mb-3">
                 <FlagMini code={flagInfo.code} confed={flagInfo.confed} />
-                <span className="text-xs text-text-weak text-center truncate">{match.league}</span>
+                <span className="text-xs text-text-weak text-center truncate">{bet.match.league}</span>
               </div>
 
               <div className="space-y-2 mb-4 text-center">
                 <div className="text-sm font-medium text-text">
-                  {match.home_team} vs {match.away_team}
+                  {bet.match.home_team} vs {bet.match.away_team}
                 </div>
                 <div className="text-xs text-text-weak">
-                  {format(match.kickoff_utc, 'HH:mm', { locale: fr })}
+                  {format(bet.match.kickoff_utc, 'HH:mm', { locale: fr })}
                 </div>
               </div>
 
-              {/* AI Recommendation Display */}
-              <div className="mt-4">
-                <AIRecommendationDisplay
-                  match={match}
-                  marketFilters={[]}
-                  variant="card"
-                  showIcon={false}
-                />
+              {/* Custom Bet Display */}
+              <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg border border-green-200 shadow-sm">
+                <div className="flex items-center gap-2 mb-3">
+                  <Target className="h-5 w-5 text-green-600" />
+                  <h3 className="text-lg font-semibold text-green-800">
+                    Top Pick IA
+                  </h3>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Badge 
+                      variant="default"
+                      className="text-sm px-3 py-1"
+                    >
+                      {bet.type} {bet.prediction}
+                    </Badge>
+                    <div className="text-xl font-bold text-green-700">
+                      {bet.odds.toFixed(2)}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-green-600">Probabilité:</span>
+                    <span className="font-semibold text-green-800">{(bet.probability * 100).toFixed(1)}%</span>
+                  </div>
+                  
+                  <div className="relative h-2 bg-green-200 rounded-full overflow-hidden">
+                    <div 
+                      className="absolute top-0 left-0 h-full bg-gradient-to-r from-green-500 to-green-600 rounded-full"
+                      style={{ width: `${bet.probability * 100}%` }}
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Action Hint */}
