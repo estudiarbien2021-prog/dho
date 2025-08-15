@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { CheckCircle, RefreshCw, Target, Eye } from 'lucide-react';
+import { CheckCircle, RefreshCw, Target, Eye, Edit, Calendar, Search } from 'lucide-react';
 import { ProcessedMatch } from '@/types/match';
 import { generateAIRecommendation } from '@/lib/aiRecommendation';
 import { FlagMini } from '@/components/Flag';
@@ -49,20 +52,37 @@ export function PicksValidation() {
   const [selectedPicks, setSelectedPicks] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [dateFilter, setDateFilter] = useState(new Date().toISOString().split('T')[0]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [editingPick, setEditingPick] = useState<ValidatedPick | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   
   const { matches = [] } = useMatchesData();
 
   useEffect(() => {
     loadPotentialPicks();
     loadValidatedPicks();
-  }, [matches]);
+  }, [matches, dateFilter]);
 
   const loadValidatedPicks = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('validated_picks')
         .select('*')
         .order('created_at', { ascending: false });
+
+      // Filtrer par date si spécifié
+      if (dateFilter) {
+        const startDate = new Date(dateFilter);
+        const endDate = new Date(dateFilter);
+        endDate.setDate(endDate.getDate() + 1);
+        
+        query = query
+          .gte('kickoff_utc', startDate.toISOString())
+          .lt('kickoff_utc', endDate.toISOString());
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setValidatedPicks(data || []);
@@ -276,6 +296,45 @@ export function PicksValidation() {
     }
   };
 
+  const updateValidatedPick = async (pickData: Partial<ValidatedPick>) => {
+    if (!editingPick) return;
+
+    try {
+      const { error } = await supabase
+        .from('validated_picks')
+        .update(pickData)
+        .eq('id', editingPick.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Succès",
+        description: "Pick mis à jour avec succès",
+      });
+
+      setIsEditDialogOpen(false);
+      setEditingPick(null);
+      await loadValidatedPicks();
+
+    } catch (error) {
+      console.error('Error updating pick:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour le pick",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Filtrer les picks validés par recherche
+  const filteredValidatedPicks = validatedPicks.filter(pick => 
+    pick.home_team?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    pick.away_team?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    pick.league?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    pick.country?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    pick.prediction?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   if (isLoading) {
     return (
       <div className="text-center py-8">
@@ -312,6 +371,37 @@ export function PicksValidation() {
             Valider ({selectedPicks.length})
           </Button>
         </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex items-center gap-4 mb-6">
+        <div className="flex-1">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-weak h-4 w-4" />
+            <Input
+              placeholder="Rechercher par équipe, ligue, pays ou prédiction..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </div>
+        <div>
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-text-weak" />
+            <Input
+              type="date"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="w-48"
+            />
+          </div>
+        </div>
+        {dateFilter && (
+          <Button variant="ghost" onClick={() => setDateFilter('')}>
+            Tout afficher
+          </Button>
+        )}
       </div>
 
       {/* Potential Picks */}
@@ -402,31 +492,40 @@ export function PicksValidation() {
       {/* Validated Picks */}
       <Card className="p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">Picks Validés ({validatedPicks.filter(p => p.is_validated).length})</h3>
+          <h3 className="text-lg font-semibold">Picks Validés ({filteredValidatedPicks.filter(p => p.is_validated).length})</h3>
           <Eye className="h-5 w-5 text-brand" />
         </div>
         
-        {validatedPicks.length === 0 ? (
+        {filteredValidatedPicks.length === 0 ? (
           <div className="text-center py-8">
             <CheckCircle className="h-12 w-12 text-brand/50 mx-auto mb-4" />
-            <p className="text-text-weak">Aucun pick validé pour le moment</p>
+            <p className="text-text-weak">Aucun pick validé pour cette période</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Date</TableHead>
                   <TableHead>Match</TableHead>
                   <TableHead>Prédiction</TableHead>
                   <TableHead>Odds</TableHead>
                   <TableHead>Probabilité</TableHead>
+                  <TableHead>Vigorish</TableHead>
                   <TableHead>Statut</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {validatedPicks.map((pick) => (
+                {filteredValidatedPicks.map((pick) => (
                   <TableRow key={pick.id}>
+                    <TableCell>
+                      <div className="text-xs">
+                        {format(new Date(pick.kickoff_utc), 'dd/MM', { locale: fr })}
+                        <br />
+                        {format(new Date(pick.kickoff_utc), 'HH:mm', { locale: fr })}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <div className="space-y-1">
                         <div className="text-xs text-text-weak">{pick.league}</div>
@@ -442,19 +541,50 @@ export function PicksValidation() {
                     </TableCell>
                     <TableCell className="font-mono">{pick.odds.toFixed(2)}</TableCell>
                     <TableCell className="font-mono">{(pick.probability * 100).toFixed(1)}%</TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {(pick.vigorish * 100).toFixed(2)}%
+                    </TableCell>
                     <TableCell>
                       <Badge variant={pick.is_validated ? 'default' : 'secondary'}>
                         {pick.is_validated ? 'Validé' : 'En attente'}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleToggleValidation(pick.id)}
-                      >
-                        {pick.is_validated ? 'Invalider' : 'Valider'}
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Dialog open={isEditDialogOpen && editingPick?.id === pick.id} onOpenChange={setIsEditDialogOpen}>
+                          <DialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setEditingPick(pick)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-md">
+                            <DialogHeader>
+                              <DialogTitle>Modifier le pick</DialogTitle>
+                            </DialogHeader>
+                            {editingPick && (
+                              <EditPickForm
+                                pick={editingPick}
+                                onSave={updateValidatedPick}
+                                onCancel={() => {
+                                  setIsEditDialogOpen(false);
+                                  setEditingPick(null);
+                                }}
+                              />
+                            )}
+                          </DialogContent>
+                        </Dialog>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleToggleValidation(pick.id)}
+                        >
+                          {pick.is_validated ? 'Invalider' : 'Valider'}
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -462,7 +592,93 @@ export function PicksValidation() {
             </Table>
           </div>
         )}
+
+        {/* Statistics */}
+        <div className="mt-4 text-sm text-text-weak">
+          Total: {filteredValidatedPicks.length} pick(s) | 
+          Validés: {filteredValidatedPicks.filter(p => p.is_validated).length} | 
+          En attente: {filteredValidatedPicks.filter(p => !p.is_validated).length}
+        </div>
       </Card>
     </div>
+  );
+}
+
+interface EditPickFormProps {
+  pick: ValidatedPick;
+  onSave: (data: Partial<ValidatedPick>) => void;
+  onCancel: () => void;
+}
+
+function EditPickForm({ pick, onSave, onCancel }: EditPickFormProps) {
+  const [formData, setFormData] = useState({
+    odds: pick.odds,
+    probability: pick.probability,
+    vigorish: pick.vigorish,
+    prediction: pick.prediction,
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave(formData);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="prediction">Prédiction</Label>
+        <Input
+          id="prediction"
+          value={formData.prediction}
+          onChange={(e) => setFormData({ ...formData, prediction: e.target.value })}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="odds">Odds</Label>
+        <Input
+          id="odds"
+          type="number"
+          step="0.01"
+          min="1"
+          value={formData.odds}
+          onChange={(e) => setFormData({ ...formData, odds: parseFloat(e.target.value) || 0 })}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="probability">Probabilité (%)</Label>
+        <Input
+          id="probability"
+          type="number"
+          step="0.01"
+          min="0"
+          max="100"
+          value={(formData.probability * 100).toFixed(2)}
+          onChange={(e) => setFormData({ ...formData, probability: parseFloat(e.target.value) / 100 || 0 })}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="vigorish">Vigorish (%)</Label>
+        <Input
+          id="vigorish"
+          type="number"
+          step="0.01"
+          min="0"
+          value={(formData.vigorish * 100).toFixed(2)}
+          onChange={(e) => setFormData({ ...formData, vigorish: parseFloat(e.target.value) / 100 || 0 })}
+        />
+      </div>
+
+      <div className="flex justify-end gap-2 pt-4">
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Annuler
+        </Button>
+        <Button type="submit" className="bg-brand hover:bg-brand-300">
+          Sauvegarder
+        </Button>
+      </div>
+    </form>
   );
 }
