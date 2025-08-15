@@ -52,37 +52,40 @@ export function PicksValidation() {
   const [selectedPicks, setSelectedPicks] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [dateFilter, setDateFilter] = useState(new Date().toISOString().split('T')[0]);
+  const [dateFilter, setDateFilter] = useState(new Date().toISOString().split('T')[0]); // Date du jour par défaut
   const [searchTerm, setSearchTerm] = useState('');
   const [editingPick, setEditingPick] = useState<ValidatedPick | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [matches, setMatches] = useState<ProcessedMatch[]>([]);
 
   useEffect(() => {
-    loadMatches(); // Charger tous les matchs une seule fois
-  }, []); // Pas de dépendance à dateFilter
-
-  useEffect(() => {
-    loadValidatedPicks(); // Recharger les picks validés quand la date change
-    if (matches.length > 0) {
-      loadPotentialPicks(matches); // Regénérer les picks potentiels pour la date
-    }
-  }, [dateFilter, matches]);
+    // Charger les matchs pour la date sélectionnée (par défaut = aujourd'hui)
+    loadMatches();
+    loadValidatedPicks();
+  }, [dateFilter]); // Recharger quand la date change
 
   const loadMatches = async () => {
     try {
       setIsLoading(true);
-      console.log('🔄 Chargement de TOUS les matchs depuis Supabase...');
+      console.log(`🔄 Chargement des matchs pour la date: ${dateFilter}`);
       
-      // Charger TOUS les matchs sans filtrage par date
+      // Charger SEULEMENT les matchs de la date sélectionnée
+      const startDate = new Date(dateFilter);
+      const endDate = new Date(dateFilter);
+      endDate.setDate(endDate.getDate() + 1);
+      
+      console.log(`📅 Requête Supabase: ${startDate.toISOString()} -> ${endDate.toISOString()}`);
+      
       const { data, error } = await supabase
         .from('matches')
         .select('*')
+        .gte('kickoff_utc', startDate.toISOString())
+        .lt('kickoff_utc', endDate.toISOString())
         .order('kickoff_utc', { ascending: true });
 
       if (error) throw error;
       
-      console.log(`✅ TOUS les matchs chargés depuis Supabase: ${data?.length || 0}`);
+      console.log(`✅ Matchs chargés pour ${dateFilter}: ${data?.length || 0}`);
       
       // Convertir au format ProcessedMatch
       const processedMatches: ProcessedMatch[] = (data || []).map(match => ({
@@ -121,9 +124,12 @@ export function PicksValidation() {
       
       setMatches(processedMatches);
       
-      // Charger les picks potentiels après avoir chargé les matchs
+      // Générer les picks potentiels directement
       if (processedMatches.length > 0) {
         loadPotentialPicks(processedMatches);
+      } else {
+        setPotentialPicks([]);
+        console.log(`❌ Aucun match trouvé pour le ${dateFilter}`);
       }
       
     } catch (error) {
@@ -179,7 +185,7 @@ export function PicksValidation() {
     try {
       console.log('🔍 Analyse des matchs pour les picks potentiels...');
       console.log(`📅 Filtrage par date: ${dateFilter}`);
-      console.log(`📊 Total matchs disponibles depuis Supabase: ${matchData.length}`);
+      console.log(`📊 Total matchs disponibles pour ${dateFilter}: ${matchData.length}`);
       
       // Debug: afficher quelques dates de matchs pour vérifier
       const sampleDates = matchData.slice(0, 5).map(m => ({
@@ -189,33 +195,10 @@ export function PicksValidation() {
       }));
       console.log('📅 Échantillon des dates de matchs:', sampleDates);
       
-      // Filtrer les matchs par date SEULEMENT pour les picks potentiels
+      // Pas besoin de filtrer par date - les matchs sont déjà pour la bonne date
       let matchesToAnalyze = matchData;
-      if (dateFilter) {
-        const targetDate = new Date(dateFilter);
-        console.log(`🎯 Date cible pour les picks: ${targetDate.toDateString()}`);
-        
-        matchesToAnalyze = matchData.filter(match => {
-          const matchDate = new Date(match.kickoff_utc);
-          const matchDateStr = matchDate.toDateString();
-          const targetDateStr = targetDate.toDateString();
-          const isMatch = matchDateStr === targetDateStr;
-          
-          if (isMatch) {
-            console.log(`✅ Match trouvé pour la date: ${match.home_team} vs ${match.away_team} - ${matchDateStr}`);
-          }
-          
-          return isMatch;
-        });
-        console.log(`📊 Matchs filtrés pour picks: ${matchesToAnalyze.length}/${matchData.length}`);
-        
-        if (matchesToAnalyze.length === 0) {
-          console.log(`❌ Aucun match trouvé pour le ${targetDate.toDateString()}`);
-          setPotentialPicks([]);
-          return;
-        }
-      }
-      console.log(`📊 Matchs à analyser pour picks: ${matchesToAnalyze.length}`);
+      console.log(`📊 Analysing ${matchesToAnalyze.length} matchs pour la date sélectionnée`);
+      console.log(`📊 Analysing ${matchesToAnalyze.length} matchs pour les picks potentiels`);
       
       // Filtrer par catégorie comme dans TopPicks mais avec les nouveaux critères
       const filteredMatches = matchesToAnalyze.filter(match => {
