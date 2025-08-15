@@ -39,9 +39,17 @@ export function MarketEfficiencyGauge({ match, className = "" }: MarketEfficienc
 
   // Calculer la recommandation alternative pour 1X2
   const getAlternativeRecommendation = () => {
-    const vigMax = Math.max(match.vig_1x2, match.vig_btts, match.vig_ou_2_5);
+    // Créer un tableau des vigorish avec leurs types et les trier
+    const vigorishData = [
+      { type: '1X2', value: match.vig_1x2 },
+      { type: 'BTTS', value: match.vig_btts },
+      { type: 'O/U2.5', value: match.vig_ou_2_5 }
+    ].sort((a, b) => b.value - a.value);
     
-    if (match.vig_1x2 === vigMax) {
+    // Vérifier si 1X2 est le plus élevé OU le deuxième plus élevé
+    const is1X2TopTwo = vigorishData[0].type === '1X2' || vigorishData[1].type === '1X2';
+    
+    if (is1X2TopTwo) {
       // Calculer les probabilités implicites
       const probHome = 1 / match.odds_home;
       const probDraw = 1 / match.odds_draw;
@@ -88,7 +96,7 @@ export function MarketEfficiencyGauge({ match, className = "" }: MarketEfficienc
         doubleChance, 
         doubleChanceOdds 
       };
-    } else if (match.vig_btts === vigMax && match.odds_btts_yes > 0 && match.odds_btts_no > 0) {
+    } else if (vigorishData[0].type === 'BTTS' && match.odds_btts_yes > 0 && match.odds_btts_no > 0) {
       // Obtenir la recommandation IA actuelle
       const aiRecommendation = generateAIRecommendation(match);
       
