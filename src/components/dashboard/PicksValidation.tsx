@@ -280,15 +280,17 @@ export function PicksValidation() {
         
         console.log(`🌏 ${match.home_team} vs ${match.away_team} - Pays: ${match.country} - Non-Asie: ${isNotAsianCountry && isNotAsianCompetition}`);
         
-        // Pour les championnats domestiques, exclure seulement Asie et Afrique (AMÉRIQUE LATINE AUTORISÉE)
+        // Pour les championnats domestiques, autoriser UNIQUEMENT l'Asie et l'Afrique
         if (match.category === 'first_div') {
-          const isNotAfrican = !africanCountries.includes(match.country || '');
+          const isAsianCountry = asianCountries.includes(match.country || '');
+          const isAsianCompetition = asianCompetitions.some(comp => (match.league || '').toLowerCase().includes(comp.toLowerCase()));
+          const isAfricanCountry = africanCountries.includes(match.country || '');
           
-          const isValidRegion = isNotAsianCountry && isNotAsianCompetition && isNotAfrican;
-          console.log(`🏆 ${match.home_team} vs ${match.away_team} - First_div - Région valide: ${isValidRegion} (Amérique latine ✅ autorisée)`);
+          const isValidRegion = isAsianCountry || isAsianCompetition || isAfricanCountry;
+          console.log(`🏆 ${match.home_team} vs ${match.away_team} - First_div - Région valide: ${isValidRegion} (Asie/Afrique uniquement)`);
           
           if (!isValidRegion) {
-            console.log(`   ❌ Rejeté: région asiatique ou africaine pour first_div`);
+            console.log(`   ❌ Rejeté: région non-asiatique/non-africaine pour first_div`);
             return false;
           }
           
