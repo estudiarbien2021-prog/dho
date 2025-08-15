@@ -20,16 +20,21 @@ export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
     const validBets = [];
     
     // Filtrer d'abord par catégorie : grands championnats et compétitions continentales/internationales
-    // Exclure les coupes nationales et l'Asie
+    // Exclure les coupes nationales et l'Asie (nationale et continentale)
     const filteredMatches = matches.filter(match => {
       // Garder seulement première division et coupes continentales (pas de coupes nationales)
       const isValidCategory = match.category === 'first_div' || match.category === 'continental_cup';
       
-      // Exclure l'Asie en filtrant par pays/région
+      // Exclure l'Asie complètement (pays asiatiques et compétitions continentales asiatiques)
       const asianCountries = ['Japan', 'South Korea', 'China', 'Thailand', 'Singapore', 'Malaysia', 'Indonesia', 'Vietnam', 'Philippines', 'India', 'Saudi Arabia', 'UAE', 'Qatar', 'Iran', 'Iraq', 'Jordan', 'Lebanon', 'Syria', 'Uzbekistan', 'Kazakhstan', 'Kyrgyzstan', 'Tajikistan', 'Turkmenistan', 'Afghanistan', 'Pakistan', 'Bangladesh', 'Sri Lanka', 'Myanmar', 'Cambodia', 'Laos', 'Nepal', 'Bhutan', 'Mongolia', 'North Korea'];
-      const isNotAsian = !asianCountries.includes(match.country || '');
       
-      return isValidCategory && isNotAsian;
+      // Exclure aussi les compétitions continentales asiatiques par nom de ligue
+      const asianCompetitions = ['AFC Champions League', 'AFC Cup', 'AFC Asian Cup', 'J1 League', 'K League 1', 'Chinese Super League', 'Thai League 1', 'Malaysian Super League', 'Indonesian Liga 1', 'V.League 1', 'Philippine Football League', 'Indian Super League', 'Saudi Pro League', 'UAE Pro League', 'Qatar Stars League', 'Iran Pro League', 'Iraq Stars League'];
+      
+      const isNotAsianCountry = !asianCountries.includes(match.country || '');
+      const isNotAsianCompetition = !asianCompetitions.some(comp => (match.league || '').toLowerCase().includes(comp.toLowerCase()));
+      
+      return isValidCategory && isNotAsianCountry && isNotAsianCompetition;
     });
     
     filteredMatches.forEach(match => {
