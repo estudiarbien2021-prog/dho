@@ -160,9 +160,9 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     };
 
     // Use the recommendation passed as parameter (already validated)
-    const normalizedRecommendation = { ...recommendation };
+    const rec = { ...recommendation };
 
-    if (normalizedRecommendation.type === 'Aucune') {
+    if (rec.type === 'Aucune') {
       const noOpportunityTexts = [
         "🔍 **Scan Complet** : Après analyse de 47 métriques avancées, notre IA n'a trouvé aucune faille exploitable. Les bookmakers ont parfaitement calibré leurs prix cette fois.",
         "🎯 **Radar Silencieux** : Notre système de détection d'opportunités reste muet sur ce match. Les cotes reflètent parfaitement les probabilités réelles calculées.",
@@ -174,16 +174,16 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     // Récupérer la vraie probabilité du marché choisi
     let realProbability = 0.5; // valeur par défaut
     
-    if (normalizedRecommendation.type === 'BTTS') {
-      if (normalizedRecommendation.prediction === 'Oui') {
+    if (rec.type === 'BTTS') {
+      if (rec.prediction === 'Oui') {
         realProbability = match.p_btts_yes_fair;
-      } else if (normalizedRecommendation.prediction === 'Non') {
+      } else if (rec.prediction === 'Non') {
         realProbability = match.p_btts_no_fair;
       }
-    } else if (normalizedRecommendation.type === 'O/U 2.5') {
-      if (normalizedRecommendation.prediction === '+2,5 buts') {
+    } else if (rec.type === 'O/U 2.5') {
+      if (rec.prediction === '+2,5 buts') {
         realProbability = match.p_over_2_5_fair;
-      } else if (normalizedRecommendation.prediction === '-2,5 buts') {
+      } else if (rec.prediction === '-2,5 buts') {
         realProbability = match.p_under_2_5_fair;
       }
     }
@@ -195,9 +195,9 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     
     // Récupérer la marge vigorish du marché choisi (BTTS ou O/U 2.5)
     let marketVigorish = 0.05; // valeur par défaut
-    if (normalizedRecommendation.type === 'BTTS') {
+    if (rec.type === 'BTTS') {
       marketVigorish = match.vig_btts || 0.05;
-    } else if (normalizedRecommendation.type === 'O/U 2.5') {
+    } else if (rec.type === 'O/U 2.5') {
       marketVigorish = match.vig_ou_2_5 || 0.05;
     }
     
@@ -205,8 +205,8 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
       ? Math.min(0.25, Math.max(0.001, marketVigorish))
       : 0.05;
       
-    const safeOdds = normalizedRecommendation.odds && !isNaN(normalizedRecommendation.odds) && normalizedRecommendation.odds > 1
-      ? Math.min(10.0, Math.max(1.01, normalizedRecommendation.odds))
+    const safeOdds = rec.odds && !isNaN(rec.odds) && rec.odds > 1
+      ? Math.min(10.0, Math.max(1.01, rec.odds))
       : 1.5;
     
     const probPercent = (safeProbability * 100).toFixed(1);
@@ -217,7 +217,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     const edge = randomEdge.toFixed(1);
     
     // Handle confidence score using shared function to ensure consistency
-    const confidence = generateConfidenceScore(match.id, normalizedRecommendation);
+    const confidence = generateConfidenceScore(match.id, rec);
 
     // Determine geographic context based on league
     const getGeographicContext = () => {
@@ -412,8 +412,8 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     
     explanation += `${getSeededChoice(dataIntros, 4)} avec contextes identiques (blessures/suspensions, arbitre, pelouse, supporters, enjeux, déplacements, fatigue, météo), `;
     
-    if (normalizedRecommendation.type === 'BTTS') {
-      if (normalizedRecommendation.prediction === 'Oui') {
+    if (rec.type === 'BTTS') {
+      if (rec.prediction === 'Oui') {
         const bttsYesTexts = [
           `révèle **${probPercent}%** de chances que les deux formations trouvent le chemin des filets. L'analyse des corridors offensifs, des faiblesses défensives latérales et des duels individuels converge vers un festival de buts.`,
           `calcule **${probPercent}%** de probabilité d'un double marquage. Les metrics d'Expected Goals, la porosité défensive constatée et l'agressivité offensive récente dessinent un scénario spectaculaire.`,
@@ -430,8 +430,8 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
         ];
         explanation += getSeededChoice(bttsNoTexts, 6);
       }
-    } else if (normalizedRecommendation.type === 'O/U 2.5') {
-      if (normalizedRecommendation.prediction === '+2,5 buts') {
+    } else if (rec.type === 'O/U 2.5') {
+      if (rec.prediction === '+2,5 buts') {
         const overTexts = [
           `projette **${probPercent}%** de chances d'explosivité offensive avec 3+ réalisations. La conjugaison des Expected Goals, du tempo de jeu élevé et des espaces laissés en transition dessine un match débridé.`,
           `anticipe **${probPercent}%** de probabilité d'un festival offensif dépassant 2,5 buts. L'analyse des phases de pressing haut, des contres rapides et des situations de face-à-face suggère du spectacle.`,
@@ -452,10 +452,10 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
 
     // Professional mathematical edge explanations
     const edgeTexts = [
-      `\n\n💰 **Avantage Mathématique** : La cote **${normalizedRecommendation.odds.toFixed(2)}** offre une "positive expected value" de **+${edge}%** selon nos calculs quantitatifs.`,
-      `\n\n🎯 **Edge Statistique** : Avec **${normalizedRecommendation.odds.toFixed(2)}**, vous bénéficiez d'un avantage théorique de **+${edge}%** - une distorsion de marché à exploiter.`,
-      `\n\n⚡ **Profit Attendu** : La cote **${normalizedRecommendation.odds.toFixed(2)}** génère une espérance de gain positive de **+${edge}%** sur le long terme.`,
-      `\n\n📈 **Valeur Calculée** : À **${normalizedRecommendation.odds.toFixed(2)}**, cette cote présente un surplus de valeur quantifié à **+${edge}%** par nos algorithmes.`
+      `\n\n💰 **Avantage Mathématique** : La cote **${rec.odds.toFixed(2)}** offre une "positive expected value" de **+${edge}%** selon nos calculs quantitatifs.`,
+      `\n\n🎯 **Edge Statistique** : Avec **${rec.odds.toFixed(2)}**, vous bénéficiez d'un avantage théorique de **+${edge}%** - une distorsion de marché à exploiter.`,
+      `\n\n⚡ **Profit Attendu** : La cote **${rec.odds.toFixed(2)}** génère une espérance de gain positive de **+${edge}%** sur le long terme.`,
+      `\n\n📈 **Valeur Calculée** : À **${rec.odds.toFixed(2)}**, cette cote présente un surplus de valeur quantifié à **+${edge}%** par nos algorithmes.`
     ];
     
     explanation += getSeededChoice(edgeTexts, 9);
