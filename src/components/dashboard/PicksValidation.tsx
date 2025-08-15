@@ -297,8 +297,9 @@ export function PicksValidation() {
           return isValidCategory && isValidRegion;
         }
         
-        // Pour les compétitions continentales, garder toutes sauf asiatiques
-        return isValidCategory && isNotAsianCountry && isNotAsianCompetition;
+        // Pour les compétitions continentales, autoriser TOUTES les régions
+        console.log(`🏆 ${match.home_team} vs ${match.away_team} - Continental_cup - Toutes régions autorisées: ${isValidCategory}`);
+        return isValidCategory;
       });
 
       console.log(`📊 Matchs filtrés par critères: ${filteredMatches.length}/${matchesToAnalyze.length}`);
