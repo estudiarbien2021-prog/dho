@@ -805,9 +805,9 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   {/* AI Recommendation */}
-                  <div className="lg:col-span-2 space-y-6">
+                  <div className="space-y-6">
                     {recommendation ? (
                       <div className="p-6 bg-gradient-to-br from-brand/10 to-brand/20 rounded-xl border border-brand/20">
                         <div className="flex items-center justify-between mb-4">
@@ -852,9 +852,9 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                     )}
                   </div>
 
-                  {/* Market Efficiency Section */}
+                  {/* Market Efficiency Section - Now with more space */}
                   <div className="space-y-6">
-                    <Card className="p-6 bg-gradient-to-br from-background to-muted/20 border-border/50">
+                    <Card className="p-6 bg-gradient-to-br from-background to-muted/20 border-border/50 h-full">
                       <MarketEfficiencyGauge match={match} />
                     </Card>
                   </div>
