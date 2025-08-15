@@ -627,34 +627,109 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
         </DialogHeader>
 
         <div className="space-y-6 relative z-10">
-          {/* Match Info */}
-          <Card className="group relative p-4 bg-gradient-to-r from-surface-soft to-surface-strong border border-brand/30 hover:border-brand/50 transition-all duration-500 backdrop-blur-sm hover:shadow-xl hover:shadow-brand/20 transform hover:scale-[1.01]">
-            <div className="absolute inset-0 bg-gradient-to-r from-brand/5 to-brand-300/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 relative z-10">
-              <div className="text-center md:text-left">
-                <p className="text-sm text-text-weak mb-2">Catégorie</p>
-                <Badge variant="secondary" className="capitalize bg-gradient-to-r from-brand/20 to-brand-300/20 border-brand/30 text-text hover:from-brand/30 hover:to-brand-300/30 transition-all duration-300">
-                  {match.category.replace('_', ' ')}
-                </Badge>
+          {/* Match Info - Style cohérent avec Facteurs d'Influence */}
+          <Card className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-brand flex items-center justify-center text-white text-sm">
+                      🏆
+                    </div>
+                    <div>
+                      <div className="font-medium text-sm">Catégorie</div>
+                      <div className="text-xs text-muted-foreground">Type de compétition</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-bold text-brand capitalize">
+                      {match.category.replace('_', ' ')}
+                    </div>
+                    <div className="text-xs font-medium text-green-500">
+                      {match.category === 'continental_cup' ? 'Internationale' : 
+                       match.category === 'first_div' ? 'Élite' : 
+                       match.category === 'second_div' ? 'Division 2' : 
+                       'Coupe Nationale'}
+                    </div>
+                  </div>
+                </div>
+                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-brand rounded-full transition-all duration-500"
+                    style={{ 
+                      width: match.category === 'continental_cup' ? '95%' : 
+                             match.category === 'first_div' ? '85%' : 
+                             match.category === 'second_div' ? '65%' : '75%' 
+                    }}
+                  />
+                </div>
               </div>
-              <div className="text-center md:text-left">
-                <p className="text-sm text-text-weak mb-2">Heure locale</p>
-                <p className="font-medium flex items-center justify-center md:justify-start gap-2 text-text">
-                  <Clock className="h-4 w-4 text-brand" />
-                  {new Date(match.kickoff_utc).toLocaleString('fr-FR', { 
-                    day: '2-digit', 
-                    month: '2-digit', 
-                    hour: '2-digit', 
-                    minute: '2-digit',
-                    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-                  })}
-                </p>
+              
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm">
+                      🕐
+                    </div>
+                    <div>
+                      <div className="font-medium text-sm">Heure locale</div>
+                      <div className="text-xs text-muted-foreground">Coup d'envoi prévu</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-bold text-blue-500">
+                      {new Date(match.kickoff_utc).toLocaleString('fr-FR', { 
+                        day: '2-digit', 
+                        month: '2-digit', 
+                        hour: '2-digit', 
+                        minute: '2-digit',
+                        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                      })}
+                    </div>
+                    <div className="text-xs font-medium text-green-500">
+                      Confirmé
+                    </div>
+                  </div>
+                </div>
+                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                  <div className="h-full bg-blue-500 rounded-full transition-all duration-500 w-full" />
+                </div>
               </div>
-              <div className="text-center md:text-left">
-                <p className="text-sm text-text-weak mb-2">Vig 1X2</p>
-                 <Badge variant={match.vig_1x2 && !isNaN(match.vig_1x2) && match.vig_1x2 <= 0.12 ? "default" : "secondary"} className="font-mono bg-gradient-to-r from-brand-400/20 to-brand-600/20 border-brand-400/30 text-text hover:from-brand-400/30 hover:to-brand-600/30 transition-all duration-300">
-                   {(match.vig_1x2 && !isNaN(match.vig_1x2) ? match.vig_1x2 * 100 : 0).toFixed(2)}%
-                </Badge>
+              
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm ${
+                      match.vig_1x2 && match.vig_1x2 <= 0.12 ? 'bg-green-500' : 'bg-red-500'
+                    }`}>
+                      📊
+                    </div>
+                    <div>
+                      <div className="font-medium text-sm">Vig 1X2</div>
+                      <div className="text-xs text-muted-foreground">Marge bookmaker</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className={`text-lg font-bold ${
+                      match.vig_1x2 && match.vig_1x2 <= 0.12 ? 'text-green-500' : 'text-red-500'
+                    }`}>
+                      {(match.vig_1x2 && !isNaN(match.vig_1x2) ? match.vig_1x2 * 100 : 0).toFixed(1)}%
+                    </div>
+                    <div className={`text-xs font-medium ${
+                      match.vig_1x2 && match.vig_1x2 <= 0.12 ? 'text-green-500' : 'text-red-500'
+                    }`}>
+                      {match.vig_1x2 && match.vig_1x2 <= 0.12 ? 'Favorable' : 'Élevé'}
+                    </div>
+                  </div>
+                </div>
+                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      match.vig_1x2 && match.vig_1x2 <= 0.12 ? 'bg-green-500' : 'bg-red-500'
+                    }`}
+                    style={{ width: `${Math.min(100, (match.vig_1x2 || 0) * 100 * 4)}%` }}
+                  />
+                </div>
               </div>
             </div>
           </Card>
