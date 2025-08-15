@@ -269,8 +269,8 @@ export function PicksValidation() {
         
         const asianCompetitions = ['AFC Champions League', 'AFC Cup', 'AFC Asian Cup', 'J1 League', 'K League 1', 'Chinese Super League', 'Thai League 1', 'Malaysian Super League', 'Indonesian Liga 1', 'V.League 1', 'Philippine Football League', 'Indian Super League', 'Saudi Pro League', 'UAE Pro League', 'Qatar Stars League', 'Iran Pro League', 'Iraq Stars League'];
         
-        // Exclure l'Amérique latine (sauf Brésil) pour les championnats domestiques
-        const latinAmericanCountries = ['Argentina', 'Chile', 'Colombia', 'Peru', 'Uruguay', 'Paraguay', 'Bolivia', 'Ecuador', 'Venezuela', 'Mexico', 'Guatemala', 'Honduras', 'El Salvador', 'Nicaragua', 'Costa Rica', 'Panama'];
+        // Autoriser l'Amérique latine maintenant - Exclure seulement l'Asie et l'Afrique
+        // const latinAmericanCountries = ['Argentina', 'Chile', 'Colombia', 'Peru', 'Uruguay', 'Paraguay', 'Bolivia', 'Ecuador', 'Venezuela', 'Mexico', 'Guatemala', 'Honduras', 'El Salvador', 'Nicaragua', 'Costa Rica', 'Panama'];
         
         // Exclure l'Afrique pour les championnats domestiques
         const africanCountries = ['South Africa', 'Nigeria', 'Ghana', 'Morocco', 'Egypt', 'Tunisia', 'Algeria', 'Kenya', 'Ethiopia', 'Tanzania', 'Uganda', 'Zimbabwe', 'Zambia', 'Botswana', 'Cameroon', 'Ivory Coast', 'Senegal', 'Mali', 'Burkina Faso', 'Guinea', 'Sierra Leone', 'Liberia', 'Gambia', 'Cape Verde', 'Mauritania', 'Chad', 'Central African Republic', 'Democratic Republic of Congo', 'Republic of Congo', 'Gabon', 'Equatorial Guinea', 'Angola', 'Namibia', 'Lesotho', 'Swaziland', 'Madagascar', 'Mauritius', 'Comoros', 'Seychelles'];
@@ -278,13 +278,21 @@ export function PicksValidation() {
         const isNotAsianCountry = !asianCountries.includes(match.country || '');
         const isNotAsianCompetition = !asianCompetitions.some(comp => (match.league || '').toLowerCase().includes(comp.toLowerCase()));
         
-        // Pour les championnats domestiques, exclure Amérique latine sauf Brésil et Afrique
+        console.log(`🌏 ${match.home_team} vs ${match.away_team} - Pays: ${match.country} - Non-Asie: ${isNotAsianCountry && isNotAsianCompetition}`);
+        
+        // Pour les championnats domestiques, exclure seulement Asie et Afrique (AMÉRIQUE LATINE AUTORISÉE)
         if (match.category === 'first_div') {
-          const isNotLatinAmerican = !latinAmericanCountries.includes(match.country || '');
-          const isBrazil = match.country === 'Brazil';
           const isNotAfrican = !africanCountries.includes(match.country || '');
           
-          return isValidCategory && isNotAsianCountry && isNotAsianCompetition && (isNotLatinAmerican || isBrazil) && isNotAfrican;
+          const isValidRegion = isNotAsianCountry && isNotAsianCompetition && isNotAfrican;
+          console.log(`🏆 ${match.home_team} vs ${match.away_team} - First_div - Région valide: ${isValidRegion} (Amérique latine ✅ autorisée)`);
+          
+          if (!isValidRegion) {
+            console.log(`   ❌ Rejeté: région asiatique ou africaine pour first_div`);
+            return false;
+          }
+          
+          return isValidCategory && isValidRegion;
         }
         
         // Pour les compétitions continentales, garder toutes sauf asiatiques
