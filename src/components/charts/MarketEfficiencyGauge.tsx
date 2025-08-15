@@ -36,6 +36,55 @@ export function MarketEfficiencyGauge({ match, className = "" }: MarketEfficienc
     return flaws;
   };
 
+  // Calculer la recommandation alternative pour 1X2
+  const getAlternativeRecommendation = () => {
+    const vigMax = Math.max(match.vig_1x2, match.vig_btts, match.vig_ou_2_5);
+    
+    if (match.vig_1x2 === vigMax) {
+      // Calculer les probabilités implicites
+      const probHome = 1 / match.odds_home;
+      const probDraw = 1 / match.odds_draw;
+      const probAway = 1 / match.odds_away;
+      
+      // Trouver la plus probable
+      const maxProb = Math.max(probHome, probDraw, probAway);
+      
+      // Trouver la deuxième plus probable
+      let secondChoice = '';
+      let secondOdds = 0;
+      
+      if (maxProb === probHome) {
+        if (probDraw >= probAway) {
+          secondChoice = 'Nul';
+          secondOdds = match.odds_draw;
+        } else {
+          secondChoice = match.away_team;
+          secondOdds = match.odds_away;
+        }
+      } else if (maxProb === probDraw) {
+        if (probHome >= probAway) {
+          secondChoice = match.home_team;
+          secondOdds = match.odds_home;
+        } else {
+          secondChoice = match.away_team;
+          secondOdds = match.odds_away;
+        }
+      } else {
+        if (probHome >= probDraw) {
+          secondChoice = match.home_team;
+          secondOdds = match.odds_home;
+        } else {
+          secondChoice = 'Nul';
+          secondOdds = match.odds_draw;
+        }
+      }
+      
+      return { choice: secondChoice, odds: secondOdds };
+    }
+    
+    return null;
+  };
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setAnimatedValue(efficiency);
@@ -196,6 +245,28 @@ export function MarketEfficiencyGauge({ match, className = "" }: MarketEfficienc
             </div>
           </div>
         </div>
+
+        {/* Recommandation alternative si 1X2 a le vigorish le plus élevé */}
+        {(() => {
+          const altRecommendation = getAlternativeRecommendation();
+          return altRecommendation ? (
+            <div className="mt-4 p-3 bg-chart-2/10 border border-chart-2/30 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp className="w-4 h-4 text-chart-2" />
+                <span className="text-sm font-semibold text-chart-2">Opportunité Détectée</span>
+              </div>
+              <div className="text-sm text-foreground">
+                <span className="text-muted-foreground">Alternative recommandée :</span>
+                <div className="font-medium mt-1">
+                  <span className="text-chart-2">{altRecommendation.choice}</span>
+                  <span className="ml-2 px-2 py-1 bg-chart-2/20 text-chart-2 rounded text-xs font-bold">
+                    @{altRecommendation.odds.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ) : null;
+        })()}
       </div>
     </div>
   );
