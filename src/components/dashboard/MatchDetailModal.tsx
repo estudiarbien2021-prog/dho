@@ -118,9 +118,9 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     const probPercent = (safeProbability * 100).toFixed(1);
     const vigPercent = (safeVigorish * 100).toFixed(1);
     
-    // Edge forcé entre 2.0 et 6.0 selon les règles définies
-    const calculatedEdge = Math.max(0, ((safeOdds * safeProbability) - 1) * 100);
-    const edge = Math.max(2.0, Math.min(6.0, calculatedEdge)).toFixed(1);
+    // Edge aléatoire entre 2.0 et 6.0 selon les règles définies
+    const randomEdge = 2.0 + seededRandom(matchSeed, 15) * 4.0; // Entre 2.0 et 6.0
+    const edge = randomEdge.toFixed(1);
     
     // Handle confidence score using shared function to ensure consistency
     const confidence = generateConfidenceScore(match.id, normalizedRecommendation);
