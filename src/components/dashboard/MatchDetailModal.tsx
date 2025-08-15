@@ -563,10 +563,11 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     const progress = chartLoading[chartKey] || 0;
     const isLoading = progress < 100;
 
-    // Custom label function to display label and percentage
+    // Custom label function to display label and percentage inside the circles
     const renderCustomizedLabel = (entry: any) => {
       const RADIAN = Math.PI / 180;
-      const radius = entry.outerRadius + 30;
+      // Position labels inside the circles
+      const radius = (entry.innerRadius + entry.outerRadius) / 2;
       const x = entry.cx + radius * Math.cos(-entry.midAngle * RADIAN);
       const y = entry.cy + radius * Math.sin(-entry.midAngle * RADIAN);
 
@@ -584,18 +585,22 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
         else if (entry.name === 'Under 2.5') label = '-2.5';
       }
 
+      // Only show label if the segment is large enough (>10%)
+      if (entry.value < 10) return null;
+
       return (
         <text 
           x={x} 
-          y={y} 
-          fill="hsl(var(--text))" 
-          textAnchor={x > entry.cx ? 'start' : 'end'} 
+          y={y - 2} 
+          fill="white" 
+          textAnchor="middle" 
           dominantBaseline="central"
-          fontSize="11"
+          fontSize="9"
           fontWeight="bold"
-          className="drop-shadow-sm"
+          className="drop-shadow-md"
         >
-          {`${label} ${entry.value.toFixed(1)}%`}
+          <tspan x={x} dy="-4">{label}</tspan>
+          <tspan x={x} dy="10" fontSize="8">{entry.value.toFixed(1)}%</tspan>
         </text>
       );
     };
