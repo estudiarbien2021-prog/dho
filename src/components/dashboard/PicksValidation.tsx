@@ -156,8 +156,10 @@ export function PicksValidation() {
       
       // Générer les picks potentiels directement
       if (processedMatches.length > 0) {
+        console.log('🚨 APPEL loadPotentialPicks avec', processedMatches.length, 'matchs');
         loadPotentialPicks(processedMatches);
       } else {
+        console.log('🚨 AUCUN MATCH TRAITÉ - pas d\'appel à loadPotentialPicks');
         setPotentialPicks([]);
         console.log(`❌ Aucun match trouvé pour le ${dateFilter}`);
       }
@@ -207,10 +209,16 @@ export function PicksValidation() {
   };
 
   const loadPotentialPicks = (matchData: ProcessedMatch[] = matches) => {
+    console.log('🚨 DÉBUT loadPotentialPicks - FONCTION APPELÉE !');
+    console.log(`🚨 Nombre de matchs reçus: ${matchData.length}`);
+    
     if (matchData.length === 0) {
+      console.log('🚨 AUCUN MATCH - SORTIE ANTICIPÉE');
       setPotentialPicks([]);
       return;
     }
+
+    console.log('🚨 CONTINUATION - Début analyse des picks...');
 
     try {
       console.log('🔍 Analyse des matchs pour les picks potentiels...');
