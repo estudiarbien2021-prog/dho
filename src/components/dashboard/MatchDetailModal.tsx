@@ -813,7 +813,12 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                         {/* Detailed AI Commentary */}
                         <div className="mt-4 p-3 bg-white/60 dark:bg-slate-800/60 rounded-lg border border-emerald-100 dark:border-emerald-800">
                           <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-                            <div dangerouslySetInnerHTML={{ __html: generateRecommendationExplanation(recommendation).replace(/\n/g, '<br/>') }} />
+                            <div dangerouslySetInnerHTML={{ 
+                              __html: (typeof generateRecommendationExplanation === 'function' 
+                                ? generateRecommendationExplanation(recommendation).replace(/\n/g, '<br/>') 
+                                : 'Explication temporairement indisponible'
+                              )
+                            }} />
                           </div>
                         </div>
                       </div>
