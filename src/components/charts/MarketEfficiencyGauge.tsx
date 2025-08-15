@@ -48,41 +48,65 @@ export function MarketEfficiencyGauge({ match, className = "" }: MarketEfficienc
     
     const highestVigorish = vigorishData[0];
     
-    // Vérifier les marges négatives d'abord
+    // Vérifier les marges négatives d'abord - utiliser les prédictions des sections correspondantes
     if (match.vig_1x2 < 0) {
-      const aiRecommendation = generateAIRecommendation(match, ['1x2']);
-      if (aiRecommendation && aiRecommendation.betType === '1X2') {
-        return {
-          type: '1X2_NEGATIVE',
-          prediction: aiRecommendation.prediction,
-          odds: aiRecommendation.odds,
-          reason: 'Marge négative détectée'
-        };
+      // Prendre la prédiction gagnante de la section 1X2
+      const homeProb = match.p_home_fair;
+      const drawProb = match.p_draw_fair;
+      const awayProb = match.p_away_fair;
+      
+      let prediction = '';
+      let odds = 0;
+      
+      if (homeProb > drawProb && homeProb > awayProb) {
+        prediction = match.home_team;
+        odds = match.odds_home;
+      } else if (awayProb > drawProb && awayProb > homeProb) {
+        prediction = match.away_team;
+        odds = match.odds_away;
+      } else {
+        prediction = 'Nul';
+        odds = match.odds_draw;
       }
+      
+      return {
+        type: '1X2_NEGATIVE',
+        prediction,
+        odds,
+        reason: 'Marge négative détectée'
+      };
     }
     
     if (match.vig_btts < 0 && match.odds_btts_yes && match.odds_btts_no) {
-      const aiRecommendation = generateAIRecommendation(match, ['btts']);
-      if (aiRecommendation && aiRecommendation.betType === 'BTTS') {
-        return {
-          type: 'BTTS_NEGATIVE',
-          prediction: aiRecommendation.prediction,
-          odds: aiRecommendation.odds,
-          reason: 'Marge négative détectée'
-        };
-      }
+      // Prendre la prédiction gagnante de la section BTTS
+      const bttsYesProb = match.p_btts_yes_fair;
+      const bttsNoProb = match.p_btts_no_fair;
+      
+      const prediction = bttsYesProb > bttsNoProb ? 'Oui' : 'Non';
+      const odds = bttsYesProb > bttsNoProb ? match.odds_btts_yes : match.odds_btts_no;
+      
+      return {
+        type: 'BTTS_NEGATIVE',
+        prediction,
+        odds,
+        reason: 'Marge négative détectée'
+      };
     }
     
     if (match.vig_ou_2_5 < 0 && match.odds_over_2_5 && match.odds_under_2_5) {
-      const aiRecommendation = generateAIRecommendation(match, ['over_under']);
-      if (aiRecommendation && aiRecommendation.betType === 'O/U 2.5') {
-        return {
-          type: 'OU_NEGATIVE',
-          prediction: aiRecommendation.prediction,
-          odds: aiRecommendation.odds,
-          reason: 'Marge négative détectée'
-        };
-      }
+      // Prendre la prédiction gagnante de la section O/U 2.5
+      const overProb = match.p_over_2_5_fair;
+      const underProb = match.p_under_2_5_fair;
+      
+      const prediction = overProb > underProb ? '+2,5 buts' : '-2,5 buts';
+      const odds = overProb > underProb ? match.odds_over_2_5 : match.odds_under_2_5;
+      
+      return {
+        type: 'OU_NEGATIVE',
+        prediction,
+        odds,
+        reason: 'Marge négative détectée'
+      };
     }
     
     // 1X2 : si c'est le plus élevé ou le deuxième plus élevé ET >= 8%
