@@ -94,16 +94,20 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
       return getSeededChoice(noOpportunityTexts, 1);
     }
 
-    const probPercent = normalizedRecommendation.probability && !isNaN(normalizedRecommendation.probability) 
-      ? (normalizedRecommendation.probability * 100).toFixed(1) 
-      : '0.0';
-    const vigPercent = normalizedRecommendation.vigorish && !isNaN(normalizedRecommendation.vigorish)
-      ? (normalizedRecommendation.vigorish * 100).toFixed(1) 
-      : '0.0';
-    const edge = normalizedRecommendation.odds > 0 && normalizedRecommendation.probability > 0 && 
-                !isNaN(normalizedRecommendation.odds) && !isNaN(normalizedRecommendation.probability)
-      ? Math.abs(((normalizedRecommendation.odds * normalizedRecommendation.probability) - 1) * 100).toFixed(1) 
-      : '0.0';
+    // Protection renforcée contre les valeurs NaN selon les règles définies
+    const safeProbability = normalizedRecommendation.probability && !isNaN(normalizedRecommendation.probability) && normalizedRecommendation.probability > 0 
+      ? Math.min(0.95, Math.max(0.05, normalizedRecommendation.probability))
+      : 0.5;
+    const safeVigorish = normalizedRecommendation.vigorish && !isNaN(normalizedRecommendation.vigorish) && normalizedRecommendation.vigorish >= 0
+      ? Math.min(0.25, Math.max(0.001, normalizedRecommendation.vigorish))
+      : 0.05;
+    const safeOdds = normalizedRecommendation.odds && !isNaN(normalizedRecommendation.odds) && normalizedRecommendation.odds > 1
+      ? Math.min(10.0, Math.max(1.01, normalizedRecommendation.odds))
+      : 1.5;
+    
+    const probPercent = (safeProbability * 100).toFixed(1);
+    const vigPercent = (safeVigorish * 100).toFixed(1);
+    const edge = Math.max(0, ((safeOdds * safeProbability) - 1) * 100).toFixed(1);
     
     // Handle confidence score using shared function to ensure consistency
     const confidence = generateConfidenceScore(match.id, normalizedRecommendation);
