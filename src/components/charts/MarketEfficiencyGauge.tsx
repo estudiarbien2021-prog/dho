@@ -168,38 +168,38 @@ export function MarketEfficiencyGauge({ match, className = "" }: MarketEfficienc
     
     // BTTS : si c'est le vigorish le plus élevé ET >= 8%
     if (highestVigorish.type === 'BTTS' && highestVigorish.value >= 0.08 && match.odds_btts_yes && match.odds_btts_no) {
-      const aiRecommendation = generateAIRecommendation(match, ['btts']);
-      if (aiRecommendation && aiRecommendation.betType === 'BTTS') {
-        // Proposer l'inverse de la recommandation IA
-        const inversePrediction = aiRecommendation.prediction === 'Oui' ? 'Non' : 'Oui';
-        const inverseOdds = aiRecommendation.prediction === 'Oui' ? match.odds_btts_no : match.odds_btts_yes;
-        
-        return {
-          type: 'BTTS',
-          inversePrediction,
-          inverseOdds,
-          originalAI: aiRecommendation.prediction,
-          shouldMaskAI: true // Masquer la recommandation IA si contradictoire
-        };
-      }
+      // Utiliser la prédiction d'analyse (basée sur les probabilités) au lieu de la recommandation IA
+      const analysisOriginalPrediction = match.p_btts_yes_fair > match.p_btts_no_fair ? 'Oui' : 'Non';
+      
+      // Proposer l'inverse de la prédiction d'analyse
+      const inversePrediction = analysisOriginalPrediction === 'Oui' ? 'Non' : 'Oui';
+      const inverseOdds = analysisOriginalPrediction === 'Oui' ? match.odds_btts_no : match.odds_btts_yes;
+      
+      return {
+        type: 'BTTS',
+        inversePrediction,
+        inverseOdds,
+        originalAI: analysisOriginalPrediction,
+        shouldMaskAI: true // Masquer la recommandation IA si contradictoire
+      };
     }
     
     // O/U 2.5 : si c'est le vigorish le plus élevé ET >= 8%
     if (highestVigorish.type === 'O/U2.5' && highestVigorish.value >= 0.08 && match.odds_over_2_5 && match.odds_under_2_5) {
-      const aiRecommendation = generateAIRecommendation(match, ['over_under']);
-      if (aiRecommendation && aiRecommendation.betType === 'O/U 2.5') {
-        // Proposer l'inverse de la recommandation IA
-        const inversePrediction = aiRecommendation.prediction === '+2,5 buts' ? '-2,5 buts' : '+2,5 buts';
-        const inverseOdds = aiRecommendation.prediction === '+2,5 buts' ? match.odds_under_2_5 : match.odds_over_2_5;
-        
-        return {
-          type: 'O/U 2.5',
-          inversePrediction,
-          inverseOdds,
-          originalAI: aiRecommendation.prediction,
-          shouldMaskAI: true // Masquer la recommandation IA si contradictoire
-        };
-      }
+      // Utiliser la prédiction d'analyse (basée sur les probabilités) au lieu de la recommandation IA
+      const analysisOriginalPrediction = match.p_over_2_5_fair > match.p_under_2_5_fair ? '+2,5 buts' : '-2,5 buts';
+      
+      // Proposer l'inverse de la prédiction d'analyse
+      const inversePrediction = analysisOriginalPrediction === '+2,5 buts' ? '-2,5 buts' : '+2,5 buts';
+      const inverseOdds = analysisOriginalPrediction === '+2,5 buts' ? match.odds_under_2_5 : match.odds_over_2_5;
+      
+      return {
+        type: 'O/U 2.5',
+        inversePrediction,
+        inverseOdds,
+        originalAI: analysisOriginalPrediction,
+        shouldMaskAI: true // Masquer la recommandation IA si contradictoire
+      };
     }
     
     return null;
