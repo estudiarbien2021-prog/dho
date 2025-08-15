@@ -118,7 +118,7 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
   
   const recommendations: AIRecommendation[] = [];
   
-  // NOUVELLE RÈGLE : Si les probabilités >= 60%, ignorer le vigorish et prioriser par probabilité
+  // NOUVELLE RÈGLE : Si les probabilités >= 60%, choisir la plus probable parmi les vigorish les plus faibles
   const bttsMarket = availableMarkets.find(m => m.type === 'BTTS');
   const ouMarket = availableMarkets.find(m => m.type === 'O/U 2.5');
   
@@ -128,10 +128,16 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
   const shouldUseHighProbabilityLogic = bttsMaxProb >= 0.6 || ouMaxProb >= 0.6;
   
   if (shouldUseHighProbabilityLogic) {
-    // Trier par probabilité la plus élevée quand >= 60%
-    const sortedByProbability = availableMarkets.sort((a, b) => b.probability - a.probability);
+    // Trouver le vigorish le plus faible
+    const minVigorish = Math.min(...availableMarkets.map(m => m.vigorish));
     
-    // Première recommandation (plus haute probabilité)
+    // Filtrer les marchés avec le vigorish le plus faible
+    const marketsWithMinVigorish = availableMarkets.filter(m => m.vigorish === minVigorish);
+    
+    // Trier par probabilité la plus élevée parmi ceux avec le vigorish minimum
+    const sortedByProbability = marketsWithMinVigorish.sort((a, b) => b.probability - a.probability);
+    
+    // Première recommandation (plus haute probabilité parmi vigorish minimum)
     const bestMarket = sortedByProbability[0];
     recommendations.push({
       betType: bestMarket.type,
@@ -141,16 +147,19 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
       isInverted: bestMarket.isInverted || false
     });
     
-    // Deuxième recommandation si disponible et probabilité suffisante
-    if (sortedByProbability.length > 1 && sortedByProbability[1].probability >= 0.45) {
-      const secondBestMarket = sortedByProbability[1];
-      recommendations.push({
-        betType: secondBestMarket.type,
-        prediction: secondBestMarket.prediction,
-        odds: secondBestMarket.odds,
-        confidence: secondBestMarket.probability > 0.6 ? 'high' : secondBestMarket.probability > 0.5 ? 'medium' : 'low',
-        isInverted: secondBestMarket.isInverted || false
-      });
+    // Deuxième recommandation si disponible (autres marchés non encore sélectionnés)
+    const remainingMarkets = availableMarkets.filter(m => m !== bestMarket);
+    if (remainingMarkets.length > 0) {
+      const secondBestMarket = remainingMarkets.sort((a, b) => b.probability - a.probability)[0];
+      if (secondBestMarket.probability >= 0.45) {
+        recommendations.push({
+          betType: secondBestMarket.type,
+          prediction: secondBestMarket.prediction,
+          odds: secondBestMarket.odds,
+          confidence: secondBestMarket.probability > 0.6 ? 'high' : secondBestMarket.probability > 0.5 ? 'medium' : 'low',
+          isInverted: secondBestMarket.isInverted || false
+        });
+      }
     }
     
     return recommendations;
