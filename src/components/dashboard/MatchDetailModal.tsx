@@ -25,6 +25,7 @@ import { ConfidenceRadar } from '@/components/charts/ConfidenceRadar';
 import { MarketEfficiencyGauge } from '@/components/charts/MarketEfficiencyGauge';
 import { AIConsensusGauge } from '@/components/charts/AIConsensusGauge';
 import { PredictionCertaintyBars } from '@/components/charts/PredictionCertaintyBars';
+import { AIProbabilitiesAnalysis } from '@/components/charts/AIProbabilitiesAnalysis';
 
 
 interface MatchDetailModalProps {
@@ -936,6 +937,11 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                   Métriques de nouvelle génération pour une analyse complète
                 </p>
               </div>
+
+              {/* Analyse des Probabilités IA - Pleine largeur */}
+              <Card className="p-6 bg-gradient-to-br from-background to-muted/20 border-border/50">
+                <AIProbabilitiesAnalysis match={match} />
+              </Card>
 
               {/* Grid des analyses avancées */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
