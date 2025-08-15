@@ -13,8 +13,92 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
   const MIN_ODDS = 1.3;
   const MIN_PROBABILITY = 0.45;
   const HIGH_VIG_THRESHOLD = 0.081; // 8.1%
+  const HIGH_VIG_1X2_THRESHOLD = 0.10; // 10% pour le vigorish 1x2
   
   const recommendations: AIRecommendation[] = [];
+  
+  // RÈGLE PRIORITAIRE : Si vigorish 1x2 >= 10%, utiliser l'opportunité détectée
+  if (match.vig_1x2 >= HIGH_VIG_1X2_THRESHOLD) {
+    const includeBTTS = marketFilters.length === 0 || marketFilters.includes('btts');
+    const includeOU = marketFilters.length === 0 || marketFilters.includes('over_under');
+    
+    // Trouver la meilleure opportunité parmi les marchés disponibles
+    const opportunities = [];
+    
+    if (includeBTTS && match.odds_btts_yes && match.odds_btts_no && match.vig_btts > 0) {
+      const bttsYesProb = match.p_btts_yes_fair;
+      const bttsNoProb = match.p_btts_no_fair;
+      
+      if (match.odds_btts_yes >= MIN_ODDS && bttsYesProb >= MIN_PROBABILITY) {
+        opportunities.push({
+          type: 'BTTS',
+          prediction: 'Oui',
+          odds: match.odds_btts_yes,
+          probability: bttsYesProb,
+          vigorish: match.vig_btts,
+          comment: `Vigorish 1x2 élevé (${(match.vig_1x2 * 100).toFixed(1)}%) - Opportunité BTTS détectée avec vigorish favorable (${(match.vig_btts * 100).toFixed(1)}%)`
+        });
+      }
+      
+      if (match.odds_btts_no >= MIN_ODDS && bttsNoProb >= MIN_PROBABILITY) {
+        opportunities.push({
+          type: 'BTTS',
+          prediction: 'Non',
+          odds: match.odds_btts_no,
+          probability: bttsNoProb,
+          vigorish: match.vig_btts,
+          comment: `Vigorish 1x2 élevé (${(match.vig_1x2 * 100).toFixed(1)}%) - Opportunité BTTS détectée avec vigorish favorable (${(match.vig_btts * 100).toFixed(1)}%)`
+        });
+      }
+    }
+    
+    if (includeOU && match.odds_over_2_5 && match.odds_under_2_5 && match.vig_ou_2_5 > 0) {
+      const overProb = match.p_over_2_5_fair;
+      const underProb = match.p_under_2_5_fair;
+      
+      if (match.odds_over_2_5 >= MIN_ODDS && overProb >= MIN_PROBABILITY) {
+        opportunities.push({
+          type: 'O/U 2.5',
+          prediction: '+2,5 buts',
+          odds: match.odds_over_2_5,
+          probability: overProb,
+          vigorish: match.vig_ou_2_5,
+          comment: `Vigorish 1x2 élevé (${(match.vig_1x2 * 100).toFixed(1)}%) - Opportunité O/U 2.5 détectée avec vigorish favorable (${(match.vig_ou_2_5 * 100).toFixed(1)}%)`
+        });
+      }
+      
+      if (match.odds_under_2_5 >= MIN_ODDS && underProb >= MIN_PROBABILITY) {
+        opportunities.push({
+          type: 'O/U 2.5',
+          prediction: '-2,5 buts',
+          odds: match.odds_under_2_5,
+          probability: underProb,
+          vigorish: match.vig_ou_2_5,
+          comment: `Vigorish 1x2 élevé (${(match.vig_1x2 * 100).toFixed(1)}%) - Opportunité O/U 2.5 détectée avec vigorish favorable (${(match.vig_ou_2_5 * 100).toFixed(1)}%)`
+        });
+      }
+    }
+    
+    if (opportunities.length > 0) {
+      // Trier par vigorish le plus faible, puis par probabilité la plus haute
+      const bestOpportunity = opportunities.sort((a, b) => {
+        if (a.vigorish !== b.vigorish) {
+          return a.vigorish - b.vigorish; // Plus faible vigorish d'abord
+        }
+        return b.probability - a.probability; // Plus haute probabilité ensuite
+      })[0];
+      
+      recommendations.push({
+        betType: bestOpportunity.type,
+        prediction: bestOpportunity.prediction,
+        odds: bestOpportunity.odds,
+        confidence: bestOpportunity.probability > 0.6 ? 'high' : bestOpportunity.probability > 0.5 ? 'medium' : 'low',
+        isInverted: false
+      });
+      
+      return recommendations;
+    }
+  }
   
   // EXCEPTION PRIORITAIRE : Si une probabilité >= 60%, choisir le marché avec le vigorish le plus faible
   const includeBTTS = marketFilters.length === 0 || marketFilters.includes('btts');
