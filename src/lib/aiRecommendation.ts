@@ -64,15 +64,20 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
     const overProb = match.p_over_2_5_fair;
     const underProb = match.p_under_2_5_fair;
     
-    // Choisir la meilleure option O/U 2.5 (Over ou Under)
+    // NOUVELLE RÈGLE : Si vigorish O/U 2.5 >= 8.1%, proposer l'inverse
+    const isHighVigOU = match.vig_ou_2_5 >= HIGH_VIG_THRESHOLD;
+    
+    // Choisir la meilleure option O/U 2.5 basée sur les probabilités (pour la recommandation)
     let bestOU = null;
     if (match.odds_over_2_5 >= MIN_ODDS && overProb >= MIN_PROBABILITY) {
       bestOU = {
         type: 'O/U 2.5',
-        prediction: '+2,5 buts',
-        odds: match.odds_over_2_5,
-        probability: overProb,
-        vigorish: match.vig_ou_2_5
+        originalPrediction: '+2,5 buts', // Prédiction originale basée sur les probabilités
+        prediction: isHighVigOU ? '-2,5 buts' : '+2,5 buts', // Inverse si vigorish élevé
+        odds: isHighVigOU ? match.odds_under_2_5 : match.odds_over_2_5,
+        probability: isHighVigOU ? underProb : overProb,
+        vigorish: match.vig_ou_2_5,
+        isInverted: isHighVigOU
       };
     }
     
@@ -80,10 +85,12 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
       if (!bestOU || underProb > bestOU.probability) {
         bestOU = {
           type: 'O/U 2.5',
-          prediction: '-2,5 buts',
-          odds: match.odds_under_2_5,
-          probability: underProb,
-          vigorish: match.vig_ou_2_5
+          originalPrediction: '-2,5 buts', // Prédiction originale basée sur les probabilités
+          prediction: isHighVigOU ? '+2,5 buts' : '-2,5 buts', // Inverse si vigorish élevé
+          odds: isHighVigOU ? match.odds_over_2_5 : match.odds_under_2_5,
+          probability: isHighVigOU ? overProb : underProb,
+          vigorish: match.vig_ou_2_5,
+          isInverted: isHighVigOU
         };
       }
     }
@@ -99,29 +106,35 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
   
   const recommendations: AIRecommendation[] = [];
   
-  // NOUVELLE RÈGLE : Si vigorish BTTS >= 8.1% et qu'on avait une recommandation BTTS,
-  // proposer Over/Under en plus si disponible
+  // NOUVELLE RÈGLE : Si un marché a un vigorish élevé (inversé), proposer les deux si disponibles
   const bttsMarket = availableMarkets.find(m => m.type === 'BTTS');
   const ouMarket = availableMarkets.find(m => m.type === 'O/U 2.5');
   
-  if (bttsMarket && bttsMarket.isInverted && ouMarket) {
-    // Si BTTS a un vigorish élevé (inversé) et qu'on a Over/Under disponible,
-    // proposer les deux opportunités
-    recommendations.push({
-      betType: bttsMarket.type,
-      prediction: bttsMarket.prediction,
-      odds: bttsMarket.odds,
-      confidence: bttsMarket.probability > 0.6 ? 'high' : bttsMarket.probability > 0.5 ? 'medium' : 'low',
-      isInverted: bttsMarket.isInverted
-    });
+  // Si BTTS est inversé et O/U disponible, ou si O/U est inversé et BTTS disponible
+  if ((bttsMarket?.isInverted && ouMarket) || (ouMarket?.isInverted && bttsMarket)) {
+    // Ajouter le marché inversé en premier
+    const invertedMarket = bttsMarket?.isInverted ? bttsMarket : ouMarket;
+    const normalMarket = bttsMarket?.isInverted ? ouMarket : bttsMarket;
     
-    recommendations.push({
-      betType: ouMarket.type,
-      prediction: ouMarket.prediction,
-      odds: ouMarket.odds,
-      confidence: ouMarket.probability > 0.6 ? 'high' : ouMarket.probability > 0.5 ? 'medium' : 'low',
-      isInverted: false
-    });
+    if (invertedMarket) {
+      recommendations.push({
+        betType: invertedMarket.type,
+        prediction: invertedMarket.prediction,
+        odds: invertedMarket.odds,
+        confidence: invertedMarket.probability > 0.6 ? 'high' : invertedMarket.probability > 0.5 ? 'medium' : 'low',
+        isInverted: invertedMarket.isInverted
+      });
+    }
+    
+    if (normalMarket) {
+      recommendations.push({
+        betType: normalMarket.type,
+        prediction: normalMarket.prediction,
+        odds: normalMarket.odds,
+        confidence: normalMarket.probability > 0.6 ? 'high' : normalMarket.probability > 0.5 ? 'medium' : 'low',
+        isInverted: normalMarket.isInverted || false
+      });
+    }
     
     return recommendations;
   }
