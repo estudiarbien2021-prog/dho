@@ -675,16 +675,243 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
             )}
           </div>
 
-          {/* Donut Charts */}
+          {/* Analyse des Probabilités IA - Style cohérent avec Facteurs d'Influence */}
           <div className="space-y-6">
-            <h3 className="text-xl font-bold bg-gradient-to-r from-brand to-brand-400 bg-clip-text text-transparent flex items-center gap-3 animate-fade-in">
-              <div className="w-1 h-8 bg-gradient-to-b from-brand to-brand-400 rounded-full animate-pulse"></div>
+            <h3 className="text-xl font-bold bg-gradient-to-r from-brand to-brand-400 bg-clip-text text-transparent flex items-center gap-3">
+              <div className="w-2 h-2 bg-green-500 rounded-full" />
               Analyse des Probabilités IA
             </h3>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              <DonutChart data={results1x2Data} title="Résultat 1X2" prediction={get1x2Winner()} chartKey="results1x2" />
-              {bttsData.length > 0 && <DonutChart data={bttsData} title="Les Deux Équipes Marquent" prediction={getBttsWinner()} chartKey="btts" />}
-              {over25Data.length > 0 && <DonutChart data={over25Data} title="Plus/Moins 2,5 Buts" prediction={getOver25Winner()} chartKey="over25" />}
+            
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Résultat 1X2 */}
+              <Card className="p-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-1.5 h-1.5 bg-brand rounded-full" />
+                  <span className="text-sm font-medium">Résultat 1X2</span>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-brand flex items-center justify-center text-white text-sm">
+                          🏠
+                        </div>
+                        <div>
+                          <div className="font-medium text-sm">{match.home_team}</div>
+                          <div className="text-xs text-muted-foreground">Équipe domicile</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-brand">
+                          {(match.p_home_fair * 100).toFixed(0)}%
+                        </div>
+                        <div className={`text-xs font-medium ${get1x2Winner() === match.home_team ? 'text-green-500' : 'text-muted-foreground'}`}>
+                          {get1x2Winner() === match.home_team ? 'Favori' : 'Standard'}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-brand rounded-full transition-all duration-500"
+                        style={{ width: `${match.p_home_fair * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-brand-300 flex items-center justify-center text-white text-sm">
+                          ⚖️
+                        </div>
+                        <div>
+                          <div className="font-medium text-sm">Match Nul</div>
+                          <div className="text-xs text-muted-foreground">Égalité prédite</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-brand-300">
+                          {(match.p_draw_fair * 100).toFixed(0)}%
+                        </div>
+                        <div className={`text-xs font-medium ${get1x2Winner() === 'Nul' ? 'text-green-500' : 'text-muted-foreground'}`}>
+                          {get1x2Winner() === 'Nul' ? 'Favori' : 'Standard'}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-brand-300 rounded-full transition-all duration-500"
+                        style={{ width: `${match.p_draw_fair * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-brand-400 flex items-center justify-center text-white text-sm">
+                          🚌
+                        </div>
+                        <div>
+                          <div className="font-medium text-sm">{match.away_team}</div>
+                          <div className="text-xs text-muted-foreground">Équipe extérieur</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-brand-400">
+                          {(match.p_away_fair * 100).toFixed(0)}%
+                        </div>
+                        <div className={`text-xs font-medium ${get1x2Winner() === match.away_team ? 'text-green-500' : 'text-muted-foreground'}`}>
+                          {get1x2Winner() === match.away_team ? 'Favori' : 'Standard'}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-brand-400 rounded-full transition-all duration-500"
+                        style={{ width: `${match.p_away_fair * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              {/* BTTS */}
+              {bttsData.length > 0 && (
+                <Card className="p-4">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+                    <span className="text-sm font-medium">Les Deux Équipes Marquent</span>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white text-sm">
+                            ⚽
+                          </div>
+                          <div>
+                            <div className="font-medium text-sm">BTTS Oui</div>
+                            <div className="text-xs text-muted-foreground">Les deux marquent</div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-lg font-bold text-green-500">
+                            {(match.p_btts_yes_fair * 100).toFixed(0)}%
+                          </div>
+                          <div className={`text-xs font-medium ${getBttsWinner() === 'Oui' ? 'text-green-500' : 'text-muted-foreground'}`}>
+                            {getBttsWinner() === 'Oui' ? 'Favori' : 'Standard'}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-green-500 rounded-full transition-all duration-500"
+                          style={{ width: `${match.p_btts_yes_fair * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white text-sm">
+                            🚫
+                          </div>
+                          <div>
+                            <div className="font-medium text-sm">BTTS Non</div>
+                            <div className="text-xs text-muted-foreground">Une équipe muette</div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-lg font-bold text-red-500">
+                            {(match.p_btts_no_fair * 100).toFixed(0)}%
+                          </div>
+                          <div className={`text-xs font-medium ${getBttsWinner() === 'Non' ? 'text-green-500' : 'text-muted-foreground'}`}>
+                            {getBttsWinner() === 'Non' ? 'Favori' : 'Standard'}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-red-500 rounded-full transition-all duration-500"
+                          style={{ width: `${match.p_btts_no_fair * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              )}
+
+              {/* Over/Under 2.5 */}
+              {over25Data.length > 0 && (
+                <Card className="p-4">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
+                    <span className="text-sm font-medium">Plus/Moins 2,5 Buts</span>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center text-white text-sm">
+                            📈
+                          </div>
+                          <div>
+                            <div className="font-medium text-sm">Plus de 2,5</div>
+                            <div className="text-xs text-muted-foreground">Match spectaculaire</div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-lg font-bold text-orange-500">
+                            {(match.p_over_2_5_fair * 100).toFixed(0)}%
+                          </div>
+                          <div className={`text-xs font-medium ${getOver25Winner() === '+2,5 buts' ? 'text-green-500' : 'text-muted-foreground'}`}>
+                            {getOver25Winner() === '+2,5 buts' ? 'Favori' : 'Standard'}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-orange-500 rounded-full transition-all duration-500"
+                          style={{ width: `${match.p_over_2_5_fair * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm">
+                            📉
+                          </div>
+                          <div>
+                            <div className="font-medium text-sm">Moins de 2,5</div>
+                            <div className="text-xs text-muted-foreground">Match serré</div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-lg font-bold text-blue-500">
+                            {(match.p_under_2_5_fair * 100).toFixed(0)}%
+                          </div>
+                          <div className={`text-xs font-medium ${getOver25Winner() === '-2,5 buts' ? 'text-green-500' : 'text-muted-foreground'}`}>
+                            {getOver25Winner() === '-2,5 buts' ? 'Favori' : 'Standard'}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-blue-500 rounded-full transition-all duration-500"
+                          style={{ width: `${match.p_under_2_5_fair * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              )}
             </div>
           </div>
 
