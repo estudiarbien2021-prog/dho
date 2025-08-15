@@ -636,54 +636,54 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden bg-gradient-to-br from-white via-slate-50 to-white dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 border-0 shadow-2xl rounded-3xl p-0 backdrop-blur-xl">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden bg-gradient-to-br from-surface via-surface-soft to-surface border-border shadow-2xl rounded-3xl p-0 backdrop-blur-xl">
         {/* Modern Overlay Effects */}
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-blue-500/5 pointer-events-none" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.1),rgba(255,255,255,0))] pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-br from-brand/5 via-transparent to-brand/5 pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,hsl(var(--brand)/0.1),rgba(255,255,255,0))] pointer-events-none" />
         
-        <DialogHeader className="relative z-10 p-8 pb-6 border-b border-slate-200/50 dark:border-slate-700/50 bg-gradient-to-r from-slate-50/50 to-white/50 dark:from-slate-800/50 dark:to-slate-900/50 backdrop-blur-sm">
+        <DialogHeader className="relative z-10 p-8 pb-6 border-b border-border bg-gradient-to-r from-surface-soft to-surface backdrop-blur-sm">
           <DialogTitle className="flex items-center gap-6">
             <div className="relative group">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600 flex items-center justify-center shadow-xl group-hover:shadow-emerald-500/25 transition-all duration-300 group-hover:scale-105">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand via-brand-400 to-brand-500 flex items-center justify-center shadow-xl group-hover:shadow-brand/25 transition-all duration-300 group-hover:scale-105">
                 <FlagMini code={flagInfo.code} confed={flagInfo.confed} />
                 <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/20 to-transparent opacity-50" />
               </div>
-              <div className="absolute -inset-1 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-2xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="absolute -inset-1 bg-gradient-to-br from-brand/20 to-brand-500/20 rounded-2xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             </div>
             
             <div className="flex-1">
-              <div className="text-3xl font-bold bg-gradient-to-r from-slate-900 via-slate-700 to-slate-900 dark:from-white dark:via-slate-200 dark:to-white bg-clip-text text-transparent leading-tight mb-2">
+              <div className="text-3xl font-bold bg-gradient-to-r from-text via-text-weak to-text bg-clip-text text-transparent leading-tight mb-2">
                 {match.home_team} vs {match.away_team}
               </div>
               <div className="flex items-center gap-3">
-                <div className="px-4 py-2 bg-gradient-to-r from-emerald-100 to-green-100 dark:from-emerald-900/30 dark:to-green-900/30 rounded-full border border-emerald-200 dark:border-emerald-800">
-                  <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">{match.league}</span>
+                <div className="px-4 py-2 bg-gradient-to-r from-brand/10 to-brand/20 rounded-full border border-brand/20">
+                  <span className="text-sm font-semibold text-brand">{match.league}</span>
                 </div>
-                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                <div className="w-2 h-2 bg-brand rounded-full animate-pulse" />
               </div>
             </div>
           </DialogTitle>
         </DialogHeader>
 
-        <div className="relative z-10 p-8 space-y-8 overflow-y-auto max-h-[calc(90vh-140px)] scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent">
+        <div className="relative z-10 p-8 space-y-8 overflow-y-auto max-h-[calc(90vh-140px)] scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
           {/* Enhanced Flags Section */}
           <div className="flex gap-3 flex-wrap justify-center">
             {match.watch_btts && (
               <div className="group relative">
-                <div className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-xl shadow-lg group-hover:shadow-emerald-500/25 transition-all duration-300 group-hover:scale-105 flex items-center gap-2">
+                <div className="px-4 py-2 bg-gradient-to-r from-brand to-brand-400 text-brand-fg rounded-xl shadow-lg group-hover:shadow-brand/25 transition-all duration-300 group-hover:scale-105 flex items-center gap-2">
                   <Target className="h-4 w-4" />
                   <span className="font-semibold text-sm">Watch BTTS</span>
                 </div>
-                <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-green-600/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
+                <div className="absolute inset-0 bg-gradient-to-r from-brand/20 to-brand-400/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
               </div>
             )}
             {match.watch_over25 && (
               <div className="group relative">
-                <div className="px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-xl shadow-lg group-hover:shadow-blue-500/25 transition-all duration-300 group-hover:scale-105 flex items-center gap-2">
+                <div className="px-4 py-2 bg-gradient-to-r from-brand to-brand-400 text-brand-fg rounded-xl shadow-lg group-hover:shadow-brand/25 transition-all duration-300 group-hover:scale-105 flex items-center gap-2">
                   <Eye className="h-4 w-4" />
                   <span className="font-semibold text-sm">Watch Over 2.5</span>
                 </div>
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-cyan-600/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
+                <div className="absolute inset-0 bg-gradient-to-r from-brand/20 to-brand-400/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
               </div>
             )}
           </div>
@@ -691,7 +691,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
           {/* Analyse des Probabilités IA - Donut Charts avec cotes */}
           <div className="space-y-6">
             <h3 className="text-xl font-bold bg-gradient-to-r from-brand to-brand-400 bg-clip-text text-transparent flex items-center gap-3">
-              <div className="w-2 h-2 bg-green-500 rounded-full" />
+              <div className="w-2 h-2 bg-brand rounded-full" />
               Analyse des Probabilités IA
             </h3>
             
@@ -702,24 +702,24 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                 <div className="mt-4 grid grid-cols-3 gap-2 text-center">
                   <div>
                     <div className="text-xs text-muted-foreground mb-1">Domicile</div>
-                    <div className={`px-2 py-1 bg-green-50 dark:bg-green-950/20 rounded text-sm font-mono ${
-                      get1x2Winner() === match.home_team ? 'font-bold text-green-600' : 'font-normal text-muted-foreground'
+                    <div className={`px-2 py-1 bg-brand/10 rounded text-sm font-mono ${
+                      get1x2Winner() === match.home_team ? 'font-bold text-brand' : 'font-normal text-muted-foreground'
                     }`}>
                       {match.odds_home && !isNaN(match.odds_home) ? match.odds_home.toFixed(2) : '0.00'}
                     </div>
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground mb-1">Nul</div>
-                    <div className={`px-2 py-1 bg-green-50 dark:bg-green-950/20 rounded text-sm font-mono ${
-                      get1x2Winner() === 'Nul' ? 'font-bold text-green-600' : 'font-normal text-muted-foreground'
+                    <div className={`px-2 py-1 bg-brand/10 rounded text-sm font-mono ${
+                      get1x2Winner() === 'Nul' ? 'font-bold text-brand' : 'font-normal text-muted-foreground'
                     }`}>
                       {match.odds_draw && !isNaN(match.odds_draw) ? match.odds_draw.toFixed(2) : '0.00'}
                     </div>
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground mb-1">Extérieur</div>
-                    <div className={`px-2 py-1 bg-green-50 dark:bg-green-950/20 rounded text-sm font-mono ${
-                      get1x2Winner() === match.away_team ? 'font-bold text-green-600' : 'font-normal text-muted-foreground'
+                    <div className={`px-2 py-1 bg-brand/10 rounded text-sm font-mono ${
+                      get1x2Winner() === match.away_team ? 'font-bold text-brand' : 'font-normal text-muted-foreground'
                     }`}>
                       {match.odds_away && !isNaN(match.odds_away) ? match.odds_away.toFixed(2) : '0.00'}
                     </div>
@@ -734,16 +734,16 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                   <div className="mt-4 grid grid-cols-2 gap-2 text-center">
                     <div>
                       <div className="text-xs text-muted-foreground mb-1">BTTS Oui</div>
-                      <div className={`px-2 py-1 bg-green-50 dark:bg-green-950/20 rounded text-sm font-mono ${
-                        getBttsWinner() === 'Oui' ? 'font-bold text-green-600' : 'font-normal text-muted-foreground'
+                      <div className={`px-2 py-1 bg-brand/10 rounded text-sm font-mono ${
+                        getBttsWinner() === 'Oui' ? 'font-bold text-brand' : 'font-normal text-muted-foreground'
                       }`}>
                         {match.odds_btts_yes && !isNaN(match.odds_btts_yes) ? match.odds_btts_yes.toFixed(2) : '0.00'}
                       </div>
                     </div>
                     <div>
                       <div className="text-xs text-muted-foreground mb-1">BTTS Non</div>
-                      <div className={`px-2 py-1 bg-green-50 dark:bg-green-950/20 rounded text-sm font-mono ${
-                        getBttsWinner() === 'Non' ? 'font-bold text-green-600' : 'font-normal text-muted-foreground'
+                      <div className={`px-2 py-1 bg-brand/10 rounded text-sm font-mono ${
+                        getBttsWinner() === 'Non' ? 'font-bold text-brand' : 'font-normal text-muted-foreground'
                       }`}>
                         {match.odds_btts_no && !isNaN(match.odds_btts_no) ? match.odds_btts_no.toFixed(2) : '0.00'}
                       </div>
@@ -759,16 +759,16 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                   <div className="mt-4 grid grid-cols-2 gap-2 text-center">
                     <div>
                       <div className="text-xs text-muted-foreground mb-1">Plus de 2,5</div>
-                      <div className={`px-2 py-1 bg-green-50 dark:bg-green-950/20 rounded text-sm font-mono ${
-                        getOver25Winner() === '+2,5 buts' ? 'font-bold text-green-600' : 'font-normal text-muted-foreground'
+                      <div className={`px-2 py-1 bg-brand/10 rounded text-sm font-mono ${
+                        getOver25Winner() === '+2,5 buts' ? 'font-bold text-brand' : 'font-normal text-muted-foreground'
                       }`}>
                         {match.odds_over_2_5 && !isNaN(match.odds_over_2_5) ? match.odds_over_2_5.toFixed(2) : '0.00'}
                       </div>
                     </div>
                     <div>
                       <div className="text-xs text-muted-foreground mb-1">Moins de 2,5</div>
-                      <div className={`px-2 py-1 bg-green-50 dark:bg-green-950/20 rounded text-sm font-mono ${
-                        getOver25Winner() === '-2,5 buts' ? 'font-bold text-green-600' : 'font-normal text-muted-foreground'
+                      <div className={`px-2 py-1 bg-brand/10 rounded text-sm font-mono ${
+                        getOver25Winner() === '-2,5 buts' ? 'font-bold text-brand' : 'font-normal text-muted-foreground'
                       }`}>
                         {match.odds_under_2_5 && !isNaN(match.odds_under_2_5) ? match.odds_under_2_5.toFixed(2) : '0.00'}
                       </div>
@@ -783,25 +783,25 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
 
           {/* Enhanced AI Graphics Section */}
           <div className="space-y-8">
-            <div className="text-center">
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
-                Intelligence Artificielle Avancée
-              </h2>
-              <p className="text-slate-600 dark:text-slate-400">
-                Analyse prédictive complète avec 5 algorithmes d'IA différents
-              </p>
-            </div>
+              <div className="text-center">
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-brand via-brand-400 to-brand-500 bg-clip-text text-transparent mb-2">
+                  Intelligence Artificielle Avancée
+                </h2>
+                <p className="text-text-weak">
+                  Analyse prédictive complète avec 5 algorithmes d'IA différents
+                </p>
+              </div>
             
             <div className="grid grid-cols-1 gap-8">
               {/* Enhanced AI Recommendation Section with Influence Factors */}
-              <Card className="p-8 bg-gradient-to-br from-slate-50 to-white dark:from-slate-900/50 dark:to-slate-800/50 border-0 shadow-lg">
+              <Card className="p-8 bg-gradient-to-br from-surface to-surface-soft border-border shadow-lg">
                 <div className="flex items-center gap-3 mb-8">
-                  <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-r from-emerald-500 to-green-500 rounded-xl shadow-lg">
-                    <Target className="w-6 h-6 text-white" />
+                  <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-r from-brand to-brand-400 rounded-xl shadow-lg">
+                    <Target className="w-6 h-6 text-brand-fg" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">Recommandation de l'IA</h3>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">Analyse complète avec facteurs d'influence</p>
+                    <h3 className="text-xl font-bold text-text">Recommandation de l'IA</h3>
+                    <p className="text-sm text-text-weak">Analyse complète avec facteurs d'influence</p>
                   </div>
                 </div>
 
@@ -809,33 +809,33 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                   {/* AI Recommendation */}
                   <div className="lg:col-span-2 space-y-6">
                     {recommendation ? (
-                      <div className="p-6 bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-950/20 dark:to-green-950/20 rounded-xl border border-emerald-200 dark:border-emerald-800">
+                      <div className="p-6 bg-gradient-to-br from-brand/10 to-brand/20 rounded-xl border border-brand/20">
                         <div className="flex items-center justify-between mb-4">
-                          <Badge className="bg-emerald-500 text-white px-4 py-2 text-base font-semibold">
+                          <Badge className="bg-brand text-brand-fg px-4 py-2 text-base font-semibold">
                             {recommendation.type} {recommendation.prediction}
                           </Badge>
-                          <div className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">
+                          <div className="text-2xl font-bold text-brand">
                             {recommendation.odds.toFixed(2)}
                           </div>
                         </div>
                         <div className="space-y-4">
                           <div className="flex justify-between text-base">
-                            <span className="text-slate-600 dark:text-slate-400 font-medium">Niveau de confiance:</span>
-                            <span className="font-bold text-emerald-600 dark:text-emerald-400 text-lg">
+                            <span className="text-text-weak font-medium">Niveau de confiance:</span>
+                            <span className="font-bold text-brand text-lg">
                               {generateConfidenceScore(match.id, recommendation)}%
                             </span>
                           </div>
-                          <div className="relative h-3 bg-emerald-200 dark:bg-emerald-800 rounded-full overflow-hidden">
+                          <div className="relative h-3 bg-brand/20 rounded-full overflow-hidden">
                             <div 
-                              className="absolute top-0 left-0 h-full bg-gradient-to-r from-emerald-500 to-green-500 rounded-full transition-all duration-1000"
+                              className="absolute top-0 left-0 h-full bg-gradient-to-r from-brand to-brand-400 rounded-full transition-all duration-1000"
                               style={{ width: `${showAIGraphics ? generateConfidenceScore(match.id, recommendation) : 0}%` }}
                             />
                           </div>
                         </div>
                         
                         {/* Detailed AI Commentary */}
-                        <div className="mt-6 p-4 bg-white/80 dark:bg-slate-800/80 rounded-lg border border-emerald-100 dark:border-emerald-800">
-                          <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                        <div className="mt-6 p-4 bg-surface rounded-lg border border-brand/10">
+                          <div className="text-sm text-text leading-relaxed">
                             <div dangerouslySetInnerHTML={{ 
                               __html: (typeof generateRecommendationExplanation === 'function' 
                                 ? generateRecommendationExplanation(recommendation).replace(/\n/g, '<br/>') 
@@ -846,26 +846,26 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                         </div>
                       </div>
                     ) : (
-                      <div className="p-6 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-center">
-                        <span className="text-slate-600 dark:text-slate-400 text-base">Aucune recommandation disponible</span>
+                      <div className="p-6 bg-surface-soft rounded-xl border border-border text-center">
+                        <span className="text-text-weak text-base">Aucune recommandation disponible</span>
                       </div>
                     )}
                   </div>
 
                   {/* Compact Confidence Bars */}
                   <div className="space-y-6">
-                    <div className="text-base font-bold text-slate-700 dark:text-slate-300">Scores de Confiance</div>
+                    <div className="text-base font-bold text-text">Scores de Confiance</div>
                     <div className="space-y-6">
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-slate-600 dark:text-slate-400 font-medium">🎯 Recommandation IA</span>
-                          <span className="text-sm font-bold text-emerald-600">
+                          <span className="text-sm text-text-weak font-medium">🎯 Recommandation IA</span>
+                          <span className="text-sm font-bold text-brand">
                             {generateConfidenceScore(match.id, recommendation || {})}%
                           </span>
                         </div>
-                        <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                        <div className="h-2 bg-surface-strong rounded-full overflow-hidden">
                           <div 
-                            className="h-full bg-gradient-to-r from-emerald-500 to-green-500 rounded-full transition-all duration-1000"
+                            className="h-full bg-gradient-to-r from-brand to-brand-400 rounded-full transition-all duration-1000"
                             style={{ width: `${showAIGraphics ? generateConfidenceScore(match.id, recommendation || {}) : 0}%` }}
                           />
                         </div>
@@ -873,14 +873,14 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                       
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-slate-600 dark:text-slate-400 font-medium">⚠️ Facteur Risque</span>
-                          <span className="text-sm font-bold text-red-600">
+                          <span className="text-sm text-text-weak font-medium">⚠️ Facteur Risque</span>
+                          <span className="text-sm font-bold text-destructive">
                             {Math.round(match.vig_1x2 * 100)}%
                           </span>
                         </div>
-                        <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                        <div className="h-2 bg-surface-strong rounded-full overflow-hidden">
                           <div 
-                            className="h-full bg-gradient-to-r from-red-500 to-orange-500 rounded-full transition-all duration-1000 delay-200"
+                            className="h-full bg-gradient-to-r from-destructive to-destructive/80 rounded-full transition-all duration-1000 delay-200"
                             style={{ width: `${showAIGraphics ? Math.round(match.vig_1x2 * 100) : 0}%` }}
                           />
                         </div>
@@ -930,7 +930,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
             <div className="space-y-6 animate-fade-in">
               <div className="text-center py-4">
                 <h2 className="text-xl font-bold text-foreground mb-2 flex items-center justify-center gap-2">
-                  <Brain className="w-6 h-6 text-primary" />
+                  <Brain className="w-6 h-6 text-brand" />
                   Analyses Avancées IA
                 </h2>
                 <p className="text-sm text-muted-foreground">
@@ -969,11 +969,11 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
           )}
 
           {/* Modern Actions Section */}
-          <div className="flex justify-center pt-4 border-t border-slate-200/50 dark:border-slate-700/50">
+          <div className="flex justify-center pt-4 border-t border-border">
             <Button 
-              className="relative group px-8 py-3 bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-200 hover:from-slate-800 hover:to-slate-600 dark:hover:from-slate-100 dark:hover:to-slate-300 text-white dark:text-slate-900 font-semibold rounded-2xl border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 overflow-hidden"
+              className="relative group px-8 py-3 bg-gradient-to-r from-text to-text-weak hover:from-text-weak hover:to-text text-surface font-semibold rounded-2xl border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 overflow-hidden"
               onClick={onClose}>
-              <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="absolute inset-0 bg-gradient-to-r from-brand/10 to-brand/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               <span className="relative z-10 flex items-center gap-2">
                 <span>Fermer</span>
                 <div className="w-2 h-2 bg-current rounded-full opacity-60 group-hover:opacity-100 transition-opacity duration-300" />
