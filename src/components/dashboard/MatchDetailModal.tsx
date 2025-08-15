@@ -73,6 +73,16 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
   // Generate AI recommendation for the match
   const aiRecommendation = generateAIRecommendation(match, marketFilters);
   const recommendation = normalizeRecommendation(aiRecommendation);
+  
+  // Debug logs
+  console.log('🔍 DEBUG MatchDetailModal:', {
+    matchId: match.id,
+    homeTeam: match.home_team,
+    awayTeam: match.away_team,
+    aiRecommendation,
+    recommendation,
+    marketFilters
+  });
 
   // Generate AI recommendation explanation combining all 3 styles
   const generateRecommendationExplanation = (recommendation: any) => {
@@ -705,19 +715,20 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                          recommendation?.type === 'BTTS' && recommendation?.prediction === 'Non' ? 'BTTS Non' :
                          recommendation?.type === 'O/U 2.5' && recommendation?.prediction === 'Over' ? 'Plus de 2.5 Buts' :
                          recommendation?.type === 'O/U 2.5' && recommendation?.prediction === 'Under' ? 'Moins de 2.5 Buts' :
+                         recommendation?.type ? `${recommendation.type}: ${recommendation.prediction}` :
                          '1X2 ' + get1x2Winner(),
                   value: Number(generateConfidenceScore(match.id, recommendation || {})),
                   color: 'hsl(var(--primary))',
                   icon: '🎯'
                 },
                 {
-                  label: 'Prédiction Alternative',
+                  label: 'Analyse Alternative',
                   value: Math.max(30, 100 - Number(generateConfidenceScore(match.id, recommendation || {}))),
                   color: '#10b981',
                   icon: '📊'
                 },
                 {
-                  label: 'Facteur Risque',
+                  label: 'Facteur Risque (Marge)',
                   value: Math.round(match.vig_1x2 * 100),
                   color: '#ef4444',
                   icon: '⚠️'

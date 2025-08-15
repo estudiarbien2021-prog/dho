@@ -132,18 +132,33 @@ export function ConfidenceScoreBars({ predictions, isActive }: ConfidenceScoreBa
         ))}
       </div>
 
-      {/* Legend */}
+      {/* Legend with verdict */}
       <div className="mt-6 p-4 bg-muted/20 rounded-lg">
         <div className="flex items-center gap-2 mb-2">
           <div className="w-1.5 h-1.5 bg-primary rounded-full" />
-          <span className="text-xs font-medium">Interprétation IA</span>
+          <span className="text-xs font-medium">Verdict IA</span>
         </div>
-        <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-          <div>• 70-100% : Très forte confiance</div>
-          <div>• 50-69% : Confiance modérée</div>
-          <div>• 30-49% : Incertitude</div>
-          <div>• 0-29% : Faible probabilité</div>
-        </div>
+        
+        {currentlyAnimating === -1 && predictions.length > 0 ? (
+          <div className="space-y-1">
+            <div className="text-sm font-bold text-primary">
+              🎯 Prédiction Principale: {predictions[0].label}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Confiance: {predictions[0].value.toFixed(1)}% • 
+              {predictions[0].value >= 75 ? " Très fiable" : 
+               predictions[0].value >= 60 ? " Modérément fiable" : 
+               " Incertain"}
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+            <div>• 70-100% : Très forte confiance</div>
+            <div>• 50-69% : Confiance modérée</div>
+            <div>• 30-49% : Incertitude</div>
+            <div>• 0-29% : Faible probabilité</div>
+          </div>
+        )}
       </div>
     </Card>
   );

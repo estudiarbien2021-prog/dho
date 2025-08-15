@@ -248,6 +248,13 @@ export function NeuralNetworkVisualization({ isActive, confidence }: NeuralNetwo
           <text x="365" y="155" fontSize="12" fill="hsl(var(--primary))" fontWeight="bold">
             {animationPhase >= 4 ? `${confidence}%` : '...'}
           </text>
+          
+          {/* Verdict label */}
+          {animationPhase >= 5 && (
+            <text x="365" y="170" fontSize="10" fill="hsl(var(--muted-foreground))" textAnchor="middle">
+              Confiance
+            </text>
+          )}
         </svg>
 
         {/* Processing indicator */}
@@ -255,6 +262,19 @@ export function NeuralNetworkVisualization({ isActive, confidence }: NeuralNetwo
           <div className="absolute bottom-4 left-4 flex items-center gap-2 text-xs text-muted-foreground">
             <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
             Calcul en cours...
+          </div>
+        )}
+        
+        {/* Final verdict */}
+        {isActive && animationPhase >= 5 && (
+          <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2 text-green-500">
+              <div className="w-2 h-2 bg-green-500 rounded-full" />
+              Analyse terminée
+            </div>
+            <div className="text-primary font-bold">
+              Score: {confidence}%
+            </div>
           </div>
         )}
       </div>
