@@ -154,11 +154,12 @@ export function PicksValidation() {
       
       setMatches(processedMatches);
       
-      // Ne pas appeler loadPotentialPicks automatiquement ici car cela limite aux matchs de la date
-      // L'utilisateur peut utiliser le bouton "Actualiser" pour analyser tous les matchs
+      // Charger automatiquement tous les picks potentiels (pas seulement ceux de la date sélectionnée)
+      console.log('🚨 APPEL automatique loadPotentialPicks pour TOUS les matchs');
+      loadPotentialPicks(); // Appel sans paramètre = utilise tous les matchs de la base
+      
       if (processedMatches.length === 0) {
-        console.log('🚨 AUCUN MATCH TRAITÉ pour la date sélectionnée');
-        console.log(`❌ Aucun match trouvé pour le ${dateFilter}`);
+        console.log(`❌ Aucun match trouvé pour la date ${dateFilter}`);
       } else {
         console.log(`✅ ${processedMatches.length} matchs chargés pour la date ${dateFilter}`);
       }
@@ -207,11 +208,75 @@ export function PicksValidation() {
     }
   };
 
-  const loadPotentialPicks = (matchData: ProcessedMatch[] = matches) => {
+  const loadPotentialPicks = async (matchData?: ProcessedMatch[]) => {
     console.log('🚨 DÉBUT loadPotentialPicks - FONCTION APPELÉE !');
-    console.log(`🚨 Nombre de matchs reçus: ${matchData.length}`);
     
-    if (matchData.length === 0) {
+    let allMatches: ProcessedMatch[] = [];
+    
+    // Si pas de matchData fourni, charger TOUS les matchs de la base
+    if (!matchData || matchData.length === 0) {
+      console.log('🔄 Chargement de TOUS les matchs depuis la base de données...');
+      
+      try {
+        const { data, error } = await supabase
+          .from('matches')
+          .select('*')
+          .order('kickoff_utc', { ascending: true });
+
+        if (error) {
+          console.error('❌ Erreur Supabase pour tous les matchs:', error);
+          throw error;
+        }
+        
+        console.log(`✅ TOUS les matchs chargés: ${data?.length || 0}`);
+        
+        // Convertir au format ProcessedMatch
+        allMatches = (data || []).map(match => ({
+          id: match.id,
+          league: match.league,
+          home_team: match.home_team,
+          away_team: match.away_team,
+          country: match.country,
+          kickoff_utc: new Date(match.kickoff_utc),
+          kickoff_local: new Date(match.kickoff_local),
+          category: match.category as 'first_div' | 'second_div' | 'continental_cup' | 'national_cup',
+          p_home_fair: match.p_home_fair,
+          p_draw_fair: match.p_draw_fair,
+          p_away_fair: match.p_away_fair,
+          p_btts_yes_fair: match.p_btts_yes_fair,
+          p_btts_no_fair: match.p_btts_no_fair,
+          p_over_2_5_fair: match.p_over_2_5_fair,
+          p_under_2_5_fair: match.p_under_2_5_fair,
+          vig_1x2: match.vig_1x2,
+          vig_btts: match.vig_btts,
+          vig_ou_2_5: match.vig_ou_2_5,
+          is_low_vig_1x2: match.is_low_vig_1x2,
+          watch_btts: match.watch_btts,
+          watch_over25: match.watch_over25,
+          odds_home: match.odds_home,
+          odds_draw: match.odds_draw,
+          odds_away: match.odds_away,
+          odds_btts_yes: match.odds_btts_yes,
+          odds_btts_no: match.odds_btts_no,
+          odds_over_2_5: match.odds_over_2_5,
+          odds_under_2_5: match.odds_under_2_5,
+          over_under_markets: [],
+          ai_prediction: match.ai_prediction,
+          ai_confidence: match.ai_confidence
+        }));
+        
+      } catch (error) {
+        console.error('❌ Erreur lors du chargement de tous les matchs:', error);
+        setPotentialPicks([]);
+        return;
+      }
+    } else {
+      allMatches = matchData;
+    }
+    
+    console.log(`🚨 Nombre de matchs à analyser: ${allMatches.length}`);
+    
+    if (allMatches.length === 0) {
       console.log('🚨 AUCUN MATCH - SORTIE ANTICIPÉE');
       setPotentialPicks([]);
       return;
@@ -222,19 +287,19 @@ export function PicksValidation() {
     try {
       console.log('🔍 Analyse des matchs pour les picks potentiels...');
       console.log(`📅 Filtrage par date: ${dateFilter}`);
-      console.log(`📊 Total matchs disponibles pour ${dateFilter}: ${matchData.length}`);
+      console.log(`📊 Total matchs disponibles: ${allMatches.length}`);
       
       // Debug: afficher quelques dates de matchs pour vérifier
-      const sampleDates = matchData.slice(0, 5).map(m => ({
+      const sampleDates = allMatches.slice(0, 5).map(m => ({
         team: `${m.home_team} vs ${m.away_team}`,
         date: new Date(m.kickoff_utc).toDateString(),
         kickoff: m.kickoff_utc
       }));
       console.log('📅 Échantillon des dates de matchs:', sampleDates);
       
-      // Debug détaillé pour chaque match
-      console.log('🔍 Détail complet des matchs à analyser:');
-      matchData.forEach((match, index) => {
+      // Debug détaillé pour chaque match (limité aux 10 premiers pour éviter le spam)
+      console.log('🔍 Détail complet des premiers matchs à analyser:');
+      allMatches.slice(0, 10).forEach((match, index) => {
         console.log(`\n  ${index + 1}. ${match.home_team} vs ${match.away_team}`);
         console.log(`      - Catégorie: ${match.category}`);
         console.log(`      - Pays: ${match.country}`);
@@ -247,8 +312,8 @@ export function PicksValidation() {
         console.log(`      - Odds O/U: Over=${match.odds_over_2_5}, Under=${match.odds_under_2_5}`);
       });
       
-      // Pas besoin de filtrer par date - les matchs sont déjà pour la bonne date
-      let matchesToAnalyze = matchData;
+      // Analyser TOUS les matchs de la base
+      let matchesToAnalyze = allMatches;
       console.log(`📊 Analysing ${matchesToAnalyze.length} matchs pour la date sélectionnée`);
       console.log(`📊 Analysing ${matchesToAnalyze.length} matchs pour les picks potentiels`);
       
