@@ -58,6 +58,29 @@ export function PicksValidation() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [matches, setMatches] = useState<ProcessedMatch[]>([]);
 
+  // Debug: log tous les matchs affichés pour identifier le mélange
+  useEffect(() => {
+    if (potentialPicks.length > 0) {
+      console.log('🚨 PICKS POTENTIELS AFFICHÉS - AUDIT COMPLET:');
+      console.log(`📊 Total: ${potentialPicks.length} picks`);
+      
+      const datesUniques = new Set();
+      potentialPicks.forEach((pick, index) => {
+        const matchDate = new Date(pick.match.kickoff_utc).toDateString();
+        datesUniques.add(matchDate);
+        console.log(`  ${index + 1}. ${pick.match.home_team} vs ${pick.match.away_team} - ${matchDate} (UTC: ${pick.match.kickoff_utc.toISOString()})`);
+      });
+      
+      console.log(`🗓️ Dates trouvées dans les picks:`, Array.from(datesUniques));
+      console.log(`📅 Date sélectionnée dans le filtre: ${dateFilter}`);
+      
+      if (datesUniques.size > 1) {
+        console.error('🚨 PROBLÈME DÉTECTÉ: Plus d\'une date dans les picks potentiels!');
+        console.error('🚨 DATES MÉLANGÉES:', Array.from(datesUniques));
+      }
+    }
+  }, [potentialPicks, dateFilter]);
+  
   useEffect(() => {
     // Charger les matchs pour la date sélectionnée (par défaut = aujourd'hui)
     loadMatches();
