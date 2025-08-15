@@ -14,92 +14,151 @@ interface TopPicksProps {
 }
 
 export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
-  // Nouvelle logique : évaluer tous les marchés et choisir les plus probables
+  // Score Composite Optimisé : équilibre probabilité, rentabilité et valeur
   const getTopBets = () => {
     const allBets = [];
     
     matches.forEach(match => {
       const bets = [];
       
+      // Helper function pour calculer l'edge et le score composite
+      const calculateCompositeScore = (probability, odds) => {
+        // Edge = notre probabilité vs probabilité implicite du bookmaker
+        const impliedProbability = 1 / odds;
+        const edge = probability - impliedProbability;
+        
+        // Critères de base
+        if (probability < 0.45 || odds < 1.5 || edge <= 0) {
+          return 0; // Éliminé
+        }
+        
+        // Facteur cote logarithmique (favorise 1.8-3.0)
+        const optimalOddsRange = odds >= 1.8 && odds <= 3.0;
+        const oddsFactor = optimalOddsRange ? 
+          1.2 : // Bonus pour range optimal
+          Math.log(odds) / Math.log(2.5); // Logarithmique sinon
+        
+        // Bonus edge (plus on a d'avantage, mieux c'est)
+        const edgeBonus = 1 + (edge * 3); // Multiplie l'edge par 3
+        
+        // Score final = Probabilité × Facteur_Cote × Bonus_Edge
+        return probability * oddsFactor * edgeBonus;
+      };
+      
       // 1X2 Markets
-      if (match.odds_home >= 1.5 && match.p_home_fair >= 0.01) {
-        bets.push({
-          match,
-          type: '1X2',
-          prediction: 'Domicile',
-          odds: match.odds_home,
-          probability: match.p_home_fair
-        });
+      if (match.odds_home && match.p_home_fair) {
+        const score = calculateCompositeScore(match.p_home_fair, match.odds_home);
+        if (score > 0) {
+          bets.push({
+            match,
+            type: '1X2',
+            prediction: 'Domicile',
+            odds: match.odds_home,
+            probability: match.p_home_fair,
+            edge: match.p_home_fair - (1 / match.odds_home),
+            score
+          });
+        }
       }
       
-      if (match.odds_draw >= 1.5 && match.p_draw_fair >= 0.01) {
-        bets.push({
-          match,
-          type: '1X2',
-          prediction: 'Nul',
-          odds: match.odds_draw,
-          probability: match.p_draw_fair
-        });
+      if (match.odds_draw && match.p_draw_fair) {
+        const score = calculateCompositeScore(match.p_draw_fair, match.odds_draw);
+        if (score > 0) {
+          bets.push({
+            match,
+            type: '1X2',
+            prediction: 'Match Nul',
+            odds: match.odds_draw,
+            probability: match.p_draw_fair,
+            edge: match.p_draw_fair - (1 / match.odds_draw),
+            score
+          });
+        }
       }
       
-      if (match.odds_away >= 1.5 && match.p_away_fair >= 0.01) {
-        bets.push({
-          match,
-          type: '1X2',
-          prediction: 'Extérieur',
-          odds: match.odds_away,
-          probability: match.p_away_fair
-        });
+      if (match.odds_away && match.p_away_fair) {
+        const score = calculateCompositeScore(match.p_away_fair, match.odds_away);
+        if (score > 0) {
+          bets.push({
+            match,
+            type: '1X2',
+            prediction: 'Extérieur',
+            odds: match.odds_away,
+            probability: match.p_away_fair,
+            edge: match.p_away_fair - (1 / match.odds_away),
+            score
+          });
+        }
       }
       
       // BTTS Markets
-      if (match.odds_btts_yes && match.odds_btts_yes >= 1.5 && match.p_btts_yes_fair >= 0.01) {
-        bets.push({
-          match,
-          type: 'BTTS',
-          prediction: 'Oui',
-          odds: match.odds_btts_yes,
-          probability: match.p_btts_yes_fair
-        });
+      if (match.odds_btts_yes && match.p_btts_yes_fair) {
+        const score = calculateCompositeScore(match.p_btts_yes_fair, match.odds_btts_yes);
+        if (score > 0) {
+          bets.push({
+            match,
+            type: 'BTTS',
+            prediction: 'Oui',
+            odds: match.odds_btts_yes,
+            probability: match.p_btts_yes_fair,
+            edge: match.p_btts_yes_fair - (1 / match.odds_btts_yes),
+            score
+          });
+        }
       }
       
-      if (match.odds_btts_no && match.odds_btts_no >= 1.5 && match.p_btts_no_fair >= 0.01) {
-        bets.push({
-          match,
-          type: 'BTTS',
-          prediction: 'Non',
-          odds: match.odds_btts_no,
-          probability: match.p_btts_no_fair
-        });
+      if (match.odds_btts_no && match.p_btts_no_fair) {
+        const score = calculateCompositeScore(match.p_btts_no_fair, match.odds_btts_no);
+        if (score > 0) {
+          bets.push({
+            match,
+            type: 'BTTS',
+            prediction: 'Non',
+            odds: match.odds_btts_no,
+            probability: match.p_btts_no_fair,
+            edge: match.p_btts_no_fair - (1 / match.odds_btts_no),
+            score
+          });
+        }
       }
       
       // Over/Under 2.5 Markets
-      if (match.odds_over_2_5 && match.odds_over_2_5 >= 1.5 && match.p_over_2_5_fair >= 0.01) {
-        bets.push({
-          match,
-          type: 'O/U 2.5',
-          prediction: '+2,5 buts',
-          odds: match.odds_over_2_5,
-          probability: match.p_over_2_5_fair
-        });
+      if (match.odds_over_2_5 && match.p_over_2_5_fair) {
+        const score = calculateCompositeScore(match.p_over_2_5_fair, match.odds_over_2_5);
+        if (score > 0) {
+          bets.push({
+            match,
+            type: 'O/U 2.5',
+            prediction: '+2,5 buts',
+            odds: match.odds_over_2_5,
+            probability: match.p_over_2_5_fair,
+            edge: match.p_over_2_5_fair - (1 / match.odds_over_2_5),
+            score
+          });
+        }
       }
       
-      if (match.odds_under_2_5 && match.odds_under_2_5 >= 1.5 && match.p_under_2_5_fair >= 0.01) {
-        bets.push({
-          match,
-          type: 'O/U 2.5',
-          prediction: '-2,5 buts',
-          odds: match.odds_under_2_5,
-          probability: match.p_under_2_5_fair
-        });
+      if (match.odds_under_2_5 && match.p_under_2_5_fair) {
+        const score = calculateCompositeScore(match.p_under_2_5_fair, match.odds_under_2_5);
+        if (score > 0) {
+          bets.push({
+            match,
+            type: 'O/U 2.5',
+            prediction: '-2,5 buts',
+            odds: match.odds_under_2_5,
+            probability: match.p_under_2_5_fair,
+            edge: match.p_under_2_5_fair - (1 / match.odds_under_2_5),
+            score
+          });
+        }
       }
       
       allBets.push(...bets);
     });
     
-    // Trier par probabilité décroissante et prendre les 3 meilleurs
+    // Trier par score composite décroissant et prendre les 3 meilleurs
     return allBets
-      .sort((a, b) => b.probability - a.probability)
+      .sort((a, b) => b.score - a.score)
       .slice(0, 3);
   };
 
