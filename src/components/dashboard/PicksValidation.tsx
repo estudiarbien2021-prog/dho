@@ -233,12 +233,33 @@ export function PicksValidation() {
 
   const loadPotentialPicks = async (matchData?: ProcessedMatch[]) => {
     console.log('🚨 DÉBUT loadPotentialPicks - FONCTION APPELÉE !');
+    console.log('🔍 DEBUG matchData:', {
+      'matchData défini': !!matchData,
+      'matchData.length': matchData?.length || 'undefined',
+      'Type de matchData': typeof matchData,
+      'Array.isArray(matchData)': Array.isArray(matchData)
+    });
     
     let allMatches: ProcessedMatch[] = [];
     
-    // Si pas de matchData fourni, charger les matchs selon le filtre de date
-    if (!matchData || matchData.length === 0) {
-      console.log('🔄 Chargement des matchs depuis la base de données...');
+    // FORCER l'utilisation des matchData si fournis
+    if (matchData && Array.isArray(matchData) && matchData.length > 0) {
+      console.log(`✅ UTILISATION des matchs fournis en paramètre: ${matchData.length} matchs`);
+      allMatches = matchData;
+      
+      // Vérifier les dates des matchs fournis
+      if (allMatches.length > 0) {
+        const dates = new Set(allMatches.map(m => new Date(m.kickoff_utc).toDateString()));
+        console.log('📅 Dates dans les matchs fournis:', Array.from(dates));
+      }
+    } else {
+      console.log('🔄 FALLBACK: Chargement depuis la base de données...');
+      console.log('🔍 Raison du fallback:', {
+        'matchData falsy': !matchData,
+        'pas un array': !Array.isArray(matchData),
+        'longueur zéro': matchData?.length === 0,
+        'matchData value': matchData
+      });
       
       let query = supabase
         .from('matches')
@@ -318,8 +339,6 @@ export function PicksValidation() {
         setPotentialPicks([]);
         return;
       }
-    } else {
-      allMatches = matchData;
     }
     
     console.log(`🚨 Nombre de matchs à analyser: ${allMatches.length}`);
