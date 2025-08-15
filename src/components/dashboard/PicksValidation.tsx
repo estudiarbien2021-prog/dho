@@ -336,52 +336,21 @@ export function PicksValidation() {
       
       // Filtrer par catégorie comme dans TopPicks mais avec les nouveaux critères
       const filteredMatches = matchesToAnalyze.filter(match => {
-        const isValidCategory = match.category === 'first_div' || match.category === 'continental_cup';
+        // Catégories autorisées élargies : first_div, continental_cup ET national_cup
+        const isValidCategory = ['first_div', 'continental_cup', 'national_cup'].includes(match.category);
         console.log(`\n🏆 FILTRAGE - ${match.home_team} vs ${match.away_team}:`);
         console.log(`   - Catégorie: ${match.category} - Valide: ${isValidCategory ? '✅' : '❌'}`);
         
         if (!isValidCategory) {
-          console.log(`   ❌ REJETÉ: catégorie ${match.category} non autorisée (seules first_div et continental_cup acceptées)`);
+          console.log(`   ❌ REJETÉ: catégorie ${match.category} non autorisée (acceptées: first_div, continental_cup, national_cup)`);
           return false;
         }
         
-        // Exclure l'Asie complètement
-        const asianCountries = ['Japan', 'South Korea', 'China', 'Thailand', 'Singapore', 'Malaysia', 'Indonesia', 'Vietnam', 'Philippines', 'India', 'Saudi Arabia', 'UAE', 'Qatar', 'Iran', 'Iraq', 'Jordan', 'Lebanon', 'Syria', 'Uzbekistan', 'Kazakhstan', 'Kyrgyzstan', 'Tajikistan', 'Turkmenistan', 'Afghanistan', 'Pakistan', 'Bangladesh', 'Sri Lanka', 'Myanmar', 'Cambodia', 'Laos', 'Nepal', 'Bhutan', 'Mongolia', 'North Korea'];
+        // Autoriser TOUTES les régions pour toutes les catégories
+        console.log(`🌏 ${match.home_team} vs ${match.away_team} - Pays: ${match.country}`);
+        console.log(`🏆 ${match.home_team} vs ${match.away_team} - ${match.category} - Toutes régions autorisées`);
+        console.log(`   ✅ ACCEPTÉ: ${match.home_team} vs ${match.away_team} - ${match.category}`);
         
-        const asianCompetitions = ['AFC Champions League', 'AFC Cup', 'AFC Asian Cup', 'J1 League', 'K League 1', 'Chinese Super League', 'Thai League 1', 'Malaysian Super League', 'Indonesian Liga 1', 'V.League 1', 'Philippine Football League', 'Indian Super League', 'Saudi Pro League', 'UAE Pro League', 'Qatar Stars League', 'Iran Pro League', 'Iraq Stars League'];
-        
-        // Autoriser l'Amérique latine maintenant - Exclure seulement l'Asie et l'Afrique
-        // const latinAmericanCountries = ['Argentina', 'Chile', 'Colombia', 'Peru', 'Uruguay', 'Paraguay', 'Bolivia', 'Ecuador', 'Venezuela', 'Mexico', 'Guatemala', 'Honduras', 'El Salvador', 'Nicaragua', 'Costa Rica', 'Panama'];
-        
-        // Exclure l'Afrique pour les championnats domestiques
-        const africanCountries = ['South Africa', 'Nigeria', 'Ghana', 'Morocco', 'Egypt', 'Tunisia', 'Algeria', 'Kenya', 'Ethiopia', 'Tanzania', 'Uganda', 'Zimbabwe', 'Zambia', 'Botswana', 'Cameroon', 'Ivory Coast', 'Senegal', 'Mali', 'Burkina Faso', 'Guinea', 'Sierra Leone', 'Liberia', 'Gambia', 'Cape Verde', 'Mauritania', 'Chad', 'Central African Republic', 'Democratic Republic of Congo', 'Republic of Congo', 'Gabon', 'Equatorial Guinea', 'Angola', 'Namibia', 'Lesotho', 'Swaziland', 'Madagascar', 'Mauritius', 'Comoros', 'Seychelles'];
-        
-        const isNotAsianCountry = !asianCountries.includes(match.country || '');
-        const isNotAsianCompetition = !asianCompetitions.some(comp => (match.league || '').toLowerCase().includes(comp.toLowerCase()));
-        
-        console.log(`🌏 ${match.home_team} vs ${match.away_team} - Pays: ${match.country} - Non-Asie: ${isNotAsianCountry && isNotAsianCompetition}`);
-        
-        // Pour les championnats domestiques, autoriser UNIQUEMENT l'Asie et l'Afrique
-        if (match.category === 'first_div') {
-          const isAsianCountry = asianCountries.includes(match.country || '');
-          const isAsianCompetition = asianCompetitions.some(comp => (match.league || '').toLowerCase().includes(comp.toLowerCase()));
-          const isAfricanCountry = africanCountries.includes(match.country || '');
-          
-          const isValidRegion = isAsianCountry || isAsianCompetition || isAfricanCountry;
-          console.log(`🏆 ${match.home_team} vs ${match.away_team} - First_div - Région valide: ${isValidRegion} (Asie/Afrique uniquement)`);
-          
-          if (!isValidRegion) {
-            console.log(`   ❌ Rejeté: région non-asiatique/non-africaine pour first_div`);
-            return false;
-          }
-          
-          console.log(`   ✅ ACCEPTÉ: ${match.home_team} vs ${match.away_team} - first_div asiatique/africain`);
-          return true;
-        }
-        
-        // Pour les compétitions continentales, autoriser TOUTES les régions
-        console.log(`🏆 ${match.home_team} vs ${match.away_team} - Continental_cup - Toutes régions autorisées`);
-        console.log(`   ✅ ACCEPTÉ: ${match.home_team} vs ${match.away_team} - continental_cup`);
         return true;
       });
 
