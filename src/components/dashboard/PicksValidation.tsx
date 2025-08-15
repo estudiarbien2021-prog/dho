@@ -307,13 +307,16 @@ export function PicksValidation() {
         const pick = potentialPicks.find(p => p.id === pickId);
         if (!pick) return null;
 
+        // Utiliser match_date au lieu de kickoff_utc pour éviter les problèmes de timezone
+        const matchDate = new Date(pick.match.match_date + 'T12:00:00.000Z');
+        
         return {
           match_id: pick.match.id,
           league: pick.match.league,
           home_team: pick.match.home_team,
           away_team: pick.match.away_team,
           country: pick.match.country,
-          kickoff_utc: pick.match.kickoff_utc.toISOString(),
+          kickoff_utc: matchDate.toISOString(), // Utiliser la date du match normalisée
           bet_type: pick.betType,
           prediction: pick.prediction,
           odds: pick.odds,
