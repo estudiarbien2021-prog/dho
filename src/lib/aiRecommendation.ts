@@ -23,7 +23,10 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
     const bttsNoProb = match.p_btts_no_fair;
     
     // NOUVELLE RÈGLE : Si vigorish BTTS >= 8.1%, proposer l'inverse
+    // EXCEPTION : Si la probabilité d'analyse >= 60%, ne pas inverser
     const isHighVigBTTS = match.vig_btts >= HIGH_VIG_THRESHOLD;
+    const highestBTTSProb = Math.max(bttsYesProb, bttsNoProb);
+    const shouldInvertBTTS = isHighVigBTTS && highestBTTSProb < 0.6; // Ne pas inverser si >= 60%
     
     // Choisir la meilleure option BTTS basée sur les probabilités (pour la recommandation)
     let bestBTTS = null;
@@ -31,11 +34,11 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
       bestBTTS = {
         type: 'BTTS',
         originalPrediction: 'Oui', // Prédiction originale basée sur les probabilités
-        prediction: isHighVigBTTS ? 'Non' : 'Oui', // Inverse si vigorish élevé
-        odds: isHighVigBTTS ? match.odds_btts_no : match.odds_btts_yes,
-        probability: isHighVigBTTS ? bttsNoProb : bttsYesProb,
+        prediction: shouldInvertBTTS ? 'Non' : 'Oui', // Inverse seulement si conditions remplies
+        odds: shouldInvertBTTS ? match.odds_btts_no : match.odds_btts_yes,
+        probability: shouldInvertBTTS ? bttsNoProb : bttsYesProb,
         vigorish: match.vig_btts,
-        isInverted: isHighVigBTTS
+        isInverted: shouldInvertBTTS
       };
     }
     
@@ -44,11 +47,11 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
         bestBTTS = {
           type: 'BTTS',
           originalPrediction: 'Non', // Prédiction originale basée sur les probabilités
-          prediction: isHighVigBTTS ? 'Oui' : 'Non', // Inverse si vigorish élevé
-          odds: isHighVigBTTS ? match.odds_btts_yes : match.odds_btts_no,
-          probability: isHighVigBTTS ? bttsYesProb : bttsNoProb,
+          prediction: shouldInvertBTTS ? 'Oui' : 'Non', // Inverse seulement si conditions remplies
+          odds: shouldInvertBTTS ? match.odds_btts_yes : match.odds_btts_no,
+          probability: shouldInvertBTTS ? bttsYesProb : bttsNoProb,
           vigorish: match.vig_btts,
-          isInverted: isHighVigBTTS
+          isInverted: shouldInvertBTTS
         };
       }
     }
@@ -65,7 +68,10 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
     const underProb = match.p_under_2_5_fair;
     
     // NOUVELLE RÈGLE : Si vigorish O/U 2.5 >= 8.1%, proposer l'inverse
+    // EXCEPTION : Si la probabilité d'analyse >= 60%, ne pas inverser
     const isHighVigOU = match.vig_ou_2_5 >= HIGH_VIG_THRESHOLD;
+    const highestOUProb = Math.max(overProb, underProb);
+    const shouldInvertOU = isHighVigOU && highestOUProb < 0.6; // Ne pas inverser si >= 60%
     
     // Choisir la meilleure option O/U 2.5 basée sur les probabilités (pour la recommandation)
     let bestOU = null;
@@ -73,11 +79,11 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
       bestOU = {
         type: 'O/U 2.5',
         originalPrediction: '+2,5 buts', // Prédiction originale basée sur les probabilités
-        prediction: isHighVigOU ? '-2,5 buts' : '+2,5 buts', // Inverse si vigorish élevé
-        odds: isHighVigOU ? match.odds_under_2_5 : match.odds_over_2_5,
-        probability: isHighVigOU ? underProb : overProb,
+        prediction: shouldInvertOU ? '-2,5 buts' : '+2,5 buts', // Inverse seulement si conditions remplies
+        odds: shouldInvertOU ? match.odds_under_2_5 : match.odds_over_2_5,
+        probability: shouldInvertOU ? underProb : overProb,
         vigorish: match.vig_ou_2_5,
-        isInverted: isHighVigOU
+        isInverted: shouldInvertOU
       };
     }
     
@@ -86,11 +92,11 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
         bestOU = {
           type: 'O/U 2.5',
           originalPrediction: '-2,5 buts', // Prédiction originale basée sur les probabilités
-          prediction: isHighVigOU ? '+2,5 buts' : '-2,5 buts', // Inverse si vigorish élevé
-          odds: isHighVigOU ? match.odds_over_2_5 : match.odds_under_2_5,
-          probability: isHighVigOU ? overProb : underProb,
+          prediction: shouldInvertOU ? '+2,5 buts' : '-2,5 buts', // Inverse seulement si conditions remplies
+          odds: shouldInvertOU ? match.odds_over_2_5 : match.odds_under_2_5,
+          probability: shouldInvertOU ? overProb : underProb,
           vigorish: match.vig_ou_2_5,
-          isInverted: isHighVigOU
+          isInverted: shouldInvertOU
         };
       }
     }
