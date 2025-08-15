@@ -14,6 +14,9 @@ import AIRecommendationDisplay from '@/components/AIRecommendationDisplay';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Clock, TrendingDown, Target, Eye, Download, Loader2, Zap } from 'lucide-react';
+import { NeuralNetworkVisualization } from '@/components/charts/NeuralNetworkVisualization';
+import { ConfidenceScoreBars } from '@/components/charts/ConfidenceScoreBars';
+import { InfluenceFactors } from '@/components/charts/InfluenceFactors';
 
 interface MatchDetailModalProps {
   match: ProcessedMatch | null;
@@ -23,7 +26,19 @@ interface MatchDetailModalProps {
 }
 
 export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }: MatchDetailModalProps) {
+  const [showAIGraphics, setShowAIGraphics] = useState(false);
+  
   if (!match) return null;
+
+  // Trigger AI graphics animation when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      const timer = setTimeout(() => setShowAIGraphics(true), 500);
+      return () => clearTimeout(timer);
+    } else {
+      setShowAIGraphics(false);
+    }
+  }, [isOpen]);
 
   const flagInfo = leagueToFlag(match.league, match.country, match.home_team, match.away_team);
 
@@ -53,6 +68,10 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
   const getOver25Winner = () => {
     return match.p_over_2_5_fair > match.p_under_2_5_fair ? '+2,5 buts' : '-2,5 buts';
   };
+
+  // Generate AI recommendation for the match
+  const aiRecommendation = generateAIRecommendation(match, marketFilters);
+  const recommendation = normalizeRecommendation(aiRecommendation);
 
   // Generate AI recommendation explanation combining all 3 styles
   const generateRecommendationExplanation = (recommendation: any) => {
@@ -655,6 +674,61 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
               <DonutChart data={results1x2Data} title="Résultat 1X2" prediction={get1x2Winner()} chartKey="results1x2" />
               {bttsData.length > 0 && <DonutChart data={bttsData} title="Les Deux Équipes Marquent" prediction={getBttsWinner()} chartKey="btts" />}
               {over25Data.length > 0 && <DonutChart data={over25Data} title="Plus/Moins 2,5 Buts" prediction={getOver25Winner()} chartKey="over25" />}
+            </div>
+          </div>
+
+          <Separator className="bg-gradient-to-r from-transparent via-brand/30 to-transparent" />
+
+          {/* AI Graphics Section */}
+          <div className="space-y-6">
+            <h3 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent flex items-center gap-3 animate-fade-in">
+              <div className="w-1 h-8 bg-gradient-to-b from-primary to-primary/70 rounded-full animate-pulse"></div>
+              Intelligence Artificielle Avancée
+            </h3>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Neural Network Visualization */}
+              <div className="lg:col-span-2">
+              <NeuralNetworkVisualization 
+                isActive={showAIGraphics} 
+                confidence={Number(generateConfidenceScore(match.id, recommendation || {}))} 
+              />
+            </div>
+            
+            {/* Confidence Score Bars */}
+            <ConfidenceScoreBars 
+              isActive={showAIGraphics}
+              predictions={[
+                {
+                  label: recommendation?.type === 'BTTS' && recommendation?.prediction === 'Oui' ? 'BTTS Oui' : 
+                         recommendation?.type === 'BTTS' && recommendation?.prediction === 'Non' ? 'BTTS Non' :
+                         recommendation?.type === 'O/U 2.5' && recommendation?.prediction === 'Over' ? 'Plus de 2.5 Buts' :
+                         recommendation?.type === 'O/U 2.5' && recommendation?.prediction === 'Under' ? 'Moins de 2.5 Buts' :
+                         '1X2 ' + get1x2Winner(),
+                  value: Number(generateConfidenceScore(match.id, recommendation || {})),
+                  color: 'hsl(var(--primary))',
+                  icon: '🎯'
+                },
+                {
+                  label: 'Prédiction Alternative',
+                  value: Math.max(30, 100 - Number(generateConfidenceScore(match.id, recommendation || {}))),
+                  color: '#10b981',
+                  icon: '📊'
+                },
+                {
+                  label: 'Facteur Risque',
+                  value: Math.round(match.vig_1x2 * 100),
+                  color: '#ef4444',
+                  icon: '⚠️'
+                }
+              ]}
+            />
+              
+              {/* Influence Factors */}
+              <InfluenceFactors 
+                matchId={match.id}
+                isActive={showAIGraphics}
+              />
             </div>
           </div>
 
