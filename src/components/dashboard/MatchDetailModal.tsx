@@ -792,6 +792,12 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                         style={{ width: `${match.p_home_fair * 100}%` }}
                       />
                     </div>
+                    <div className="text-center">
+                      <div className="text-xs text-muted-foreground mb-1">Cote</div>
+                      <div className="px-2 py-1 bg-brand/10 rounded text-sm font-mono font-bold text-brand">
+                        {match.odds_home && !isNaN(match.odds_home) ? match.odds_home.toFixed(2) : '0.00'}
+                      </div>
+                    </div>
                   </div>
                   
                   <div className="space-y-2">
@@ -820,6 +826,12 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                         style={{ width: `${match.p_draw_fair * 100}%` }}
                       />
                     </div>
+                    <div className="text-center">
+                      <div className="text-xs text-muted-foreground mb-1">Cote</div>
+                      <div className="px-2 py-1 bg-brand-300/10 rounded text-sm font-mono font-bold text-brand-300">
+                        {match.odds_draw && !isNaN(match.odds_draw) ? match.odds_draw.toFixed(2) : '0.00'}
+                      </div>
+                    </div>
                   </div>
                   
                   <div className="space-y-2">
@@ -847,6 +859,12 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                         className="h-full bg-brand-400 rounded-full transition-all duration-500"
                         style={{ width: `${match.p_away_fair * 100}%` }}
                       />
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xs text-muted-foreground mb-1">Cote</div>
+                      <div className="px-2 py-1 bg-brand-400/10 rounded text-sm font-mono font-bold text-brand-400">
+                        {match.odds_away && !isNaN(match.odds_away) ? match.odds_away.toFixed(2) : '0.00'}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -887,6 +905,12 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                           style={{ width: `${match.p_btts_yes_fair * 100}%` }}
                         />
                       </div>
+                      <div className="text-center">
+                        <div className="text-xs text-muted-foreground mb-1">Cote</div>
+                        <div className="px-2 py-1 bg-green-500/10 rounded text-sm font-mono font-bold text-green-500">
+                          {match.odds_btts_yes && !isNaN(match.odds_btts_yes) ? match.odds_btts_yes.toFixed(2) : '0.00'}
+                        </div>
+                      </div>
                     </div>
                     
                     <div className="space-y-2">
@@ -914,6 +938,12 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                           className="h-full bg-red-500 rounded-full transition-all duration-500"
                           style={{ width: `${match.p_btts_no_fair * 100}%` }}
                         />
+                      </div>
+                      <div className="text-center">
+                        <div className="text-xs text-muted-foreground mb-1">Cote</div>
+                        <div className="px-2 py-1 bg-red-500/10 rounded text-sm font-mono font-bold text-red-500">
+                          {match.odds_btts_no && !isNaN(match.odds_btts_no) ? match.odds_btts_no.toFixed(2) : '0.00'}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -955,6 +985,12 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                           style={{ width: `${match.p_over_2_5_fair * 100}%` }}
                         />
                       </div>
+                      <div className="text-center">
+                        <div className="text-xs text-muted-foreground mb-1">Cote</div>
+                        <div className="px-2 py-1 bg-orange-500/10 rounded text-sm font-mono font-bold text-orange-500">
+                          {match.odds_over_2_5 && !isNaN(match.odds_over_2_5) ? match.odds_over_2_5.toFixed(2) : '0.00'}
+                        </div>
+                      </div>
                     </div>
                     
                     <div className="space-y-2">
@@ -982,6 +1018,12 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                           className="h-full bg-blue-500 rounded-full transition-all duration-500"
                           style={{ width: `${match.p_under_2_5_fair * 100}%` }}
                         />
+                      </div>
+                      <div className="text-center">
+                        <div className="text-xs text-muted-foreground mb-1">Cote</div>
+                        <div className="px-2 py-1 bg-blue-500/10 rounded text-sm font-mono font-bold text-blue-500">
+                          {match.odds_under_2_5 && !isNaN(match.odds_under_2_5) ? match.odds_under_2_5.toFixed(2) : '0.00'}
+                        </div>
                       </div>
                     </div>
                   </div>
