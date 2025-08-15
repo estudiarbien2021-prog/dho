@@ -381,25 +381,31 @@ export function PicksValidation() {
         console.log(`      - Odds O/U: Over=${match.odds_over_2_5}, Under=${match.odds_under_2_5}`);
       });
       
-      // Si les matchs sont déjà fournis (filtrés par date), ne pas refiltrer
-      let matchesToAnalyze = allMatches;
+      // Si les matchs sont déjà fournis (filtrés par date), les utiliser directement
+      let matchesToAnalyze: ProcessedMatch[];
       
-      // Filtrer par date SEULEMENT si on a chargé depuis la DB (pas de matchData fourni)
-      if (!matchData && dateFilter && dateFilter !== '') {
-        const selectedDate = new Date(dateFilter + 'T00:00:00Z');
-        const nextDay = new Date(selectedDate);
-        nextDay.setDate(nextDay.getDate() + 1);
-        
-        matchesToAnalyze = allMatches.filter(match => {
-          const matchDate = new Date(match.kickoff_utc);
-          return matchDate >= selectedDate && matchDate < nextDay;
-        });
-        
-        console.log(`📅 Matchs filtrés par date ${dateFilter}: ${matchesToAnalyze.length}/${allMatches.length}`);
-      } else if (matchData) {
+      if (matchData && Array.isArray(matchData) && matchData.length > 0) {
+        // Utiliser les matchs déjà filtrés fournis en paramètre
+        matchesToAnalyze = matchData;
         console.log(`📅 Utilisation des matchs déjà filtrés: ${matchesToAnalyze.length}`);
       } else {
-        console.log(`📅 Tous les matchs analysés (pas de filtre): ${matchesToAnalyze.length}`);
+        // Sinon, utiliser tous les matchs et les filtrer par date si nécessaire
+        matchesToAnalyze = allMatches;
+        
+        if (dateFilter && dateFilter !== '') {
+          const selectedDate = new Date(dateFilter + 'T00:00:00Z');
+          const nextDay = new Date(selectedDate);
+          nextDay.setDate(nextDay.getDate() + 1);
+          
+          matchesToAnalyze = allMatches.filter(match => {
+            const matchDate = new Date(match.kickoff_utc);
+            return matchDate >= selectedDate && matchDate < nextDay;
+          });
+          
+          console.log(`📅 Matchs filtrés par date ${dateFilter}: ${matchesToAnalyze.length}/${allMatches.length}`);
+        } else {
+          console.log(`📅 Tous les matchs analysés (pas de filtre): ${matchesToAnalyze.length}`);
+        }
       }
       
       console.log(`📊 Analysing ${matchesToAnalyze.length} matchs pour la date sélectionnée`);
