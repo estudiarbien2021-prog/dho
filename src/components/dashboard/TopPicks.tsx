@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { FlagMini } from '@/components/Flag';
 import { leagueToFlag } from '@/lib/leagueCountry';
+import { generateAIRecommendation } from '@/lib/aiRecommendation';
 import { Trophy, Target, Zap } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -14,68 +15,32 @@ interface TopPicksProps {
 }
 
 export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
-  // Nouvelle formule : cotes les plus hautes avec vigorish le plus élevé (BTTS & O/U seulement)
+  // Utilise la même logique que l'Analyse IA du popup detail
   const getTopBets = () => {
     const validBets = [];
     
     matches.forEach(match => {
-      // BTTS Markets seulement
-      if (match.odds_btts_yes && match.vig_btts > 0) {
-        validBets.push({
-          match,
-          type: 'BTTS',
-          prediction: 'Oui',
-          odds: match.odds_btts_yes,
-          probability: match.p_btts_yes_fair,
-          vigorish: match.vig_btts
-        });
-      }
+      // Utiliser generateAIRecommendation pour avoir la même logique que le popup
+      const aiRec = generateAIRecommendation(match, []);
       
-      if (match.odds_btts_no && match.vig_btts > 0) {
+      if (aiRec) {
         validBets.push({
           match,
-          type: 'BTTS',
-          prediction: 'Non',
-          odds: match.odds_btts_no,
-          probability: match.p_btts_no_fair,
-          vigorish: match.vig_btts
-        });
-      }
-      
-      // Over/Under 2.5 Markets seulement
-      if (match.odds_over_2_5 && match.vig_ou_2_5 > 0) {
-        validBets.push({
-          match,
-          type: 'O/U 2.5',
-          prediction: '+2,5 buts',
-          odds: match.odds_over_2_5,
-          probability: match.p_over_2_5_fair,
-          vigorish: match.vig_ou_2_5
-        });
-      }
-      
-      if (match.odds_under_2_5 && match.vig_ou_2_5 > 0) {
-        validBets.push({
-          match,
-          type: 'O/U 2.5',
-          prediction: '-2,5 buts',
-          odds: match.odds_under_2_5,
-          probability: match.p_under_2_5_fair,
-          vigorish: match.vig_ou_2_5
+          type: aiRec.betType,
+          prediction: aiRec.prediction,
+          odds: aiRec.odds,
+          probability: aiRec.betType === 'BTTS' 
+            ? (aiRec.prediction === 'Oui' ? match.p_btts_yes_fair : match.p_btts_no_fair)
+            : (aiRec.prediction === '+2,5 buts' ? match.p_over_2_5_fair : match.p_under_2_5_fair),
+          vigorish: aiRec.betType === 'BTTS' ? match.vig_btts : match.vig_ou_2_5
         });
       }
     });
     
-    // Trier par vigorish décroissant puis par cotes décroissantes
+    // Trier par cotes décroissantes (les plus hautes d'abord)
+    // La logique IA garantit déjà le vigorish le plus élevé
     return validBets
-      .sort((a, b) => {
-        // D'abord par vigorish (plus élevé = mieux)
-        if (Math.abs(a.vigorish - b.vigorish) > 0.001) {
-          return b.vigorish - a.vigorish;
-        }
-        // Si vigorish similaire, alors par cotes (plus hautes = mieux)
-        return b.odds - a.odds;
-      })
+      .sort((a, b) => b.odds - a.odds)
       .slice(0, 3);
   };
 
