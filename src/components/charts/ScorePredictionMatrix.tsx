@@ -439,7 +439,17 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
       });
     });
     
-    return { home: homeWin, draw, away: awayWin };
+    // Normaliser les probabilités pour qu'elles totalisent 100%
+    const total = homeWin + draw + awayWin;
+    if (total > 0) {
+      return { 
+        home: (homeWin / total) * 100, 
+        draw: (draw / total) * 100, 
+        away: (awayWin / total) * 100 
+      };
+    }
+    
+    return { home: 0, draw: 0, away: 0 };
   };
 
   const winProbs = getWinProbabilities();
