@@ -11,6 +11,7 @@ export function generateAIRecommendation(match: ProcessedMatch, marketFilters: s
   // Seuils uniformes pour toute l'application
   const MIN_ODDS = 1.3;
   const MIN_PROBABILITY = 0.45;
+  const HIGH_VIG_THRESHOLD = 0.081; // 8.1%
   
   const availableMarkets = [];
   
@@ -20,15 +21,19 @@ export function generateAIRecommendation(match: ProcessedMatch, marketFilters: s
     const bttsYesProb = match.p_btts_yes_fair;
     const bttsNoProb = match.p_btts_no_fair;
     
+    // NOUVELLE RÈGLE : Si vigorish BTTS >= 8.1%, proposer l'inverse
+    const isHighVigBTTS = match.vig_btts >= HIGH_VIG_THRESHOLD;
+    
     // Choisir la meilleure option BTTS (Oui ou Non)
     let bestBTTS = null;
     if (match.odds_btts_yes >= MIN_ODDS && bttsYesProb >= MIN_PROBABILITY) {
       bestBTTS = {
         type: 'BTTS',
-        prediction: 'Oui',
-        odds: match.odds_btts_yes,
-        probability: bttsYesProb,
-        vigorish: match.vig_btts
+        prediction: isHighVigBTTS ? 'Non' : 'Oui', // Inverse si vigorish élevé
+        odds: isHighVigBTTS ? match.odds_btts_no : match.odds_btts_yes,
+        probability: isHighVigBTTS ? bttsNoProb : bttsYesProb,
+        vigorish: match.vig_btts,
+        isInverted: isHighVigBTTS
       };
     }
     
@@ -36,10 +41,11 @@ export function generateAIRecommendation(match: ProcessedMatch, marketFilters: s
       if (!bestBTTS || bttsNoProb > bestBTTS.probability) {
         bestBTTS = {
           type: 'BTTS',
-          prediction: 'Non',
-          odds: match.odds_btts_no,
-          probability: bttsNoProb,
-          vigorish: match.vig_btts
+          prediction: isHighVigBTTS ? 'Oui' : 'Non', // Inverse si vigorish élevé
+          odds: isHighVigBTTS ? match.odds_btts_yes : match.odds_btts_no,
+          probability: isHighVigBTTS ? bttsYesProb : bttsNoProb,
+          vigorish: match.vig_btts,
+          isInverted: isHighVigBTTS
         };
       }
     }
@@ -88,7 +94,23 @@ export function generateAIRecommendation(match: ProcessedMatch, marketFilters: s
     return null;
   }
   
-  // NOUVELLE LOGIQUE : Choisir le marché avec le vigorish le plus élevé
+  // NOUVELLE RÈGLE : Si vigorish BTTS >= 8.1% et qu'on avait une recommandation BTTS,
+  // remplacer par Over/Under si disponible
+  const bttsMarket = availableMarkets.find(m => m.type === 'BTTS');
+  const ouMarket = availableMarkets.find(m => m.type === 'O/U 2.5');
+  
+  if (bttsMarket && bttsMarket.isInverted && ouMarket) {
+    // Si BTTS a un vigorish élevé (inversé) et qu'on a Over/Under disponible,
+    // préférer Over/Under
+    return {
+      betType: ouMarket.type,
+      prediction: ouMarket.prediction,
+      odds: ouMarket.odds,
+      confidence: ouMarket.probability > 0.6 ? 'high' : ouMarket.probability > 0.5 ? 'medium' : 'low'
+    };
+  }
+  
+  // LOGIQUE STANDARD : Choisir le marché avec le vigorish le plus élevé
   const bestMarket = availableMarkets.sort((a, b) => b.vigorish - a.vigorish)[0];
   
   return {
