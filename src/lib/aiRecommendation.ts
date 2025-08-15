@@ -17,36 +17,55 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
   
   const recommendations: AIRecommendation[] = [];
   
-  // RÈGLE PRIORITAIRE : Si vigorish 1x2 >= 10%, recommander la double chance
+  // RÈGLE PRIORITAIRE : Si vigorish 1x2 >= 10%, recommander la double chance (opportunité détectée)
   if (match.vig_1x2 >= HIGH_VIG_1X2_THRESHOLD) {
-    // Calculer les probabilités des doubles chances
-    const prob1X = match.p_home_fair + match.p_draw_fair; // Victoire domicile ou match nul
-    const probX2 = match.p_draw_fair + match.p_away_fair; // Match nul ou victoire extérieur
-    const prob12 = match.p_home_fair + match.p_away_fair; // Victoire domicile ou extérieur
+    // Calculer les probabilités implicites des cotes 1x2
+    const probHome = 1 / match.odds_home;
+    const probDraw = 1 / match.odds_draw;
+    const probAway = 1 / match.odds_away;
     
-    // Calculer les cotes implicites de double chance (approximation)
-    const odds1X = 1 / prob1X;
-    const oddsX2 = 1 / probX2;
-    const odds12 = 1 / prob12;
-    
-    // Trouver la meilleure option de double chance
-    const doubleChances = [
-      { type: 'Double Chance', prediction: '1X', odds: odds1X, probability: prob1X },
-      { type: 'Double Chance', prediction: 'X2', odds: oddsX2, probability: probX2 },
-      { type: 'Double Chance', prediction: '12', odds: odds12, probability: prob12 }
+    // Créer un tableau des résultats avec leurs probabilités
+    const outcomes = [
+      { label: match.home_team, prob: probHome, type: 'home' },
+      { label: 'Nul', prob: probDraw, type: 'draw' },
+      { label: match.away_team, prob: probAway, type: 'away' }
     ];
     
-    // Choisir celle avec la meilleure probabilité et cote >= 1.3
-    const bestDoubleChance = doubleChances
-      .filter(dc => dc.odds >= MIN_ODDS && dc.probability >= MIN_PROBABILITY)
-      .sort((a, b) => b.probability - a.probability)[0];
+    // Trier par probabilité décroissante (le plus probable en premier)
+    outcomes.sort((a, b) => b.prob - a.prob);
     
-    if (bestDoubleChance) {
+    // Prendre la 2ème et 3ème option pour la double chance (exclure la plus probable)
+    const secondChoice = outcomes[1];
+    const thirdChoice = outcomes[2];
+    
+    // Déterminer la combinaison de double chance basée sur la logique d'opportunité détectée
+    let doubleChance = '';
+    let doubleChanceProb = 0;
+    
+    if ((secondChoice.type === 'home' && thirdChoice.type === 'draw') || 
+        (secondChoice.type === 'draw' && thirdChoice.type === 'home')) {
+      doubleChance = '1X';
+      doubleChanceProb = match.p_home_fair + match.p_draw_fair;
+    } else if ((secondChoice.type === 'home' && thirdChoice.type === 'away') || 
+               (secondChoice.type === 'away' && thirdChoice.type === 'home')) {
+      doubleChance = '12';
+      doubleChanceProb = match.p_home_fair + match.p_away_fair;
+    } else if ((secondChoice.type === 'draw' && thirdChoice.type === 'away') || 
+               (secondChoice.type === 'away' && thirdChoice.type === 'draw')) {
+      doubleChance = 'X2';
+      doubleChanceProb = match.p_draw_fair + match.p_away_fair;
+    }
+    
+    // Calculer les cotes de double chance
+    const doubleChanceOdds = 1 / doubleChanceProb;
+    
+    // Vérifier si cette opportunité est valide (cote >= 1.3 et probabilité >= 45%)
+    if (doubleChanceOdds >= MIN_ODDS && doubleChanceProb >= MIN_PROBABILITY) {
       recommendations.push({
-        betType: bestDoubleChance.type,
-        prediction: bestDoubleChance.prediction,
-        odds: bestDoubleChance.odds,
-        confidence: bestDoubleChance.probability > 0.75 ? 'high' : bestDoubleChance.probability > 0.65 ? 'medium' : 'low',
+        betType: 'Double Chance',
+        prediction: doubleChance,
+        odds: doubleChanceOdds,
+        confidence: doubleChanceProb > 0.75 ? 'high' : doubleChanceProb > 0.65 ? 'medium' : 'low',
         isInverted: false
       });
       
