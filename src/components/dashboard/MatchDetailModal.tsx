@@ -842,61 +842,57 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
                   {/* AI Recommendation */}
-                  <div className="space-y-6">
-                    <Card className="p-6 bg-gradient-to-br from-brand/10 to-brand/20 border-border/50 h-full">
-                      {recommendation && shouldShowAIRecommendation() ? (
-                        <div className="space-y-6 h-full flex flex-col">
-                          <div className="flex items-center justify-between">
-                            <Badge className="bg-brand text-brand-fg px-4 py-2 text-base font-semibold">
-                              {recommendation.type} {recommendation.prediction}
-                            </Badge>
-                            <div className="text-2xl font-bold text-brand">
-                              {recommendation.odds.toFixed(2)}
-                            </div>
-                          </div>
-                          <div className="space-y-4">
-                            <div className="flex justify-between text-base">
-                              <span className="text-text-weak font-medium">Niveau de confiance:</span>
-                              <span className="font-bold text-brand text-lg">
-                                {generateConfidenceScore(match.id, recommendation)}%
-                              </span>
-                            </div>
-                            <div className="relative h-3 bg-brand/20 rounded-full overflow-hidden">
-                              <div 
-                                className="absolute top-0 left-0 h-full bg-gradient-to-r from-brand to-brand-400 rounded-full transition-all duration-1000"
-                                style={{ width: `${showAIGraphics ? generateConfidenceScore(match.id, recommendation) : 0}%` }}
-                              />
-                            </div>
-                          </div>
-                          
-                          {/* Detailed AI Commentary */}
-                          <div className="flex-1 p-4 bg-surface rounded-lg border border-brand/10">
-                            <div className="text-sm text-text leading-relaxed">
-                              <div dangerouslySetInnerHTML={{ 
-                                __html: (typeof generateRecommendationExplanation === 'function' 
-                                  ? generateRecommendationExplanation(recommendation).replace(/\n/g, '<br/>') 
-                                  : 'Explication temporairement indisponible'
-                                )
-                              }} />
-                            </div>
+                  <Card className="p-6 bg-gradient-to-br from-brand/10 to-brand/20 border-border/50 min-h-[600px]">
+                    {recommendation && shouldShowAIRecommendation() ? (
+                      <div className="space-y-6 h-full flex flex-col">
+                        <div className="flex items-center justify-between">
+                          <Badge className="bg-brand text-brand-fg px-4 py-2 text-base font-semibold">
+                            {recommendation.type} {recommendation.prediction}
+                          </Badge>
+                          <div className="text-2xl font-bold text-brand">
+                            {recommendation.odds.toFixed(2)}
                           </div>
                         </div>
-                      ) : (
-                        <div className="h-full flex items-center justify-center">
-                          <span className="text-text-weak text-base">Aucune recommandation disponible</span>
+                        <div className="space-y-4">
+                          <div className="flex justify-between text-base">
+                            <span className="text-text-weak font-medium">Niveau de confiance:</span>
+                            <span className="font-bold text-brand text-lg">
+                              {generateConfidenceScore(match.id, recommendation)}%
+                            </span>
+                          </div>
+                          <div className="relative h-3 bg-brand/20 rounded-full overflow-hidden">
+                            <div 
+                              className="absolute top-0 left-0 h-full bg-gradient-to-r from-brand to-brand-400 rounded-full transition-all duration-1000"
+                              style={{ width: `${showAIGraphics ? generateConfidenceScore(match.id, recommendation) : 0}%` }}
+                            />
+                          </div>
                         </div>
-                      )}
-                    </Card>
-                  </div>
+                        
+                        {/* Detailed AI Commentary */}
+                        <div className="flex-1 p-4 bg-surface rounded-lg border border-brand/10">
+                          <div className="text-sm text-text leading-relaxed">
+                            <div dangerouslySetInnerHTML={{ 
+                              __html: (typeof generateRecommendationExplanation === 'function' 
+                                ? generateRecommendationExplanation(recommendation).replace(/\n/g, '<br/>') 
+                                : 'Explication temporairement indisponible'
+                              )
+                            }} />
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="h-full flex items-center justify-center">
+                        <span className="text-text-weak text-base">Aucune recommandation disponible</span>
+                      </div>
+                    )}
+                  </Card>
 
                   {/* Market Efficiency Section - Now with matching height */}
-                  <div className="space-y-6">
-                    <Card className="p-6 bg-gradient-to-br from-background to-muted/20 border-border/50 h-full">
-                      <MarketEfficiencyGauge match={match} />
-                    </Card>
-                  </div>
+                  <Card className="p-6 bg-gradient-to-br from-background to-muted/20 border-border/50 min-h-[600px]">
+                    <MarketEfficiencyGauge match={match} />
+                  </Card>
                 </div>
 
                 {/* Compact Confidence Bars - moved below */}
