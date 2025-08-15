@@ -57,108 +57,162 @@ export function ConfidenceScoreBars({ predictions, isActive }: ConfidenceScoreBa
     animateBars();
   }, [isActive, predictions]);
 
-  const getConfidenceLabel = (value: number) => {
-    if (value >= 75) return { label: "Très Fort", color: "text-green-500" };
-    if (value >= 60) return { label: "Fort", color: "text-orange-500" };
-    if (value >= 45) return { label: "Modéré", color: "text-blue-500" };
-    return { label: "Faible", color: "text-red-500" };
+  const getConfidenceLevel = (value: number) => {
+    if (value >= 75) return { label: "Très Fort", color: "text-emerald-600" };
+    if (value >= 60) return { label: "Fort", color: "text-green-600" };
+    if (value >= 45) return { label: "Modéré", color: "text-blue-600" };
+    return { label: "Faible", color: "text-amber-600" };
   };
 
   return (
-    <Card className="p-6">
-      <div className="flex items-center gap-2 mb-6">
-        <div className="w-2 h-2 bg-green-500 rounded-full" />
-        <h3 className="font-semibold text-sm">Scores de Confiance IA</h3>
+    <Card className="p-6 bg-gradient-to-br from-slate-50 to-white dark:from-slate-900/50 dark:to-slate-800/50 border-0 shadow-lg">
+      <div className="flex items-center gap-3 mb-8">
+        <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-r from-emerald-500 to-green-500 rounded-xl shadow-lg">
+          <div className="w-3 h-3 bg-white rounded-full animate-pulse" />
+        </div>
+        <div>
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white">Scores de Confiance IA</h3>
+          <p className="text-sm text-slate-600 dark:text-slate-400">Analyse prédictive avancée</p>
+        </div>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-6">
         {predictions.map((prediction, index) => {
-          const confidenceInfo = getConfidenceLabel(animatedValues[index]);
+          const confidenceInfo = getConfidenceLevel(animatedValues[index]);
           return (
-            <div key={prediction.label} className="space-y-3">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
+            <div key={prediction.label} className="group">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-4">
                   <div 
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm"
-                    style={{ backgroundColor: prediction.color }}
+                    className="relative flex items-center justify-center w-12 h-12 rounded-2xl shadow-lg transition-all duration-300 group-hover:scale-110"
+                    style={{ 
+                      background: `linear-gradient(135deg, ${prediction.color}dd, ${prediction.color})`,
+                      boxShadow: currentlyAnimating === index 
+                        ? `0 8px 25px ${prediction.color}40` 
+                        : `0 4px 15px ${prediction.color}20`
+                    }}
                   >
-                    {prediction.icon}
+                    <span className="text-lg filter drop-shadow-sm">{prediction.icon}</span>
+                    {currentlyAnimating === index && (
+                      <div className="absolute inset-0 rounded-2xl animate-pulse" 
+                           style={{ backgroundColor: `${prediction.color}30` }} />
+                    )}
                   </div>
                   <div>
-                    <div className="font-medium text-sm">{prediction.label}</div>
-                    <div className="text-xs text-muted-foreground">Analyse prédictive avancée</div>
+                    <h4 className="font-semibold text-slate-900 dark:text-white mb-1">
+                      {prediction.label}
+                    </h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Analyse prédictive avancée
+                    </p>
                   </div>
                 </div>
+                
                 <div className="text-right">
                   <div 
-                    className={`text-xl font-bold transition-all duration-300 ${
-                      currentlyAnimating === index ? 'animate-pulse' : ''
-                    }`}
-                    style={{ color: prediction.color }}
+                    className="text-2xl font-bold transition-all duration-300 mb-1"
+                    style={{ 
+                      color: prediction.color,
+                      textShadow: currentlyAnimating === index ? `0 0 10px ${prediction.color}40` : 'none'
+                    }}
                   >
                     {animatedValues[index].toFixed(0)}%
                   </div>
-                  <div className={`text-xs font-medium ${confidenceInfo.color}`}>
+                  <div className={`text-xs font-medium px-2 py-1 rounded-full ${confidenceInfo.color} bg-slate-100 dark:bg-slate-700`}>
                     {confidenceInfo.label}
                   </div>
                 </div>
               </div>
               
               <div className="relative">
-                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                <div className="h-3 bg-gradient-to-r from-slate-200 to-slate-100 dark:from-slate-700 dark:to-slate-600 rounded-full overflow-hidden shadow-inner">
                   <div
-                    className="h-full rounded-full transition-all duration-75 ease-out relative"
+                    className="h-full rounded-full relative transition-all duration-300 ease-out"
                     style={{
                       width: `${animatedValues[index]}%`,
-                      backgroundColor: prediction.color,
+                      background: `linear-gradient(90deg, ${prediction.color}dd, ${prediction.color})`,
                       boxShadow: currentlyAnimating === index 
-                        ? `0 0 8px ${prediction.color}40` 
-                        : 'none'
+                        ? `0 0 15px ${prediction.color}60, inset 0 1px 2px rgba(255,255,255,0.3)` 
+                        : `inset 0 1px 2px rgba(255,255,255,0.3)`
                     }}
                   >
                     {currentlyAnimating === index && (
                       <div 
-                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
-                        style={{
-                          animation: 'shine 1s ease-in-out infinite'
-                        }}
+                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent rounded-full animate-pulse"
                       />
                     )}
                   </div>
                 </div>
-              </div>
-              
-              {currentlyAnimating === index && (
-                <div className="flex justify-end">
-                  <div className="w-2 h-2 bg-primary rounded-full animate-bounce" />
+                
+                {/* Progress markers */}
+                <div className="flex justify-between mt-2 px-1">
+                  {[0, 25, 50, 75, 100].map(marker => (
+                    <span key={marker} className="text-xs text-slate-400 dark:text-slate-500">
+                      {marker}%
+                    </span>
+                  ))}
                 </div>
-              )}
+              </div>
             </div>
           );
         })}
       </div>
 
-      {/* Synthèse Algorithmique */}
-      <div className="mt-6 p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-          <span className="text-sm font-medium text-green-700 dark:text-green-400">Synthèse Algorithmique</span>
+      {/* Synthèse Algorithmique améliorée */}
+      <div className="mt-8 p-6 bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-950/20 dark:to-green-950/20 rounded-2xl border border-emerald-200/50 dark:border-emerald-800/30">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-r from-emerald-500 to-green-500 rounded-lg shadow-md">
+            <div className="w-2 h-2 bg-white rounded-full" />
+          </div>
+          <h4 className="font-bold text-emerald-800 dark:text-emerald-300">Synthèse Algorithmique</h4>
         </div>
         
-        <div className="text-sm text-green-800 dark:text-green-300 mb-3">
-          L'IA a analysé 6 facteurs critiques. Les algorithmes de machine learning identifient les variables les plus déterminantes pour prédire l'issue du match avec une précision optimisée.
-        </div>
+        <p className="text-sm text-emerald-700 dark:text-emerald-300 mb-4 leading-relaxed">
+          L&apos;IA a analysé 6 facteurs critiques. Les algorithmes de machine learning identifient les variables les plus déterminantes pour prédire l&apos;issue du match avec une précision optimisée.
+        </p>
 
-        {/* Commentaire explicatif détaillé */}
-        <div className="p-3 bg-slate-800/30 rounded text-xs text-muted-foreground space-y-2">
-          <div>
-            <span className="text-primary font-semibold">🤖 Machine Learning :</span> Le modèle prédictif, alimenté par +54 800 affrontements similaires du football sud-américain avec contextes identiques (blessures/suspensions, arbitre, pelouse, supporters, enjeux, déplacements, fatigue, météo), détecte 50.0% de probabilité qu'une équipe au minimum reste bredouille.
+        {/* Analyse détaillée avec design amélioré */}
+        <div className="grid gap-4">
+          <div className="p-4 bg-white/50 dark:bg-slate-800/30 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
+            <div className="flex items-start gap-3">
+              <div className="flex items-center justify-center w-8 h-8 bg-blue-500 rounded-lg text-white text-sm font-bold">
+                🤖
+              </div>
+              <div className="flex-1">
+                <h5 className="font-semibold text-blue-700 dark:text-blue-300 mb-1">Machine Learning</h5>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Le modèle prédictif, alimenté par +54 800 affrontements similaires du football sud-américain avec contextes identiques (blessures/suspensions, arbitre, pelouse, supporters, enjeux, déplacements, fatigue, météo), détecte 50.0% de probabilité qu&apos;une équipe au minimum reste bredouille.
+                </p>
+              </div>
+            </div>
           </div>
-          <div>
-            <span className="text-green-400 font-semibold">💰 Profit Attendu :</span> La cote 1.62 génère une espérance de gain positive de +5.3% sur le long terme.
+          
+          <div className="p-4 bg-white/50 dark:bg-slate-800/30 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
+            <div className="flex items-start gap-3">
+              <div className="flex items-center justify-center w-8 h-8 bg-emerald-500 rounded-lg text-white text-sm font-bold">
+                💰
+              </div>
+              <div className="flex-1">
+                <h5 className="font-semibold text-emerald-700 dark:text-emerald-300 mb-1">Profit Attendu</h5>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  La cote 1.62 génère une espérance de gain positive de +5.3% sur le long terme.
+                </p>
+              </div>
+            </div>
           </div>
-          <div>
-            <span className="text-blue-400 font-semibold">📊 Tarification Normale :</span> Commission à 7.2%, conforme aux standards du marché d'investissement sportif.
+          
+          <div className="p-4 bg-white/50 dark:bg-slate-800/30 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
+            <div className="flex items-start gap-3">
+              <div className="flex items-center justify-center w-8 h-8 bg-violet-500 rounded-lg text-white text-sm font-bold">
+                📊
+              </div>
+              <div className="flex-1">
+                <h5 className="font-semibold text-violet-700 dark:text-violet-300 mb-1">Tarification Normale</h5>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Commission à 7.2%, conforme aux standards du marché d&apos;investissement sportif.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
