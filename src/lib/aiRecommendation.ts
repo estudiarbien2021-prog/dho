@@ -118,9 +118,43 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
   
   const recommendations: AIRecommendation[] = [];
   
-  // NOUVELLE RÈGLE : Si un marché a un vigorish élevé (inversé), proposer les deux si disponibles
+  // NOUVELLE RÈGLE : Si les probabilités >= 60%, ignorer le vigorish et prioriser par probabilité
   const bttsMarket = availableMarkets.find(m => m.type === 'BTTS');
   const ouMarket = availableMarkets.find(m => m.type === 'O/U 2.5');
+  
+  // Vérifier si on doit appliquer l'exception des 60%
+  const bttsMaxProb = bttsMarket ? Math.max(match.p_btts_yes_fair, match.p_btts_no_fair) : 0;
+  const ouMaxProb = ouMarket ? Math.max(match.p_over_2_5_fair, match.p_under_2_5_fair) : 0;
+  const shouldUseHighProbabilityLogic = bttsMaxProb >= 0.6 || ouMaxProb >= 0.6;
+  
+  if (shouldUseHighProbabilityLogic) {
+    // Trier par probabilité la plus élevée quand >= 60%
+    const sortedByProbability = availableMarkets.sort((a, b) => b.probability - a.probability);
+    
+    // Première recommandation (plus haute probabilité)
+    const bestMarket = sortedByProbability[0];
+    recommendations.push({
+      betType: bestMarket.type,
+      prediction: bestMarket.prediction,
+      odds: bestMarket.odds,
+      confidence: bestMarket.probability > 0.6 ? 'high' : bestMarket.probability > 0.5 ? 'medium' : 'low',
+      isInverted: bestMarket.isInverted || false
+    });
+    
+    // Deuxième recommandation si disponible et probabilité suffisante
+    if (sortedByProbability.length > 1 && sortedByProbability[1].probability >= 0.45) {
+      const secondBestMarket = sortedByProbability[1];
+      recommendations.push({
+        betType: secondBestMarket.type,
+        prediction: secondBestMarket.prediction,
+        odds: secondBestMarket.odds,
+        confidence: secondBestMarket.probability > 0.6 ? 'high' : secondBestMarket.probability > 0.5 ? 'medium' : 'low',
+        isInverted: secondBestMarket.isInverted || false
+      });
+    }
+    
+    return recommendations;
+  }
   
   // Si BTTS est inversé et O/U disponible, ou si O/U est inversé et BTTS disponible
   if ((bttsMarket?.isInverted && ouMarket) || (ouMarket?.isInverted && bttsMarket)) {
