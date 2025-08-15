@@ -35,7 +35,7 @@ interface MatchDetailModalProps {
 }
 
 export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }: MatchDetailModalProps) {
-  // Early return BEFORE any hooks
+  // Early return BEFORE any hooks - TeamChemistryAnalyzer removed
   if (!match) return null;
 
   const [showAIGraphics, setShowAIGraphics] = useState(false);
