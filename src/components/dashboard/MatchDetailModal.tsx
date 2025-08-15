@@ -25,7 +25,7 @@ import { ConfidenceRadar } from '@/components/charts/ConfidenceRadar';
 import { MarketEfficiencyGauge } from '@/components/charts/MarketEfficiencyGauge';
 import { AIConsensusGauge } from '@/components/charts/AIConsensusGauge';
 import { PredictionCertaintyBars } from '@/components/charts/PredictionCertaintyBars';
-import { TeamChemistryAnalyzer } from '@/components/charts/TeamChemistryAnalyzer';
+
 
 interface MatchDetailModalProps {
   match: ProcessedMatch | null;
@@ -1089,11 +1089,6 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                   <PredictionCertaintyBars match={match} />
                 </Card>
               </div>
-
-              {/* Analyseur de Chimie d'Équipes - Pleine largeur */}
-              <Card className="p-6 bg-gradient-to-br from-background to-muted/20 border-border/50">
-                <TeamChemistryAnalyzer match={match} />
-              </Card>
             </div>
           )}
 
