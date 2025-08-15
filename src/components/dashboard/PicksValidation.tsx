@@ -213,22 +213,47 @@ export function PicksValidation() {
     
     let allMatches: ProcessedMatch[] = [];
     
-    // Si pas de matchData fourni, charger TOUS les matchs de la base
+    // Si pas de matchData fourni, charger les matchs selon le filtre de date
     if (!matchData || matchData.length === 0) {
-      console.log('🔄 Chargement de TOUS les matchs depuis la base de données...');
+      console.log('🔄 Chargement des matchs depuis la base de données...');
+      
+      let query = supabase
+        .from('matches')
+        .select('*')
+        .order('kickoff_utc', { ascending: true });
+      
+      // Si une date est sélectionnée, filtrer uniquement par cette date
+      if (dateFilter && dateFilter !== '') {
+        console.log(`📅 Filtrage strict par date: ${dateFilter}`);
+        const selectedDate = new Date(dateFilter + 'T00:00:00Z');
+        const nextDay = new Date(selectedDate);
+        nextDay.setDate(nextDay.getDate() + 1);
+        
+        query = query
+          .gte('kickoff_utc', selectedDate.toISOString())
+          .lt('kickoff_utc', nextDay.toISOString());
+      } else {
+        console.log('🔄 Chargement de TOUS les matchs (aucune date sélectionnée)');
+      }
       
       try {
-        const { data, error } = await supabase
-          .from('matches')
-          .select('*')
-          .order('kickoff_utc', { ascending: true });
+        const { data, error } = await query;
 
         if (error) {
-          console.error('❌ Erreur Supabase pour tous les matchs:', error);
+          console.error('❌ Erreur Supabase:', error);
           throw error;
         }
         
-        console.log(`✅ TOUS les matchs chargés: ${data?.length || 0}`);
+        if (dateFilter && dateFilter !== '') {
+          console.log(`✅ Matchs chargés pour ${dateFilter}: ${data?.length || 0}`);
+          if (!data || data.length === 0) {
+            console.log(`⚠️ Aucun match trouvé pour ${dateFilter}`);
+            setPotentialPicks([]);
+            return;
+          }
+        } else {
+          console.log(`✅ TOUS les matchs chargés: ${data?.length || 0}`);
+        }
         
         // Convertir au format ProcessedMatch
         allMatches = (data || []).map(match => ({
