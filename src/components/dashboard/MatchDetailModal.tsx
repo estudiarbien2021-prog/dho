@@ -698,17 +698,8 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
             </h3>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Neural Network Visualization */}
-              <div className="lg:col-span-2">
-              <NeuralNetworkVisualization 
-                isActive={showAIGraphics} 
-                confidence={Number(generateConfidenceScore(match.id, recommendation || {}))} 
-                match={match}
-              />
-            </div>
-            
             {/* Confidence Score Bars */}
-            <ConfidenceScoreBars 
+            <ConfidenceScoreBars
               isActive={showAIGraphics}
               predictions={[
                 {
