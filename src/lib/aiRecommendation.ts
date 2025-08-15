@@ -17,7 +17,87 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
   
   const recommendations: AIRecommendation[] = [];
   
-  // RÈGLE PRIORITAIRE 1 : Si vigorish BTTS <= 6% OU vigorish O/U <= 6%, recommander la prédiction la plus probable
+  // RÈGLE PRIORITAIRE 1 : Si vigorish BTTS >= 8.1% OU vigorish O/U >= 8.1%, recommander l'opportunité détectée (inverse)
+  const bttsHighVig = match.vig_btts > 0 && match.vig_btts >= HIGH_VIG_THRESHOLD && 
+                      match.odds_btts_yes && match.odds_btts_no;
+  
+  const ouHighVig = match.vig_ou_2_5 > 0 && match.vig_ou_2_5 >= HIGH_VIG_THRESHOLD && 
+                    match.odds_over_2_5 && match.odds_under_2_5;
+  
+  if (bttsHighVig || ouHighVig) {
+    const candidates = [];
+    
+    // Ajouter BTTS inversé si haut vigorish
+    if (bttsHighVig) {
+      const bttsYesProb = match.p_btts_yes_fair;
+      const bttsNoProb = match.p_btts_no_fair;
+      
+      // Recommander l'inverse de la prédiction la plus probable
+      if (bttsYesProb > bttsNoProb && match.odds_btts_no! >= MIN_ODDS && bttsNoProb >= MIN_PROBABILITY) {
+        candidates.push({
+          type: 'BTTS',
+          prediction: 'Non',
+          odds: match.odds_btts_no!,
+          probability: bttsNoProb,
+          vigorish: match.vig_btts,
+          isOpportunity: true
+        });
+      } else if (bttsNoProb > bttsYesProb && match.odds_btts_yes! >= MIN_ODDS && bttsYesProb >= MIN_PROBABILITY) {
+        candidates.push({
+          type: 'BTTS',
+          prediction: 'Oui',
+          odds: match.odds_btts_yes!,
+          probability: bttsYesProb,
+          vigorish: match.vig_btts,
+          isOpportunity: true
+        });
+      }
+    }
+    
+    // Ajouter O/U inversé si haut vigorish
+    if (ouHighVig) {
+      const overProb = match.p_over_2_5_fair;
+      const underProb = match.p_under_2_5_fair;
+      
+      // Recommander l'inverse de la prédiction la plus probable
+      if (overProb > underProb && match.odds_under_2_5! >= MIN_ODDS && underProb >= MIN_PROBABILITY) {
+        candidates.push({
+          type: 'O/U 2.5',
+          prediction: '-2,5 buts',
+          odds: match.odds_under_2_5!,
+          probability: underProb,
+          vigorish: match.vig_ou_2_5,
+          isOpportunity: true
+        });
+      } else if (underProb > overProb && match.odds_over_2_5! >= MIN_ODDS && overProb >= MIN_PROBABILITY) {
+        candidates.push({
+          type: 'O/U 2.5',
+          prediction: '+2,5 buts',
+          odds: match.odds_over_2_5!,
+          probability: overProb,
+          vigorish: match.vig_ou_2_5,
+          isOpportunity: true
+        });
+      }
+    }
+    
+    // Prendre la meilleure opportunité (plus haut vigorish)
+    if (candidates.length > 0) {
+      const bestOpportunity = candidates.sort((a, b) => b.vigorish - a.vigorish)[0];
+      
+      recommendations.push({
+        betType: bestOpportunity.type,
+        prediction: bestOpportunity.prediction,
+        odds: bestOpportunity.odds,
+        confidence: bestOpportunity.probability > 0.6 ? 'high' : bestOpportunity.probability > 0.5 ? 'medium' : 'low',
+        isInverted: true
+      });
+      
+      return recommendations;
+    }
+  }
+  
+  // RÈGLE PRIORITAIRE 2 : Si vigorish BTTS <= 6% OU vigorish O/U <= 6%, recommander la prédiction la plus probable
   const LOW_VIG_THRESHOLD = 0.06; // 6%
   
   // Vérifier si BTTS a un faible vigorish
