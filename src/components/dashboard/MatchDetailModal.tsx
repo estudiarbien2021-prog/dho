@@ -862,48 +862,6 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                       </div>
                     </div>
                   </div>
-
-                  {/* Influence Factors - Compact Version */}
-                  <div className="space-y-4">
-                    <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">Facteurs d'Influence</div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                        <div className="flex items-center gap-2 mb-1">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full" />
-                          <span className="text-xs font-medium text-blue-700 dark:text-blue-300">Cotes</span>
-                        </div>
-                        <div className="text-lg font-bold text-blue-800 dark:text-blue-200">85%</div>
-                        <div className="text-xs text-blue-600 dark:text-blue-400">Impact fort</div>
-                      </div>
-                      
-                      <div className="p-3 bg-purple-50 dark:bg-purple-950/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                        <div className="flex items-center gap-2 mb-1">
-                          <div className="w-2 h-2 bg-purple-500 rounded-full" />
-                          <span className="text-xs font-medium text-purple-700 dark:text-purple-300">Historique</span>
-                        </div>
-                        <div className="text-lg font-bold text-purple-800 dark:text-purple-200">72%</div>
-                        <div className="text-xs text-purple-600 dark:text-purple-400">Modéré</div>
-                      </div>
-                      
-                      <div className="p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
-                        <div className="flex items-center gap-2 mb-1">
-                          <div className="w-2 h-2 bg-amber-500 rounded-full" />
-                          <span className="text-xs font-medium text-amber-700 dark:text-amber-300">Forme</span>
-                        </div>
-                        <div className="text-lg font-bold text-amber-800 dark:text-amber-200">68%</div>
-                        <div className="text-xs text-amber-600 dark:text-amber-400">Positif</div>
-                      </div>
-                      
-                      <div className="p-3 bg-cyan-50 dark:bg-cyan-950/20 rounded-lg border border-cyan-200 dark:border-cyan-800">
-                        <div className="flex items-center gap-2 mb-1">
-                          <div className="w-2 h-2 bg-cyan-500 rounded-full" />
-                          <span className="text-xs font-medium text-cyan-700 dark:text-cyan-300">Contexte</span>
-                        </div>
-                        <div className="text-lg font-bold text-cyan-800 dark:text-cyan-200">91%</div>
-                        <div className="text-xs text-cyan-600 dark:text-cyan-400">Excellent</div>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </Card>
             </div>
