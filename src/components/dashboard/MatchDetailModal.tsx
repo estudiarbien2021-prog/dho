@@ -831,6 +831,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
               <ProbabilityDistribution
                 matchId={match.id}
                 isActive={showAIGraphics}
+                match={match}
               />
 
               {/* Score Prediction Matrix */}
@@ -839,6 +840,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                 awayTeam={match.away_team}
                 matchId={match.id}
                 isActive={showAIGraphics}
+                match={match}
               />
             </div>
           </div>

@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
+import { ProcessedMatch } from '@/types/match';
+import { calculatePoisson } from '@/lib/poisson';
 
 interface ScorePredictionMatrixProps {
   homeTeam: string;
   awayTeam: string;
   matchId: string;
   isActive: boolean;
+  match: ProcessedMatch;
 }
 
 interface ScoreCell {
@@ -15,49 +18,57 @@ interface ScoreCell {
   isHighlighted: boolean;
 }
 
-export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive }: ScorePredictionMatrixProps) {
+export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, match }: ScorePredictionMatrixProps) {
   const [matrix, setMatrix] = useState<ScoreCell[][]>([]);
   const [animationStep, setAnimationStep] = useState(0);
 
-  // Generate probability matrix
+  // Generate probability matrix using real match data with Poisson model
   const generateMatrix = () => {
-    const hashCode = (str: string) => {
-      let hash = 0;
-      for (let i = 0; i < str.length; i++) {
-        const char = str.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash;
-      }
-      return Math.abs(hash);
+    // Use the real match probabilities with Poisson model
+    const poissonInputs = {
+      p_home_fair: match.p_home_fair,
+      p_draw_fair: match.p_draw_fair,
+      p_away_fair: match.p_away_fair,
+      p_btts_yes_fair: match.p_btts_yes_fair,
+      p_over_2_5_fair: match.p_over_2_5_fair
     };
 
-    const seed = hashCode(matchId);
-    const seededRandom = (index: number) => {
-      const x = Math.sin(seed + index) * 10000;
-      return x - Math.floor(x);
-    };
-
+    const poissonResult = calculatePoisson(poissonInputs);
+    
     const matrix: ScoreCell[][] = [];
     const maxScore = 5;
+    const lambdaHome = poissonResult.lambda_home;
+    const lambdaAway = poissonResult.lambda_away;
+    const rho = poissonResult.rho;
+    
+    // Factorial helper function
+    const factorial = (n: number): number => {
+      if (n <= 1) return 1;
+      return n * factorial(n - 1);
+    };
     
     for (let home = 0; home <= maxScore; home++) {
       const row: ScoreCell[] = [];
       for (let away = 0; away <= maxScore; away++) {
-        const totalGoals = home + away;
+        // Calculate probability using Poisson model
+        const poissonHome = Math.exp(-lambdaHome) * Math.pow(lambdaHome, home) / factorial(home);
+        const poissonAway = Math.exp(-lambdaAway) * Math.pow(lambdaAway, away) / factorial(away);
+        let probability = poissonHome * poissonAway;
         
-        // Base probability using Poisson-like distribution
-        let probability = Math.exp(-Math.pow(totalGoals - 2.3, 2) / (2 * 1.5));
-        
-        // Realistic football adjustments
-        if (home === away) probability *= 0.85; // Draws less likely
-        if (home === 1 && away === 0) probability *= 1.4;
-        if (home === 2 && away === 1) probability *= 1.3;
-        if (home === 0 && away === 0) probability *= 0.7;
-        if (totalGoals > 4) probability *= 0.4;
-        
-        // Team-specific adjustments
-        const teamFactor = 0.8 + seededRandom(home * 10 + away) * 0.4;
-        probability *= teamFactor;
+        // Apply Dixon-Coles adjustment for low scores
+        if (home <= 1 && away <= 1) {
+          const tau = lambdaHome * lambdaAway;
+          
+          if (home === 0 && away === 0) {
+            probability *= (1 - rho * tau);
+          } else if (home === 0 && away === 1) {
+            probability *= (1 + rho * lambdaHome);
+          } else if (home === 1 && away === 0) {
+            probability *= (1 + rho * lambdaAway);
+          } else if (home === 1 && away === 1) {
+            probability *= (1 - rho);
+          }
+        }
         
         row.push({
           homeScore: home,
@@ -69,14 +80,7 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive }:
       matrix.push(row);
     }
 
-    // Normalize probabilities
-    const totalProb = matrix.flat().reduce((sum, cell) => sum + cell.probability, 0);
-    return matrix.map(row => 
-      row.map(cell => ({
-        ...cell,
-        probability: (cell.probability / totalProb) * 100,
-      }))
-    );
+    return matrix;
   };
 
   const staticMatrix = generateMatrix();

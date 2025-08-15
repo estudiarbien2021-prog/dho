@@ -1,77 +1,80 @@
 import React, { useEffect, useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card } from '@/components/ui/card';
+import { ProcessedMatch } from '@/types/match';
+import { calculatePoisson } from '@/lib/poisson';
 
 interface ProbabilityDistributionProps {
   matchId: string;
   isActive: boolean;
+  match: ProcessedMatch;
 }
 
-export function ProbabilityDistribution({ matchId, isActive }: ProbabilityDistributionProps) {
+export function ProbabilityDistribution({ matchId, isActive, match }: ProbabilityDistributionProps) {
   const [animatedData, setAnimatedData] = useState<any[]>([]);
 
-  // Generate bell curve distribution data
+  // Generate probability distribution using real match data with Poisson model
   const generateDistributionData = () => {
-    const hashCode = (str: string) => {
-      let hash = 0;
-      for (let i = 0; i < str.length; i++) {
-        const char = str.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash;
-      }
-      return Math.abs(hash);
+    // Use the real match probabilities with Poisson model
+    const poissonInputs = {
+      p_home_fair: match.p_home_fair,
+      p_draw_fair: match.p_draw_fair,
+      p_away_fair: match.p_away_fair,
+      p_btts_yes_fair: match.p_btts_yes_fair,
+      p_over_2_5_fair: match.p_over_2_5_fair
     };
 
-    const seed = hashCode(matchId);
-    const seededRandom = (index: number) => {
-      const x = Math.sin(seed + index) * 10000;
-      return x - Math.floor(x);
-    };
-
-    // Generate bell curve for different score outcomes
-    const scores = [];
-    for (let i = 0; i <= 6; i++) {
-      for (let j = 0; j <= 6; j++) {
-        if (i + j <= 8) { // Realistic total goals
-          scores.push(`${i}-${j}`);
+    const poissonResult = calculatePoisson(poissonInputs);
+    
+    // Generate all score combinations up to 6-6
+    const data: any[] = [];
+    const maxGoals = 6;
+    
+    for (let home = 0; home <= maxGoals; home++) {
+      for (let away = 0; away <= maxGoals; away++) {
+        // Calculate probability for this specific score using Poisson model
+        const lambdaHome = poissonResult.lambda_home;
+        const lambdaAway = poissonResult.lambda_away;
+        
+        // Poisson probability calculation
+        const poissonHome = Math.exp(-lambdaHome) * Math.pow(lambdaHome, home) / factorial(home);
+        const poissonAway = Math.exp(-lambdaAway) * Math.pow(lambdaAway, away) / factorial(away);
+        let probability = poissonHome * poissonAway;
+        
+        // Apply Dixon-Coles adjustment for low scores
+        if (home <= 1 && away <= 1) {
+          const rho = poissonResult.rho;
+          const tau = lambdaHome * lambdaAway;
+          
+          if (home === 0 && away === 0) {
+            probability *= (1 - rho * tau);
+          } else if (home === 0 && away === 1) {
+            probability *= (1 + rho * lambdaHome);
+          } else if (home === 1 && away === 0) {
+            probability *= (1 + rho * lambdaAway);
+          } else if (home === 1 && away === 1) {
+            probability *= (1 - rho);
+          }
         }
+        
+        data.push({
+          score: `${home}-${away}`,
+          probability: probability * 100,
+          homeGoals: home,
+          awayGoals: away,
+          totalGoals: home + away,
+        });
       }
     }
 
-    // Create probability distribution with some realistic patterns
-    const data: any[] = [];
-    scores.forEach((score, index) => {
-      const [home, away] = score.split('-').map(Number);
-      const totalGoals = home + away;
-      
-      // Base probability using normal distribution around 2-3 total goals
-      let probability = Math.exp(-Math.pow(totalGoals - 2.5, 2) / (2 * 1.2));
-      
-      // Adjust for common football patterns
-      if (home === away) probability *= 0.8; // Draws slightly less likely
-      if (home === 1 && away === 0) probability *= 1.3; // 1-0 is common
-      if (home === 2 && away === 1) probability *= 1.2; // 2-1 is common
-      if (home === 0 && away === 0) probability *= 0.6; // 0-0 less common
-      if (totalGoals > 5) probability *= 0.3; // High scoring games rare
-      
-      // Add some randomness based on teams
-      probability *= (0.8 + seededRandom(index) * 0.4);
-      
-      data.push({
-        score,
-        probability: probability * 100,
-        homeGoals: home,
-        awayGoals: away,
-        totalGoals,
-      });
-    });
+    // Sort by probability and return top 15
+    return data.sort((a, b) => b.probability - a.probability).slice(0, 15);
+  };
 
-    // Normalize probabilities to sum to 100%
-    const totalProb = data.reduce((sum, item) => sum + item.probability, 0);
-    return data.map(item => ({
-      ...item,
-      probability: (item.probability / totalProb) * 100,
-    })).sort((a, b) => b.probability - a.probability).slice(0, 15); // Top 15 most likely
+  // Factorial helper function
+  const factorial = (n: number): number => {
+    if (n <= 1) return 1;
+    return n * factorial(n - 1);
   };
 
   const staticData = generateDistributionData();
