@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ProcessedMatch } from '@/types/match';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { TrendingUp, AlertTriangle, CheckCircle } from 'lucide-react';
+import { generateAIRecommendation } from '@/lib/aiRecommendation';
 
 interface MarketEfficiencyGaugeProps {
   match: ProcessedMatch;
@@ -88,25 +89,45 @@ export function MarketEfficiencyGauge({ match, className = "" }: MarketEfficienc
         doubleChanceOdds 
       };
     } else if (match.vig_btts === vigMax && match.odds_btts_yes > 0 && match.odds_btts_no > 0) {
-      // Calculer les probabilités implicites BTTS
-      const probBttsYes = 1 / match.odds_btts_yes;
-      const probBttsNo = 1 / match.odds_btts_no;
+      // Obtenir la recommandation IA actuelle
+      const aiRecommendation = generateAIRecommendation(match);
       
-      // Trouver la moins probable (meilleure valeur)
-      const bttsOptions = [
-        { label: 'BTTS Oui', prob: probBttsYes, odds: match.odds_btts_yes, type: 'yes' },
-        { label: 'BTTS Non', prob: probBttsNo, odds: match.odds_btts_no, type: 'no' }
-      ];
-      
-      // Trier par probabilité croissante (moins probable = meilleure valeur)
-      bttsOptions.sort((a, b) => a.prob - b.prob);
-      
-      // La deuxième moins probable (donc la plus probable) 
-      const recommendedChoice = bttsOptions[1];
+      // Proposer l'inverse de la recommandation IA
+      let bttsChoice;
+      if (aiRecommendation.betType === 'BTTS' && aiRecommendation.prediction === 'Oui') {
+        // Si l'IA recommande BTTS Oui, proposer BTTS Non
+        bttsChoice = {
+          label: 'BTTS Non',
+          odds: match.odds_btts_no,
+          type: 'no'
+        };
+      } else if (aiRecommendation.betType === 'BTTS' && aiRecommendation.prediction === 'Non') {
+        // Si l'IA recommande BTTS Non, proposer BTTS Oui
+        bttsChoice = {
+          label: 'BTTS Oui',
+          odds: match.odds_btts_yes,
+          type: 'yes'
+        };
+      } else {
+        // Si l'IA ne recommande pas BTTS, prendre la valeur la plus probable par défaut
+        const probBttsYes = 1 / match.odds_btts_yes;
+        const probBttsNo = 1 / match.odds_btts_no;
+        
+        bttsChoice = probBttsYes > probBttsNo ? {
+          label: 'BTTS Oui',
+          odds: match.odds_btts_yes,
+          type: 'yes'
+        } : {
+          label: 'BTTS Non',
+          odds: match.odds_btts_no,
+          type: 'no'
+        };
+      }
       
       return {
         type: 'BTTS',
-        bttsChoice: recommendedChoice
+        bttsChoice,
+        isOpposite: aiRecommendation.betType === 'BTTS'
       };
     }
     
@@ -330,7 +351,9 @@ export function MarketEfficiencyGauge({ match, className = "" }: MarketEfficienc
                 <>
                   {/* Recommandation BTTS */}
                   <div className="text-sm text-foreground">
-                    <span className="text-muted-foreground">BTTS recommandé (meilleure valeur) :</span>
+                    <span className="text-muted-foreground">
+                      {altRecommendation.isOpposite ? 'BTTS Contrarian (inverse IA) :' : 'BTTS recommandé (meilleure valeur) :'}
+                    </span>
                     <div className="font-bold mt-2 animate-pulse">
                       <span className="text-lg text-chart-2 font-extrabold animate-bounce">
                         {altRecommendation.bttsChoice.label}
@@ -340,7 +363,10 @@ export function MarketEfficiencyGauge({ match, className = "" }: MarketEfficienc
                       </span>
                     </div>
                     <div className="text-xs text-muted-foreground mt-2">
-                      Choix basé sur la probabilité la plus favorable
+                      {altRecommendation.isOpposite 
+                        ? 'Stratégie contrarian : opposé à la recommandation IA'
+                        : 'Choix basé sur la probabilité la plus favorable'
+                      }
                     </div>
                   </div>
                 </>
