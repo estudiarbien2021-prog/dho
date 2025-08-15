@@ -20,6 +20,7 @@ export interface ProcessedMatch {
   home_team: string;
   away_team: string;
   country?: string; // Nouvelle colonne du CSV
+  match_date: string; // Date officielle du match (YYYY-MM-DD)
   kickoff_utc: Date;
   kickoff_local: Date;
   category: 'first_div' | 'second_div' | 'continental_cup' | 'national_cup';

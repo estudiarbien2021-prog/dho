@@ -241,6 +241,7 @@ export function processCSVData(csvText: string): ProcessedMatch[] {
         league: row.league,
         home_team: row.home_team,
         away_team: row.away_team,
+        match_date: format(kickoffUtc, 'yyyy-MM-dd'),
         kickoff_utc: kickoffUtc,
         kickoff_local: kickoffLocal,
         category: categorizeLeague(row.league),

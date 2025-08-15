@@ -147,6 +147,7 @@ export function PicksValidation() {
         home_team: match.home_team,
         away_team: match.away_team,
         country: match.country,
+        match_date: match.match_date,
         kickoff_utc: new Date(match.kickoff_utc),
         kickoff_local: new Date(match.kickoff_local),
         category: match.category as 'first_div' | 'second_div' | 'continental_cup' | 'national_cup',
@@ -306,6 +307,7 @@ export function PicksValidation() {
           home_team: match.home_team,
           away_team: match.away_team,
           country: match.country,
+          match_date: match.match_date,
           kickoff_utc: new Date(match.kickoff_utc),
           kickoff_local: new Date(match.kickoff_local),
           category: match.category as 'first_div' | 'second_div' | 'continental_cup' | 'national_cup',
@@ -766,7 +768,7 @@ export function PicksValidation() {
                          {(pick.vigorish * 100).toFixed(2)}%
                        </TableCell>
                        <TableCell className="text-xs">
-                         {format(pick.match.kickoff_utc, 'dd/MM/yyyy', { locale: fr })}
+                         {format(new Date(pick.match.match_date + 'T00:00:00Z'), 'dd/MM/yyyy', { locale: fr })}
                        </TableCell>
                        <TableCell className="text-xs">
                          {format(pick.match.kickoff_utc, 'HH:mm', { locale: fr })}

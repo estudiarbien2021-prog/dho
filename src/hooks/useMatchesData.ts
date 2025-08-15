@@ -60,6 +60,7 @@ export function useMatchesData() {
                 home_team: row.home_team || '',
                 away_team: row.away_team || '',
                 country: row.country || '', // Support de la nouvelle colonne country
+                match_date: row.kickoff_utc ? new Date(row.kickoff_utc).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
                 kickoff_utc: new Date(row.kickoff_utc || Date.now()),
                 kickoff_local: new Date(row.kickoff_sao_paulo || Date.now()),
                 category: getCategoryFromLeague(row.league || ''),

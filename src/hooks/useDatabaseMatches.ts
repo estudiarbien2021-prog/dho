@@ -64,6 +64,7 @@ export function useDatabaseMatches(specificDate?: string) {
           home_team: match.home_team,
           away_team: match.away_team,
           country: match.country,
+          match_date: match.match_date,
           kickoff_utc: new Date(match.kickoff_utc),
           kickoff_local: new Date(match.kickoff_local),
           category: match.category as ProcessedMatch['category'],
