@@ -276,68 +276,70 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
           }
         }
         
-        // 3. Ajustement basé sur les recommandations IA BTTS (priorité à la recommandation principale)
-        if (aiRecommendations.btts) {
-          if (aiRecommendations.btts.prediction === 'Oui' && home > 0 && away > 0) {
-            probability *= aiRecommendations.btts.isInverted ? 1.25 : 1.15; // Boost significatif
-            if (home <= 3 && away <= 3 && !isHighlighted) {
+        // 3. Priorité absolue : Recommandation de l'IA (section principale)
+        const totalGoals = home + away;
+        if (aiRecommendations.overUnder) {
+          if (aiRecommendations.overUnder.prediction === '+2,5 buts' && totalGoals > 2) {
+            probability *= aiRecommendations.overUnder.isInverted ? 1.4 : 1.3; // Boost maximal pour recommandation IA
+            if (totalGoals >= 3 && totalGoals <= 6 && !isHighlighted) {
               isHighlighted = true;
-              highlightReason = aiRecommendations.btts.isInverted ? 'BTTS Oui (Opportunité)' : 'BTTS Oui';
+              highlightReason = aiRecommendations.overUnder.isInverted ? 'IA: Over 2.5 (Opportunité)' : 'IA: Over 2.5';
             }
-          } else if (aiRecommendations.btts.prediction === 'Non' && (home === 0 || away === 0)) {
-            probability *= aiRecommendations.btts.isInverted ? 1.25 : 1.15; // Boost significatif
+          } else if (aiRecommendations.overUnder.prediction === '-2,5 buts' && totalGoals <= 2) {
+            probability *= aiRecommendations.overUnder.isInverted ? 1.4 : 1.3; // Boost maximal pour recommandation IA
             if (!isHighlighted) {
               isHighlighted = true;
-              highlightReason = aiRecommendations.btts.isInverted ? 'BTTS Non (Opportunité)' : 'BTTS Non';
-            }
-          }
-        } else if (aiRecommendations.bttsAnalysis) {
-          // Compléter avec l'analyse des probabilités si pas de recommandation principale contradictoire
-          if (aiRecommendations.bttsAnalysis === 'Oui' && home > 0 && away > 0) {
-            probability *= 1.08; // Impact moindre pour l'analyse complémentaire
-            if (home <= 3 && away <= 3 && !isHighlighted) {
-              isHighlighted = true;
-              highlightReason = 'Analyse BTTS Oui';
-            }
-          } else if (aiRecommendations.bttsAnalysis === 'Non' && (home === 0 || away === 0)) {
-            probability *= 1.08;
-            if (!isHighlighted) {
-              isHighlighted = true;
-              highlightReason = 'Analyse BTTS Non';
+              highlightReason = aiRecommendations.overUnder.isInverted ? 'IA: Under 2.5 (Opportunité)' : 'IA: Under 2.5';
             }
           }
         }
-        
-        // 4. Ajustement basé sur les recommandations IA Over/Under (priorité à la recommandation principale)
-        if (aiRecommendations.overUnder) {
-          const totalGoals = home + away;
-          if (aiRecommendations.overUnder.prediction === '+2,5 buts' && totalGoals > 2) {
-            probability *= aiRecommendations.overUnder.isInverted ? 1.25 : 1.15; // Boost significatif
-            if (totalGoals >= 3 && totalGoals <= 6 && !isHighlighted) {
+
+        // 4. Opportunités détectées dans Efficacité du Marché (complément)
+        if (aiRecommendations.btts) {
+          if (aiRecommendations.btts.prediction === 'Oui' && home > 0 && away > 0) {
+            probability *= aiRecommendations.btts.isInverted ? 1.25 : 1.15; // Boost pour opportunité marché
+            if (home <= 3 && away <= 3 && !isHighlighted) {
               isHighlighted = true;
-              highlightReason = aiRecommendations.overUnder.isInverted ? 'Over 2.5 (Opportunité)' : 'Over 2.5';
+              highlightReason = aiRecommendations.btts.isInverted ? 'Marché: BTTS Oui (Opportunité)' : 'Marché: BTTS Oui';
             }
-          } else if (aiRecommendations.overUnder.prediction === '-2,5 buts' && totalGoals <= 2) {
-            probability *= aiRecommendations.overUnder.isInverted ? 1.25 : 1.15; // Boost significatif
+          } else if (aiRecommendations.btts.prediction === 'Non' && (home === 0 || away === 0)) {
+            probability *= aiRecommendations.btts.isInverted ? 1.25 : 1.15; // Boost pour opportunité marché
             if (!isHighlighted) {
               isHighlighted = true;
-              highlightReason = aiRecommendations.overUnder.isInverted ? 'Under 2.5 (Opportunité)' : 'Under 2.5';
+              highlightReason = aiRecommendations.btts.isInverted ? 'Marché: BTTS Non (Opportunité)' : 'Marché: BTTS Non';
             }
           }
-        } else if (aiRecommendations.overUnderAnalysis) {
-          // Compléter avec l'analyse des probabilités si pas de recommandation principale contradictoire
-          const totalGoals = home + away;
+        }
+
+        // 5. Compléter UNIQUEMENT si pas de recommandation principale contradictoire
+        if (!aiRecommendations.overUnder && aiRecommendations.overUnderAnalysis) {
           if (aiRecommendations.overUnderAnalysis === '+2,5 buts' && totalGoals > 2) {
-            probability *= 1.08; // Impact moindre pour l'analyse complémentaire
+            probability *= 1.05; // Impact très faible pour analyse complémentaire
             if (totalGoals >= 3 && totalGoals <= 6 && !isHighlighted) {
               isHighlighted = true;
-              highlightReason = 'Analyse Over 2.5';
+              highlightReason = 'Analyse: Over 2.5';
             }
           } else if (aiRecommendations.overUnderAnalysis === '-2,5 buts' && totalGoals <= 2) {
-            probability *= 1.08;
+            probability *= 1.05;
             if (!isHighlighted) {
               isHighlighted = true;
-              highlightReason = 'Analyse Under 2.5';
+              highlightReason = 'Analyse: Under 2.5';
+            }
+          }
+        }
+
+        if (!aiRecommendations.btts && aiRecommendations.bttsAnalysis) {
+          if (aiRecommendations.bttsAnalysis === 'Oui' && home > 0 && away > 0) {
+            probability *= 1.05; // Impact très faible pour analyse complémentaire
+            if (home <= 3 && away <= 3 && !isHighlighted) {
+              isHighlighted = true;
+              highlightReason = 'Analyse: BTTS Oui';
+            }
+          } else if (aiRecommendations.bttsAnalysis === 'Non' && (home === 0 || away === 0)) {
+            probability *= 1.05;
+            if (!isHighlighted) {
+              isHighlighted = true;
+              highlightReason = 'Analyse: BTTS Non';
             }
           }
         }
