@@ -17,7 +17,89 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
   
   const recommendations: AIRecommendation[] = [];
   
-  // RÈGLE PRIORITAIRE : Si vigorish 1x2 >= 10%, recommander la double chance (opportunité détectée)
+  // RÈGLE PRIORITAIRE 1 : Si vigorish BTTS <= 6% OU vigorish O/U <= 6%, recommander la prédiction la plus probable
+  const LOW_VIG_THRESHOLD = 0.06; // 6%
+  
+  // Vérifier si BTTS a un faible vigorish
+  const bttsLowVig = match.vig_btts > 0 && match.vig_btts <= LOW_VIG_THRESHOLD && 
+                     match.odds_btts_yes && match.odds_btts_no;
+  
+  // Vérifier si O/U 2.5 a un faible vigorish
+  const ouLowVig = match.vig_ou_2_5 > 0 && match.vig_ou_2_5 <= LOW_VIG_THRESHOLD && 
+                   match.odds_over_2_5 && match.odds_under_2_5;
+  
+  if (bttsLowVig || ouLowVig) {
+    const candidates = [];
+    
+    // Ajouter BTTS si faible vigorish
+    if (bttsLowVig) {
+      const bttsYesProb = match.p_btts_yes_fair;
+      const bttsNoProb = match.p_btts_no_fair;
+      
+      if (bttsYesProb >= MIN_PROBABILITY && match.odds_btts_yes! >= MIN_ODDS) {
+        candidates.push({
+          type: 'BTTS',
+          prediction: 'Oui',
+          odds: match.odds_btts_yes!,
+          probability: bttsYesProb,
+          vigorish: match.vig_btts
+        });
+      }
+      
+      if (bttsNoProb >= MIN_PROBABILITY && match.odds_btts_no! >= MIN_ODDS) {
+        candidates.push({
+          type: 'BTTS',
+          prediction: 'Non',
+          odds: match.odds_btts_no!,
+          probability: bttsNoProb,
+          vigorish: match.vig_btts
+        });
+      }
+    }
+    
+    // Ajouter O/U 2.5 si faible vigorish
+    if (ouLowVig) {
+      const overProb = match.p_over_2_5_fair;
+      const underProb = match.p_under_2_5_fair;
+      
+      if (overProb >= MIN_PROBABILITY && match.odds_over_2_5! >= MIN_ODDS) {
+        candidates.push({
+          type: 'O/U 2.5',
+          prediction: '+2,5 buts',
+          odds: match.odds_over_2_5!,
+          probability: overProb,
+          vigorish: match.vig_ou_2_5
+        });
+      }
+      
+      if (underProb >= MIN_PROBABILITY && match.odds_under_2_5! >= MIN_ODDS) {
+        candidates.push({
+          type: 'O/U 2.5',
+          prediction: '-2,5 buts',
+          odds: match.odds_under_2_5!,
+          probability: underProb,
+          vigorish: match.vig_ou_2_5
+        });
+      }
+    }
+    
+    // Prendre la prédiction la plus probable
+    if (candidates.length > 0) {
+      const bestCandidate = candidates.sort((a, b) => b.probability - a.probability)[0];
+      
+      recommendations.push({
+        betType: bestCandidate.type,
+        prediction: bestCandidate.prediction,
+        odds: bestCandidate.odds,
+        confidence: bestCandidate.probability > 0.6 ? 'high' : bestCandidate.probability > 0.5 ? 'medium' : 'low',
+        isInverted: false
+      });
+      
+      return recommendations;
+    }
+  }
+  
+  // RÈGLE PRIORITAIRE 2 : Si vigorish 1x2 >= 10%, recommander la double chance (opportunité détectée)
   if (match.vig_1x2 >= HIGH_VIG_1X2_THRESHOLD) {
     // Calculer les probabilités implicites des cotes 1x2
     const probHome = 1 / match.odds_home;
