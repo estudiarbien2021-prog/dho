@@ -885,14 +885,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
               />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Probability Distribution */}
-              <ProbabilityDistribution
-                matchId={match.id}
-                isActive={showAIGraphics}
-                match={match}
-              />
-
+            <div className="grid grid-cols-1 gap-6">
               {/* Score Prediction Matrix */}
               <ScorePredictionMatrix
                 homeTeam={match.home_team}
