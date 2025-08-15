@@ -15,7 +15,8 @@ export function DatePickerFilter({ selectedDate, onDateChange }: DatePickerFilte
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     if (value) {
-      onDateChange(new Date(value + 'T00:00:00'));
+      // Utiliser UTC pour éviter les problèmes de fuseau horaire
+      onDateChange(new Date(value + 'T00:00:00.000Z'));
     } else {
       onDateChange(undefined);
     }
@@ -23,7 +24,11 @@ export function DatePickerFilter({ selectedDate, onDateChange }: DatePickerFilte
 
   const formatDateForInput = (date: Date | undefined): string => {
     if (!date) return '';
-    return date.toISOString().split('T')[0];
+    // Utiliser les méthodes locales pour éviter les décalages UTC
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
   return (

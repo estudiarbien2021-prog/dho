@@ -59,9 +59,12 @@ export function PicksValidation() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [matches, setMatches] = useState<ProcessedMatch[]>([]);
 
-  // Fonction utilitaire pour convertir Date en string YYYY-MM-DD
+  // Fonction utilitaire pour convertir Date en string YYYY-MM-DD (locale)
   const formatDateForFilter = (date: Date): string => {
-    return date.toISOString().split('T')[0];
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
   // Fonction utilitaire pour filtrer les matchs par date
