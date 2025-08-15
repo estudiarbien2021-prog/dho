@@ -128,9 +128,26 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
       return getSeededChoice(noOpportunityTexts, 1);
     }
 
+    // Récupérer la vraie probabilité du marché choisi
+    let realProbability = 0.5; // valeur par défaut
+    
+    if (normalizedRecommendation.type === 'BTTS') {
+      if (normalizedRecommendation.prediction === 'Oui') {
+        realProbability = match.p_btts_yes_fair;
+      } else if (normalizedRecommendation.prediction === 'Non') {
+        realProbability = match.p_btts_no_fair;
+      }
+    } else if (normalizedRecommendation.type === 'O/U 2.5') {
+      if (normalizedRecommendation.prediction === '+2,5 buts') {
+        realProbability = match.p_over_2_5_fair;
+      } else if (normalizedRecommendation.prediction === '-2,5 buts') {
+        realProbability = match.p_under_2_5_fair;
+      }
+    }
+    
     // Protection renforcée contre les valeurs NaN selon les règles définies
-    const safeProbability = normalizedRecommendation.probability && !isNaN(normalizedRecommendation.probability) && normalizedRecommendation.probability > 0 
-      ? Math.min(0.95, Math.max(0.05, normalizedRecommendation.probability))
+    const safeProbability = realProbability && !isNaN(realProbability) && realProbability > 0 
+      ? Math.min(0.95, Math.max(0.05, realProbability))
       : 0.5;
     
     // Récupérer la marge vigorish du marché choisi (BTTS ou O/U 2.5)
