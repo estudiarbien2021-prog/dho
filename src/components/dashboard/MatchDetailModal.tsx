@@ -891,7 +891,25 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
               </Card>
             </div>
 
-            {/* New Advanced Charts Grid */}
+            {/* Efficacité du Marché */}
+            <div className="grid grid-cols-1 gap-6">
+              <Card className="p-6 bg-gradient-to-br from-background to-muted/20 border-border/50">
+                <MarketEfficiencyGauge match={match} />
+              </Card>
+            </div>
+
+            {/* Matrice de Prédiction de Score */}
+            <div className="grid grid-cols-1 gap-6">
+              <ScorePredictionMatrix
+                homeTeam={match.home_team}
+                awayTeam={match.away_team}
+                matchId={match.id}
+                isActive={showAIGraphics}
+                match={match}
+              />
+            </div>
+
+            {/* Radar de Performance et Timeline de Momentum */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Team Radar Chart */}
               <TeamRadarChart
@@ -907,17 +925,6 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                 awayTeam={match.away_team}
                 matchId={match.id}
                 isActive={showAIGraphics}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 gap-6">
-              {/* Score Prediction Matrix */}
-              <ScorePredictionMatrix
-                homeTeam={match.home_team}
-                awayTeam={match.away_team}
-                matchId={match.id}
-                isActive={showAIGraphics}
-                match={match}
               />
             </div>
           </div>
@@ -939,18 +946,8 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
               </div>
 
 
-              {/* Grid des analyses avancées */}
+              {/* Consensus IA et Barres de Certitude */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Radar de Confiance */}
-                <Card className="p-6 bg-gradient-to-br from-background to-muted/20 border-border/50">
-                  <ConfidenceRadar match={match} />
-                </Card>
-
-                {/* Efficacité du Marché */}
-                <Card className="p-6 bg-gradient-to-br from-background to-muted/20 border-border/50">
-                  <MarketEfficiencyGauge match={match} />
-                </Card>
-
                 {/* Consensus IA */}
                 <Card className="p-6 bg-gradient-to-br from-background to-muted/20 border-border/50">
                   <AIConsensusGauge match={match} />
