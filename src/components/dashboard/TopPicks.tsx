@@ -8,6 +8,7 @@ import { Trophy, Target, Zap } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
+import { generateConfidenceScore } from '@/lib/confidence';
 
 interface ValidatedPick {
   id: string;
@@ -179,6 +180,19 @@ export function TopPicks({ matches, onMatchClick, selectedDate }: TopPicksProps)
                     <div 
                       className="absolute top-0 left-0 h-full bg-gradient-to-r from-green-500 to-green-600 rounded-full"
                       style={{ width: `${pick.probability * 100}%` }}
+                    />
+                  </div>
+
+                  {/* Taux de confiance */}
+                  <div className="flex items-center justify-between text-sm mt-2">
+                    <span className="text-green-700">Confiance:</span>
+                    <span className="font-semibold text-green-900">{generateConfidenceScore(pick.match_id)}%</span>
+                  </div>
+                  
+                  <div className="relative h-2 bg-green-300 rounded-full overflow-hidden">
+                    <div 
+                      className="absolute top-0 left-0 h-full bg-gradient-to-r from-green-700 to-green-800 rounded-full"
+                      style={{ width: `${generateConfidenceScore(pick.match_id)}%` }}
                     />
                   </div>
                 </div>
