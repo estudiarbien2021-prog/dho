@@ -6,277 +6,324 @@ interface NeuralNetworkVisualizationProps {
   confidence: number;
 }
 
-interface Node {
+interface Synapse {
+  id: string;
+  startX: number;
+  startY: number;
+  endX: number;
+  endY: number;
+  active: boolean;
+  delay: number;
+}
+
+interface Neuron {
   id: string;
   x: number;
   y: number;
-  layer: number;
+  size: number;
   active: boolean;
-  value: number;
-}
-
-interface Connection {
-  from: string;
-  to: string;
-  weight: number;
-  active: boolean;
+  intensity: number;
+  delay: number;
 }
 
 export function NeuralNetworkVisualization({ isActive, confidence }: NeuralNetworkVisualizationProps) {
-  const [nodes, setNodes] = useState<Node[]>([]);
-  const [connections, setConnections] = useState<Connection[]>([]);
-  const [animationPhase, setAnimationPhase] = useState(0);
+  const [neurons, setNeurons] = useState<Neuron[]>([]);
+  const [synapses, setSynapses] = useState<Synapse[]>([]);
+  const [phase, setPhase] = useState(0);
+  const [pulseIndex, setPulseIndex] = useState(0);
 
-  // Initialize network structure
+  // Initialize brain structure
   useEffect(() => {
-    const inputNodes: Node[] = [
-      { id: 'i1', x: 50, y: 60, layer: 0, active: false, value: 0 },
-      { id: 'i2', x: 50, y: 120, layer: 0, active: false, value: 0 },
-      { id: 'i3', x: 50, y: 180, layer: 0, active: false, value: 0 },
-      { id: 'i4', x: 50, y: 240, layer: 0, active: false, value: 0 },
+    // Create brain-like neuron network
+    const brainNeurons: Neuron[] = [
+      // Frontal cortex (top area - decision making)
+      { id: 'f1', x: 180, y: 60, size: 8, active: false, intensity: 0, delay: 0 },
+      { id: 'f2', x: 220, y: 50, size: 6, active: false, intensity: 0, delay: 100 },
+      { id: 'f3', x: 160, y: 80, size: 7, active: false, intensity: 0, delay: 200 },
+      { id: 'f4', x: 240, y: 75, size: 5, active: false, intensity: 0, delay: 150 },
+      
+      // Temporal lobe (sides - pattern recognition)
+      { id: 't1', x: 120, y: 120, size: 6, active: false, intensity: 0, delay: 300 },
+      { id: 't2', x: 280, y: 125, size: 6, active: false, intensity: 0, delay: 350 },
+      { id: 't3', x: 100, y: 150, size: 5, active: false, intensity: 0, delay: 400 },
+      { id: 't4', x: 300, y: 145, size: 5, active: false, intensity: 0, delay: 450 },
+      
+      // Central processing (middle - main computation)
+      { id: 'c1', x: 200, y: 120, size: 10, active: false, intensity: 0, delay: 500 },
+      { id: 'c2', x: 180, y: 140, size: 8, active: false, intensity: 0, delay: 550 },
+      { id: 'c3', x: 220, y: 135, size: 8, active: false, intensity: 0, delay: 600 },
+      { id: 'c4', x: 200, y: 160, size: 7, active: false, intensity: 0, delay: 650 },
+      
+      // Memory centers (deeper areas)
+      { id: 'm1', x: 150, y: 180, size: 6, active: false, intensity: 0, delay: 700 },
+      { id: 'm2', x: 250, y: 175, size: 6, active: false, intensity: 0, delay: 750 },
+      { id: 'm3', x: 200, y: 200, size: 5, active: false, intensity: 0, delay: 800 },
+      
+      // Output neurons (bottom - final decision)
+      { id: 'o1', x: 190, y: 230, size: 12, active: false, intensity: 0, delay: 900 },
+      { id: 'o2', x: 210, y: 235, size: 8, active: false, intensity: 0, delay: 950 },
     ];
 
-    const hiddenNodes: Node[] = [
-      { id: 'h1', x: 150, y: 80, layer: 1, active: false, value: 0 },
-      { id: 'h2', x: 150, y: 140, layer: 1, active: false, value: 0 },
-      { id: 'h3', x: 150, y: 200, layer: 1, active: false, value: 0 },
-      { id: 'h4', x: 250, y: 100, layer: 2, active: false, value: 0 },
-      { id: 'h5', x: 250, y: 160, layer: 2, active: false, value: 0 },
+    // Create synaptic connections between neurons
+    const brainSynapses: Synapse[] = [
+      // Frontal to temporal connections
+      { id: 's1', startX: 180, startY: 60, endX: 120, endY: 120, active: false, delay: 0 },
+      { id: 's2', startX: 220, startY: 50, endX: 280, endY: 125, active: false, delay: 50 },
+      { id: 's3', startX: 160, startY: 80, endX: 100, endY: 150, active: false, delay: 100 },
+      { id: 's4', startX: 240, startY: 75, endX: 300, endY: 145, active: false, delay: 150 },
+      
+      // Temporal to central connections
+      { id: 's5', startX: 120, startY: 120, endX: 200, endY: 120, active: false, delay: 200 },
+      { id: 's6', startX: 280, startY: 125, endX: 200, endY: 120, active: false, delay: 250 },
+      { id: 's7', startX: 100, startY: 150, endX: 180, endY: 140, active: false, delay: 300 },
+      { id: 's8', startX: 300, startY: 145, endX: 220, endY: 135, active: false, delay: 350 },
+      
+      // Central processing interconnections
+      { id: 's9', startX: 200, startY: 120, endX: 180, endY: 140, active: false, delay: 400 },
+      { id: 's10', startX: 200, startY: 120, endX: 220, endY: 135, active: false, delay: 450 },
+      { id: 's11', startX: 180, startY: 140, endX: 220, endY: 135, active: false, delay: 500 },
+      { id: 's12', startX: 220, startY: 135, endX: 200, endY: 160, active: false, delay: 550 },
+      
+      // Central to memory connections
+      { id: 's13', startX: 180, startY: 140, endX: 150, endY: 180, active: false, delay: 600 },
+      { id: 's14', startX: 220, startY: 135, endX: 250, endY: 175, active: false, delay: 650 },
+      { id: 's15', startX: 200, startY: 160, endX: 200, endY: 200, active: false, delay: 700 },
+      
+      // Memory to output connections
+      { id: 's16', startX: 150, startY: 180, endX: 190, endY: 230, active: false, delay: 750 },
+      { id: 's17', startX: 250, startY: 175, endX: 210, endY: 235, active: false, delay: 800 },
+      { id: 's18', startX: 200, startY: 200, endX: 190, endY: 230, active: false, delay: 850 },
+      { id: 's19', startX: 200, startY: 200, endX: 210, endY: 235, active: false, delay: 900 },
     ];
 
-    const outputNode: Node[] = [
-      { id: 'o1', x: 350, y: 150, layer: 3, active: false, value: 0 },
-    ];
-
-    const allNodes = [...inputNodes, ...hiddenNodes, ...outputNode];
-    
-    // Create connections
-    const allConnections: Connection[] = [];
-    
-    // Input to first hidden layer
-    inputNodes.forEach(input => {
-      hiddenNodes.slice(0, 3).forEach(hidden => {
-        allConnections.push({
-          from: input.id,
-          to: hidden.id,
-          weight: Math.random() * 0.8 + 0.2,
-          active: false
-        });
-      });
-    });
-
-    // First hidden to second hidden layer
-    hiddenNodes.slice(0, 3).forEach(hidden1 => {
-      hiddenNodes.slice(3).forEach(hidden2 => {
-        allConnections.push({
-          from: hidden1.id,
-          to: hidden2.id,
-          weight: Math.random() * 0.8 + 0.2,
-          active: false
-        });
-      });
-    });
-
-    // Second hidden to output
-    hiddenNodes.slice(3).forEach(hidden => {
-      allConnections.push({
-        from: hidden.id,
-        to: 'o1',
-        weight: Math.random() * 0.8 + 0.2,
-        active: false
-      });
-    });
-
-    setNodes(allNodes);
-    setConnections(allConnections);
+    setNeurons(brainNeurons);
+    setSynapses(brainSynapses);
   }, []);
 
   // Animation sequence
   useEffect(() => {
-    if (!isActive) return;
+    if (!isActive) {
+      setPhase(0);
+      setPulseIndex(0);
+      setNeurons(prev => prev.map(n => ({ ...n, active: false, intensity: 0 })));
+      setSynapses(prev => prev.map(s => ({ ...s, active: false })));
+      return;
+    }
 
-    const animateNetwork = async () => {
-      // Phase 1: Activate input nodes
-      setAnimationPhase(1);
-      await new Promise(resolve => setTimeout(resolve, 300));
+    const animateBrain = async () => {
+      // Phase 1: Brain activation wave
+      setPhase(1);
       
-      setNodes(prev => prev.map(node => 
-        node.layer === 0 
-          ? { ...node, active: true, value: Math.random() * 0.8 + 0.2 }
-          : node
-      ));
+      for (let i = 0; i < neurons.length; i++) {
+        setTimeout(() => {
+          setNeurons(prev => prev.map((neuron, index) => 
+            index === i 
+              ? { 
+                  ...neuron, 
+                  active: true, 
+                  intensity: 0.3 + Math.random() * 0.7 
+                }
+              : neuron
+          ));
+        }, neurons[i].delay);
+      }
 
-      // Phase 2: Propagate through first hidden layer
-      setAnimationPhase(2);
-      await new Promise(resolve => setTimeout(resolve, 400));
-      
-      setNodes(prev => prev.map(node => 
-        node.layer === 1 && node.id !== 'h4' && node.id !== 'h5'
-          ? { ...node, active: true, value: Math.random() * 0.8 + 0.2 }
-          : node
-      ));
+      // Phase 2: Synaptic activation
+      setTimeout(() => {
+        setPhase(2);
+        synapses.forEach((synapse, index) => {
+          setTimeout(() => {
+            setSynapses(prev => prev.map((s, i) => 
+              i === index ? { ...s, active: true } : s
+            ));
+          }, synapse.delay);
+        });
+      }, 1000);
 
-      setConnections(prev => prev.map(conn => {
-        const fromNode = nodes.find(n => n.id === conn.from);
-        const toNode = nodes.find(n => n.id === conn.to);
-        if (fromNode?.layer === 0 && toNode?.layer === 1) {
-          return { ...conn, active: true };
-        }
-        return conn;
-      }));
+      // Phase 3: Processing pulses
+      setTimeout(() => {
+        setPhase(3);
+        const pulseInterval = setInterval(() => {
+          setPulseIndex(prev => {
+            const next = prev + 1;
+            if (next >= 8) {
+              clearInterval(pulseInterval);
+              setPhase(4);
+              return 0;
+            }
+            return next;
+          });
+        }, 300);
+      }, 2500);
 
-      // Phase 3: Propagate through second hidden layer
-      setAnimationPhase(3);
-      await new Promise(resolve => setTimeout(resolve, 400));
-      
-      setNodes(prev => prev.map(node => 
-        node.layer === 2
-          ? { ...node, active: true, value: Math.random() * 0.8 + 0.2 }
-          : node
-      ));
-
-      setConnections(prev => prev.map(conn => {
-        const fromNode = nodes.find(n => n.id === conn.from);
-        const toNode = nodes.find(n => n.id === conn.to);
-        if (fromNode?.layer === 1 && toNode?.layer === 2) {
-          return { ...conn, active: true };
-        }
-        return conn;
-      }));
-
-      // Phase 4: Final output
-      setAnimationPhase(4);
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      setNodes(prev => prev.map(node => 
-        node.layer === 3
-          ? { ...node, active: true, value: confidence / 100 }
-          : node
-      ));
-
-      setConnections(prev => prev.map(conn => {
-        const fromNode = nodes.find(n => n.id === conn.from);
-        const toNode = nodes.find(n => n.id === conn.to);
-        if (fromNode?.layer === 2 && toNode?.layer === 3) {
-          return { ...conn, active: true };
-        }
-        return conn;
-      }));
-
-      setAnimationPhase(5);
+      // Phase 4: Final result
+      setTimeout(() => {
+        setPhase(4);
+        // Highlight output neurons based on confidence
+        setNeurons(prev => prev.map(neuron => 
+          neuron.id.startsWith('o') 
+            ? { 
+                ...neuron, 
+                active: true, 
+                intensity: confidence / 100 
+              }
+            : neuron
+        ));
+      }, 5000);
     };
 
-    animateNetwork();
-  }, [isActive, confidence, nodes]);
+    animateBrain();
+  }, [isActive, neurons.length, synapses.length, confidence]);
 
   return (
     <Card className="p-6">
       <div className="flex items-center gap-2 mb-4">
         <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-        <h3 className="font-semibold text-sm">Réseau de Neurones IA</h3>
-        {animationPhase > 0 && (
+        <h3 className="font-semibold text-sm">Cerveau IA - Analyse Prédictive</h3>
+        {phase > 0 && (
           <div className="ml-auto text-xs text-muted-foreground animate-fade-in">
-            Phase {animationPhase}/5
+            {phase === 1 && "Activation neuronale..."}
+            {phase === 2 && "Connexions synaptiques..."}
+            {phase === 3 && "Traitement en cours..."}
+            {phase === 4 && "Analyse terminée"}
           </div>
         )}
       </div>
       
       <div className="relative h-80 bg-gradient-to-br from-background to-muted/20 rounded-lg overflow-hidden">
         <svg width="100%" height="100%" viewBox="0 0 400 300">
-          {/* Render connections */}
-          {connections.map((conn, index) => {
-            const fromNode = nodes.find(n => n.id === conn.from);
-            const toNode = nodes.find(n => n.id === conn.to);
-            if (!fromNode || !toNode) return null;
+          {/* Brain outline */}
+          <path
+            d="M80 120 Q60 80 100 60 Q140 40 180 50 Q220 35 260 50 Q300 40 320 80 Q340 120 320 160 Q300 200 280 220 Q250 240 200 245 Q150 250 120 220 Q80 180 80 120 Z"
+            fill="hsl(var(--muted))"
+            opacity="0.1"
+            stroke="hsl(var(--primary))"
+            strokeWidth="1"
+            strokeDasharray="5,5"
+            className="animate-pulse"
+          />
 
-            return (
+          {/* Render synapses */}
+          {synapses.map((synapse) => (
+            <g key={synapse.id}>
               <line
-                key={`${conn.from}-${conn.to}`}
-                x1={fromNode.x}
-                y1={fromNode.y}
-                x2={toNode.x}
-                y2={toNode.y}
-                stroke={conn.active ? 'hsl(var(--primary))' : 'hsl(var(--muted))'}
-                strokeWidth={conn.active ? 2 * conn.weight : 1}
-                opacity={conn.active ? 0.8 : 0.3}
-                className={conn.active ? 'animate-pulse' : ''}
-                style={{
-                  filter: conn.active ? 'drop-shadow(0 0 4px hsl(var(--primary)))' : 'none',
-                  transition: 'all 0.3s ease-in-out'
-                }}
+                x1={synapse.startX}
+                y1={synapse.startY}
+                x2={synapse.endX}
+                y2={synapse.endY}
+                stroke={synapse.active ? 'hsl(var(--primary))' : 'hsl(var(--muted))'}
+                strokeWidth={synapse.active ? 2 : 1}
+                opacity={synapse.active ? 0.8 : 0.3}
+                className={synapse.active ? 'animate-pulse' : ''}
               />
-            );
-          })}
-
-          {/* Render nodes */}
-          {nodes.map((node) => (
-            <g key={node.id}>
-              <circle
-                cx={node.x}
-                cy={node.y}
-                r={node.active ? 8 + node.value * 4 : 6}
-                fill={node.active ? 'hsl(var(--primary))' : 'hsl(var(--muted))'}
-                opacity={node.active ? 0.9 : 0.4}
-                className={node.active ? 'animate-pulse' : ''}
-                style={{
-                  filter: node.active ? 'drop-shadow(0 0 8px hsl(var(--primary)))' : 'none',
-                  transition: 'all 0.3s ease-in-out'
-                }}
-              />
-              {node.active && node.value > 0 && (
-                <text
-                  x={node.x}
-                  y={node.y + 2}
-                  textAnchor="middle"
-                  fontSize="8"
-                  fill="hsl(var(--primary-foreground))"
-                  fontWeight="bold"
+              
+              {/* Synaptic pulse animation */}
+              {synapse.active && phase === 3 && (
+                <circle
+                  r="3"
+                  fill="hsl(var(--primary))"
+                  opacity="0.8"
                 >
-                  {Math.round(node.value * 100)}
+                  <animateMotion
+                    dur="1s"
+                    repeatCount="indefinite"
+                    path={`M${synapse.startX},${synapse.startY} L${synapse.endX},${synapse.endY}`}
+                  />
+                </circle>
+              )}
+            </g>
+          ))}
+
+          {/* Render neurons */}
+          {neurons.map((neuron) => (
+            <g key={neuron.id}>
+              <circle
+                cx={neuron.x}
+                cy={neuron.y}
+                r={neuron.active ? neuron.size + 2 : neuron.size}
+                fill={neuron.active ? 'hsl(var(--primary))' : 'hsl(var(--muted))'}
+                opacity={neuron.active ? 0.7 + neuron.intensity * 0.3 : 0.4}
+                className={neuron.active ? 'animate-pulse' : ''}
+                style={{
+                  filter: neuron.active 
+                    ? `drop-shadow(0 0 ${4 + neuron.intensity * 6}px hsl(var(--primary)))` 
+                    : 'none',
+                  transition: 'all 0.3s ease-in-out'
+                }}
+              />
+              
+              {/* Neuron activation rings */}
+              {neuron.active && phase >= 2 && (
+                <circle
+                  cx={neuron.x}
+                  cy={neuron.y}
+                  r={neuron.size + 8}
+                  fill="none"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth="1"
+                  opacity="0.3"
+                  className="animate-ping"
+                />
+              )}
+              
+              {/* Special highlighting for output neurons */}
+              {neuron.id.startsWith('o') && phase === 4 && (
+                <text
+                  x={neuron.x}
+                  y={neuron.y + 20}
+                  textAnchor="middle"
+                  fontSize="10"
+                  fill="hsl(var(--primary))"
+                  fontWeight="bold"
+                  className="animate-fade-in"
+                >
+                  {Math.round(neuron.intensity * 100)}%
                 </text>
               )}
             </g>
           ))}
 
-          {/* Input labels */}
-          <text x="15" y="65" fontSize="10" fill="hsl(var(--muted-foreground))">Forme</text>
-          <text x="10" y="125" fontSize="10" fill="hsl(var(--muted-foreground))">H2H</text>
-          <text x="15" y="185" fontSize="10" fill="hsl(var(--muted-foreground))">Stats</text>
-          <text x="8" y="245" fontSize="10" fill="hsl(var(--muted-foreground))">Context</text>
-
-          {/* Output label */}
-          <text x="365" y="155" fontSize="12" fill="hsl(var(--primary))" fontWeight="bold">
-            {animationPhase >= 4 ? `${confidence}%` : '...'}
-          </text>
-          
-          {/* Verdict label */}
-          {animationPhase >= 5 && (
-            <text x="365" y="170" fontSize="10" fill="hsl(var(--muted-foreground))" textAnchor="middle">
-              Confiance
-            </text>
+          {/* Brain activity indicator */}
+          {phase >= 3 && (
+            <g>
+              <text x="200" y="30" textAnchor="middle" fontSize="12" fill="hsl(var(--primary))" fontWeight="bold">
+                🧠 Activité Cérébrale
+              </text>
+              <text x="200" y="45" textAnchor="middle" fontSize="10" fill="hsl(var(--muted-foreground))">
+                {phase === 3 ? "Traitement des données..." : `Confiance: ${confidence}%`}
+              </text>
+            </g>
           )}
         </svg>
 
-        {/* Processing indicator */}
-        {isActive && animationPhase < 5 && (
-          <div className="absolute bottom-4 left-4 flex items-center gap-2 text-xs text-muted-foreground">
-            <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-            Calcul en cours...
-          </div>
-        )}
-        
-        {/* Final verdict */}
-        {isActive && animationPhase >= 5 && (
-          <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2 text-green-500">
-              <div className="w-2 h-2 bg-green-500 rounded-full" />
-              Analyse terminée
+        {/* Status indicators */}
+        <div className="absolute bottom-4 left-4 right-4">
+          {phase < 4 ? (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex gap-1">
+                {[...Array(4)].map((_, i) => (
+                  <div
+                    key={i}
+                    className={`w-2 h-2 rounded-full ${
+                      i < phase ? 'bg-primary' : 'bg-muted'
+                    } ${i === phase - 1 ? 'animate-pulse' : ''}`}
+                  />
+                ))}
+              </div>
+              <span>Analyse neuronale en cours...</span>
             </div>
-            <div className="text-primary font-bold">
-              Score: {confidence}%
+          ) : (
+            <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2 text-green-500">
+                <div className="w-2 h-2 bg-green-500 rounded-full" />
+                <span>Cerveau IA activé</span>
+              </div>
+              <div className="text-primary font-bold">
+                🎯 Verdict: {confidence}% de confiance
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </Card>
   );
