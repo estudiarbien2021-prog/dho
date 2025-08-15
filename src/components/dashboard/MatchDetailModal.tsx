@@ -563,19 +563,56 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     const progress = chartLoading[chartKey] || 0;
     const isLoading = progress < 100;
 
+    // Custom label function to display label and percentage
+    const renderCustomizedLabel = (entry: any) => {
+      const RADIAN = Math.PI / 180;
+      const radius = entry.outerRadius + 30;
+      const x = entry.cx + radius * Math.cos(-entry.midAngle * RADIAN);
+      const y = entry.cy + radius * Math.sin(-entry.midAngle * RADIAN);
+
+      // Determine label based on data structure
+      let label = '';
+      if (chartKey === 'results1x2') {
+        if (entry.name === 'Domicile') label = 'Dom';
+        else if (entry.name === 'Nul') label = 'Nul';
+        else if (entry.name === 'Extérieur') label = 'Ext';
+      } else if (chartKey === 'btts') {
+        if (entry.name === 'BTTS Oui') label = 'Oui';
+        else if (entry.name === 'BTTS Non') label = 'Non';
+      } else if (chartKey === 'over25') {
+        if (entry.name === 'Over 2.5') label = '+2.5';
+        else if (entry.name === 'Under 2.5') label = '-2.5';
+      }
+
+      return (
+        <text 
+          x={x} 
+          y={y} 
+          fill="hsl(var(--text))" 
+          textAnchor={x > entry.cx ? 'start' : 'end'} 
+          dominantBaseline="central"
+          fontSize="11"
+          fontWeight="bold"
+          className="drop-shadow-sm"
+        >
+          {`${label} ${entry.value.toFixed(1)}%`}
+        </text>
+      );
+    };
+
     // Check if this chart matches the AI recommendation
     const isAIRecommended = () => {
       const aiRec = generateAIRecommendation(match, marketFilters);
       if (!aiRec) return false;
       
       if (aiRec.betType === 'BTTS' && chartKey === 'btts' && 
-          ((aiRec.prediction === 'Oui' && prediction === 'Oui') || 
-           (aiRec.prediction === 'Non' && prediction === 'Non'))) {
+          ((aiRec.prediction === 'Oui' && prediction.includes('Oui')) || 
+           (aiRec.prediction === 'Non' && prediction.includes('Non')))) {
         return true;
       }
       if (aiRec.betType === 'O/U 2.5' && chartKey === 'over25' && 
-          ((aiRec.prediction === '+2,5 buts' && prediction === '+2,5 buts') || 
-           (aiRec.prediction === '-2,5 buts' && prediction === '-2,5 buts'))) {
+          ((aiRec.prediction === '+2,5 buts' && prediction.includes('+2,5 buts')) || 
+           (aiRec.prediction === '-2,5 buts' && prediction.includes('-2,5 buts')))) {
         return true;
       }
       return false;
@@ -605,7 +642,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
         </h4>
 
         {isLoading ? (
-          <div className="h-28 relative z-10 flex flex-col items-center justify-center">
+          <div className="h-32 relative z-10 flex flex-col items-center justify-center">
             <div className="relative w-16 h-16 mb-2">
               <div className="absolute inset-0 rounded-full border-3 border-brand/20"></div>
               <div 
@@ -629,13 +666,15 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
             </div>
           </div>
         ) : (
-          <div className="h-28 relative z-10 transform group-hover:scale-105 transition-transform duration-500 animate-fade-in">
+          <div className="h-32 relative z-10 transform group-hover:scale-105 transition-transform duration-500 animate-fade-in">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={data}
                   cx="50%"
                   cy="50%"
+                  labelLine={false}
+                  label={renderCustomizedLabel}
                   innerRadius={20}
                   outerRadius={45}
                   paddingAngle={2}
