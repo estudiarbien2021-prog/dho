@@ -23,10 +23,10 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
     const bttsNoProb = match.p_btts_no_fair;
     
     // NOUVELLE RÈGLE : Si vigorish BTTS >= 8.1%, proposer l'inverse
-    // EXCEPTION : Si la probabilité d'analyse >= 60%, ne pas inverser
+    // EXCEPTION : Si la probabilité d'analyse >= 60%, garder la recommandation normale
     const isHighVigBTTS = match.vig_btts >= HIGH_VIG_THRESHOLD;
     const highestBTTSProb = Math.max(bttsYesProb, bttsNoProb);
-    const shouldInvertBTTS = isHighVigBTTS && highestBTTSProb < 0.6; // Ne pas inverser si >= 60%
+    const shouldInvertBTTS = isHighVigBTTS && highestBTTSProb < 0.6; // Inverser seulement si < 60%
     
     // Choisir la meilleure option BTTS basée sur les probabilités (pour la recommandation)
     let bestBTTS = null;
