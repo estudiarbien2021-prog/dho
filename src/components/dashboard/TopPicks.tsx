@@ -1,13 +1,29 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ProcessedMatch } from '@/types/match';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { FlagMini } from '@/components/Flag';
 import { leagueToFlag } from '@/lib/leagueCountry';
-import { generateAIRecommendation } from '@/lib/aiRecommendation';
 import { Trophy, Target, Zap } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { supabase } from '@/integrations/supabase/client';
+
+interface ValidatedPick {
+  id: string;
+  match_id: string;
+  league: string;
+  home_team: string;
+  away_team: string;
+  country?: string;
+  kickoff_utc: string;
+  bet_type: string;
+  prediction: string;
+  odds: number;
+  probability: number;
+  vigorish: number;
+  is_validated: boolean;
+}
 
 interface TopPicksProps {
   matches: ProcessedMatch[];
@@ -15,83 +31,60 @@ interface TopPicksProps {
 }
 
 export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
-  // Utilise la même logique que l'Analyse IA du popup detail
-  const getTopBets = () => {
-    const validBets = [];
-    
-    // Filtrer d'abord par catégorie : grands championnats et compétitions continentales/internationales
-    // Exclure les coupes nationales, l'Asie, l'Amérique latine (sauf Brésil) et l'Afrique
-    const filteredMatches = matches.filter(match => {
-      // Garder seulement première division et coupes continentales (pas de coupes nationales)
-      const isValidCategory = match.category === 'first_div' || match.category === 'continental_cup';
-      
-      // Exclure l'Asie complètement (pays asiatiques et compétitions continentales asiatiques)
-      const asianCountries = ['Japan', 'South Korea', 'China', 'Thailand', 'Singapore', 'Malaysia', 'Indonesia', 'Vietnam', 'Philippines', 'India', 'Saudi Arabia', 'UAE', 'Qatar', 'Iran', 'Iraq', 'Jordan', 'Lebanon', 'Syria', 'Uzbekistan', 'Kazakhstan', 'Kyrgyzstan', 'Tajikistan', 'Turkmenistan', 'Afghanistan', 'Pakistan', 'Bangladesh', 'Sri Lanka', 'Myanmar', 'Cambodia', 'Laos', 'Nepal', 'Bhutan', 'Mongolia', 'North Korea'];
-      const asianCompetitions = ['AFC Champions League', 'AFC Cup', 'AFC Asian Cup', 'J1 League', 'K League 1', 'Chinese Super League', 'Thai League 1', 'Malaysian Super League', 'Indonesian Liga 1', 'V.League 1', 'Philippine Football League', 'Indian Super League', 'Saudi Pro League', 'UAE Pro League', 'Qatar Stars League', 'Iran Pro League', 'Iraq Stars League'];
-      
-      // Exclure l'Amérique latine (sauf Brésil) pour les championnats domestiques
-      const latinAmericanCountries = ['Argentina', 'Chile', 'Colombia', 'Peru', 'Uruguay', 'Paraguay', 'Bolivia', 'Ecuador', 'Venezuela', 'Mexico', 'Guatemala', 'Honduras', 'El Salvador', 'Nicaragua', 'Costa Rica', 'Panama'];
-      
-      // Exclure l'Afrique pour les championnats domestiques
-      const africanCountries = ['South Africa', 'Nigeria', 'Ghana', 'Morocco', 'Egypt', 'Tunisia', 'Algeria', 'Kenya', 'Ethiopia', 'Tanzania', 'Uganda', 'Zimbabwe', 'Zambia', 'Botswana', 'Cameroon', 'Ivory Coast', 'Senegal', 'Mali', 'Burkina Faso', 'Guinea', 'Sierra Leone', 'Liberia', 'Gambia', 'Cape Verde', 'Mauritania', 'Chad', 'Central African Republic', 'Democratic Republic of Congo', 'Republic of Congo', 'Gabon', 'Equatorial Guinea', 'Angola', 'Namibia', 'Lesotho', 'Swaziland', 'Madagascar', 'Mauritius', 'Comoros', 'Seychelles'];
-      
-      const isNotAsianCountry = !asianCountries.includes(match.country || '');
-      const isNotAsianCompetition = !asianCompetitions.some(comp => (match.league || '').toLowerCase().includes(comp.toLowerCase()));
-      
-      // Pour les championnats domestiques (first_div), exclure Amérique latine sauf Brésil et Afrique
-      if (match.category === 'first_div') {
-        const isNotLatinAmerican = !latinAmericanCountries.includes(match.country || '');
-        const isBrazil = match.country === 'Brazil';
-        const isNotAfrican = !africanCountries.includes(match.country || '');
-        
-        return isValidCategory && isNotAsianCountry && isNotAsianCompetition && (isNotLatinAmerican || isBrazil) && isNotAfrican;
-      }
-      
-      // Pour les compétitions continentales, garder toutes sauf asiatiques
-      return isValidCategory && isNotAsianCountry && isNotAsianCompetition;
-    });
-    
-    filteredMatches.forEach(match => {
-      // Utiliser generateAIRecommendation pour avoir la même logique que le popup
-      const aiRec = generateAIRecommendation(match, []);
-      
-      if (aiRec) {
-        validBets.push({
-          match,
-          type: aiRec.betType,
-          prediction: aiRec.prediction,
-          odds: aiRec.odds,
-          probability: aiRec.betType === 'BTTS' 
-            ? (aiRec.prediction === 'Oui' ? match.p_btts_yes_fair : match.p_btts_no_fair)
-            : (aiRec.prediction === '+2,5 buts' ? match.p_over_2_5_fair : match.p_under_2_5_fair),
-          vigorish: aiRec.betType === 'BTTS' ? match.vig_btts : match.vig_ou_2_5
-        });
-      }
-    });
-    
-    // Filtrer les odds >= 1.5 ET probabilité >= 56%, puis trier par vigorish décroissant ET probabilité décroissante
-    return validBets
-      .filter(bet => bet.odds >= 1.5 && bet.probability >= 0.56)
-      .sort((a, b) => {
-        // D'abord trier par vigorish décroissant
-        const vigorishDiff = b.vigorish - a.vigorish;
-        if (vigorishDiff !== 0) return vigorishDiff;
-        // Puis par probabilité décroissante en cas d'égalité
-        return b.probability - a.probability;
-      })
-      .slice(0, 3);
+  const [validatedPicks, setValidatedPicks] = useState<ValidatedPick[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadValidatedPicks();
+  }, []);
+
+  const loadValidatedPicks = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('validated_picks')
+        .select('*')
+        .eq('is_validated', true)
+        .order('vigorish', { ascending: false })
+        .order('probability', { ascending: false })
+        .limit(3);
+
+      if (error) throw error;
+      setValidatedPicks(data || []);
+    } catch (error) {
+      console.error('Error loading validated picks:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const topBets = getTopBets();
+  const handlePickClick = (pick: ValidatedPick) => {
+    // Trouver le match correspondant et déclencher onMatchClick
+    const correspondingMatch = matches.find(m => m.id === pick.match_id);
+    if (correspondingMatch) {
+      onMatchClick(correspondingMatch);
+    }
+  };
 
-  if (topBets.length === 0) {
+  if (isLoading) {
+    return (
+      <Card className="p-6 bg-gradient-to-br from-surface-soft to-surface border border-brand/20">
+        <div className="text-center">
+          <Target className="h-12 w-12 text-brand/50 mx-auto mb-4 animate-pulse" />
+          <h3 className="text-lg font-semibold text-text mb-2">Chargement des picks...</h3>
+        </div>
+      </Card>
+    );
+  }
+
+  if (validatedPicks.length === 0) {
     return (
       <Card className="p-6 bg-gradient-to-br from-surface-soft to-surface border border-brand/20">
         <div className="text-center">
           <Target className="h-12 w-12 text-brand/50 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-text mb-2">Aucune opportunité détectée</h3>
+          <h3 className="text-lg font-semibold text-text mb-2">Aucun pick validé</h3>
           <p className="text-text-weak text-sm">
-            Aucun pari ne répond aux critères uniformes de l'IA.
+            Les administrateurs n'ont pas encore validé de picks pour aujourd'hui.
           </p>
         </div>
       </Card>
@@ -106,19 +99,19 @@ export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
         </div>
         <div>
           <h2 className="text-xl font-bold text-text">🎯 Top 3 Picks IA</h2>
-          <p className="text-sm text-text-weak">Sélection automatique avec critères unifiés</p>
+          <p className="text-sm text-text-weak">Sélection validée par nos experts</p>
         </div>
       </div>
       
       <div className="grid gap-4 md:grid-cols-3">
-        {topBets.map((bet, index) => {
-          const flagInfo = leagueToFlag(bet.match.league, bet.match.country, bet.match.home_team, bet.match.away_team);
+        {validatedPicks.map((pick, index) => {
+          const flagInfo = leagueToFlag(pick.league, pick.country, pick.home_team, pick.away_team);
           
           return (
             <Card 
-              key={`${bet.match.id}-top-pick-${index}`}
+              key={`validated-pick-${pick.id}`}
               className="group relative p-4 bg-gradient-to-br from-surface-soft to-surface border border-brand/30 hover:border-brand/50 transition-all duration-300 hover:shadow-xl hover:shadow-brand/20 cursor-pointer transform hover:scale-[1.02]"
-              onClick={() => onMatchClick(bet.match)}
+              onClick={() => handlePickClick(pick)}
             >
               {/* Rank Badge */}
               <div className="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-br from-brand to-brand-400 rounded-full flex items-center justify-center text-brand-fg font-bold text-sm shadow-lg">
@@ -128,15 +121,15 @@ export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
               {/* Match Info */}
               <div className="flex items-center justify-center gap-2 mb-3">
                 <FlagMini code={flagInfo.code} confed={flagInfo.confed} />
-                <span className="text-xs text-text-weak text-center truncate">{bet.match.league}</span>
+                <span className="text-xs text-text-weak text-center truncate">{pick.league}</span>
               </div>
 
               <div className="space-y-2 mb-4 text-center">
                 <div className="text-sm font-medium text-text">
-                  {bet.match.home_team} vs {bet.match.away_team}
+                  {pick.home_team} vs {pick.away_team}
                 </div>
                 <div className="text-xs text-text-weak">
-                  {format(bet.match.kickoff_utc, 'HH:mm', { locale: fr })}
+                  {format(new Date(pick.kickoff_utc), 'HH:mm', { locale: fr })}
                 </div>
               </div>
 
@@ -145,7 +138,7 @@ export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
                 <div className="flex items-center gap-2 mb-3">
                   <Target className="h-5 w-5 text-green-600" />
                   <h3 className="text-lg font-semibold text-green-800">
-                    Top Pick IA
+                    Pick Validé
                   </h3>
                 </div>
                 
@@ -155,22 +148,22 @@ export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
                       variant="default"
                       className="text-sm px-3 py-1"
                     >
-                      {bet.type} {bet.prediction}
+                      {pick.bet_type} {pick.prediction}
                     </Badge>
                     <div className="text-xl font-bold text-green-700">
-                      {bet.odds.toFixed(2)}
+                      {pick.odds.toFixed(2)}
                     </div>
                   </div>
                   
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-green-600">Probabilité:</span>
-                    <span className="font-semibold text-green-800">{(bet.probability * 100).toFixed(1)}%</span>
+                    <span className="font-semibold text-green-800">{(pick.probability * 100).toFixed(1)}%</span>
                   </div>
                   
                   <div className="relative h-2 bg-green-200 rounded-full overflow-hidden">
                     <div 
                       className="absolute top-0 left-0 h-full bg-gradient-to-r from-green-500 to-green-600 rounded-full"
-                      style={{ width: `${bet.probability * 100}%` }}
+                      style={{ width: `${pick.probability * 100}%` }}
                     />
                   </div>
                 </div>

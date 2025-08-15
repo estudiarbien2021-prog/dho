@@ -191,6 +191,66 @@ export type Database = {
         }
         Relationships: []
       }
+      validated_picks: {
+        Row: {
+          away_team: string
+          bet_type: string
+          country: string | null
+          created_at: string
+          home_team: string
+          id: string
+          is_validated: boolean
+          kickoff_utc: string
+          league: string
+          match_id: string
+          odds: number
+          prediction: string
+          probability: number
+          updated_at: string
+          validated_at: string | null
+          validated_by: string | null
+          vigorish: number
+        }
+        Insert: {
+          away_team: string
+          bet_type: string
+          country?: string | null
+          created_at?: string
+          home_team: string
+          id?: string
+          is_validated?: boolean
+          kickoff_utc: string
+          league: string
+          match_id: string
+          odds: number
+          prediction: string
+          probability: number
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+          vigorish: number
+        }
+        Update: {
+          away_team?: string
+          bet_type?: string
+          country?: string | null
+          created_at?: string
+          home_team?: string
+          id?: string
+          is_validated?: boolean
+          kickoff_utc?: string
+          league?: string
+          match_id?: string
+          odds?: number
+          prediction?: string
+          probability?: number
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+          vigorish?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
