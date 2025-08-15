@@ -13,7 +13,7 @@ import { generateAIRecommendation } from '@/lib/aiRecommendation';
 import AIRecommendationDisplay from '@/components/AIRecommendationDisplay';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Clock, TrendingDown, Target, Eye, Download, Loader2, Zap } from 'lucide-react';
+import { Clock, TrendingDown, Target, Eye, Download, Loader2, Zap, Brain } from 'lucide-react';
 import { NeuralNetworkVisualization } from '@/components/charts/NeuralNetworkVisualization';
 import { ConfidenceScoreBars } from '@/components/charts/ConfidenceScoreBars';
 import { InfluenceFactors } from '@/components/charts/InfluenceFactors';
@@ -21,6 +21,11 @@ import { TeamRadarChart } from '@/components/charts/RadarChart';
 import { TimelineMomentum } from '@/components/charts/TimelineMomentum';
 import { ProbabilityDistribution } from '@/components/charts/ProbabilityDistribution';
 import { ScorePredictionMatrix } from '@/components/charts/ScorePredictionMatrix';
+import { ConfidenceRadar } from '@/components/charts/ConfidenceRadar';
+import { MarketEfficiencyGauge } from '@/components/charts/MarketEfficiencyGauge';
+import { AIConsensusGauge } from '@/components/charts/AIConsensusGauge';
+import { PredictionCertaintyBars } from '@/components/charts/PredictionCertaintyBars';
+import { TeamChemistryAnalyzer } from '@/components/charts/TeamChemistryAnalyzer';
 
 interface MatchDetailModalProps {
   match: ProcessedMatch | null;
@@ -1048,6 +1053,49 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
               </div>
             </Card>
           </div>
+
+          {/* Section Analyses Avancées IA */}
+          {showAIGraphics && (
+            <div className="space-y-6 animate-fade-in">
+              <div className="text-center py-4">
+                <h2 className="text-xl font-bold text-foreground mb-2 flex items-center justify-center gap-2">
+                  <Brain className="w-6 h-6 text-primary" />
+                  Analyses Avancées IA
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Métriques de nouvelle génération pour une analyse complète
+                </p>
+              </div>
+
+              {/* Grid des analyses avancées */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Radar de Confiance */}
+                <Card className="p-6 bg-gradient-to-br from-background to-muted/20 border-border/50">
+                  <ConfidenceRadar match={match} />
+                </Card>
+
+                {/* Efficacité du Marché */}
+                <Card className="p-6 bg-gradient-to-br from-background to-muted/20 border-border/50">
+                  <MarketEfficiencyGauge match={match} />
+                </Card>
+
+                {/* Consensus IA */}
+                <Card className="p-6 bg-gradient-to-br from-background to-muted/20 border-border/50">
+                  <AIConsensusGauge match={match} />
+                </Card>
+
+                {/* Barres de Certitude */}
+                <Card className="p-6 bg-gradient-to-br from-background to-muted/20 border-border/50">
+                  <PredictionCertaintyBars match={match} />
+                </Card>
+              </div>
+
+              {/* Analyseur de Chimie d'Équipes - Pleine largeur */}
+              <Card className="p-6 bg-gradient-to-br from-background to-muted/20 border-border/50">
+                <TeamChemistryAnalyzer match={match} />
+              </Card>
+            </div>
+          )}
 
           {/* Modern Actions Section */}
           <div className="flex justify-center pt-4 border-t border-slate-200/50 dark:border-slate-700/50">
