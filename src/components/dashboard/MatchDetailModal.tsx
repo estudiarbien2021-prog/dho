@@ -17,6 +17,10 @@ import { Clock, TrendingDown, Target, Eye, Download, Loader2, Zap } from 'lucide
 import { NeuralNetworkVisualization } from '@/components/charts/NeuralNetworkVisualization';
 import { ConfidenceScoreBars } from '@/components/charts/ConfidenceScoreBars';
 import { InfluenceFactors } from '@/components/charts/InfluenceFactors';
+import { TeamRadarChart } from '@/components/charts/RadarChart';
+import { TimelineMomentum } from '@/components/charts/TimelineMomentum';
+import { ProbabilityDistribution } from '@/components/charts/ProbabilityDistribution';
+import { ScorePredictionMatrix } from '@/components/charts/ScorePredictionMatrix';
 
 interface MatchDetailModalProps {
   match: ProcessedMatch | null;
@@ -754,46 +758,85 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
 
           <Separator className="bg-gradient-to-r from-transparent via-brand/30 to-transparent" />
 
-          {/* AI Graphics Section */}
-          <div className="space-y-6">
-            <h3 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent flex items-center gap-3 animate-fade-in">
-              <div className="w-1 h-8 bg-gradient-to-b from-primary to-primary/70 rounded-full animate-pulse"></div>
-              Intelligence Artificielle Avancée
-            </h3>
+          {/* Enhanced AI Graphics Section */}
+          <div className="space-y-8">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
+                Intelligence Artificielle Avancée
+              </h2>
+              <p className="text-slate-600 dark:text-slate-400">
+                Analyse prédictive complète avec 5 algorithmes d'IA différents
+              </p>
+            </div>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Confidence Score Bars */}
-            <ConfidenceScoreBars
-              isActive={showAIGraphics}
-              predictions={[
-                {
-                  label: recommendation?.type === 'BTTS' && recommendation?.prediction === 'Oui' ? 'BTTS Oui' : 
-                         recommendation?.type === 'BTTS' && recommendation?.prediction === 'Non' ? 'BTTS Non' :
-                         recommendation?.type === 'O/U 2.5' && recommendation?.prediction === 'Over' ? 'Plus de 2.5 Buts' :
-                         recommendation?.type === 'O/U 2.5' && recommendation?.prediction === 'Under' ? 'Moins de 2.5 Buts' :
-                         recommendation?.type ? `${recommendation.type}: ${recommendation.prediction}` :
-                         '1X2 ' + get1x2Winner(),
-                  value: Number(generateConfidenceScore(match.id, recommendation || {})),
-                  color: 'hsl(var(--primary))',
-                  icon: '🎯'
-                },
-                {
-                  label: 'Analyse Alternative',
-                  value: Math.max(30, 100 - Number(generateConfidenceScore(match.id, recommendation || {}))),
-                  color: '#10b981',
-                  icon: '📊'
-                },
-                {
-                  label: 'Facteur Risque (Marge)',
-                  value: Math.round(match.vig_1x2 * 100),
-                  color: '#ef4444',
-                  icon: '⚠️'
-                }
-              ]}
-            />
-              
+              {/* Confidence Score Bars */}
+              <ConfidenceScoreBars
+                isActive={showAIGraphics}
+                predictions={[
+                  {
+                    label: recommendation?.type === 'BTTS' && recommendation?.prediction === 'Oui' ? 'BTTS Oui' : 
+                           recommendation?.type === 'BTTS' && recommendation?.prediction === 'Non' ? 'BTTS Non' :
+                           recommendation?.type === 'O/U 2.5' && recommendation?.prediction === 'Over' ? 'Plus de 2.5 Buts' :
+                           recommendation?.type === 'O/U 2.5' && recommendation?.prediction === 'Under' ? 'Moins de 2.5 Buts' :
+                           recommendation?.type ? `${recommendation.type}: ${recommendation.prediction}` :
+                           '1X2 ' + get1x2Winner(),
+                    value: Number(generateConfidenceScore(match.id, recommendation || {})),
+                    color: 'hsl(var(--primary))',
+                    icon: '🎯'
+                  },
+                  {
+                    label: 'Analyse Alternative',
+                    value: Math.max(30, 100 - Number(generateConfidenceScore(match.id, recommendation || {}))),
+                    color: '#10b981',
+                    icon: '📊'
+                  },
+                  {
+                    label: 'Facteur Risque (Marge)',
+                    value: Math.round(match.vig_1x2 * 100),
+                    color: '#ef4444',
+                    icon: '⚠️'
+                  }
+                ]}
+              />
+                
               {/* Influence Factors */}
               <InfluenceFactors 
+                matchId={match.id}
+                isActive={showAIGraphics}
+              />
+            </div>
+
+            {/* New Advanced Charts Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Team Radar Chart */}
+              <TeamRadarChart
+                homeTeam={match.home_team}
+                awayTeam={match.away_team}
+                matchId={match.id}
+                isActive={showAIGraphics}
+              />
+
+              {/* Timeline Momentum */}
+              <TimelineMomentum
+                homeTeam={match.home_team}
+                awayTeam={match.away_team}
+                matchId={match.id}
+                isActive={showAIGraphics}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Probability Distribution */}
+              <ProbabilityDistribution
+                matchId={match.id}
+                isActive={showAIGraphics}
+              />
+
+              {/* Score Prediction Matrix */}
+              <ScorePredictionMatrix
+                homeTeam={match.home_team}
+                awayTeam={match.away_team}
                 matchId={match.id}
                 isActive={showAIGraphics}
               />
