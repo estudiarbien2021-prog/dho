@@ -75,6 +75,7 @@ export function PicksValidation() {
       endDate.setDate(endDate.getDate() + 1);
       
       console.log(`📅 Requête Supabase: ${startDate.toISOString()} -> ${endDate.toISOString()}`);
+      console.log(`📅 Date formatée: Start=${startDate.toDateString()}, End=${endDate.toDateString()}`);
       
       const { data, error } = await supabase
         .from('matches')
@@ -83,9 +84,38 @@ export function PicksValidation() {
         .lt('kickoff_utc', endDate.toISOString())
         .order('kickoff_utc', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erreur Supabase:', error);
+        throw error;
+      }
       
       console.log(`✅ Matchs chargés pour ${dateFilter}: ${data?.length || 0}`);
+      
+      // Debug: afficher quelques matchs trouvés avec leurs dates
+      if (data && data.length > 0) {
+        console.log('🔍 Échantillon des matchs trouvés:');
+        data.slice(0, 3).forEach((match, index) => {
+          const matchDate = new Date(match.kickoff_utc);
+          console.log(`  ${index + 1}. ${match.home_team} vs ${match.away_team} - ${matchDate.toISOString()} (${matchDate.toDateString()})`);
+        });
+      } else {
+        console.log('❌ Aucun match trouvé - Vérifions les dates dans la base...');
+        
+        // Requête de diagnostic pour voir toutes les dates disponibles
+        const { data: allMatches } = await supabase
+          .from('matches')
+          .select('home_team, away_team, kickoff_utc')
+          .order('kickoff_utc', { ascending: true })
+          .limit(10);
+          
+        if (allMatches && allMatches.length > 0) {
+          console.log('📊 Premières dates disponibles dans la base:');
+          allMatches.forEach((match, index) => {
+            const matchDate = new Date(match.kickoff_utc);
+            console.log(`  ${index + 1}. ${match.home_team} vs ${match.away_team} - ${matchDate.toDateString()}`);
+          });
+        }
+      }
       
       // Convertir au format ProcessedMatch
       const processedMatches: ProcessedMatch[] = (data || []).map(match => ({
