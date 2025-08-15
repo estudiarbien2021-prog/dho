@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar, Search, Archive, TrendingUp } from 'lucide-react';
 import { useDatabaseMatches } from '@/hooks/useDatabaseMatches';
 import { MatchesTable } from '@/components/dashboard/MatchesTable';
@@ -194,30 +195,27 @@ export function Archives() {
             {/* Market Filters */}
             <div className="space-y-2">
               <Label className="text-sm font-medium">Marchés</Label>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { id: 'btts_yes', label: 'BTTS Oui' },
-                  { id: 'btts_no', label: 'BTTS Non' },
-                  { id: 'over25', label: '+2.5' },
-                  { id: 'under25', label: '-2.5' }
-                ].map(market => (
-                  <Button
-                    key={market.id}
-                    variant={filters.marketFilters && filters.marketFilters.includes(market.id) ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => {
-                      const currentMarkets = filters.marketFilters || [];
-                      const newMarkets = currentMarkets.includes(market.id)
-                        ? currentMarkets.filter(m => m !== market.id)
-                        : [...currentMarkets, market.id];
-                      updateFilters({ marketFilters: newMarkets });
-                    }}
-                    className="text-xs h-8"
-                  >
-                    {market.label}
-                  </Button>
-                ))}
-              </div>
+              <Select 
+                value={filters.marketFilters && filters.marketFilters.length > 0 ? filters.marketFilters[0] : "all"} 
+                onValueChange={(value) => {
+                  if (value === "all") {
+                    updateFilters({ marketFilters: [] });
+                  } else {
+                    updateFilters({ marketFilters: [value] });
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner un marché" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les marchés</SelectItem>
+                  <SelectItem value="btts_yes">Les Deux Équipes Marquent - Oui</SelectItem>
+                  <SelectItem value="btts_no">Les Deux Équipes Marquent - Non</SelectItem>
+                  <SelectItem value="over25">Plus de 2.5 Buts</SelectItem>
+                  <SelectItem value="under25">Moins de 2.5 Buts</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* League Quick Filters */}
