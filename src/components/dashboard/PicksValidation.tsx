@@ -16,7 +16,7 @@ import { FlagMini } from '@/components/Flag';
 import { leagueToFlag } from '@/lib/leagueCountry';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { useMatchesData } from '@/hooks/useMatchesData';
+// Supprimer useMatchesData pour utiliser directement Supabase
 
 interface PotentialPick {
   match: ProcessedMatch;
@@ -56,15 +56,95 @@ export function PicksValidation() {
   const [searchTerm, setSearchTerm] = useState('');
   const [editingPick, setEditingPick] = useState<ValidatedPick | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  
-  const { matches = [] } = useMatchesData();
+  const [matches, setMatches] = useState<ProcessedMatch[]>([]);
 
   useEffect(() => {
-    if (matches.length > 0) {
-      loadPotentialPicks();
-    }
+    loadMatches();
     loadValidatedPicks();
-  }, [matches, dateFilter]);
+  }, [dateFilter]);
+
+  const loadMatches = async () => {
+    try {
+      setIsLoading(true);
+      console.log('🔄 Chargement des matchs depuis Supabase pour les picks...');
+      
+      let query = supabase
+        .from('matches')
+        .select('*')
+        .order('kickoff_utc', { ascending: true });
+
+      // Filtrer par date si spécifiée
+      if (dateFilter) {
+        const startDate = new Date(dateFilter);
+        const endDate = new Date(dateFilter);
+        endDate.setDate(endDate.getDate() + 1);
+        
+        query = query
+          .gte('kickoff_utc', startDate.toISOString())
+          .lt('kickoff_utc', endDate.toISOString());
+        
+        console.log(`📅 Filtrage Supabase: ${startDate.toISOString()} -> ${endDate.toISOString()}`);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      
+      console.log(`✅ Matchs chargés depuis Supabase: ${data?.length || 0}`);
+      
+      // Convertir au format ProcessedMatch
+      const processedMatches: ProcessedMatch[] = (data || []).map(match => ({
+        id: match.id,
+        league: match.league,
+        home_team: match.home_team,
+        away_team: match.away_team,
+        country: match.country,
+        kickoff_utc: new Date(match.kickoff_utc),
+        kickoff_local: new Date(match.kickoff_local),
+        category: match.category as 'first_div' | 'second_div' | 'continental_cup' | 'national_cup',
+        p_home_fair: match.p_home_fair,
+        p_draw_fair: match.p_draw_fair,
+        p_away_fair: match.p_away_fair,
+        p_btts_yes_fair: match.p_btts_yes_fair,
+        p_btts_no_fair: match.p_btts_no_fair,
+        p_over_2_5_fair: match.p_over_2_5_fair,
+        p_under_2_5_fair: match.p_under_2_5_fair,
+        vig_1x2: match.vig_1x2,
+        vig_btts: match.vig_btts,
+        vig_ou_2_5: match.vig_ou_2_5,
+        is_low_vig_1x2: match.is_low_vig_1x2,
+        watch_btts: match.watch_btts,
+        watch_over25: match.watch_over25,
+        odds_home: match.odds_home,
+        odds_draw: match.odds_draw,
+        odds_away: match.odds_away,
+        odds_btts_yes: match.odds_btts_yes,
+        odds_btts_no: match.odds_btts_no,
+        odds_over_2_5: match.odds_over_2_5,
+        odds_under_2_5: match.odds_under_2_5,
+        over_under_markets: [],
+        ai_prediction: match.ai_prediction,
+        ai_confidence: match.ai_confidence
+      }));
+      
+      setMatches(processedMatches);
+      
+      // Charger les picks potentiels après avoir chargé les matchs
+      if (processedMatches.length > 0) {
+        loadPotentialPicks(processedMatches);
+      }
+      
+    } catch (error) {
+      console.error('❌ Erreur lors du chargement des matchs:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les matchs depuis la base de données",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const loadValidatedPicks = async () => {
     try {
@@ -98,49 +178,28 @@ export function PicksValidation() {
     }
   };
 
-  const loadPotentialPicks = () => {
-    if (matches.length === 0) {
-      setIsLoading(false);
+  const loadPotentialPicks = (matchData: ProcessedMatch[] = matches) => {
+    if (matchData.length === 0) {
+      setPotentialPicks([]);
       return;
     }
 
     try {
       console.log('🔍 Analyse des matchs pour les picks potentiels...');
       console.log(`📅 Filtrage par date: ${dateFilter}`);
-      console.log(`📊 Total matchs disponibles: ${matches.length}`);
+      console.log(`📊 Total matchs disponibles depuis Supabase: ${matchData.length}`);
       
       // Debug: afficher quelques dates de matchs pour vérifier
-      const sampleDates = matches.slice(0, 5).map(m => ({
+      const sampleDates = matchData.slice(0, 5).map(m => ({
         team: `${m.home_team} vs ${m.away_team}`,
         date: new Date(m.kickoff_utc).toDateString(),
         kickoff: m.kickoff_utc
       }));
       console.log('📅 Échantillon des dates de matchs:', sampleDates);
       
-      // Filtrer d'abord par date si spécifiée
-      let matchesToAnalyze = matches;
-      if (dateFilter) {
-        const targetDate = new Date(dateFilter);
-        console.log(`🎯 Date cible recherchée: ${targetDate.toDateString()}`);
-        
-        matchesToAnalyze = matches.filter(match => {
-          const matchDate = new Date(match.kickoff_utc);
-          const matchDateStr = matchDate.toDateString();
-          const targetDateStr = targetDate.toDateString();
-          const isMatch = matchDateStr === targetDateStr;
-          
-          if (isMatch) {
-            console.log(`✅ Match trouvé pour la date: ${match.home_team} vs ${match.away_team} - ${matchDateStr}`);
-          }
-          
-          return isMatch;
-        });
-        console.log(`📊 Matchs filtrés par date: ${matchesToAnalyze.length}/${matches.length}`);
-        
-        if (matchesToAnalyze.length === 0) {
-          console.log('❌ Aucun match trouvé pour cette date. Vérifiez les données CSV.');
-        }
-      }
+      // Les matchs sont déjà filtrés par date dans loadMatches()
+      let matchesToAnalyze = matchData;
+      console.log(`📊 Matchs à analyser: ${matchesToAnalyze.length}`);
       
       // Filtrer par catégorie comme dans TopPicks mais avec les nouveaux critères
       const filteredMatches = matchesToAnalyze.filter(match => {
@@ -395,7 +454,7 @@ export function PicksValidation() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={loadPotentialPicks} disabled={isLoading}>
+          <Button variant="outline" onClick={() => loadPotentialPicks(matches)} disabled={isLoading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
             Actualiser
           </Button>
