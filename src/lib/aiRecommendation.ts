@@ -35,6 +35,17 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
     ouAvailable = ouMaxProb >= MIN_PROBABILITY;
   }
   
+  // DEBUG: Log des valeurs pour comprendre le problème
+  console.log('🔍 DEBUG generateAIRecommendations:', {
+    bttsMaxProb,
+    ouMaxProb,
+    bttsAvailable,
+    ouAvailable,
+    bttsVigorish: match.vig_btts,
+    ouVigorish: match.vig_ou_2_5,
+    shouldUseException: (bttsMaxProb >= 0.6 || ouMaxProb >= 0.6) && (bttsAvailable || ouAvailable)
+  });
+
   // Si une des probabilités >= 60%, appliquer l'exception
   if ((bttsMaxProb >= 0.6 || ouMaxProb >= 0.6) && (bttsAvailable || ouAvailable)) {
     const markets = [];
