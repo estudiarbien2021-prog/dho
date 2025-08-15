@@ -1,6 +1,6 @@
 import React from 'react';
 import { ProcessedMatch } from '@/types/match';
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Cell } from 'recharts';
 import { generateAIRecommendation } from '@/lib/aiRecommendation';
 
 interface AIProbabilitiesAnalysisProps {
@@ -30,7 +30,7 @@ export function AIProbabilitiesAnalysis({ match, className = "" }: AIProbabiliti
 
   const prediction1X2 = get1X2Prediction();
 
-  // Données pour les graphiques circulaires
+  // Données pour les graphiques en barres
   const get1X2Data = () => {
     const probHome = 1 / match.odds_home;
     const probDraw = 1 / match.odds_draw;
@@ -66,75 +66,75 @@ export function AIProbabilitiesAnalysis({ match, className = "" }: AIProbabiliti
     ];
   };
 
-  // Couleurs cohérentes avec le thème et code couleur de performance
-  const getColor = (isSelected: boolean, probability: number) => {
+  // Couleurs cohérentes avec la Matrice de Prédiction de Score (système purple)
+  const getColor = (probability: number, isSelected: boolean) => {
     if (isSelected) {
-      // Code couleur basé sur la performance/probabilité
-      if (probability >= 0.6) return 'hsl(var(--brand))';        // Vert - Excellente probabilité
-      if (probability >= 0.45) return 'hsl(220 70% 50%)';        // Bleu - Bonne probabilité  
-      if (probability >= 0.35) return 'hsl(35 80% 55%)';         // Orange - Probabilité moyenne
-      return 'hsl(var(--destructive))';                          // Rouge - Faible probabilité
+      // Couleurs principales purple pour les sélections
+      if (probability >= 0.6) return '#9333ea';        // Purple-600 - Excellente probabilité
+      if (probability >= 0.45) return '#a855f7';       // Purple-500 - Bonne probabilité  
+      if (probability >= 0.35) return '#c084fc';       // Purple-400 - Probabilité moyenne
+      return '#d8b4fe';                                 // Purple-300 - Faible probabilité
     }
     
     // Couleurs atténuées pour les options non sélectionnées
-    if (probability >= 0.6) return 'hsl(var(--brand-300))';
-    if (probability >= 0.45) return 'hsl(220 50% 70%)';
-    if (probability >= 0.35) return 'hsl(35 60% 75%)';
-    return 'hsl(var(--destructive) / 0.6)';
+    if (probability >= 0.6) return '#e9d5ff';          // Purple-200
+    if (probability >= 0.45) return '#f3e8ff';         // Purple-100
+    if (probability >= 0.35) return '#faf5ff';         // Purple-50
+    return '#f8fafc';                                   // Slate-50
   };
 
-  // Fonction pour obtenir le pourcentage et la couleur du texte
+  // Fonction pour obtenir le pourcentage et la couleur du texte (système purple)
   const getProbabilityDisplay = (probability: number, isSelected: boolean) => {
     const percent = (probability * 100).toFixed(1);
     let colorClass = '';
     
-    if (probability >= 0.6) colorClass = 'text-brand font-bold';
-    else if (probability >= 0.45) colorClass = 'text-blue-600 font-semibold';
-    else if (probability >= 0.35) colorClass = 'text-orange-600 font-medium';
-    else colorClass = 'text-destructive font-medium';
+    if (probability >= 0.6) colorClass = 'text-purple-700 font-bold';
+    else if (probability >= 0.45) colorClass = 'text-purple-600 font-semibold';
+    else if (probability >= 0.35) colorClass = 'text-purple-500 font-medium';
+    else colorClass = 'text-purple-400 font-medium';
 
     return { percent, colorClass };
   };
 
-  const CustomPieChart = ({ data, title, selectedLabel, recommendation }: {
+  const CustomBarChart = ({ data, title, selectedLabel, recommendation }: {
     data: any[];
     title: string;
     selectedLabel: string;
     recommendation?: { prediction: string; odds: number; } | null;
   }) => (
-    <div className="bg-surface-soft rounded-xl p-4 border border-border/30">
+    <div className="bg-gradient-to-br from-slate-50 to-white dark:from-slate-900/50 dark:to-slate-800/50 rounded-xl p-4 border border-purple-200/30 shadow-lg">
       <h3 className="text-center text-sm font-medium text-foreground mb-4">{title}</h3>
       
       <div className="relative">
-        <div className="h-[120px] w-full">
+        <div className="h-[180px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={data}
-                cx="50%"
-                cy="50%"
-                innerRadius={35}
-                outerRadius={55}
-                paddingAngle={2}
-                dataKey="value"
-              >
+            <BarChart data={data} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
+              <XAxis 
+                dataKey="name" 
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+              />
+              <YAxis hide />
+              <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                 {data.map((entry, index) => {
-                  const probability = entry.value / 100; // Convertir le pourcentage en probabilité
+                  const probability = entry.value / 100;
                   return (
-                    <Cell key={`cell-${index}`} fill={getColor(entry.isSelected, probability)} />
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={getColor(probability, entry.isSelected)}
+                    />
                   );
                 })}
-              </Pie>
-            </PieChart>
+              </Bar>
+            </BarChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Label central */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center">
-            <div className="bg-brand text-brand-fg px-3 py-1 rounded-full text-xs font-bold">
-              {selectedLabel}
-            </div>
+        {/* Label de sélection */}
+        <div className="absolute top-2 right-2">
+          <div className="bg-purple-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
+            {selectedLabel}
           </div>
         </div>
       </div>
@@ -246,7 +246,7 @@ export function AIProbabilitiesAnalysis({ match, className = "" }: AIProbabiliti
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <CustomPieChart
+        <CustomBarChart
           data={get1X2Data()}
           title="Résultat 1X2"
           selectedLabel={prediction1X2.label}
@@ -254,7 +254,7 @@ export function AIProbabilitiesAnalysis({ match, className = "" }: AIProbabiliti
         />
 
         {match.odds_btts_yes && match.odds_btts_no && (
-          <CustomPieChart
+          <CustomBarChart
             data={getBTTSData()}
             title="Les Deux Équipes Marquent"
             selectedLabel={bttsRecommendation?.prediction || 'N/A'}
@@ -263,7 +263,7 @@ export function AIProbabilitiesAnalysis({ match, className = "" }: AIProbabiliti
         )}
 
         {match.odds_over_2_5 && match.odds_under_2_5 && (
-          <CustomPieChart
+          <CustomBarChart
             data={getOverUnderData()}
             title="Plus/Moins 2,5 Buts"
             selectedLabel={overUnderRecommendation?.prediction === '+2,5 buts' ? '+2,5 buts' : '-2,5 buts'}
