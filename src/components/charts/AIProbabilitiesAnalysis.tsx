@@ -66,16 +66,34 @@ export function AIProbabilitiesAnalysis({ match, className = "" }: AIProbabiliti
     ];
   };
 
-  // Couleurs cohérentes avec le thème
-  const getColor = (isSelected: boolean, index: number) => {
-    if (isSelected) return 'hsl(var(--brand))';
+  // Couleurs cohérentes avec le thème et code couleur de performance
+  const getColor = (isSelected: boolean, probability: number) => {
+    if (isSelected) {
+      // Code couleur basé sur la performance/probabilité
+      if (probability >= 0.6) return 'hsl(var(--brand))';        // Vert - Excellente probabilité
+      if (probability >= 0.45) return 'hsl(220 70% 50%)';        // Bleu - Bonne probabilité  
+      if (probability >= 0.35) return 'hsl(35 80% 55%)';         // Orange - Probabilité moyenne
+      return 'hsl(var(--destructive))';                          // Rouge - Faible probabilité
+    }
     
-    const colors = [
-      'hsl(var(--brand-200))',
-      'hsl(var(--brand-300))',
-      'hsl(var(--brand-400))'
-    ];
-    return colors[index % colors.length];
+    // Couleurs atténuées pour les options non sélectionnées
+    if (probability >= 0.6) return 'hsl(var(--brand-300))';
+    if (probability >= 0.45) return 'hsl(220 50% 70%)';
+    if (probability >= 0.35) return 'hsl(35 60% 75%)';
+    return 'hsl(var(--destructive) / 0.6)';
+  };
+
+  // Fonction pour obtenir le pourcentage et la couleur du texte
+  const getProbabilityDisplay = (probability: number, isSelected: boolean) => {
+    const percent = (probability * 100).toFixed(1);
+    let colorClass = '';
+    
+    if (probability >= 0.6) colorClass = 'text-brand font-bold';
+    else if (probability >= 0.45) colorClass = 'text-blue-600 font-semibold';
+    else if (probability >= 0.35) colorClass = 'text-orange-600 font-medium';
+    else colorClass = 'text-destructive font-medium';
+
+    return { percent, colorClass };
   };
 
   const CustomPieChart = ({ data, title, selectedLabel, recommendation }: {
@@ -100,9 +118,12 @@ export function AIProbabilitiesAnalysis({ match, className = "" }: AIProbabiliti
                 paddingAngle={2}
                 dataKey="value"
               >
-                {data.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={getColor(entry.isSelected, index)} />
-                ))}
+                {data.map((entry, index) => {
+                  const probability = entry.value / 100; // Convertir le pourcentage en probabilité
+                  return (
+                    <Cell key={`cell-${index}`} fill={getColor(entry.isSelected, probability)} />
+                  );
+                })}
               </Pie>
             </PieChart>
           </ResponsiveContainer>
@@ -118,61 +139,96 @@ export function AIProbabilitiesAnalysis({ match, className = "" }: AIProbabiliti
         </div>
       </div>
 
-      {/* Cotes */}
+      {/* Cotes et Probabilités */}
       <div className="mt-4 space-y-2">
         {title === "Résultat 1X2" && (
           <>
-            <div className="flex justify-between text-xs">
+            <div className="flex justify-between items-center text-xs">
               <span className="text-muted-foreground">Domicile</span>
-              <span className={`font-bold ${prediction1X2.type === 'home' ? 'text-brand' : 'text-foreground'}`}>
-                {match.odds_home.toFixed(2)}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className={`text-xs ${getProbabilityDisplay(1 / match.odds_home, prediction1X2.type === 'home').colorClass}`}>
+                  {getProbabilityDisplay(1 / match.odds_home, prediction1X2.type === 'home').percent}%
+                </span>
+                <span className={`font-bold ${prediction1X2.type === 'home' ? 'text-brand' : 'text-foreground'}`}>
+                  {match.odds_home.toFixed(2)}
+                </span>
+              </div>
             </div>
-            <div className="flex justify-between text-xs">
+            <div className="flex justify-between items-center text-xs">
               <span className="text-muted-foreground">Nul</span>
-              <span className={`font-bold ${prediction1X2.type === 'draw' ? 'text-brand' : 'text-foreground'}`}>
-                {match.odds_draw.toFixed(2)}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className={`text-xs ${getProbabilityDisplay(1 / match.odds_draw, prediction1X2.type === 'draw').colorClass}`}>
+                  {getProbabilityDisplay(1 / match.odds_draw, prediction1X2.type === 'draw').percent}%
+                </span>
+                <span className={`font-bold ${prediction1X2.type === 'draw' ? 'text-brand' : 'text-foreground'}`}>
+                  {match.odds_draw.toFixed(2)}
+                </span>
+              </div>
             </div>
-            <div className="flex justify-between text-xs">
+            <div className="flex justify-between items-center text-xs">
               <span className="text-muted-foreground">Extérieur</span>
-              <span className={`font-bold ${prediction1X2.type === 'away' ? 'text-brand' : 'text-foreground'}`}>
-                {match.odds_away.toFixed(2)}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className={`text-xs ${getProbabilityDisplay(1 / match.odds_away, prediction1X2.type === 'away').colorClass}`}>
+                  {getProbabilityDisplay(1 / match.odds_away, prediction1X2.type === 'away').percent}%
+                </span>
+                <span className={`font-bold ${prediction1X2.type === 'away' ? 'text-brand' : 'text-foreground'}`}>
+                  {match.odds_away.toFixed(2)}
+                </span>
+              </div>
             </div>
           </>
         )}
         
         {title === "Les Deux Équipes Marquent" && match.odds_btts_yes && match.odds_btts_no && (
           <>
-            <div className="flex justify-between text-xs">
+            <div className="flex justify-between items-center text-xs">
               <span className="text-muted-foreground">BTTS Oui</span>
-              <span className={`font-bold ${bttsRecommendation?.prediction === 'Oui' ? 'text-brand' : 'text-foreground'}`}>
-                {match.odds_btts_yes.toFixed(2)}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className={`text-xs ${getProbabilityDisplay(match.p_btts_yes_fair || 0.5, bttsRecommendation?.prediction === 'Oui').colorClass}`}>
+                  {getProbabilityDisplay(match.p_btts_yes_fair || 0.5, bttsRecommendation?.prediction === 'Oui').percent}%
+                </span>
+                <span className={`font-bold ${bttsRecommendation?.prediction === 'Oui' ? 'text-brand' : 'text-foreground'}`}>
+                  {match.odds_btts_yes.toFixed(2)}
+                </span>
+              </div>
             </div>
-            <div className="flex justify-between text-xs">
+            <div className="flex justify-between items-center text-xs">
               <span className="text-muted-foreground">BTTS Non</span>
-              <span className={`font-bold ${bttsRecommendation?.prediction === 'Non' ? 'text-brand' : 'text-foreground'}`}>
-                {match.odds_btts_no.toFixed(2)}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className={`text-xs ${getProbabilityDisplay(match.p_btts_no_fair || 0.5, bttsRecommendation?.prediction === 'Non').colorClass}`}>
+                  {getProbabilityDisplay(match.p_btts_no_fair || 0.5, bttsRecommendation?.prediction === 'Non').percent}%
+                </span>
+                <span className={`font-bold ${bttsRecommendation?.prediction === 'Non' ? 'text-brand' : 'text-foreground'}`}>
+                  {match.odds_btts_no.toFixed(2)}
+                </span>
+              </div>
             </div>
           </>
         )}
         
         {title === "Plus/Moins 2,5 Buts" && match.odds_over_2_5 && match.odds_under_2_5 && (
           <>
-            <div className="flex justify-between text-xs">
+            <div className="flex justify-between items-center text-xs">
               <span className="text-muted-foreground">Plus de 2,5</span>
-              <span className={`font-bold ${overUnderRecommendation?.prediction === '+2,5 buts' ? 'text-brand' : 'text-foreground'}`}>
-                {match.odds_over_2_5.toFixed(2)}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className={`text-xs ${getProbabilityDisplay(match.p_over_2_5_fair || 0.5, overUnderRecommendation?.prediction === '+2,5 buts').colorClass}`}>
+                  {getProbabilityDisplay(match.p_over_2_5_fair || 0.5, overUnderRecommendation?.prediction === '+2,5 buts').percent}%
+                </span>
+                <span className={`font-bold ${overUnderRecommendation?.prediction === '+2,5 buts' ? 'text-brand' : 'text-foreground'}`}>
+                  {match.odds_over_2_5.toFixed(2)}
+                </span>
+              </div>
             </div>
-            <div className="flex justify-between text-xs">
+            <div className="flex justify-between items-center text-xs">
               <span className="text-muted-foreground">Moins de 2,5</span>
-              <span className={`font-bold ${overUnderRecommendation?.prediction === '-2,5 buts' ? 'text-brand' : 'text-foreground'}`}>
-                {match.odds_under_2_5.toFixed(2)}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className={`text-xs ${getProbabilityDisplay(match.p_under_2_5_fair || 0.5, overUnderRecommendation?.prediction === '-2,5 buts').colorClass}`}>
+                  {getProbabilityDisplay(match.p_under_2_5_fair || 0.5, overUnderRecommendation?.prediction === '-2,5 buts').percent}%
+                </span>
+                <span className={`font-bold ${overUnderRecommendation?.prediction === '-2,5 buts' ? 'text-brand' : 'text-foreground'}`}>
+                  {match.odds_under_2_5.toFixed(2)}
+                </span>
+              </div>
             </div>
           </>
         )}
