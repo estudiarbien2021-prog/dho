@@ -92,10 +92,9 @@ export function PicksValidation() {
       setIsLoading(true);
       console.log(`🔄 Chargement des matchs pour la date: ${dateFilter}`);
       
-      // Charger SEULEMENT les matchs de la date sélectionnée
-      const startDate = new Date(dateFilter);
-      const endDate = new Date(dateFilter);
-      endDate.setDate(endDate.getDate() + 1);
+      // Charger SEULEMENT les matchs de la date sélectionnée en utilisant UTC
+      const startDate = new Date(dateFilter + 'T00:00:00.000Z');
+      const endDate = new Date(dateFilter + 'T23:59:59.999Z');
       
       console.log(`📅 Requête Supabase: ${startDate.toISOString()} -> ${endDate.toISOString()}`);
       console.log(`📅 Date formatée: Start=${startDate.toDateString()}, End=${endDate.toDateString()}`);
