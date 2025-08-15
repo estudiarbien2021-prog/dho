@@ -379,11 +379,11 @@ export function PicksValidation() {
         console.log(`      - Odds O/U: Over=${match.odds_over_2_5}, Under=${match.odds_under_2_5}`);
       });
       
-      // Analyser TOUS les matchs de la base, mais les filtrer par date sélectionnée
+      // Si les matchs sont déjà fournis (filtrés par date), ne pas refiltrer
       let matchesToAnalyze = allMatches;
       
-      // Filtrer par date seulement pour l'affichage, pas pour l'analyse
-      if (dateFilter && dateFilter !== '') {
+      // Filtrer par date SEULEMENT si on a chargé depuis la DB (pas de matchData fourni)
+      if (!matchData && dateFilter && dateFilter !== '') {
         const selectedDate = new Date(dateFilter + 'T00:00:00Z');
         const nextDay = new Date(selectedDate);
         nextDay.setDate(nextDay.getDate() + 1);
@@ -393,9 +393,11 @@ export function PicksValidation() {
           return matchDate >= selectedDate && matchDate < nextDay;
         });
         
-        console.log(`📅 Matchs filtrés pour ${dateFilter}: ${matchesToAnalyze.length}/${allMatches.length}`);
+        console.log(`📅 Matchs filtrés par date ${dateFilter}: ${matchesToAnalyze.length}/${allMatches.length}`);
+      } else if (matchData) {
+        console.log(`📅 Utilisation des matchs déjà filtrés: ${matchesToAnalyze.length}`);
       } else {
-        console.log(`📅 Tous les matchs analysés (pas de filtre de date): ${matchesToAnalyze.length}`);
+        console.log(`📅 Tous les matchs analysés (pas de filtre): ${matchesToAnalyze.length}`);
       }
       
       console.log(`📊 Analysing ${matchesToAnalyze.length} matchs pour la date sélectionnée`);
