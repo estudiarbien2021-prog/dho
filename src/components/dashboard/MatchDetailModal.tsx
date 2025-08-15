@@ -703,6 +703,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
               <NeuralNetworkVisualization 
                 isActive={showAIGraphics} 
                 confidence={Number(generateConfidenceScore(match.id, recommendation || {}))} 
+                match={match}
               />
             </div>
             

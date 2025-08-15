@@ -45,6 +45,14 @@ export function NeuralNetworkVisualization({ isActive, confidence, match }: Neur
     
     const valueBets: ValueBet[] = [];
     
+    // Vérifications de sécurité pour les propriétés requises
+    if (!match.odds_home || !match.odds_draw || !match.odds_away || 
+        typeof match.p_home_fair !== 'number' || typeof match.p_draw_fair !== 'number' || 
+        typeof match.p_away_fair !== 'number' || typeof match.vig_1x2 !== 'number') {
+      console.warn('Données de match incomplètes pour l\'analyse:', match);
+      return [];
+    }
+    
     // Analyse 1X2
     const homeImplied = (1 / match.odds_home) * 100;
     const drawImplied = (1 / match.odds_draw) * 100;
@@ -90,8 +98,9 @@ export function NeuralNetworkVisualization({ isActive, confidence, match }: Neur
       });
     }
     
-    // BTTS Analysis
-    if (match.odds_btts_yes && match.p_btts_yes_fair) {
+    // BTTS Analysis - avec vérifications de sécurité
+    if (match.odds_btts_yes && match.p_btts_yes_fair && 
+        typeof match.odds_btts_yes === 'number' && typeof match.p_btts_yes_fair === 'number') {
       const bttsImplied = (1 / match.odds_btts_yes) * 100;
       const bttsValue = ((match.p_btts_yes_fair / 100) * match.odds_btts_yes) - 1;
       
@@ -108,8 +117,9 @@ export function NeuralNetworkVisualization({ isActive, confidence, match }: Neur
       }
     }
     
-    // Over 2.5 Analysis
-    if (match.odds_over_2_5 && match.p_over_2_5_fair) {
+    // Over 2.5 Analysis - avec vérifications de sécurité
+    if (match.odds_over_2_5 && match.p_over_2_5_fair && 
+        typeof match.odds_over_2_5 === 'number' && typeof match.p_over_2_5_fair === 'number') {
       const overImplied = (1 / match.odds_over_2_5) * 100;
       const overValue = ((match.p_over_2_5_fair / 100) * match.odds_over_2_5) - 1;
       
