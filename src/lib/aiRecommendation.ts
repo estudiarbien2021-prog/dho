@@ -14,30 +14,103 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
   const MIN_PROBABILITY = 0.45;
   const HIGH_VIG_THRESHOLD = 0.081; // 8.1%
   
+  const recommendations: AIRecommendation[] = [];
+  
+  // EXCEPTION PRIORITAIRE : Si une probabilité >= 60%, choisir le marché avec le vigorish le plus faible
+  const includeBTTS = marketFilters.length === 0 || marketFilters.includes('btts');
+  const includeOU = marketFilters.length === 0 || marketFilters.includes('over_under');
+  
+  let bttsAvailable = false;
+  let ouAvailable = false;
+  let bttsMaxProb = 0;
+  let ouMaxProb = 0;
+  
+  if (includeBTTS && match.odds_btts_yes && match.odds_btts_no && match.vig_btts > 0) {
+    bttsMaxProb = Math.max(match.p_btts_yes_fair, match.p_btts_no_fair);
+    bttsAvailable = bttsMaxProb >= MIN_PROBABILITY;
+  }
+  
+  if (includeOU && match.odds_over_2_5 && match.odds_under_2_5 && match.vig_ou_2_5 > 0) {
+    ouMaxProb = Math.max(match.p_over_2_5_fair, match.p_under_2_5_fair);
+    ouAvailable = ouMaxProb >= MIN_PROBABILITY;
+  }
+  
+  // Si une des probabilités >= 60%, appliquer l'exception
+  if ((bttsMaxProb >= 0.6 || ouMaxProb >= 0.6) && (bttsAvailable || ouAvailable)) {
+    const markets = [];
+    
+    if (bttsAvailable) {
+      // Choisir la prédiction BTTS la plus probable directement
+      const bttsYesProb = match.p_btts_yes_fair;
+      const bttsNoProb = match.p_btts_no_fair;
+      const isBttsYesBetter = bttsYesProb > bttsNoProb;
+      
+      markets.push({
+        type: 'BTTS',
+        prediction: isBttsYesBetter ? 'Oui' : 'Non',
+        odds: isBttsYesBetter ? match.odds_btts_yes! : match.odds_btts_no!,
+        probability: Math.max(bttsYesProb, bttsNoProb),
+        vigorish: match.vig_btts
+      });
+    }
+    
+    if (ouAvailable) {
+      // Choisir la prédiction O/U la plus probable directement
+      const overProb = match.p_over_2_5_fair;
+      const underProb = match.p_under_2_5_fair;
+      const isOverBetter = overProb > underProb;
+      
+      markets.push({
+        type: 'O/U 2.5',
+        prediction: isOverBetter ? '+2,5 buts' : '-2,5 buts',
+        odds: isOverBetter ? match.odds_over_2_5! : match.odds_under_2_5!,
+        probability: Math.max(overProb, underProb),
+        vigorish: match.vig_ou_2_5
+      });
+    }
+    
+    // Trier par vigorish le plus faible, puis par probabilité la plus haute
+    const sortedMarkets = markets.sort((a, b) => {
+      if (a.vigorish !== b.vigorish) {
+        return a.vigorish - b.vigorish; // Plus faible vigorish d'abord
+      }
+      return b.probability - a.probability; // Plus haute probabilité ensuite
+    });
+    
+    // Ajouter les recommandations triées
+    sortedMarkets.forEach(market => {
+      recommendations.push({
+        betType: market.type,
+        prediction: market.prediction,
+        odds: market.odds,
+        confidence: market.probability > 0.6 ? 'high' : market.probability > 0.5 ? 'medium' : 'low',
+        isInverted: false
+      });
+    });
+    
+    return recommendations;
+  }
+  
+  // LOGIQUE STANDARD si pas d'exception des 60%
   const availableMarkets = [];
   
   // Évaluer BTTS si les cotes sont disponibles et respectent les filtres
-  const includeBTTS = marketFilters.length === 0 || marketFilters.includes('btts');
   if (includeBTTS && match.odds_btts_yes && match.odds_btts_no && match.vig_btts > 0) {
     const bttsYesProb = match.p_btts_yes_fair;
     const bttsNoProb = match.p_btts_no_fair;
     const highestBTTSProb = Math.max(bttsYesProb, bttsNoProb);
     
-    // EXCEPTION : Si la probabilité d'analyse >= 60%, ignorer le vigorish et choisir la plus probable
-    const useHighProbabilityException = highestBTTSProb >= 0.6;
-    
     // NOUVELLE RÈGLE : Si vigorish BTTS >= 8.1%, proposer l'inverse
-    // EXCEPTION : Si la probabilité d'analyse >= 60%, garder la recommandation normale
     const isHighVigBTTS = match.vig_btts >= HIGH_VIG_THRESHOLD;
-    const shouldInvertBTTS = isHighVigBTTS && !useHighProbabilityException; // Inverser seulement si < 60%
+    const shouldInvertBTTS = isHighVigBTTS && highestBTTSProb < 0.6;
     
     // Choisir la meilleure option BTTS basée sur les probabilités (pour la recommandation)
     let bestBTTS = null;
     if (match.odds_btts_yes >= MIN_ODDS && bttsYesProb >= MIN_PROBABILITY) {
       bestBTTS = {
         type: 'BTTS',
-        originalPrediction: 'Oui', // Prédiction originale basée sur les probabilités
-        prediction: shouldInvertBTTS ? 'Non' : 'Oui', // Inverse seulement si conditions remplies
+        originalPrediction: 'Oui',
+        prediction: shouldInvertBTTS ? 'Non' : 'Oui',
         odds: shouldInvertBTTS ? match.odds_btts_no : match.odds_btts_yes,
         probability: shouldInvertBTTS ? bttsNoProb : bttsYesProb,
         vigorish: match.vig_btts,
@@ -49,8 +122,8 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
       if (!bestBTTS || bttsNoProb > bestBTTS.probability) {
         bestBTTS = {
           type: 'BTTS',
-          originalPrediction: 'Non', // Prédiction originale basée sur les probabilités
-          prediction: shouldInvertBTTS ? 'Oui' : 'Non', // Inverse seulement si conditions remplies
+          originalPrediction: 'Non',
+          prediction: shouldInvertBTTS ? 'Oui' : 'Non',
           odds: shouldInvertBTTS ? match.odds_btts_yes : match.odds_btts_no,
           probability: shouldInvertBTTS ? bttsYesProb : bttsNoProb,
           vigorish: match.vig_btts,
@@ -65,27 +138,22 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
   }
   
   // Évaluer Over/Under 2.5 si les cotes sont disponibles et respectent les filtres
-  const includeOU = marketFilters.length === 0 || marketFilters.includes('over_under');
   if (includeOU && match.odds_over_2_5 && match.odds_under_2_5 && match.vig_ou_2_5 > 0) {
     const overProb = match.p_over_2_5_fair;
     const underProb = match.p_under_2_5_fair;
     const highestOUProb = Math.max(overProb, underProb);
     
-    // EXCEPTION : Si la probabilité d'analyse >= 60%, ignorer le vigorish et choisir la plus probable
-    const useHighProbabilityException = highestOUProb >= 0.6;
-    
     // NOUVELLE RÈGLE : Si vigorish O/U 2.5 >= 8.1%, proposer l'inverse
-    // EXCEPTION : Si la probabilité d'analyse >= 60%, ne pas inverser
     const isHighVigOU = match.vig_ou_2_5 >= HIGH_VIG_THRESHOLD;
-    const shouldInvertOU = isHighVigOU && !useHighProbabilityException; // Ne pas inverser si >= 60%
+    const shouldInvertOU = isHighVigOU && highestOUProb < 0.6;
     
     // Choisir la meilleure option O/U 2.5 basée sur les probabilités (pour la recommandation)
     let bestOU = null;
     if (match.odds_over_2_5 >= MIN_ODDS && overProb >= MIN_PROBABILITY) {
       bestOU = {
         type: 'O/U 2.5',
-        originalPrediction: '+2,5 buts', // Prédiction originale basée sur les probabilités
-        prediction: shouldInvertOU ? '-2,5 buts' : '+2,5 buts', // Inverse seulement si conditions remplies
+        originalPrediction: '+2,5 buts',
+        prediction: shouldInvertOU ? '-2,5 buts' : '+2,5 buts',
         odds: shouldInvertOU ? match.odds_under_2_5 : match.odds_over_2_5,
         probability: shouldInvertOU ? underProb : overProb,
         vigorish: match.vig_ou_2_5,
@@ -97,8 +165,8 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
       if (!bestOU || underProb > bestOU.probability) {
         bestOU = {
           type: 'O/U 2.5',
-          originalPrediction: '-2,5 buts', // Prédiction originale basée sur les probabilités
-          prediction: shouldInvertOU ? '+2,5 buts' : '-2,5 buts', // Inverse seulement si conditions remplies
+          originalPrediction: '-2,5 buts',
+          prediction: shouldInvertOU ? '+2,5 buts' : '-2,5 buts',
           odds: shouldInvertOU ? match.odds_over_2_5 : match.odds_under_2_5,
           probability: shouldInvertOU ? overProb : underProb,
           vigorish: match.vig_ou_2_5,
@@ -116,59 +184,12 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
     return [];
   }
   
-  const recommendations: AIRecommendation[] = [];
-  
-  // NOUVELLE RÈGLE : Si les probabilités >= 60%, choisir la plus probable parmi les vigorish les plus faibles
+  // Logique standard pour les cas non couverts par l'exception des 60%
   const bttsMarket = availableMarkets.find(m => m.type === 'BTTS');
   const ouMarket = availableMarkets.find(m => m.type === 'O/U 2.5');
   
-  // Vérifier si on doit appliquer l'exception des 60%
-  const bttsMaxProb = bttsMarket ? Math.max(match.p_btts_yes_fair, match.p_btts_no_fair) : 0;
-  const ouMaxProb = ouMarket ? Math.max(match.p_over_2_5_fair, match.p_under_2_5_fair) : 0;
-  const shouldUseHighProbabilityLogic = bttsMaxProb >= 0.6 || ouMaxProb >= 0.6;
-  
-  if (shouldUseHighProbabilityLogic) {
-    // Comparer les vigorish des MARCHÉS (pas des prédictions individuelles)
-    const marketVigorish = [];
-    if (bttsMarket) marketVigorish.push({ market: 'BTTS', vigorish: match.vig_btts, items: [bttsMarket] });
-    if (ouMarket) marketVigorish.push({ market: 'O/U', vigorish: match.vig_ou_2_5, items: [ouMarket] });
-    
-    // Trouver le marché avec le vigorish le plus faible
-    const bestMarketInfo = marketVigorish.sort((a, b) => a.vigorish - b.vigorish)[0];
-    
-    if (bestMarketInfo) {
-      // Choisir la prédiction la plus probable dans ce marché
-      const bestMarket = bestMarketInfo.items[0];
-      recommendations.push({
-        betType: bestMarket.type,
-        prediction: bestMarket.prediction,
-        odds: bestMarket.odds,
-        confidence: bestMarket.probability > 0.6 ? 'high' : bestMarket.probability > 0.5 ? 'medium' : 'low',
-        isInverted: bestMarket.isInverted || false
-      });
-      
-      // Deuxième recommandation du marché suivant si disponible
-      const remainingMarkets = marketVigorish.filter(m => m !== bestMarketInfo);
-      if (remainingMarkets.length > 0) {
-        const secondMarket = remainingMarkets[0].items[0];
-        if (secondMarket.probability >= 0.45) {
-          recommendations.push({
-            betType: secondMarket.type,
-            prediction: secondMarket.prediction,
-            odds: secondMarket.odds,
-            confidence: secondMarket.probability > 0.6 ? 'high' : secondMarket.probability > 0.5 ? 'medium' : 'low',
-            isInverted: secondMarket.isInverted || false
-          });
-        }
-      }
-    }
-    
-    return recommendations;
-  }
-  
   // Si BTTS est inversé et O/U disponible, ou si O/U est inversé et BTTS disponible
   if ((bttsMarket?.isInverted && ouMarket) || (ouMarket?.isInverted && bttsMarket)) {
-    // Ajouter le marché inversé en premier
     const invertedMarket = bttsMarket?.isInverted ? bttsMarket : ouMarket;
     const normalMarket = bttsMarket?.isInverted ? ouMarket : bttsMarket;
     
@@ -209,7 +230,7 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
   });
   
   // Deuxième recommandation si disponible et suffisamment différente
-  if (sortedMarkets.length > 1 && sortedMarkets[1].vigorish >= 0.06) { // Seuil minimum 6% pour la 2ème recommandation
+  if (sortedMarkets.length > 1 && sortedMarkets[1].vigorish >= 0.06) {
     const secondBestMarket = sortedMarkets[1];
     recommendations.push({
       betType: secondBestMarket.type,
