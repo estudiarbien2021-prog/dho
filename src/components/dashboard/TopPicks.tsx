@@ -38,8 +38,8 @@ export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
           1.2 : // Bonus pour range optimal
           Math.log(odds) / Math.log(2.5); // Logarithmique sinon
         
-        // Bonus edge (plus on a d'avantage, mieux c'est)
-        const edgeBonus = 1 + (edge * 3); // Multiplie l'edge par 3
+        // Bonus edge (toujours positif)
+        const edgeBonus = 1 + Math.abs(edge * 3); // Utilise valeur absolue
         
         // Score final = Probabilité × Facteur_Cote × Bonus_Edge
         return probability * oddsFactor * edgeBonus;
