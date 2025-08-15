@@ -37,7 +37,7 @@ export function MarketEfficiencyGauge({ match, className = "" }: MarketEfficienc
     return flaws;
   };
 
-  // Calculer la recommandation alternative pour 1X2
+  // Calculer les recommandations alternatives basées sur les vigorish élevés
   const getAlternativeRecommendation = () => {
     // Créer un tableau des vigorish avec leurs types et les trier
     const vigorishData = [
@@ -46,10 +46,13 @@ export function MarketEfficiencyGauge({ match, className = "" }: MarketEfficienc
       { type: 'O/U2.5', value: match.vig_ou_2_5 }
     ].sort((a, b) => b.value - a.value);
     
-    // Vérifier si 1X2 est le plus élevé OU le deuxième plus élevé
-    const is1X2TopTwo = vigorishData[0].type === '1X2' || vigorishData[1].type === '1X2';
+    const highestVigorish = vigorishData[0];
     
-    if (is1X2TopTwo) {
+    // 1X2 : si c'est le plus élevé ou le deuxième plus élevé ET >= 9%
+    const is1X2TopTwo = vigorishData[0].type === '1X2' || vigorishData[1].type === '1X2';
+    const is1X2HighVigorish = match.vig_1x2 >= 0.09;
+    
+    if (is1X2TopTwo && is1X2HighVigorish) {
       // Calculer les probabilités implicites
       const probHome = 1 / match.odds_home;
       const probDraw = 1 / match.odds_draw;
@@ -97,6 +100,40 @@ export function MarketEfficiencyGauge({ match, className = "" }: MarketEfficienc
           thirdChoice, 
           doubleChance, 
           doubleChanceOdds 
+        };
+      }
+    }
+    
+    // BTTS : si c'est le vigorish le plus élevé ET >= 9%
+    if (highestVigorish.type === 'BTTS' && highestVigorish.value >= 0.09 && match.odds_btts_yes && match.odds_btts_no) {
+      const aiRecommendation = generateAIRecommendation(match, ['btts']);
+      if (aiRecommendation && aiRecommendation.betType === 'BTTS') {
+        // Proposer l'inverse de la recommandation IA
+        const inversePrediction = aiRecommendation.prediction === 'Oui' ? 'Non' : 'Oui';
+        const inverseOdds = aiRecommendation.prediction === 'Oui' ? match.odds_btts_no : match.odds_btts_yes;
+        
+        return {
+          type: 'BTTS',
+          inversePrediction,
+          inverseOdds,
+          originalAI: aiRecommendation.prediction
+        };
+      }
+    }
+    
+    // O/U 2.5 : si c'est le vigorish le plus élevé ET >= 9%
+    if (highestVigorish.type === 'O/U2.5' && highestVigorish.value >= 0.09 && match.odds_over_2_5 && match.odds_under_2_5) {
+      const aiRecommendation = generateAIRecommendation(match, ['over_under']);
+      if (aiRecommendation && aiRecommendation.betType === 'O/U 2.5') {
+        // Proposer l'inverse de la recommandation IA
+        const inversePrediction = aiRecommendation.prediction === '+2,5 buts' ? '-2,5 buts' : '+2,5 buts';
+        const inverseOdds = aiRecommendation.prediction === '+2,5 buts' ? match.odds_under_2_5 : match.odds_over_2_5;
+        
+        return {
+          type: 'O/U 2.5',
+          inversePrediction,
+          inverseOdds,
+          originalAI: aiRecommendation.prediction
         };
       }
     }
@@ -315,6 +352,46 @@ export function MarketEfficiencyGauge({ match, className = "" }: MarketEfficienc
                         </span>
                       </div>
                     </div>
+                  </div>
+                </>
+              ) : altRecommendation.type === 'BTTS' ? (
+                <>
+                  {/* Recommandation BTTS Inverse */}
+                  <div className="text-sm text-foreground mb-3">
+                    <span className="text-muted-foreground">Contraire de l'IA - BTTS :</span>
+                    <div className="font-bold mt-2 animate-pulse">
+                      <span className="text-lg text-chart-2 font-extrabold animate-bounce">
+                        {altRecommendation.inversePrediction}
+                      </span>
+                      <span className="ml-2 px-3 py-1 bg-chart-2/20 text-chart-2 rounded text-sm font-bold animate-pulse">
+                        @{altRecommendation.inverseOdds?.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Explication */}
+                  <div className="text-xs text-muted-foreground border-t border-chart-2/20 pt-3">
+                    <span>IA recommandait : <strong>{altRecommendation.originalAI}</strong></span>
+                  </div>
+                </>
+              ) : altRecommendation.type === 'O/U 2.5' ? (
+                <>
+                  {/* Recommandation O/U 2.5 Inverse */}
+                  <div className="text-sm text-foreground mb-3">
+                    <span className="text-muted-foreground">Contraire de l'IA - Buts :</span>
+                    <div className="font-bold mt-2 animate-pulse">
+                      <span className="text-lg text-chart-2 font-extrabold animate-bounce">
+                        {altRecommendation.inversePrediction}
+                      </span>
+                      <span className="ml-2 px-3 py-1 bg-chart-2/20 text-chart-2 rounded text-sm font-bold animate-pulse">
+                        @{altRecommendation.inverseOdds?.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Explication */}
+                  <div className="text-xs text-muted-foreground border-t border-chart-2/20 pt-3">
+                    <span>IA recommandait : <strong>{altRecommendation.originalAI}</strong></span>
                   </div>
                 </>
               ) : null}
