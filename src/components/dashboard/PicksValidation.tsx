@@ -154,9 +154,9 @@ export function PicksValidation() {
       
       setMatches(processedMatches);
       
-      // Charger automatiquement tous les picks potentiels (pas seulement ceux de la date sélectionnée)
-      console.log('🚨 APPEL automatique loadPotentialPicks pour TOUS les matchs');
-      loadPotentialPicks(); // Appel sans paramètre = utilise tous les matchs de la base
+      // Charger automatiquement les picks potentiels pour la date sélectionnée uniquement
+      console.log('🚨 APPEL automatique loadPotentialPicks pour les matchs de la date sélectionnée');
+      loadPotentialPicks(processedMatches); // Passer les matchs filtrés par date
       
       if (processedMatches.length === 0) {
         console.log(`❌ Aucun match trouvé pour la date ${dateFilter}`);
