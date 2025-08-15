@@ -37,10 +37,10 @@ export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
       }
     });
     
-    // Filtrer les odds entre 1.6 et 1.8, puis trier par vigorish décroissant
+    // Filtrer les odds >= 1.5, puis trier par probabilité décroissante
     return validBets
-      .filter(bet => bet.odds >= 1.6 && bet.odds <= 1.8)
-      .sort((a, b) => b.vigorish - a.vigorish)
+      .filter(bet => bet.odds >= 1.5)
+      .sort((a, b) => b.probability - a.probability)
       .slice(0, 3);
   };
 
