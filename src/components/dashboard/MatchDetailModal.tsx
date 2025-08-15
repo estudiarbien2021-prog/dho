@@ -609,144 +609,55 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto bg-gradient-to-br from-surface via-surface-soft to-surface border border-brand/30 shadow-2xl shadow-brand/20 animate-fade-in">
-        <div className="absolute inset-0 bg-gradient-to-br from-brand/5 via-transparent to-brand-300/10 pointer-events-none animate-pulse" />
-        <div className="absolute inset-0 rounded-lg border border-brand/20 shadow-inner" />
-        <DialogHeader className="pb-6 relative z-10">
-          <DialogTitle className="flex items-center gap-4 text-2xl animate-fade-in">
-            <div className="p-3 rounded-xl bg-gradient-to-r from-brand/20 to-brand-400/20 border border-brand/30 hover:border-brand/50 transition-all duration-300 hover:scale-105">
-              <FlagMini code={flagInfo.code} confed={flagInfo.confed} />
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden bg-gradient-to-br from-white via-slate-50 to-white dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 border-0 shadow-2xl rounded-3xl p-0 backdrop-blur-xl">
+        {/* Modern Overlay Effects */}
+        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-blue-500/5 pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.1),rgba(255,255,255,0))] pointer-events-none" />
+        
+        <DialogHeader className="relative z-10 p-8 pb-6 border-b border-slate-200/50 dark:border-slate-700/50 bg-gradient-to-r from-slate-50/50 to-white/50 dark:from-slate-800/50 dark:to-slate-900/50 backdrop-blur-sm">
+          <DialogTitle className="flex items-center gap-6">
+            <div className="relative group">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600 flex items-center justify-center shadow-xl group-hover:shadow-emerald-500/25 transition-all duration-300 group-hover:scale-105">
+                <FlagMini code={flagInfo.code} confed={flagInfo.confed} />
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/20 to-transparent opacity-50" />
+              </div>
+              <div className="absolute -inset-1 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-2xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             </div>
-            <div className="flex flex-col">
-              <span className="font-bold bg-gradient-to-r from-brand to-brand-400 bg-clip-text text-transparent">
+            
+            <div className="flex-1">
+              <div className="text-3xl font-bold bg-gradient-to-r from-slate-900 via-slate-700 to-slate-900 dark:from-white dark:via-slate-200 dark:to-white bg-clip-text text-transparent leading-tight mb-2">
                 {match.home_team} vs {match.away_team}
-              </span>
-              <span className="text-sm font-normal text-text-weak">{match.league}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="px-4 py-2 bg-gradient-to-r from-emerald-100 to-green-100 dark:from-emerald-900/30 dark:to-green-900/30 rounded-full border border-emerald-200 dark:border-emerald-800">
+                  <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">{match.league}</span>
+                </div>
+                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+              </div>
             </div>
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 relative z-10">
-          {/* Match Info - Style cohérent avec Facteurs d'Influence */}
-          <Card className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-brand flex items-center justify-center text-white text-sm">
-                      🏆
-                    </div>
-                    <div>
-                      <div className="font-medium text-sm">Catégorie</div>
-                      <div className="text-xs text-muted-foreground">Type de compétition</div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm font-bold text-brand capitalize">
-                      {match.category.replace('_', ' ')}
-                    </div>
-                    <div className="text-xs font-medium text-green-500">
-                      {match.category === 'continental_cup' ? 'Internationale' : 
-                       match.category === 'first_div' ? 'Élite' : 
-                       match.category === 'second_div' ? 'Division 2' : 
-                       'Coupe Nationale'}
-                    </div>
-                  </div>
-                </div>
-                <div className="h-2 bg-muted rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-brand rounded-full transition-all duration-500"
-                    style={{ 
-                      width: match.category === 'continental_cup' ? '95%' : 
-                             match.category === 'first_div' ? '85%' : 
-                             match.category === 'second_div' ? '65%' : '75%' 
-                    }}
-                  />
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm">
-                      🕐
-                    </div>
-                    <div>
-                      <div className="font-medium text-sm">Heure locale</div>
-                      <div className="text-xs text-muted-foreground">Coup d'envoi prévu</div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm font-bold text-blue-500">
-                      {new Date(match.kickoff_utc).toLocaleString('fr-FR', { 
-                        day: '2-digit', 
-                        month: '2-digit', 
-                        hour: '2-digit', 
-                        minute: '2-digit',
-                        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-                      })}
-                    </div>
-                    <div className="text-xs font-medium text-green-500">
-                      Confirmé
-                    </div>
-                  </div>
-                </div>
-                <div className="h-2 bg-muted rounded-full overflow-hidden">
-                  <div className="h-full bg-blue-500 rounded-full transition-all duration-500 w-full" />
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm ${
-                      match.vig_1x2 && match.vig_1x2 <= 0.12 ? 'bg-green-500' : 'bg-orange-500'
-                    }`}>
-                      📊
-                    </div>
-                    <div>
-                      <div className="font-medium text-sm">Vig 1X2</div>
-                      <div className="text-xs text-muted-foreground">Marge bookmaker</div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className={`text-lg font-bold ${
-                      match.vig_1x2 && match.vig_1x2 <= 0.12 ? 'text-green-500' : 'text-orange-500'
-                    }`}>
-                      {(match.vig_1x2 && !isNaN(match.vig_1x2) ? match.vig_1x2 * 100 : 0).toFixed(1)}%
-                    </div>
-                    <div className={`text-xs font-medium ${
-                      match.vig_1x2 && match.vig_1x2 <= 0.12 ? 'text-green-500' : 'text-orange-500'
-                    }`}>
-                      {match.vig_1x2 && match.vig_1x2 <= 0.12 ? 'Favorable' : 'Élevé'}
-                    </div>
-                  </div>
-                </div>
-                <div className="h-2 bg-muted rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 ${
-                      match.vig_1x2 && match.vig_1x2 <= 0.12 ? 'bg-green-500' : 'bg-orange-500'
-                    }`}
-                    style={{ width: `${Math.min(100, (match.vig_1x2 || 0) * 100 * 4)}%` }}
-                  />
-                </div>
-              </div>
-            </div>
-          </Card>
-
-          {/* Flags */}
-          <div className="flex gap-3 flex-wrap">
+        <div className="relative z-10 p-8 space-y-8 overflow-y-auto max-h-[calc(90vh-140px)] scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent">
+          {/* Enhanced Flags Section */}
+          <div className="flex gap-3 flex-wrap justify-center">
             {match.watch_btts && (
-              <Badge variant="secondary" className="bg-gradient-to-r from-brand-300/20 to-brand-500/20 border-brand-300/40 text-text hover:from-brand-300/30 hover:to-brand-500/30 transition-all duration-300 hover:scale-105">
-                <Target className="h-3 w-3 mr-1" />
-                Watch BTTS
-              </Badge>
+              <div className="group relative">
+                <div className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-xl shadow-lg group-hover:shadow-emerald-500/25 transition-all duration-300 group-hover:scale-105 flex items-center gap-2">
+                  <Target className="h-4 w-4" />
+                  <span className="font-semibold text-sm">Watch BTTS</span>
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-green-600/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
+              </div>
             )}
             {match.watch_over25 && (
-              <Badge variant="outline" className="bg-gradient-to-r from-brand-400/20 to-brand-600/20 border-brand-400/40 text-text hover:from-brand-400/30 hover:to-brand-600/30 transition-all duration-300 hover:scale-105">
-                <Eye className="h-3 w-3 mr-1" />
-                Watch Over 2.5
-              </Badge>
+              <div className="group relative">
+                <div className="px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-xl shadow-lg group-hover:shadow-blue-500/25 transition-all duration-300 group-hover:scale-105 flex items-center gap-2">
+                  <Eye className="h-4 w-4" />
+                  <span className="font-semibold text-sm">Watch Over 2.5</span>
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-cyan-600/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
+              </div>
             )}
           </div>
 
@@ -1017,12 +928,16 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
             </Card>
           </div>
 
-          {/* Actions */}
-          <div className="flex justify-center">
+          {/* Modern Actions Section */}
+          <div className="flex justify-center pt-4 border-t border-slate-200/50 dark:border-slate-700/50">
             <Button 
-              className="bg-gradient-to-r from-brand to-brand-400 hover:from-brand-600 hover:to-brand-700 border-0 text-brand-fg font-medium px-6 transition-all duration-300 hover:shadow-lg hover:shadow-brand/20"
+              className="relative group px-8 py-3 bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-200 hover:from-slate-800 hover:to-slate-600 dark:hover:from-slate-100 dark:hover:to-slate-300 text-white dark:text-slate-900 font-semibold rounded-2xl border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 overflow-hidden"
               onClick={onClose}>
-              Fermer
+              <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <span className="relative z-10 flex items-center gap-2">
+                <span>Fermer</span>
+                <div className="w-2 h-2 bg-current rounded-full opacity-60 group-hover:opacity-100 transition-opacity duration-300" />
+              </span>
             </Button>
           </div>
         </div>
