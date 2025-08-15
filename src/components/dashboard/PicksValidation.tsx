@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { CheckCircle, RefreshCw, Target, Eye, Edit, Calendar, Search } from 'lucide-react';
+import { CheckCircle, RefreshCw, Target, Eye, Edit, Calendar, Search, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { ProcessedMatch } from '@/types/match';
 import { generateAIRecommendation } from '@/lib/aiRecommendation';
 import { FlagMini } from '@/components/Flag';
@@ -59,12 +59,95 @@ export function PicksValidation() {
   const [editingPick, setEditingPick] = useState<ValidatedPick | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [matches, setMatches] = useState<ProcessedMatch[]>([]);
+  
+  // États pour le tri
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   // Handler pour les clics sur les matchs depuis TopPicks
   const handleMatchClick = (match: ProcessedMatch) => {
     // Vous pouvez implémenter une logique personnalisée ici si nécessaire
     console.log('Match clicked from TopPicks:', match);
   };
+
+  // Fonction de tri
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('desc');
+    }
+  };
+
+  // Fonction pour obtenir la valeur de tri d'un pick
+  const getSortValue = (pick: PotentialPick, column: string) => {
+    switch (column) {
+      case 'match':
+        return `${pick.match.home_team} vs ${pick.match.away_team}`;
+      case 'prediction':
+        return `${pick.betType} ${pick.prediction}`;
+      case 'odds':
+        return pick.odds;
+      case 'probability':
+        return pick.probability;
+      case 'vigorish':
+        return pick.vigorish;
+      case 'date':
+        return pick.match.match_date;
+      case 'kickoff':
+        return pick.match.kickoff_utc.getTime();
+      default:
+        return '';
+    }
+  };
+
+  // Tri des picks potentiels
+  const sortedPotentialPicks = useMemo(() => {
+    if (!sortColumn) return potentialPicks;
+
+    return [...potentialPicks].sort((a, b) => {
+      const aValue = getSortValue(a, sortColumn);
+      const bValue = getSortValue(b, sortColumn);
+
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        const comparison = aValue.localeCompare(bValue);
+        return sortDirection === 'asc' ? comparison : -comparison;
+      }
+
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        const comparison = aValue - bValue;
+        return sortDirection === 'asc' ? comparison : -comparison;
+      }
+
+      return 0;
+    });
+  }, [potentialPicks, sortColumn, sortDirection]);
+
+  // Composant pour les en-têtes triables
+  const SortableHeader: React.FC<{ column: string; children: React.ReactNode; className?: string }> = ({ 
+    column, 
+    children, 
+    className 
+  }) => (
+    <TableHead 
+      className={`cursor-pointer hover:bg-surface-soft transition-colors ${className || ''}`}
+      onClick={() => handleSort(column)}
+    >
+      <div className="flex items-center gap-1">
+        {children}
+        {sortColumn === column ? (
+          sortDirection === 'asc' ? (
+            <ChevronUp className="h-4 w-4" />
+          ) : (
+            <ChevronDown className="h-4 w-4" />
+          )
+        ) : (
+          <ChevronsUpDown className="h-4 w-4 opacity-50" />
+        )}
+      </div>
+    </TableHead>
+  );
 
   // Fonction utilitaire pour convertir Date en string YYYY-MM-DD (locale)
   const formatDateForFilter = (date: Date): string => {
@@ -403,7 +486,7 @@ export function PicksValidation() {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedPicks(potentialPicks.map(pick => pick.id));
+      setSelectedPicks(sortedPotentialPicks.map(pick => pick.id));
     } else {
       setSelectedPicks([]);
     }
@@ -515,7 +598,7 @@ export function PicksValidation() {
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold">Picks Potentiels ({potentialPicks.length})</h3>
           <Checkbox
-            checked={selectedPicks.length === potentialPicks.length && potentialPicks.length > 0}
+            checked={selectedPicks.length === sortedPotentialPicks.length && sortedPotentialPicks.length > 0}
             onCheckedChange={handleSelectAll}
             className="mr-2"
           />
@@ -532,17 +615,17 @@ export function PicksValidation() {
               <TableHeader>
                 <TableRow>
                    <TableHead className="w-12">Sélection</TableHead>
-                   <TableHead>Match</TableHead>
-                   <TableHead>Prédiction</TableHead>
-                   <TableHead>Odds</TableHead>
-                   <TableHead>Probabilité</TableHead>
-                   <TableHead>Vigorish</TableHead>
-                   <TableHead>Date</TableHead>
-                   <TableHead>Kickoff</TableHead>
+                   <SortableHeader column="match">Match</SortableHeader>
+                   <SortableHeader column="prediction">Prédiction</SortableHeader>
+                   <SortableHeader column="odds">Odds</SortableHeader>
+                   <SortableHeader column="probability">Probabilité</SortableHeader>
+                   <SortableHeader column="vigorish">Vigorish</SortableHeader>
+                   <SortableHeader column="date">Date</SortableHeader>
+                   <SortableHeader column="kickoff">Kickoff</SortableHeader>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {potentialPicks.map((pick) => {
+                {sortedPotentialPicks.map((pick) => {
                   const flagInfo = leagueToFlag(pick.match.league, pick.match.country, pick.match.home_team, pick.match.away_team);
                   
                   return (
