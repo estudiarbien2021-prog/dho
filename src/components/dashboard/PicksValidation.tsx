@@ -312,8 +312,25 @@ export function PicksValidation() {
         console.log(`      - Odds O/U: Over=${match.odds_over_2_5}, Under=${match.odds_under_2_5}`);
       });
       
-      // Analyser TOUS les matchs de la base
+      // Analyser TOUS les matchs de la base, mais les filtrer par date sélectionnée
       let matchesToAnalyze = allMatches;
+      
+      // Filtrer par date seulement pour l'affichage, pas pour l'analyse
+      if (dateFilter && dateFilter !== '') {
+        const selectedDate = new Date(dateFilter + 'T00:00:00Z');
+        const nextDay = new Date(selectedDate);
+        nextDay.setDate(nextDay.getDate() + 1);
+        
+        matchesToAnalyze = allMatches.filter(match => {
+          const matchDate = new Date(match.kickoff_utc);
+          return matchDate >= selectedDate && matchDate < nextDay;
+        });
+        
+        console.log(`📅 Matchs filtrés pour ${dateFilter}: ${matchesToAnalyze.length}/${allMatches.length}`);
+      } else {
+        console.log(`📅 Tous les matchs analysés (pas de filtre de date): ${matchesToAnalyze.length}`);
+      }
+      
       console.log(`📊 Analysing ${matchesToAnalyze.length} matchs pour la date sélectionnée`);
       console.log(`📊 Analysing ${matchesToAnalyze.length} matchs pour les picks potentiels`);
       
