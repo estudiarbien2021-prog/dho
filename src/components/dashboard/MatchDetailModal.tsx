@@ -58,19 +58,19 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     const homePercent = (match.p_home_fair * 100).toFixed(1);
     const drawPercent = (match.p_draw_fair * 100).toFixed(1);
     const awayPercent = (match.p_away_fair * 100).toFixed(1);
-    return `${homePercent}% | ${drawPercent}% | ${awayPercent}%`;
+    return `Domicile ${homePercent}% | Nul ${drawPercent}% | Extérieur ${awayPercent}%`;
   };
 
   const getBttsPercentages = () => {
     const yesPercent = (match.p_btts_yes_fair * 100).toFixed(1);
     const noPercent = (match.p_btts_no_fair * 100).toFixed(1);
-    return `${yesPercent}% | ${noPercent}%`;
+    return `Oui ${yesPercent}% | Non ${noPercent}%`;
   };
 
   const getOver25Percentages = () => {
     const overPercent = (match.p_over_2_5_fair * 100).toFixed(1);
     const underPercent = (match.p_under_2_5_fair * 100).toFixed(1);
-    return `${overPercent}% | ${underPercent}%`;
+    return `+2,5 buts ${overPercent}% | -2,5 buts ${underPercent}%`;
   };
 
   const get1x2Winner = () => {
