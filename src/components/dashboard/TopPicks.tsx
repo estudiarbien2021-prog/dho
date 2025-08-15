@@ -20,11 +20,17 @@ export function TopPicks({ matches, onMatchClick }: TopPicksProps) {
     const validBets = [];
     
     // Filtrer d'abord par catégorie : grands championnats et compétitions continentales/internationales
-    const filteredMatches = matches.filter(match => 
-      match.category === 'first_div' || 
-      match.category === 'continental_cup' || 
-      match.category === 'national_cup'
-    );
+    // Exclure les coupes nationales et l'Asie
+    const filteredMatches = matches.filter(match => {
+      // Garder seulement première division et coupes continentales (pas de coupes nationales)
+      const isValidCategory = match.category === 'first_div' || match.category === 'continental_cup';
+      
+      // Exclure l'Asie en filtrant par pays/région
+      const asianCountries = ['Japan', 'South Korea', 'China', 'Thailand', 'Singapore', 'Malaysia', 'Indonesia', 'Vietnam', 'Philippines', 'India', 'Saudi Arabia', 'UAE', 'Qatar', 'Iran', 'Iraq', 'Jordan', 'Lebanon', 'Syria', 'Uzbekistan', 'Kazakhstan', 'Kyrgyzstan', 'Tajikistan', 'Turkmenistan', 'Afghanistan', 'Pakistan', 'Bangladesh', 'Sri Lanka', 'Myanmar', 'Cambodia', 'Laos', 'Nepal', 'Bhutan', 'Mongolia', 'North Korea'];
+      const isNotAsian = !asianCountries.includes(match.country || '');
+      
+      return isValidCategory && isNotAsian;
+    });
     
     filteredMatches.forEach(match => {
       // Utiliser generateAIRecommendation pour avoir la même logique que le popup
