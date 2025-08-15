@@ -712,13 +712,14 @@ export function PicksValidation() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-12">Sélection</TableHead>
-                  <TableHead>Match</TableHead>
-                  <TableHead>Prédiction</TableHead>
-                  <TableHead>Odds</TableHead>
-                  <TableHead>Probabilité</TableHead>
-                  <TableHead>Vigorish</TableHead>
-                  <TableHead>Kickoff</TableHead>
+                   <TableHead className="w-12">Sélection</TableHead>
+                   <TableHead>Match</TableHead>
+                   <TableHead>Prédiction</TableHead>
+                   <TableHead>Odds</TableHead>
+                   <TableHead>Probabilité</TableHead>
+                   <TableHead>Vigorish</TableHead>
+                   <TableHead>Date</TableHead>
+                   <TableHead>Kickoff</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -761,12 +762,15 @@ export function PicksValidation() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {(pick.vigorish * 100).toFixed(2)}%
-                      </TableCell>
-                      <TableCell className="text-xs">
-                        {format(pick.match.kickoff_utc, 'HH:mm', { locale: fr })}
-                      </TableCell>
+                       <TableCell className="font-mono text-sm">
+                         {(pick.vigorish * 100).toFixed(2)}%
+                       </TableCell>
+                       <TableCell className="text-xs">
+                         {format(pick.match.kickoff_utc, 'dd/MM/yyyy', { locale: fr })}
+                       </TableCell>
+                       <TableCell className="text-xs">
+                         {format(pick.match.kickoff_utc, 'HH:mm', { locale: fr })}
+                       </TableCell>
                     </TableRow>
                   );
                 })}
