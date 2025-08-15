@@ -60,7 +60,9 @@ export function PicksValidation() {
   const { matches = [] } = useMatchesData();
 
   useEffect(() => {
-    loadPotentialPicks();
+    if (matches.length > 0) {
+      loadPotentialPicks();
+    }
     loadValidatedPicks();
   }, [matches, dateFilter]);
 
@@ -104,9 +106,21 @@ export function PicksValidation() {
 
     try {
       console.log('🔍 Analyse des matchs pour les picks potentiels...');
+      console.log(`📅 Filtrage par date: ${dateFilter}`);
+      
+      // Filtrer d'abord par date si spécifiée
+      let matchesToAnalyze = matches;
+      if (dateFilter) {
+        const targetDate = new Date(dateFilter);
+        matchesToAnalyze = matches.filter(match => {
+          const matchDate = new Date(match.kickoff_utc);
+          return matchDate.toDateString() === targetDate.toDateString();
+        });
+        console.log(`📊 Matchs filtrés par date: ${matchesToAnalyze.length}/${matches.length}`);
+      }
       
       // Filtrer par catégorie comme dans TopPicks mais avec les nouveaux critères
-      const filteredMatches = matches.filter(match => {
+      const filteredMatches = matchesToAnalyze.filter(match => {
         const isValidCategory = match.category === 'first_div' || match.category === 'continental_cup';
         
         // Exclure l'Asie complètement
@@ -136,7 +150,7 @@ export function PicksValidation() {
         return isValidCategory && isNotAsianCountry && isNotAsianCompetition;
       });
 
-      console.log(`📊 Matchs filtrés: ${filteredMatches.length}/${matches.length}`);
+      console.log(`📊 Matchs filtrés par critères: ${filteredMatches.length}/${matchesToAnalyze.length}`);
 
       const validBets: PotentialPick[] = [];
       
