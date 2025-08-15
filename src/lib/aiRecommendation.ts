@@ -17,6 +17,18 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
   
   const recommendations: AIRecommendation[] = [];
   
+  // DEBUG: Afficher les valeurs de vigorish
+  console.log('🔍 DEBUG generateAIRecommendations - Valeurs vigorish:', {
+    matchId: match.id,
+    homeTeam: match.home_team,
+    awayTeam: match.away_team,
+    vigBTTS: match.vig_btts,
+    vigOU: match.vig_ou_2_5,
+    vig1x2: match.vig_1x2,
+    highVigThreshold: HIGH_VIG_THRESHOLD,
+    highVig1x2Threshold: HIGH_VIG_1X2_THRESHOLD
+  });
+  
   // RÈGLE PRIORITAIRE 1 : Si vigorish BTTS >= 8.1% OU vigorish O/U >= 8.1%, recommander l'opportunité détectée (inverse)
   const bttsHighVig = match.vig_btts > 0 && match.vig_btts >= HIGH_VIG_THRESHOLD && 
                       match.odds_btts_yes && match.odds_btts_no;
