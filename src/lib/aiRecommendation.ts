@@ -21,12 +21,15 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
   if (includeBTTS && match.odds_btts_yes && match.odds_btts_no && match.vig_btts > 0) {
     const bttsYesProb = match.p_btts_yes_fair;
     const bttsNoProb = match.p_btts_no_fair;
+    const highestBTTSProb = Math.max(bttsYesProb, bttsNoProb);
+    
+    // EXCEPTION : Si la probabilité d'analyse >= 60%, ignorer le vigorish et choisir la plus probable
+    const useHighProbabilityException = highestBTTSProb >= 0.6;
     
     // NOUVELLE RÈGLE : Si vigorish BTTS >= 8.1%, proposer l'inverse
     // EXCEPTION : Si la probabilité d'analyse >= 60%, garder la recommandation normale
     const isHighVigBTTS = match.vig_btts >= HIGH_VIG_THRESHOLD;
-    const highestBTTSProb = Math.max(bttsYesProb, bttsNoProb);
-    const shouldInvertBTTS = isHighVigBTTS && highestBTTSProb < 0.6; // Inverser seulement si < 60%
+    const shouldInvertBTTS = isHighVigBTTS && !useHighProbabilityException; // Inverser seulement si < 60%
     
     // Choisir la meilleure option BTTS basée sur les probabilités (pour la recommandation)
     let bestBTTS = null;
@@ -66,12 +69,15 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
   if (includeOU && match.odds_over_2_5 && match.odds_under_2_5 && match.vig_ou_2_5 > 0) {
     const overProb = match.p_over_2_5_fair;
     const underProb = match.p_under_2_5_fair;
+    const highestOUProb = Math.max(overProb, underProb);
+    
+    // EXCEPTION : Si la probabilité d'analyse >= 60%, ignorer le vigorish et choisir la plus probable
+    const useHighProbabilityException = highestOUProb >= 0.6;
     
     // NOUVELLE RÈGLE : Si vigorish O/U 2.5 >= 8.1%, proposer l'inverse
     // EXCEPTION : Si la probabilité d'analyse >= 60%, ne pas inverser
     const isHighVigOU = match.vig_ou_2_5 >= HIGH_VIG_THRESHOLD;
-    const highestOUProb = Math.max(overProb, underProb);
-    const shouldInvertOU = isHighVigOU && highestOUProb < 0.6; // Ne pas inverser si >= 60%
+    const shouldInvertOU = isHighVigOU && !useHighProbabilityException; // Ne pas inverser si >= 60%
     
     // Choisir la meilleure option O/U 2.5 basée sur les probabilités (pour la recommandation)
     let bestOU = null;
