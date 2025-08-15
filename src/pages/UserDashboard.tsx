@@ -188,7 +188,7 @@ export function UserDashboard({ currentLang }: DashboardProps) {
         <KPIHeader stats={stats} />
 
         {/* Top 3 Picks */}
-        <TopPicks matches={matches} onMatchClick={handleMatchClick} />
+        <TopPicks matches={matches} onMatchClick={handleMatchClick} selectedDate={new Date()} />
 
         {/* Filters */}
         <FilterPanel
