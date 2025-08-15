@@ -94,9 +94,14 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
       return getSeededChoice(noOpportunityTexts, 1);
     }
 
-    const probPercent = (normalizedRecommendation.probability * 100).toFixed(1);
-    const vigPercent = (normalizedRecommendation.vigorish * 100).toFixed(1);
-    const edge = normalizedRecommendation.odds > 0 && normalizedRecommendation.probability > 0 
+    const probPercent = normalizedRecommendation.probability && !isNaN(normalizedRecommendation.probability) 
+      ? (normalizedRecommendation.probability * 100).toFixed(1) 
+      : '0.0';
+    const vigPercent = normalizedRecommendation.vigorish && !isNaN(normalizedRecommendation.vigorish)
+      ? (normalizedRecommendation.vigorish * 100).toFixed(1) 
+      : '0.0';
+    const edge = normalizedRecommendation.odds > 0 && normalizedRecommendation.probability > 0 && 
+                !isNaN(normalizedRecommendation.odds) && !isNaN(normalizedRecommendation.probability)
       ? Math.abs(((normalizedRecommendation.odds * normalizedRecommendation.probability) - 1) * 100).toFixed(1) 
       : '0.0';
     
@@ -294,7 +299,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
       `🎰 **Algorithme Quantitatif** : Notre IA, formée sur un dataset colossal de +${datasetSize} matchs ${geographicContext}`
     ];
     
-    explanation += `${getSeededChoice(dataIntros, 4)} avec contextes identiques (enjeux, déplacements, fatigue, météo), `;
+    explanation += `${getSeededChoice(dataIntros, 4)} avec contextes identiques (blessures/suspensions, arbitre, pelouse, supporters, enjeux, déplacements, fatigue, météo), `;
     
     if (normalizedRecommendation.type === 'BTTS') {
       if (normalizedRecommendation.prediction === 'Oui') {
@@ -363,7 +368,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
       const highVigTexts = [
         `\n\n📊 **Marché Standard** : Vigorish à ${vigPercent}%, dans la fourchette habituelle du secteur.`,
         `\n\n⚖️ **Conditions Classiques** : Marge de ${vigPercent}%, un niveau typique des bookmakers professionnels.`,
-        `\n\n📈 **Tarification Normale** : Commission à ${vigPercent}%, conforme aux standards du marché des paris.`
+        `\n\n📈 **Tarification Normale** : Commission à ${vigPercent}%, conforme aux standards du marché d'investissement sportif.`
       ];
       explanation += getSeededChoice(highVigTexts, 12);
     }
@@ -600,8 +605,8 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
               </div>
               <div className="text-center md:text-left">
                 <p className="text-sm text-text-weak mb-2">Vig 1X2</p>
-                <Badge variant={match.vig_1x2 <= 0.12 ? "default" : "secondary"} className="font-mono bg-gradient-to-r from-brand-400/20 to-brand-600/20 border-brand-400/30 text-text hover:from-brand-400/30 hover:to-brand-600/30 transition-all duration-300">
-                  {(match.vig_1x2 * 100).toFixed(2)}%
+                 <Badge variant={match.vig_1x2 && !isNaN(match.vig_1x2) && match.vig_1x2 <= 0.12 ? "default" : "secondary"} className="font-mono bg-gradient-to-r from-brand-400/20 to-brand-600/20 border-brand-400/30 text-text hover:from-brand-400/30 hover:to-brand-600/30 transition-all duration-300">
+                   {(match.vig_1x2 && !isNaN(match.vig_1x2) ? match.vig_1x2 * 100 : 0).toFixed(2)}%
                 </Badge>
               </div>
             </div>
@@ -727,7 +732,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                       <div className="text-center md:text-left">
-                        <p className="text-sm text-text-weak mb-2">Type de pari {shouldUseAdminPrediction ? '' : '(Auto)'}</p>
+                        <p className="text-sm text-text-weak mb-2">Type d'analyse {shouldUseAdminPrediction ? '' : '(Auto)'}</p>
                         <Badge className="bg-gradient-to-r from-brand/40 to-brand-400/40 border-brand/60 text-brand-fg font-bold px-3 py-1">
                           {currentRecommendation?.type || 'Aucune'}
                         </Badge>
@@ -741,7 +746,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                       <div className="text-center md:text-left">
                         <p className="text-sm text-text-weak mb-2">Cote</p>
                          <Badge variant="outline" className="bg-gradient-to-r from-brand/30 to-brand-400/30 border-brand/50 text-text font-bold text-lg">
-                           {currentRecommendation?.odds?.toFixed(2) || '0.00'}
+                           {currentRecommendation?.odds && !isNaN(currentRecommendation.odds) ? currentRecommendation.odds.toFixed(2) : '0.00'}
                          </Badge>
                       </div>
                     </div>
@@ -786,7 +791,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                     {get1x2Winner() === match.home_team && <Zap className="h-3.5 w-3.5 text-brand" />}
                     Domicile:
                   </span>
-                  <span className="font-mono text-sm text-brand font-bold">{match.odds_home.toFixed(2)}</span>
+                  <span className="font-mono text-sm text-brand font-bold">{match.odds_home && !isNaN(match.odds_home) ? match.odds_home.toFixed(2) : '0.00'}</span>
                 </div>
                 <div className={`flex justify-between items-center p-2 rounded-lg border transition-all duration-300 ${
                   get1x2Winner() === 'Nul' 
@@ -797,7 +802,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                     {get1x2Winner() === 'Nul' && <Zap className="h-3.5 w-3.5 text-brand-300" />}
                     Nul:
                   </span>
-                  <span className="font-mono text-sm text-brand-300 font-bold">{match.odds_draw.toFixed(2)}</span>
+                  <span className="font-mono text-sm text-brand-300 font-bold">{match.odds_draw && !isNaN(match.odds_draw) ? match.odds_draw.toFixed(2) : '0.00'}</span>
                 </div>
                 <div className={`flex justify-between items-center p-2 rounded-lg border transition-all duration-300 ${
                   get1x2Winner() === match.away_team 
@@ -808,7 +813,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                     {get1x2Winner() === match.away_team && <Zap className="h-3.5 w-3.5 text-brand-400" />}
                     Extérieur:
                   </span>
-                  <span className="font-mono text-sm text-brand-400 font-bold">{match.odds_away.toFixed(2)}</span>
+                  <span className="font-mono text-sm text-brand-400 font-bold">{match.odds_away && !isNaN(match.odds_away) ? match.odds_away.toFixed(2) : '0.00'}</span>
                 </div>
                 {match.odds_btts_yes && (
                   <>
@@ -822,7 +827,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                         {getBttsWinner() === 'Oui' && <Zap className="h-3.5 w-3.5 text-brand" />}
                         BTTS Oui:
                       </span>
-                      <span className="font-mono text-sm text-brand font-bold">{match.odds_btts_yes.toFixed(2)}</span>
+                      <span className="font-mono text-sm text-brand font-bold">{match.odds_btts_yes && !isNaN(match.odds_btts_yes) ? match.odds_btts_yes.toFixed(2) : '0.00'}</span>
                     </div>
                     {match.odds_btts_no && (
                       <div className={`flex justify-between items-center p-2 rounded-lg border transition-all duration-300 ${
@@ -834,7 +839,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                           {getBttsWinner() === 'Non' && <Zap className="h-3.5 w-3.5 text-brand-300" />}
                           BTTS Non:
                         </span>
-                        <span className="font-mono text-sm text-brand-300 font-bold">{match.odds_btts_no.toFixed(2)}</span>
+                        <span className="font-mono text-sm text-brand-300 font-bold">{match.odds_btts_no && !isNaN(match.odds_btts_no) ? match.odds_btts_no.toFixed(2) : '0.00'}</span>
                       </div>
                     )}
                   </>
@@ -850,7 +855,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                         {getOver25Winner() === '+2,5 buts' && <Zap className="h-3.5 w-3.5 text-brand" />}
                         Over 2.5:
                       </span>
-                      <span className="font-mono text-sm text-brand font-bold">{match.odds_over_2_5.toFixed(2)}</span>
+                      <span className="font-mono text-sm text-brand font-bold">{match.odds_over_2_5 && !isNaN(match.odds_over_2_5) ? match.odds_over_2_5.toFixed(2) : '0.00'}</span>
                     </div>
                     {match.odds_under_2_5 && (
                       <div className={`flex justify-between items-center p-2 rounded-lg border transition-all duration-300 ${
@@ -862,7 +867,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                           {getOver25Winner() === '-2,5 buts' && <Zap className="h-3.5 w-3.5 text-brand-300" />}
                           Under 2.5:
                         </span>
-                        <span className="font-mono text-sm text-brand-300 font-bold">{match.odds_under_2_5.toFixed(2)}</span>
+                        <span className="font-mono text-sm text-brand-300 font-bold">{match.odds_under_2_5 && !isNaN(match.odds_under_2_5) ? match.odds_under_2_5.toFixed(2) : '0.00'}</span>
                       </div>
                     )}
                   </>
@@ -881,14 +886,14 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                 <div className="flex justify-between items-center p-1.5 bg-surface-strong/30 rounded-lg border border-brand-300/10 hover:border-brand-300/20 transition-colors duration-300">
                   <span className="font-medium text-text text-sm">1X2:</span>
                   <Badge variant={match.vig_1x2 <= 0.12 ? "default" : "secondary"} className="text-xs bg-gradient-to-r from-brand-300/30 to-brand-400/30 border-brand-300/40 text-text font-bold px-2 py-0.5">
-                    {(match.vig_1x2 * 100).toFixed(1)}%
+                    {(match.vig_1x2 && !isNaN(match.vig_1x2) ? match.vig_1x2 * 100 : 0).toFixed(1)}%
                   </Badge>
                 </div>
                 {match.vig_btts > 0 && (
                   <div className="flex justify-between items-center p-1.5 bg-surface-strong/30 rounded-lg border border-brand-300/10 hover:border-brand-300/20 transition-colors duration-300">
                     <span className="font-medium text-text text-sm">BTTS:</span>
                     <Badge variant={match.vig_btts <= 0.15 ? "default" : "secondary"} className="text-xs bg-gradient-to-r from-brand-300/30 to-brand-400/30 border-brand-300/40 text-text font-bold px-2 py-0.5">
-                      {(match.vig_btts * 100).toFixed(1)}%
+                      {(match.vig_btts && !isNaN(match.vig_btts) ? match.vig_btts * 100 : 0).toFixed(1)}%
                     </Badge>
                   </div>
                 )}
@@ -896,7 +901,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                   <div className="flex justify-between items-center p-1.5 bg-surface-strong/30 rounded-lg border border-brand-300/10 hover:border-brand-300/20 transition-colors duration-300">
                     <span className="font-medium text-text text-sm">O/U 2.5:</span>
                     <Badge variant={match.vig_ou_2_5 <= 0.15 ? "default" : "secondary"} className="text-xs bg-gradient-to-r from-brand-300/30 to-brand-400/30 border-brand-300/40 text-text font-bold px-2 py-0.5">
-                      {(match.vig_ou_2_5 * 100).toFixed(1)}%
+                      {(match.vig_ou_2_5 && !isNaN(match.vig_ou_2_5) ? match.vig_ou_2_5 * 100 : 0).toFixed(1)}%
                     </Badge>
                   </div>
                 )}
