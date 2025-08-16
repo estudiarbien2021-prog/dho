@@ -187,15 +187,40 @@ export function AIRecommendationDisplay({
     });
 
     return (
-      <div className="text-center">
-        <div className="text-sm font-medium">
-          {formatPrediction(aiRec.betType, aiRec.prediction)}
+      <div className="bg-green-50 p-2 rounded border border-green-200 text-xs">
+        <div className="flex items-center gap-1 mb-1">
+          <span className="text-green-600">🎯</span>
+          <span className="font-medium text-green-800">Recommandation IA</span>
         </div>
-        <div className="text-xs text-muted-foreground">
-          Cote: {aiRec.odds.toFixed(2)} | Confiance: {confidence}%
+        <div className="space-y-1">
+          <div>
+            <span className="text-green-600">Type de pari:</span>
+            <span className="ml-1 text-green-800">{formatBetType(aiRec.betType)}</span>
+          </div>
+          <div>
+            <span className="text-green-600">Prédiction:</span>
+            <span className="ml-1 text-green-800 font-medium">{formatPrediction(aiRec.betType, aiRec.prediction)}</span>
+          </div>
+          <div>
+            <span className="text-green-600">Cote:</span>
+            <span className="ml-1 text-green-800 font-medium">{aiRec.odds.toFixed(2)}</span>
+          </div>
+          <div>
+            <span className="text-green-600">Confiance:</span>
+            <span className="ml-1 text-green-800 font-medium">{confidence}%</span>
+          </div>
         </div>
       </div>
     );
+
+    function formatBetType(betType: string) {
+      switch (betType) {
+        case '1X2': return 'chance double';
+        case 'BTTS': return 'BTTS';
+        case 'O/U 2.5': return 'O/U 2.5';
+        default: return betType;
+      }
+    }
   }
 
   if (variant === 'card') {
