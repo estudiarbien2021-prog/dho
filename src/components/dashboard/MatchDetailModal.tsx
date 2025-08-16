@@ -1327,8 +1327,8 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                 isActive={showAIGraphics}
                 match={match}
                 aiRecommendation={recommendation}
-                secondRecommendation={null}
-                thirdRecommendation={null}
+                secondRecommendation={secondRecommendation}
+                thirdRecommendation={thirdMarketRecommendation}
                 allRecommendations={getAllDisplayedOpportunities()}
               />
             </div>
