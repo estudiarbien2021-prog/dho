@@ -194,7 +194,9 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
       });
     }
     
-    if (match.vig_btts < lowVigThreshold) {
+    if (match.vig_btts && match.vig_btts < lowVigThreshold && 
+        match.p_btts_yes_fair && match.p_btts_no_fair && 
+        match.odds_btts_yes && match.odds_btts_no) {
       const mostBttsProb = Math.max(match.p_btts_yes_fair, match.p_btts_no_fair);
       const predictionBtts = mostBttsProb === match.p_btts_yes_fair ? 'Oui' : 'Non';
       const oddsBtts = mostBttsProb === match.p_btts_yes_fair ? match.odds_btts_yes : match.odds_btts_no;
