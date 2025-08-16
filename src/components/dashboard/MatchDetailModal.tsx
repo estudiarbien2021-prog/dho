@@ -136,8 +136,35 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
   // Generate ALL AI recommendations for the match
   const opportunities = detectOpportunities(match);
   const allAIRecommendations = opportunities.map(convertOpportunityToAIRecommendation);
-  const recommendation = allAIRecommendations.length > 0 ? normalizeRecommendation(allAIRecommendations[0]) : null;
-  const thirdRecommendation = allAIRecommendations.length > 2 ? normalizeRecommendation(allAIRecommendations[2]) : null;
+  
+  // Map all detected opportunities to the three recommendation slots
+  const recommendation = allAIRecommendations.length > 0 ? {
+    ...normalizeRecommendation(allAIRecommendations[0]),
+    isInverted: opportunities[0]?.isInverted || false,
+    reason: opportunities[0]?.reason || []
+  } : null;
+  
+  const secondAIRecommendation = allAIRecommendations.length > 1 ? {
+    ...normalizeRecommendation(allAIRecommendations[1]), 
+    isInverted: opportunities[1]?.isInverted || false,
+    reason: opportunities[1]?.reason || [],
+    vigorish: opportunities[1]?.type === '1X2' ? match.vig_1x2 : 
+              opportunities[1]?.type === 'BTTS' ? match.vig_btts : match.vig_ou_2_5,
+    probability: opportunities[1]?.type === '1X2' ? Math.max(match.p_home_fair, match.p_draw_fair, match.p_away_fair) :
+                 opportunities[1]?.type === 'BTTS' ? Math.max(match.p_btts_yes_fair, match.p_btts_no_fair) :
+                 Math.max(match.p_over_2_5_fair, match.p_under_2_5_fair)
+  } : null;
+  
+  const thirdAIRecommendation = allAIRecommendations.length > 2 ? {
+    ...normalizeRecommendation(allAIRecommendations[2]),
+    isInverted: opportunities[2]?.isInverted || false,
+    reason: opportunities[2]?.reason || [],
+    vigorish: opportunities[2]?.type === '1X2' ? match.vig_1x2 : 
+              opportunities[2]?.type === 'BTTS' ? match.vig_btts : match.vig_ou_2_5,
+    probability: opportunities[2]?.type === '1X2' ? Math.max(match.p_home_fair, match.p_draw_fair, match.p_away_fair) :
+                 opportunities[2]?.type === 'BTTS' ? Math.max(match.p_btts_yes_fair, match.p_btts_no_fair) :
+                 Math.max(match.p_over_2_5_fair, match.p_under_2_5_fair)
+  } : null;
   
   // Generate second recommendation based on low vigorish criteria (<6%)
   // Récupérer les données BRUTES déjà affichées dans le popup (sans recalcul)
@@ -267,13 +294,16 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     'doubleChanceRec?.prediction': doubleChanceRec?.prediction
   });
   
-  const secondRecommendation = doubleChanceRec || marketRecommendation1;
+  // Use AI recommendations first, then fallback to market opportunities
+  const secondRecommendation = secondAIRecommendation || doubleChanceRec || marketRecommendation1;
+  const thirdMarketRecommendation = thirdAIRecommendation || marketRecommendation2;
   
-  console.log('🚨 DEBUG FINAL SECOND REC:', {
+  console.log('🚨 DEBUG FINAL RECOMMENDATIONS:', {
+    'recommendation': recommendation,
     'secondRecommendation': secondRecommendation,
-    'marketRecommendation1': marketRecommendation1
+    'thirdMarketRecommendation': thirdMarketRecommendation,
+    'allAIRecommendations.length': allAIRecommendations.length
   });
-  const thirdMarketRecommendation = marketRecommendation2;
   
   // SOLUTION DÉFINITIVE : Inclure TOUTES les opportunités affichées dans l'interface
   const getAllDisplayedOpportunities = () => {
@@ -1258,17 +1288,29 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                           </div>
                         </div>
                         
-                        {/* Detailed AI Commentary */}
-                        <div className="flex-1 p-4 bg-surface rounded-lg border border-brand/10">
-                          <div className="text-sm text-text leading-relaxed">
-                            <div dangerouslySetInnerHTML={{ 
-                              __html: (typeof generateRecommendationExplanation === 'function' 
-                                ? generateRecommendationExplanation(recommendation).replace(/\n/g, '<br/>') 
-                                : 'Explication temporairement indisponible'
-                              )
-                            }} />
-                          </div>
-                        </div>
+                         {/* Detailed AI Commentary */}
+                         <div className="flex-1 p-4 bg-surface rounded-lg border border-brand/10">
+                           <div className="text-sm text-text leading-relaxed">
+                             {recommendation.isInverted ? (
+                               <div>
+                                 <strong>Opportunité d'inversion détectée:</strong> Nos modèles IA détectent une probabilité de {recommendation.type === 'BTTS' ? 
+                                   (recommendation.prediction === 'Non' ? match.p_btts_no_fair : match.p_btts_yes_fair) * 100 :
+                                   (recommendation.prediction === '-2,5 buts' ? match.p_under_2_5_fair : match.p_over_2_5_fair) * 100
+                                 }% pour cette prédiction, mais le marché surestime probablement l'option opposée. 
+                                 Cette divergence entre probabilité réelle et cotes du marché représente une opportunité de valeur.
+                                 <br/><br/>
+                                 <em>Confiance renforcée grâce à l'analyse des inefficiences de marché.</em>
+                               </div>
+                             ) : (
+                               <div dangerouslySetInnerHTML={{ 
+                                 __html: (typeof generateRecommendationExplanation === 'function' 
+                                   ? generateRecommendationExplanation(recommendation).replace(/\n/g, '<br/>') 
+                                   : 'Explication temporairement indisponible'
+                                 )
+                               }} />
+                             )}
+                           </div>
+                         </div>
                         
                         {/* Second Recommendation - Low Vigorish Analysis */}
                         {secondRecommendation && !(recommendation && 
@@ -1276,30 +1318,52 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                            recommendation.prediction === secondRecommendation.prediction) && (
                           <div className="mt-6 pt-6 border-t border-brand/20">
                             <div className="space-y-4">
-                              <div className="flex items-center gap-2 mb-3">
-                                <Brain className="w-4 h-4 text-brand-400" />
-                                <span className="text-sm font-semibold text-brand-400">Analyse complète avec facteurs d'influence</span>
-                              </div>
-                              
-                              <div className="flex items-center justify-between">
-                                <Badge className="bg-brand-400/20 text-brand-400 px-3 py-1 text-sm font-medium border border-brand-400/30">
-                                  {secondRecommendation.type} {secondRecommendation.prediction}
-                                  <span className="ml-2 text-xs bg-emerald-500/20 text-emerald-700 px-2 py-1 rounded">
-                                    Vigorish {(secondRecommendation.vigorish * 100).toFixed(1)}%
-                                  </span>
-                                </Badge>
-                                <div className="text-lg font-bold text-brand-400">
-                                  {secondRecommendation.odds.toFixed(2)}
-                                </div>
-                              </div>
-                              
-                              <div className="bg-brand-400/10 rounded-lg p-3 border border-brand-400/20">
-                                <div className="text-xs text-brand-400 leading-relaxed">
-                                  <strong>Opportunité Détectée:</strong> Vigorish exceptionnellement bas de {(secondRecommendation.vigorish * 100).toFixed(1)}% sur ce marché. 
-                                  Probabilité réelle estimée à {(secondRecommendation.probability * 100).toFixed(1)}% avec une marge bookmaker réduite, 
-                                  indiquant une efficience de marché optimale pour cette prédiction.
-                                </div>
-                              </div>
+                               <div className="flex items-center gap-2 mb-3">
+                                 <Brain className="w-4 h-4 text-brand-400" />
+                                 <span className="text-sm font-semibold text-brand-400">
+                                   {secondRecommendation.isInverted ? 'Opportunité détectée' : 'Analyse complète avec facteurs d\'influence'}
+                                 </span>
+                               </div>
+                               
+                               <div className="flex items-center justify-between">
+                                 <Badge className="bg-brand-400/20 text-brand-400 px-3 py-1 text-sm font-medium border border-brand-400/30">
+                                   {secondRecommendation.type} {secondRecommendation.prediction}
+                                   {secondRecommendation.isInverted && (
+                                     <span className="ml-2 text-xs bg-yellow-500/20 text-yellow-700 px-2 py-1 rounded">
+                                       Opportunité détectée
+                                     </span>
+                                   )}
+                                   {secondRecommendation.vigorish && (
+                                     <span className="ml-2 text-xs bg-emerald-500/20 text-emerald-700 px-2 py-1 rounded">
+                                       Vigorish {(secondRecommendation.vigorish * 100).toFixed(1)}%
+                                     </span>
+                                   )}
+                                 </Badge>
+                                 <div className="text-lg font-bold text-brand-400">
+                                   {secondRecommendation.odds.toFixed(2)}
+                                 </div>
+                               </div>
+                               
+                               <div className="bg-brand-400/10 rounded-lg p-3 border border-brand-400/20">
+                                 <div className="text-xs text-brand-400 leading-relaxed">
+                                   {secondRecommendation.isInverted ? (
+                                     <div>
+                                       <strong>Opportunité d'inversion:</strong> Cette prédiction inverse la tendance probabiliste pour exploiter une inefficience de marché. 
+                                       Nos algorithmes détectent que le marché surestime l'option opposée, créant une opportunité de valeur.
+                                     </div>
+                                   ) : secondRecommendation.vigorish ? (
+                                     <div>
+                                       <strong>Opportunité Détectée:</strong> Vigorish exceptionnellement bas de {(secondRecommendation.vigorish * 100).toFixed(1)}% sur ce marché. 
+                                       Probabilité réelle estimée à {(secondRecommendation.probability * 100).toFixed(1)}% avec une marge bookmaker réduite, 
+                                       indiquant une efficience de marché optimale pour cette prédiction.
+                                     </div>
+                                   ) : (
+                                     <div>
+                                       <strong>Recommandation secondaire:</strong> Opportunité complémentaire identifiée par nos modèles d'analyse avancée.
+                                     </div>
+                                   )}
+                                 </div>
+                               </div>
                             </div>
                           </div>
                         )}
@@ -1308,30 +1372,52 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                         {thirdMarketRecommendation && (
                           <div className="mt-6 pt-6 border-t border-brand/20">
                             <div className="space-y-4">
-                              <div className="flex items-center gap-2 mb-3">
-                                <Brain className="w-4 h-4 text-brand-400" />
-                                <span className="text-sm font-semibold text-brand-400">Opportunité Détectée</span>
-                              </div>
-                              
-                              <div className="flex items-center justify-between">
-                                <Badge className="bg-brand-400/20 text-brand-400 px-3 py-1 text-sm font-medium border border-brand-400/30">
-                                  {thirdMarketRecommendation.type} {thirdMarketRecommendation.prediction}
-                                  <span className="ml-2 text-xs bg-emerald-500/20 text-emerald-700 px-2 py-1 rounded">
-                                    Vigorish {(thirdMarketRecommendation.vigorish * 100).toFixed(1)}%
-                                  </span>
-                                </Badge>
-                                <div className="text-lg font-bold text-brand-400">
-                                  {thirdMarketRecommendation.odds.toFixed(2)}
-                                </div>
-                              </div>
-                              
-                              <div className="bg-brand-400/10 rounded-lg p-3 border border-brand-400/20">
-                                <div className="text-xs text-brand-400 leading-relaxed">
-                                  <strong>Opportunité Détectée:</strong> Vigorish exceptionnellement bas de {(thirdMarketRecommendation.vigorish * 100).toFixed(1)}% sur ce marché. 
-                                  Probabilité réelle estimée à {(thirdMarketRecommendation.probability * 100).toFixed(1)}% avec une marge bookmaker réduite, 
-                                  indiquant une efficience de marché optimale pour cette prédiction.
-                                </div>
-                              </div>
+                               <div className="flex items-center gap-2 mb-3">
+                                 <Brain className="w-4 h-4 text-brand-400" />
+                                 <span className="text-sm font-semibold text-brand-400">
+                                   {thirdMarketRecommendation.isInverted ? 'Opportunité détectée' : 'Opportunité Détectée'}
+                                 </span>
+                               </div>
+                               
+                               <div className="flex items-center justify-between">
+                                 <Badge className="bg-brand-400/20 text-brand-400 px-3 py-1 text-sm font-medium border border-brand-400/30">
+                                   {thirdMarketRecommendation.type} {thirdMarketRecommendation.prediction}
+                                   {thirdMarketRecommendation.isInverted && (
+                                     <span className="ml-2 text-xs bg-yellow-500/20 text-yellow-700 px-2 py-1 rounded">
+                                       Opportunité détectée
+                                     </span>
+                                   )}
+                                   {thirdMarketRecommendation.vigorish && (
+                                     <span className="ml-2 text-xs bg-emerald-500/20 text-emerald-700 px-2 py-1 rounded">
+                                       Vigorish {(thirdMarketRecommendation.vigorish * 100).toFixed(1)}%
+                                     </span>
+                                   )}
+                                 </Badge>
+                                 <div className="text-lg font-bold text-brand-400">
+                                   {thirdMarketRecommendation.odds.toFixed(2)}
+                                 </div>
+                               </div>
+                               
+                               <div className="bg-brand-400/10 rounded-lg p-3 border border-brand-400/20">
+                                 <div className="text-xs text-brand-400 leading-relaxed">
+                                   {thirdMarketRecommendation.isInverted ? (
+                                     <div>
+                                       <strong>Opportunité d'inversion:</strong> Cette prédiction inverse la tendance probabiliste pour exploiter une inefficience de marché. 
+                                       Nos algorithmes détectent que le marché surestime l'option opposée, créant une opportunité de valeur.
+                                     </div>
+                                   ) : thirdMarketRecommendation.vigorish ? (
+                                     <div>
+                                       <strong>Opportunité Détectée:</strong> Vigorish exceptionnellement bas de {(thirdMarketRecommendation.vigorish * 100).toFixed(1)}% sur ce marché. 
+                                       Probabilité réelle estimée à {(thirdMarketRecommendation.probability * 100).toFixed(1)}% avec une marge bookmaker réduite, 
+                                       indiquant une efficience de marché optimale pour cette prédiction.
+                                     </div>
+                                   ) : (
+                                     <div>
+                                       <strong>Recommandation tertiaire:</strong> Opportunité supplémentaire identifiée par nos modèles d'analyse avancée.
+                                     </div>
+                                   )}
+                                 </div>
+                               </div>
                             </div>
                           </div>
                         )}
