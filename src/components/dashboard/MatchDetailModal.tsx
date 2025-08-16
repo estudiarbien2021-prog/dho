@@ -1242,15 +1242,16 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                 </p>
               </div>
             
-            <div className="grid grid-cols-1 gap-8">
-              {/* Enhanced AI Recommendation Section with Influence Factors */}
+            {/* Two-column layout: AI Recommendations (left) + Market Efficiency (right) */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Left Column: AI Recommendations */}
               <Card className="p-8 bg-gradient-to-br from-surface to-surface-soft border-border shadow-lg">
                 <div className="flex items-center gap-3 mb-8">
                   <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-r from-brand to-brand-400 rounded-xl shadow-lg">
                     <Target className="w-6 h-6 text-brand-fg" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-text">Recommandation de l'IA</h3>
+                    <h3 className="text-xl font-bold text-text">Recommandations de l'IA</h3>
                     <p className="text-sm text-text-weak">Analyse complète avec facteurs d'influence</p>
                   </div>
                 </div>
@@ -1473,50 +1474,76 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                        <span className="text-text-weak text-lg">Aucune recommandation disponible</span>
                      </div>
                    )}
+                 </div>
+              </Card>
 
-                  {/* Market Efficiency Section - Now with matching height */}
-                  <Card className="p-6 bg-gradient-to-br from-background to-muted/20 border-border/50 min-h-[600px]">
-                    <MarketEfficiencyGauge match={match} />
-                  </Card>
-                </div>
-
-                {/* Compact Confidence Bars - moved below */}
-                <div className="mt-8">
-                  <div className="text-base font-bold text-text mb-4">Scores de Confiance</div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-text-weak font-medium">🎯 Recommandation IA</span>
-                        <span className="text-sm font-bold text-brand">
-                          {generateConfidenceScore(match.id, recommendation || {})}%
-                        </span>
-                      </div>
-                      <div className="h-2 bg-surface-strong rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-gradient-to-r from-brand to-brand-400 rounded-full transition-all duration-1000"
-                          style={{ width: `${showAIGraphics ? generateConfidenceScore(match.id, recommendation || {}) : 0}%` }}
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-text-weak font-medium">⚠️ Facteur Risque</span>
-                        <span className="text-sm font-bold text-destructive">
-                          {Math.round(match.vig_1x2 * 100)}%
-                        </span>
-                      </div>
-                      <div className="h-2 bg-surface-strong rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-gradient-to-r from-destructive to-destructive/80 rounded-full transition-all duration-1000 delay-200"
-                          style={{ width: `${showAIGraphics ? Math.round(match.vig_1x2 * 100) : 0}%` }}
-                        />
-                      </div>
-                    </div>
+              {/* Right Column: Market Efficiency */}
+              <Card className="p-8 bg-gradient-to-br from-surface to-surface-soft border-border shadow-lg">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-xl shadow-lg">
+                    <TrendingDown className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-text">Efficacité du Marché</h3>
+                    <p className="text-sm text-text-weak">Analyse des inefficiences et opportunités</p>
                   </div>
                 </div>
+                
+                <MarketEfficiencyGauge match={match} />
               </Card>
             </div>
+
+            {/* Full Analysis Section - Below the two columns */}
+            <Card className="p-8 bg-gradient-to-br from-surface to-surface-soft border-border shadow-lg">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl shadow-lg">
+                  <Brain className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-text">Analyse Complète</h3>
+                  <p className="text-sm text-text-weak">Facteurs d'influence et analyse approfondie</p>
+                </div>
+              </div>
+              
+              <InfluenceFactors matchId={match.id} isActive={showAIGraphics} />
+            </Card>
+
+            {/* Compact Confidence Bars */}
+            <Card className="p-8 bg-gradient-to-br from-surface to-surface-soft border-border shadow-lg">
+              <div className="text-base font-bold text-text mb-4">Scores de Confiance</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-text-weak font-medium">🎯 Recommandation IA</span>
+                    <span className="text-sm font-bold text-brand">
+                      {generateConfidenceScore(match.id, recommendation || {})}%
+                    </span>
+                  </div>
+                  <div className="h-2 bg-surface-strong rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-brand to-brand-400 rounded-full transition-all duration-1000"
+                      style={{ width: `${showAIGraphics ? generateConfidenceScore(match.id, recommendation || {}) : 0}%` }}
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-text-weak font-medium">⚠️ Facteur Risque</span>
+                    <span className="text-sm font-bold text-destructive">
+                      {Math.round(match.vig_1x2 * 100)}%
+                    </span>
+                  </div>
+                  <div className="h-2 bg-surface-strong rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-destructive to-destructive/80 rounded-full transition-all duration-1000 delay-200"
+                      style={{ width: `${showAIGraphics ? Math.round(match.vig_1x2 * 100) : 0}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
 
             {/* Matrice de Prédiction de Score */}
             <div className="grid grid-cols-1 gap-6">
