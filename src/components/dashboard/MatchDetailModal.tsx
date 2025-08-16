@@ -234,10 +234,28 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
   // Récupérer TOUTES les recommandations IA (y compris les doubles chances)
   const allAIRecs = generateAIRecommendations(match, marketFilters);
   
+  console.log('🚨 DEBUG TRANSMISSION RECOMMANDATIONS:', {
+    'allAIRecs': allAIRecs,
+    'allAIRecs.length': allAIRecs.length,
+    'allAIRecs types': allAIRecs.map(r => r.betType),
+    'match.vig_1x2': match.vig_1x2,
+    'HIGH_VIG_1X2_THRESHOLD': 0.1
+  });
+  
   // Chercher les opportunités de double chance dans les recommandations IA
   const doubleChanceRec = allAIRecs.find(rec => rec.betType === 'Double Chance');
   
+  console.log('🚨 DEBUG DOUBLE CHANCE REC:', {
+    'doubleChanceRec': doubleChanceRec,
+    'doubleChanceRec?.prediction': doubleChanceRec?.prediction
+  });
+  
   const secondRecommendation = doubleChanceRec || marketRecommendation1;
+  
+  console.log('🚨 DEBUG FINAL SECOND REC:', {
+    'secondRecommendation': secondRecommendation,
+    'marketRecommendation1': marketRecommendation1
+  });
   const thirdMarketRecommendation = marketRecommendation2;
   
   // Check for market distortions first
