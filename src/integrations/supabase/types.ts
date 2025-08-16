@@ -191,6 +191,39 @@ export type Database = {
         }
         Relationships: []
       }
+      recommendation_rules: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          id: string
+          rule_name: string
+          type: string
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description: string
+          id?: string
+          rule_name: string
+          type: string
+          updated_at?: string
+          value: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          id?: string
+          rule_name?: string
+          type?: string
+          updated_at?: string
+          value?: number
+        }
+        Relationships: []
+      }
       validated_picks: {
         Row: {
           away_team: string

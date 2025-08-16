@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Upload, RefreshCw, Calendar, CheckCircle, XCircle, Clock, Trash2, Users, Database, Shield, Eye, UserX, Crown, Trophy, Target } from 'lucide-react';
 import { MatchesManagement } from '@/components/dashboard/MatchesManagement';
 import { PicksValidation } from '@/components/dashboard/PicksValidation';
+import { RulesManagement } from '@/components/dashboard/RulesManagement';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -478,7 +479,7 @@ export function Admin() {
 
       {/* Admin Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="users" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
             Utilisateurs
@@ -490,6 +491,10 @@ export function Admin() {
           <TabsTrigger value="picks" className="flex items-center gap-2">
             <Target className="h-4 w-4" />
             Picks IA
+          </TabsTrigger>
+          <TabsTrigger value="rules" className="flex items-center gap-2">
+            <Shield className="h-4 w-4" />
+            Règles IA
           </TabsTrigger>
           <TabsTrigger value="data" className="flex items-center gap-2">
             <Database className="h-4 w-4" />
@@ -645,6 +650,16 @@ export function Admin() {
         {/* Picks Validation Tab */}
         <TabsContent value="picks" className="space-y-6">
           <PicksValidation />
+        </TabsContent>
+
+        {/* Rules Management Tab */}
+        <TabsContent value="rules" className="space-y-6">
+          <RulesManagement />
+        </TabsContent>
+
+        {/* Rules Management Tab */}
+        <TabsContent value="rules" className="space-y-6">
+          <RulesManagement />
         </TabsContent>
 
         {/* Data Management Tab */}
