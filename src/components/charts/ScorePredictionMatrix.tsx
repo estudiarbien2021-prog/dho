@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { ProcessedMatch } from '@/types/match';
 import { calculatePoisson } from '@/lib/poisson';
+import { AlertTriangle } from 'lucide-react';
 
 interface ScorePredictionMatrixProps {
   homeTeam: string;
@@ -693,6 +694,32 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
   };
 
   const staticMatrix = generateMatrix();
+
+  // Vérification des données avant affichage
+  const hasValidBTTS = match.p_btts_yes_fair > 0 || match.p_btts_no_fair > 0;
+  const hasValidOU = match.p_over_2_5_fair > 0 && match.p_under_2_5_fair > 0;
+  
+  if (!hasValidBTTS || !hasValidOU) {
+    return (
+      <Card className="p-6 bg-gradient-to-br from-purple-50 to-blue-50 border-purple-200">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 mx-auto bg-amber-100 rounded-full flex items-center justify-center">
+            <AlertTriangle className="w-8 h-8 text-amber-600" />
+          </div>
+          <h3 className="text-xl font-bold text-gray-800">Données insuffisantes</h3>
+          <p className="text-gray-600 max-w-md mx-auto">
+            Les données BTTS ou Over/Under 2.5 ne sont pas disponibles pour ce match. 
+            La prédiction de scores nécessite ces informations pour fonctionner correctement.
+          </p>
+          <div className="text-sm text-gray-500 bg-gray-100 rounded-lg p-3">
+            <strong>Données manquantes :</strong>
+            {!hasValidBTTS && <span className="block">• BTTS (Both Teams to Score)</span>}
+            {!hasValidOU && <span className="block">• Over/Under 2.5 buts</span>}
+          </div>
+        </div>
+      </Card>
+    );
+  }
 
   useEffect(() => {
     if (!isActive) {
