@@ -20,57 +20,29 @@ export function AIRecommendationDisplay({
 }: AIRecommendationDisplayProps) {
   console.log('🟢 AIRecommendationDisplay APPELÉ pour:', match.home_team, 'vs', match.away_team);
   
-  // ===== UTILISER LA MÊME LOGIQUE EXACTE QUE MatchDetailModal =====
+  // ===== UTILISER L'ORDRE ORIGINAL DE detectOpportunities (COMME LE POPUP) =====
   
   // 1. Détecter les opportunités comme dans le modal
   const opportunities = detectOpportunities(match);
-  console.log('🎯 OPPORTUNITIES DÉTECTÉES (AIRecommendationDisplay):', opportunities.length, opportunities.map(o => `${o.type}:${o.prediction}(inverted:${o.isInverted})`));
+  console.log('🎯 OPPORTUNITIES DÉTECTÉES (AIRecommendationDisplay - ORDRE ORIGINAL):', opportunities.length, opportunities.map(o => `${o.type}:${o.prediction}(inverted:${o.isInverted})`));
   
-  // 2. Prioriser comme dans le modal
-  const prioritizedOpportunities = prioritizeOpportunitiesByRealProbability(opportunities, match);
-  const allAIRecommendations = prioritizedOpportunities.map(convertOpportunityToAIRecommendation);
-
-  // 3. Utiliser la MÊME logique de recommandation finale que le modal
-  const prioritizedRecommendations = prioritizedOpportunities.map(opp => ({
-    rec: convertOpportunityToAIRecommendation(opp),
-    opp: opp
-  }));
-
-  const finalRecommendations = prioritizedRecommendations;
+  // 2. UTILISER L'ORDRE ORIGINAL (pas de re-priorisation par probabilité réelle)
+  const sortedOpportunities = opportunities; // Garder l'ordre original de detectOpportunities
   
-  // Helper function to normalize recommendation object (même que modal)
-  const normalizeRecommendation = (rec: any) => {
-    if (!rec) return null;
-    
-    return {
-      type: rec.betType || rec.type || 'Aucune',
-      prediction: rec.prediction || 'Aucune',
-      odds: rec.odds || 0,
-      confidence: rec.confidence || 'low'
-    };
-  };
+  // 3. Convertir la première opportunité en recommandation
+  const aiRecs = sortedOpportunities.length > 0 ? [convertOpportunityToAIRecommendation(sortedOpportunities[0])] : [];
 
-  // 4. Créer la recommandation principale EXACTEMENT comme dans le modal
-  const recommendation = finalRecommendations.length > 0 ? {
-    ...normalizeRecommendation(finalRecommendations[0].rec),
-    isInverted: finalRecommendations[0].opp?.isInverted || false,
-    reason: finalRecommendations[0].opp?.reason || []
-  } : null;
-  
-  console.log('🚨 DEBUG AIRecommendationDisplay - MÊME LOGIQUE QUE MODAL:', {
+  console.log('🚨 DEBUG AIRecommendationDisplay - ORDRE ORIGINAL (COMME POPUP):', {
     matchName: `${match.home_team} vs ${match.away_team}`,
     totalOpportunities: opportunities.length,
-    finalRecommendationsCount: finalRecommendations.length,
-    mainRecommendation: recommendation ? {
-      type: recommendation.type,
-      prediction: recommendation.prediction,
-      odds: recommendation.odds,
-      isInverted: recommendation.isInverted
-    } : null
+    firstOpportunityORIGINAL: sortedOpportunities[0] ? {
+      type: sortedOpportunities[0].type,
+      prediction: sortedOpportunities[0].prediction,
+      odds: sortedOpportunities[0].odds,
+      isInverted: sortedOpportunities[0].isInverted
+    } : null,
+    finalAIRec: aiRecs[0]
   });
-
-  // Convertir en format aiRecs pour compatibilité avec le reste du code
-  const aiRecs = recommendation ? [recommendation] : [];
   
   if (aiRecs.length === 0) {
     return (
@@ -103,7 +75,7 @@ export function AIRecommendationDisplay({
       <div className="flex flex-col gap-1 items-center">
         {aiRecs.map((aiRec, index) => {
           const confidence = generateConfidenceScore(match.id, {
-            type: aiRec.type,
+            type: aiRec.betType,
             prediction: aiRec.prediction,
             confidence: aiRec.confidence
           });
@@ -114,7 +86,7 @@ export function AIRecommendationDisplay({
                 variant={getConfidenceColor(aiRec.confidence)}
                 className="text-xs"
               >
-                {showIcon && '🎯'} {formatBetType(aiRec.type)} {aiRec.prediction}
+                {showIcon && '🎯'} {formatBetType(aiRec.betType)} {aiRec.prediction}
                 {aiRec.isInverted && <span className="ml-1 text-amber-600">(Opportunité détectée)</span>}
               </Badge>
               <div className="text-xs text-muted-foreground">
@@ -141,7 +113,7 @@ export function AIRecommendationDisplay({
         <div className="space-y-3 text-center">
           {aiRecs.map((aiRec, index) => {
             const confidence = generateConfidenceScore(match.id, {
-              type: aiRec.type,
+              type: aiRec.betType,
               prediction: aiRec.prediction,
               confidence: aiRec.confidence
             });
@@ -151,7 +123,7 @@ export function AIRecommendationDisplay({
                 <div className="grid grid-cols-3 gap-2 text-xs">
                   <div>
                     <div className="text-green-600 font-medium">Type de pari</div>
-                    <div className="text-green-800">{formatBetType(aiRec.type)}</div>
+                    <div className="text-green-800">{formatBetType(aiRec.betType)}</div>
                   </div>
                   <div>
                     <div className="text-green-600 font-medium">Prédiction</div>
@@ -203,7 +175,7 @@ export function AIRecommendationDisplay({
     };
 
     const confidence = generateConfidenceScore(match.id, {
-      type: aiRec.type,
+      type: aiRec.betType,
       prediction: aiRec.prediction,
       confidence: aiRec.confidence
     });
@@ -220,7 +192,7 @@ export function AIRecommendationDisplay({
         <div className="grid grid-cols-3 gap-2 text-xs text-center">
           <div>
             <div className="text-green-600 font-medium">Type de pari</div>
-            <div className="text-green-800">{formatBetType(aiRec.type)}</div>
+            <div className="text-green-800">{formatBetType(aiRec.betType)}</div>
           </div>
           <div>
             <div className="text-green-600 font-medium">Prédiction</div>
@@ -262,7 +234,7 @@ export function AIRecommendationDisplay({
         <div className="space-y-4">
           {aiRecs.map((aiRec, index) => {
             const confidence = generateConfidenceScore(match.id, {
-              type: aiRec.type,
+              type: aiRec.betType,
               prediction: aiRec.prediction,
               confidence: aiRec.confidence
             });
@@ -274,7 +246,7 @@ export function AIRecommendationDisplay({
                     variant={getConfidenceColor(aiRec.confidence)}
                     className="text-sm px-3 py-1"
                   >
-                    {formatBetType(aiRec.type)} {aiRec.prediction}
+                    {formatBetType(aiRec.betType)} {aiRec.prediction}
                   </Badge>
                   <div className="text-xl font-bold text-green-700">
                     {aiRec.odds.toFixed(2)}
