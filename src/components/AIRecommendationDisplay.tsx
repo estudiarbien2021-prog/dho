@@ -180,9 +180,20 @@ export function AIRecommendationDisplay({
       }
     };
 
+    const confidence = generateConfidenceScore(match.id, {
+      type: aiRec.betType,
+      prediction: aiRec.prediction,
+      confidence: aiRec.confidence
+    });
+
     return (
-      <div className="text-sm font-medium text-center">
-        {formatPrediction(aiRec.betType, aiRec.prediction)}
+      <div className="text-center">
+        <div className="text-sm font-medium">
+          {formatPrediction(aiRec.betType, aiRec.prediction)}
+        </div>
+        <div className="text-xs text-muted-foreground">
+          Cote: {aiRec.odds.toFixed(2)} | Confiance: {confidence}%
+        </div>
       </div>
     );
   }
