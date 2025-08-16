@@ -10,6 +10,8 @@ interface ScorePredictionMatrixProps {
   matchId: string;
   isActive: boolean;
   match: ProcessedMatch;
+  aiRecommendation?: any; // Recommandation principale de l'IA du modal
+  secondRecommendation?: any; // Seconde recommandation du modal
 }
 
 interface ScoreCell {
@@ -20,7 +22,7 @@ interface ScoreCell {
   highlightReason?: string;
 }
 
-export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, match }: ScorePredictionMatrixProps) {
+export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, match, aiRecommendation, secondRecommendation }: ScorePredictionMatrixProps) {
   const [matrix, setMatrix] = useState<ScoreCell[][]>([]);
   const [animationStep, setAnimationStep] = useState(0);
 
@@ -119,50 +121,46 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
     return null;
   };
 
-  // Obtenir les recommandations IA principales et l'analyse des probabilités
-  const getAIRecommendations = () => {
-    // Utiliser les vraies recommandations IA de la section principale
-    const primaryRecommendations = generateAIRecommendations(match);
+  // Obtenir les recommandations IA principales du modal et l'efficacité du marché
+  const getModalRecommendations = () => {
+    // Utiliser les recommandations du modal (priorité absolue)
+    const primary = aiRecommendation;
+    const secondary = secondRecommendation;
     
-    // Obtenir l'analyse des probabilités IA pour compléter
-    const bttsAnalysis = getAnalysisPrediction(match, 'btts');
-    const overUnderAnalysis = getAnalysisPrediction(match, 'over_under');
+    // Calculer l'efficacité moyenne du marché
+    const avgVigorish = (match.vig_1x2 + match.vig_btts + match.vig_ou_2_5) / 3;
+    const marketEfficiency = Math.max(0, 1 - avgVigorish); // Plus le vigorish est bas, plus l'efficacité est haute
     
-    // Prédiction 1X2 basée sur les probabilités
-    const probHome = 1 / match.odds_home;
-    const probDraw = 1 / match.odds_draw;
-    const probAway = 1 / match.odds_away;
+    // Détecter les opportunités à faible vigorish
+    const lowVigOpportunities = [
+      { type: '1X2', vig: match.vig_1x2, threshold: 0.06 },
+      { type: 'BTTS', vig: match.vig_btts, threshold: 0.06 },
+      { type: 'O/U 2.5', vig: match.vig_ou_2_5, threshold: 0.06 }
+    ].filter(market => market.vig < market.threshold);
     
-    const outcomes = [
-      { label: match.home_team, prob: probHome, type: 'home' },
-      { label: 'Nul', prob: probDraw, type: 'draw' },
-      { label: match.away_team, prob: probAway, type: 'away' }
-    ];
-    
-    const prediction1X2 = outcomes.sort((a, b) => b.prob - a.prob)[0];
-    
-    // Extraire les recommandations par type
-    const bttsRec = primaryRecommendations.find(r => r.betType === 'BTTS');
-    const overUnderRec = primaryRecommendations.find(r => r.betType === 'O/U 2.5');
-    const doubleChanceRec = primaryRecommendations.find(r => r.betType === 'Double Chance');
+    // Prédiction 1X2 basée sur les probabilités fair
+    const mostProbable1X2 = Math.max(match.p_home_fair, match.p_draw_fair, match.p_away_fair);
+    let prediction1X2 = '';
+    if (mostProbable1X2 === match.p_home_fair) prediction1X2 = match.home_team;
+    else if (mostProbable1X2 === match.p_away_fair) prediction1X2 = match.away_team;
+    else prediction1X2 = 'Nul';
     
     return {
-      match1X2: prediction1X2,
-      btts: bttsRec,
-      overUnder: overUnderRec,
-      doubleChance: doubleChanceRec,
-      // Analyse des probabilités pour compléter (uniquement si pas contradictoire)
-      bttsAnalysis: bttsRec ? null : bttsAnalysis, // Ne pas utiliser l'analyse si on a déjà une recommandation
-      overUnderAnalysis: overUnderRec ? null : overUnderAnalysis
+      primary,
+      secondary,
+      marketEfficiency,
+      lowVigOpportunities,
+      prediction1X2,
+      avgVigorish
     };
   };
 
   // Generate probability matrix using real match data with Poisson model
-  // Enhanced with AI recommendation, market opportunity, and odds integration
+  // Enhanced with modal AI recommendations and market efficiency
   const generateMatrix = () => {
-    // Intégrer l'opportunité de marché et les recommandations IA
+    // Utiliser les recommandations du modal et l'efficacité du marché
     const marketOpportunity = getMarketOpportunity();
-    const aiRecommendations = getAIRecommendations();
+    const modalRecommendations = getModalRecommendations();
     
     // Use the real match probabilities with Poisson model
     const poissonInputs = {
@@ -175,31 +173,37 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
 
     const poissonResult = calculatePoisson(poissonInputs);
     
-    // AI-enhanced probability adjustment factor based on market opportunity and AI analysis
-    const aiConfidenceFactor = (() => {
+    // Facteur d'ajustement basé sur les recommandations du modal et l'efficacité du marché
+    const confidenceFactor = (() => {
       let baseFactor = 1.0;
       
-      // Ajustement basé sur l'opportunité de marché
+      // Ajustement basé sur l'efficacité du marché (plus l'efficacité est haute, plus la confiance est élevée)
+      baseFactor *= (0.85 + modalRecommendations.marketEfficiency * 0.3); // 0.85 à 1.15
+      
+      // Boost significatif si recommandation principale du modal
+      if (modalRecommendations.primary && modalRecommendations.primary.type !== 'Aucune') {
+        baseFactor *= 1.2; // +20% pour recommandation principale
+      }
+      
+      // Boost additionnel si seconde recommandation (faible vigorish)
+      if (modalRecommendations.secondary) {
+        baseFactor *= 1.1; // +10% pour seconde recommandation
+      }
+      
+      // Bonus pour opportunités de marché détectées
       if (marketOpportunity) {
         if (marketOpportunity.impact === 'HIGH') {
-          baseFactor *= 1.15; // Augmenter la confiance pour les opportunités premium
+          baseFactor *= 1.15;
         } else if (marketOpportunity.impact === 'MEDIUM') {
-          baseFactor *= 1.08; // Ajustement modéré pour les distorsions de marché
+          baseFactor *= 1.08;
         }
       }
       
-      // Ajustement basé sur la cohérence des recommandations IA
-      const vigorishPenalty = (match.vig_1x2 + match.vig_ou_2_5) / 2;
-      const bttsConsistency = Math.abs(match.p_btts_yes_fair - (1 - match.p_btts_no_fair));
+      // Facteur d'efficacité global (plus de recommandations = plus de confiance)
+      const recommendationCount = (modalRecommendations.primary ? 1 : 0) + (modalRecommendations.secondary ? 1 : 0);
+      baseFactor *= (1 + recommendationCount * 0.05); // +5% par recommandation
       
-      // Intégrer les recommandations IA dans le calcul de confiance
-      if (aiRecommendations.btts && aiRecommendations.overUnder) {
-        baseFactor *= 1.05; // Bonus si les deux recommandations IA sont disponibles
-      }
-      
-      // Lower vigorish + consistent BTTS + AI recommendations = higher confidence
-      const finalFactor = baseFactor * Math.max(0.85, 1 - vigorishPenalty - bttsConsistency);
-      return Math.min(1.25, finalFactor); // Plafonner à 125%
+      return Math.min(1.4, baseFactor); // Plafonner à 140%
     })();
     
     const matrix: ScoreCell[][] = [];
@@ -237,138 +241,162 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
           }
         }
         
-        // Apply AI confidence factor to refine predictions based on market analysis
-        probability *= aiConfidenceFactor;
+        // Apply confidence factor based on modal recommendations and market efficiency
+        probability *= confidenceFactor;
         
-        // Ajustement basé sur les recommandations IA pour mettre en évidence certains scores
+        // Mise en évidence des scores basée sur les recommandations du modal et l'efficacité du marché
         let isHighlighted = false;
         let highlightReason = '';
         
-        // 1. Ajustement basé sur l'opportunité de marché (double chance)
-        if (marketOpportunity?.type === 'DOUBLE_CHANCE') {
-          const { doubleChanceTypes } = marketOpportunity;
-          
-          // Déterminer le résultat de ce score
-          let scoreResult = '';
-          if (home > away) scoreResult = 'home';
-          else if (home === away) scoreResult = 'draw';
-          else scoreResult = 'away';
-          
-          // Si le score correspond à la double chance recommandée
-          if (doubleChanceTypes.includes(scoreResult)) {
-            probability *= 1.15; // Augmentation significative pour les scores de double chance
-            isHighlighted = true;
-            highlightReason = 'Double Chance';
-          }
-        }
-        
-        // 2. Ajustement basé sur la prédiction 1X2 premium pour marges négatives
-        if (marketOpportunity?.type === 'PREMIUM_OPPORTUNITY' && marketOpportunity.marketType === '1X2_NEGATIVE') {
-          let scoreResult = '';
-          if (home > away) scoreResult = match.home_team;
-          else if (home === away) scoreResult = 'Nul';
-          else scoreResult = match.away_team;
-          
-          if (scoreResult === marketOpportunity.prediction) {
-            probability *= 1.2; // Augmentation forte pour les opportunités premium
-            isHighlighted = true;
-            highlightReason = 'Opportunité Premium';
-          }
-        }
-        
-        // 3. Priorité absolue : Recommandation de l'IA (section principale)
         const totalGoals = home + away;
-        if (aiRecommendations.overUnder) {
-          if (aiRecommendations.overUnder.prediction === '+2,5 buts' && totalGoals > 2) {
-            probability *= aiRecommendations.overUnder.isInverted ? 1.4 : 1.3; // Boost maximal pour recommandation IA
-            if (totalGoals >= 3 && totalGoals <= 6 && !isHighlighted) {
+        const bothTeamsScore = home > 0 && away > 0;
+        
+        // 1. PRIORITÉ ABSOLUE : Recommandation principale du modal
+        if (modalRecommendations.primary && modalRecommendations.primary.type !== 'Aucune') {
+          const rec = modalRecommendations.primary;
+          
+          // Gestion des recommandations BTTS
+          if (rec.type === 'BTTS') {
+            if (rec.prediction === 'Oui' && bothTeamsScore) {
+              probability *= 1.5; // Boost maximal pour recommandation principale
               isHighlighted = true;
-              highlightReason = aiRecommendations.overUnder.isInverted ? 'IA: Over 2.5 (Opportunité)' : 'IA: Over 2.5';
-            }
-          } else if (aiRecommendations.overUnder.prediction === '-2,5 buts' && totalGoals <= 2) {
-            probability *= aiRecommendations.overUnder.isInverted ? 1.4 : 1.3; // Boost maximal pour recommandation IA
-            if (!isHighlighted) {
+              highlightReason = 'IA Principal: BTTS Oui';
+            } else if (rec.prediction === 'Non' && !bothTeamsScore) {
+              probability *= 1.5;
               isHighlighted = true;
-              highlightReason = aiRecommendations.overUnder.isInverted ? 'IA: Under 2.5 (Opportunité)' : 'IA: Under 2.5';
-            }
-          }
-        }
-
-        // 4. Opportunités détectées dans Efficacité du Marché (complément)
-        if (aiRecommendations.btts) {
-          if (aiRecommendations.btts.prediction === 'Oui' && home > 0 && away > 0) {
-            probability *= aiRecommendations.btts.isInverted ? 1.25 : 1.15; // Boost pour opportunité marché
-            if (home <= 3 && away <= 3 && !isHighlighted) {
-              isHighlighted = true;
-              highlightReason = aiRecommendations.btts.isInverted ? 'Marché: BTTS Oui (Opportunité)' : 'Marché: BTTS Oui';
-            }
-          } else if (aiRecommendations.btts.prediction === 'Non' && (home === 0 || away === 0)) {
-            probability *= aiRecommendations.btts.isInverted ? 1.25 : 1.15; // Boost pour opportunité marché
-            if (!isHighlighted) {
-              isHighlighted = true;
-              highlightReason = aiRecommendations.btts.isInverted ? 'Marché: BTTS Non (Opportunité)' : 'Marché: BTTS Non';
+              highlightReason = 'IA Principal: BTTS Non';
             }
           }
-        }
-
-        // 5. Compléter UNIQUEMENT si pas de recommandation principale contradictoire
-        if (!aiRecommendations.overUnder && aiRecommendations.overUnderAnalysis) {
-          if (aiRecommendations.overUnderAnalysis === '+2,5 buts' && totalGoals > 2) {
-            probability *= 1.05; // Impact très faible pour analyse complémentaire
-            if (totalGoals >= 3 && totalGoals <= 6 && !isHighlighted) {
+          
+          // Gestion des recommandations O/U 2.5
+          if (rec.type === 'O/U 2.5') {
+            if (rec.prediction === '+2,5 buts' && totalGoals > 2) {
+              probability *= 1.5; // Boost maximal pour recommandation principale
+              if (totalGoals >= 3 && totalGoals <= 6) {
+                isHighlighted = true;
+                highlightReason = 'IA Principal: Over 2.5';
+              }
+            } else if (rec.prediction === '-2,5 buts' && totalGoals <= 2) {
+              probability *= 1.5;
               isHighlighted = true;
-              highlightReason = 'Analyse: Over 2.5';
-            }
-          } else if (aiRecommendations.overUnderAnalysis === '-2,5 buts' && totalGoals <= 2) {
-            probability *= 1.05;
-            if (!isHighlighted) {
-              isHighlighted = true;
-              highlightReason = 'Analyse: Under 2.5';
+              highlightReason = 'IA Principal: Under 2.5';
             }
           }
-        }
-
-        if (!aiRecommendations.btts && aiRecommendations.bttsAnalysis) {
-          if (aiRecommendations.bttsAnalysis === 'Oui' && home > 0 && away > 0) {
-            probability *= 1.05; // Impact très faible pour analyse complémentaire
-            if (home <= 3 && away <= 3 && !isHighlighted) {
+          
+          // Gestion des recommandations 1X2
+          if (rec.type === '1X2') {
+            let scoreResult = '';
+            if (home > away) scoreResult = match.home_team;
+            else if (home === away) scoreResult = 'Nul';
+            else scoreResult = match.away_team;
+            
+            if (scoreResult === rec.prediction) {
+              probability *= 1.4;
               isHighlighted = true;
-              highlightReason = 'Analyse: BTTS Oui';
-            }
-          } else if (aiRecommendations.bttsAnalysis === 'Non' && (home === 0 || away === 0)) {
-            probability *= 1.05;
-            if (!isHighlighted) {
-              isHighlighted = true;
-              highlightReason = 'Analyse: BTTS Non';
+              highlightReason = `IA Principal: ${rec.prediction}`;
             }
           }
         }
         
-        // 5. Bonus de cohérence si plusieurs facteurs s'alignent
-        let coherenceBonus = 0;
-        if (marketOpportunity?.type === 'DOUBLE_CHANCE' && aiRecommendations.btts && aiRecommendations.overUnder) {
-          // Vérifier la cohérence entre double chance et prédictions IA
-          const totalGoals = home + away;
-          const bothTeamsScore = home > 0 && away > 0;
+        // 2. Seconde recommandation (faible vigorish) - seulement si pas déjà highlighted
+        if (!isHighlighted && modalRecommendations.secondary) {
+          const secRec = modalRecommendations.secondary;
           
+          if (secRec.type === 'BTTS') {
+            if (secRec.prediction === 'Oui' && bothTeamsScore) {
+              probability *= 1.3; // Boost élevé pour seconde recommandation
+              isHighlighted = true;
+              highlightReason = `Efficacité Marché: BTTS Oui (${(secRec.vigorish * 100).toFixed(1)}%)`;
+            } else if (secRec.prediction === 'Non' && !bothTeamsScore) {
+              probability *= 1.3;
+              isHighlighted = true;
+              highlightReason = `Efficacité Marché: BTTS Non (${(secRec.vigorish * 100).toFixed(1)}%)`;
+            }
+          }
+          
+          if (secRec.type === 'O/U 2.5') {
+            if (secRec.prediction === '+2,5 buts' && totalGoals > 2) {
+              probability *= 1.3;
+              if (totalGoals >= 3 && totalGoals <= 6) {
+                isHighlighted = true;
+                highlightReason = `Efficacité Marché: Over 2.5 (${(secRec.vigorish * 100).toFixed(1)}%)`;
+              }
+            } else if (secRec.prediction === '-2,5 buts' && totalGoals <= 2) {
+              probability *= 1.3;
+              isHighlighted = true;
+              highlightReason = `Efficacité Marché: Under 2.5 (${(secRec.vigorish * 100).toFixed(1)}%)`;
+            }
+          }
+          
+          if (secRec.type === '1X2') {
+            let scoreResult = '';
+            if (home > away) scoreResult = match.home_team;
+            else if (home === away) scoreResult = 'Nul';
+            else scoreResult = match.away_team;
+            
+            if (scoreResult === secRec.prediction) {
+              probability *= 1.3;
+              isHighlighted = true;
+              highlightReason = `Efficacité Marché: ${secRec.prediction} (${(secRec.vigorish * 100).toFixed(1)}%)`;
+            }
+          }
+        }
+        
+        // 3. Opportunités de marché générales - seulement si pas déjà highlighted
+        if (!isHighlighted && marketOpportunity) {
+          if (marketOpportunity.type === 'DOUBLE_CHANCE') {
+            const { doubleChanceTypes } = marketOpportunity;
+            let scoreResult = '';
+            if (home > away) scoreResult = 'home';
+            else if (home === away) scoreResult = 'draw';
+            else scoreResult = 'away';
+            
+            if (doubleChanceTypes.includes(scoreResult)) {
+              probability *= 1.2;
+              isHighlighted = true;
+              highlightReason = 'Double Chance';
+            }
+          }
+          
+          if (marketOpportunity.type === 'PREMIUM_OPPORTUNITY') {
+            let scoreResult = '';
+            if (home > away) scoreResult = match.home_team;
+            else if (home === away) scoreResult = 'Nul';
+            else scoreResult = match.away_team;
+            
+            if (scoreResult === marketOpportunity.prediction) {
+              probability *= 1.25;
+              isHighlighted = true;
+              highlightReason = 'Opportunité Premium';
+            }
+          }
+        }
+        
+        // 4. Bonus de cohérence entre recommandations
+        let coherenceBonus = 0;
+        if (modalRecommendations.primary && modalRecommendations.secondary) {
           let coherenceCount = 0;
           
-          // Cohérence BTTS
-          if ((aiRecommendations.btts.prediction === 'Oui' && bothTeamsScore) ||
-              (aiRecommendations.btts.prediction === 'Non' && !bothTeamsScore)) {
-            coherenceCount++;
+          // Vérifier la cohérence BTTS
+          if (modalRecommendations.primary.type === 'BTTS' || modalRecommendations.secondary.type === 'BTTS') {
+            const bttsRec = modalRecommendations.primary.type === 'BTTS' ? modalRecommendations.primary : modalRecommendations.secondary;
+            if ((bttsRec.prediction === 'Oui' && bothTeamsScore) || (bttsRec.prediction === 'Non' && !bothTeamsScore)) {
+              coherenceCount++;
+            }
           }
           
-          // Cohérence Over/Under
-          if ((aiRecommendations.overUnder.prediction === '+2,5 buts' && totalGoals > 2) ||
-              (aiRecommendations.overUnder.prediction === '-2,5 buts' && totalGoals <= 2)) {
-            coherenceCount++;
+          // Vérifier la cohérence O/U 2.5
+          if (modalRecommendations.primary.type === 'O/U 2.5' || modalRecommendations.secondary.type === 'O/U 2.5') {
+            const ouRec = modalRecommendations.primary.type === 'O/U 2.5' ? modalRecommendations.primary : modalRecommendations.secondary;
+            if ((ouRec.prediction === '+2,5 buts' && totalGoals > 2) || (ouRec.prediction === '-2,5 buts' && totalGoals <= 2)) {
+              coherenceCount++;
+            }
           }
           
           if (coherenceCount >= 2) {
-            coherenceBonus = 0.05; // 5% de bonus pour la cohérence totale
+            coherenceBonus = 0.08; // 8% bonus pour cohérence totale
           } else if (coherenceCount === 1) {
-            coherenceBonus = 0.02; // 2% de bonus pour cohérence partielle
+            coherenceBonus = 0.04; // 4% bonus pour cohérence partielle
           }
         }
         
