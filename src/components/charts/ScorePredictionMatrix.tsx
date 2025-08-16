@@ -228,81 +228,71 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
       }
     }
 
-    // 3. ANALYSES PROBABILISTES (x0.25) - seulement si un marché manque
-    const hasOU25 = recommendations.some(r => r.type === 'O/U 2.5');
-    const hasBTTS = recommendations.some(r => r.type === 'BTTS');
-    const has1X2 = recommendations.some(r => r.type === '1X2');
+    // 3. ANALYSES PROBABILISTES (x0.25) - Basées sur l'Analyse des Probabilités IA
+    // Fonction helper pour éviter les doublons
+    const hasRecommendation = (recs: Recommendation[], type: string, prediction: string) => {
+      return recs.some(r => r.type === type && (
+        r.prediction === prediction ||
+        (type === '1X2' && prediction === 'HOME' && r.prediction === match.home_team) ||
+        (type === '1X2' && prediction === 'AWAY' && r.prediction === match.away_team) ||
+        (type === '1X2' && prediction === 'DRAW' && r.prediction === 'Nul') ||
+        (type === 'BTTS' && prediction === 'YES' && r.prediction === 'Oui') ||
+        (type === 'BTTS' && prediction === 'NO' && r.prediction === 'Non') ||
+        (type === 'O/U 2.5' && prediction === 'OVER' && r.prediction.includes('+2,5')) ||
+        (type === 'O/U 2.5' && prediction === 'UNDER' && r.prediction.includes('-2,5'))
+      ));
+    };
 
-    if (!hasOU25) {
-      // Ajouter recommandation O/U basée sur probabilités
-      if (match.p_over_2_5_fair > 0.55) {
-        recommendations.push({
-          source: 'probabilistic',
-          type: 'O/U 2.5',
-          prediction: '+2,5 buts',
-          multiplier: 0.25
-        });
-      } else if (match.p_over_2_5_fair < 0.45) {
-        recommendations.push({
-          source: 'probabilistic',
-          type: 'O/U 2.5', 
-          prediction: '-2,5 buts',
-          multiplier: 0.25
-        });
-      }
+    // 1X2 - Basé sur les cotes (même logique que AIProbabilitiesAnalysis)
+    const probHome = 1 / match.odds_home;
+    const probDraw = 1 / match.odds_draw;
+    const probAway = 1 / match.odds_away;
+    
+    const outcomes = [
+      { type: 'HOME', prob: probHome, prediction: match.home_team },
+      { type: 'DRAW', prob: probDraw, prediction: 'Nul' },
+      { type: 'AWAY', prob: probAway, prediction: match.away_team }
+    ];
+    
+    const winner1X2 = outcomes.sort((a, b) => b.prob - a.prob)[0];
+    if (!hasRecommendation(recommendations, '1X2', winner1X2.type)) {
+      recommendations.push({
+        source: 'probabilistic',
+        type: '1X2',
+        prediction: winner1X2.prediction,
+        multiplier: 0.25
+      });
+      console.log('📊 1X2 PROBABILISTE AJOUTÉ:', winner1X2.prediction);
     }
-
-    if (!hasBTTS) {
-      // Ajouter recommandation BTTS basée sur probabilités si claire (différence > 4%)
-      const bttsDiff = Math.abs(match.p_btts_yes_fair - match.p_btts_no_fair);
-      if (bttsDiff > 0.04) {
-        if (match.p_btts_yes_fair > match.p_btts_no_fair) {
-          recommendations.push({
-            source: 'probabilistic',
-            type: 'BTTS',
-            prediction: 'Oui',
-            multiplier: 0.25
-          });
-          console.log('📊 BTTS OUI PROBABILISTE AJOUTÉ:', match.p_btts_yes_fair, 'vs', match.p_btts_no_fair);
-        } else {
-          recommendations.push({
-            source: 'probabilistic',
-            type: 'BTTS',
-            prediction: 'Non',
-            multiplier: 0.25
-          });
-          console.log('📊 BTTS NON PROBABILISTE AJOUTÉ:', match.p_btts_no_fair, 'vs', match.p_btts_yes_fair);
-        }
-      }
+    
+    // BTTS - Basé sur les probabilités fair (même logique que AIProbabilitiesAnalysis)
+    const bttsYesProb = match.p_btts_yes_fair || 0.5;
+    const bttsNoProb = match.p_btts_no_fair || 0.5;
+    
+    const bttsPrediction = bttsYesProb > bttsNoProb ? 'Oui' : 'Non';
+    if (!hasRecommendation(recommendations, 'BTTS', bttsPrediction === 'Oui' ? 'YES' : 'NO')) {
+      recommendations.push({
+        source: 'probabilistic',
+        type: 'BTTS',
+        prediction: bttsPrediction,
+        multiplier: 0.25
+      });
+      console.log('📊 BTTS PROBABILISTE AJOUTÉ:', bttsPrediction, '(', bttsYesProb.toFixed(3), 'vs', bttsNoProb.toFixed(3), ')');
     }
-
-    if (!has1X2) {
-      // Ajouter recommandation 1X2 basée sur probabilités
-      const maxProb = Math.max(match.p_home_fair, match.p_draw_fair, match.p_away_fair);
-      if (maxProb > 0.4) {
-        if (match.p_home_fair === maxProb) {
-          recommendations.push({
-            source: 'probabilistic',
-            type: '1X2',
-            prediction: match.home_team,
-            multiplier: 0.25
-          });
-        } else if (match.p_away_fair === maxProb) {
-          recommendations.push({
-            source: 'probabilistic',
-            type: '1X2',
-            prediction: match.away_team,
-            multiplier: 0.25
-          });
-        } else {
-          recommendations.push({
-            source: 'probabilistic',
-            type: '1X2',
-            prediction: 'Nul',
-            multiplier: 0.25
-          });
-        }
-      }
+    
+    // Over/Under 2.5 - Basé sur les probabilités fair (même logique que AIProbabilitiesAnalysis)
+    const overProb = match.p_over_2_5_fair || 0.5;
+    const underProb = match.p_under_2_5_fair || 0.5;
+    
+    const ouPrediction = overProb > underProb ? '+2,5 buts' : '-2,5 buts';
+    if (!hasRecommendation(recommendations, 'O/U 2.5', ouPrediction.includes('+') ? 'OVER' : 'UNDER')) {
+      recommendations.push({
+        source: 'probabilistic',
+        type: 'O/U 2.5',
+        prediction: ouPrediction,
+        multiplier: 0.25
+      });
+      console.log('📊 O/U 2.5 PROBABILISTE AJOUTÉ:', ouPrediction, '(', overProb.toFixed(3), 'vs', underProb.toFixed(3), ')');
     }
 
     // Filtrer les recommandations probabilistiques qui contredisent les principales
