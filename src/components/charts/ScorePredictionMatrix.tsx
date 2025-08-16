@@ -245,20 +245,20 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
       let isCoherent = false;
 
       if (rec.type === 'O/U 2.5') {
-        if (rec.prediction.includes('+2,5') || rec.prediction.includes('SUR') || rec.prediction.includes('OVER')) {
-          isCoherent = totalGoals > 2; // Plus de 2.5 buts
-          console.log(`  🎯 O/U 2.5 OVER: ${totalGoals} > 2 = ${isCoherent}`);
-        } else if (rec.prediction.includes('-2,5') || rec.prediction.includes('SOUS') || rec.prediction.includes('UNDER')) {
-          isCoherent = totalGoals <= 2; // 2.5 buts ou moins
-          console.log(`  🎯 O/U 2.5 UNDER: ${totalGoals} <= 2 = ${isCoherent}`);
+        if (rec.prediction.includes('+2,5') || rec.prediction.includes('SUR') || rec.prediction.includes('OVER') || rec.prediction.includes('+2.5')) {
+          isCoherent = totalGoals > 2.5; // Plus de 2.5 buts (donc au moins 3)
+          console.log(`  🎯 O/U 2.5 OVER: ${totalGoals} > 2.5 = ${isCoherent} (rec: "${rec.prediction}")`);
+        } else if (rec.prediction.includes('-2,5') || rec.prediction.includes('SOUS') || rec.prediction.includes('UNDER') || rec.prediction.includes('-2.5')) {
+          isCoherent = totalGoals < 2.5; // Moins de 2.5 buts (donc 2 maximum)
+          console.log(`  🎯 O/U 2.5 UNDER: ${totalGoals} < 2.5 = ${isCoherent} (rec: "${rec.prediction}")`);
         }
       } else if (rec.type === 'BTTS') {
-        if (rec.prediction === 'Oui' || rec.prediction.includes('Oui')) {
+        if (rec.prediction === 'Oui' || rec.prediction.includes('Oui') || rec.prediction.includes('OUI')) {
           isCoherent = bothTeamsScore; // Les deux équipes marquent
-          console.log(`  🎯 BTTS OUI: ${homeScore} > 0 && ${awayScore} > 0 = ${isCoherent}`);
-        } else if (rec.prediction === 'Non' || rec.prediction.includes('Non')) {
+          console.log(`  🎯 BTTS OUI: ${homeScore} > 0 && ${awayScore} > 0 = ${isCoherent} (rec: "${rec.prediction}")`);
+        } else if (rec.prediction === 'Non' || rec.prediction.includes('Non') || rec.prediction.includes('NON')) {
           isCoherent = !bothTeamsScore; // Au moins une équipe ne marque pas
-          console.log(`  🎯 BTTS NON: !bothTeamsScore = ${isCoherent}`);
+          console.log(`  🎯 BTTS NON: !bothTeamsScore = ${isCoherent} (rec: "${rec.prediction}")`);
         }
       } else if (rec.type === '1X2') {
         // Gestion spécifique des prédictions 1X2 et Double Chance
