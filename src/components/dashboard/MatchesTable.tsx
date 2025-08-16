@@ -282,8 +282,8 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
                           <AIRecommendationDisplay
                             match={match}
                             marketFilters={marketFilters}
-                            variant="detailed"
-                            showIcon={true}
+                            variant="table"
+                            showIcon={false}
                           />
                         </TableCell>
                         

@@ -8,7 +8,7 @@ import { generateConfidenceScore } from '@/lib/confidence';
 interface AIRecommendationDisplayProps {
   match: ProcessedMatch;
   marketFilters?: string[];
-  variant?: 'compact' | 'detailed' | 'card';
+  variant?: 'compact' | 'detailed' | 'card' | 'table';
   showIcon?: boolean;
 }
 
@@ -20,9 +20,44 @@ export function AIRecommendationDisplay({
 }: AIRecommendationDisplayProps) {
   console.log('🟢 AIRecommendationDisplay APPELÉ pour:', match.home_team, 'vs', match.away_team);
   
+  // Check if we have a stored prediction first
+  if (variant === 'table' && match.ai_prediction) {
+    return (
+      <div className="text-sm font-medium text-center">
+        {match.ai_prediction}
+      </div>
+    );
+  }
+  
   // Utiliser le système unifié de détection d'opportunités
   const opportunities = detectOpportunities(match);
-  const aiRecs = opportunities.length > 0 ? [convertOpportunityToAIRecommendation(opportunities[0])] : [];
+  
+  // Helper functions for prioritization (same as MatchDetailModal)
+  const getProbabilityFromRecommendation = (opp: any) => {
+    if (!opp) return 0;
+    
+    switch (opp.type) {
+      case 'BTTS':
+        return opp.prediction === 'Oui' ? match.p_btts_yes_fair : match.p_btts_no_fair;
+      case 'O/U 2.5':
+        return opp.prediction === '+2,5 buts' ? match.p_over_2_5_fair : match.p_under_2_5_fair;
+      case '1X2':
+        if (opp.prediction === 'Victoire domicile') return match.p_home_fair;
+        if (opp.prediction === 'Match nul') return match.p_draw_fair;
+        return match.p_away_fair;
+      default:
+        return 0;
+    }
+  };
+
+  // Sort opportunities by highest probability first
+  const sortedOpportunities = [...opportunities].sort((a, b) => {
+    const probA = getProbabilityFromRecommendation(a);
+    const probB = getProbabilityFromRecommendation(b);
+    return probB - probA; // Descending order
+  });
+  
+  const aiRecs = sortedOpportunities.length > 0 ? [convertOpportunityToAIRecommendation(sortedOpportunities[0])] : [];
   
   if (aiRecs.length === 0) {
     return (
@@ -123,6 +158,39 @@ export function AIRecommendationDisplay({
             );
           })}
         </div>
+      </div>
+    );
+  }
+
+  if (variant === 'table') {
+    // Table variant for dashboard - shows only main prediction
+    if (aiRecs.length === 0) {
+      return (
+        <div className="text-xs text-muted-foreground text-center">
+          Aucune opportunité
+        </div>
+      );
+    }
+
+    const aiRec = aiRecs[0];
+    const formatPrediction = (betType: string, prediction: string) => {
+      switch (betType) {
+        case 'BTTS':
+          return prediction === 'Oui' ? 'BTTS Oui' : 'BTTS Non';
+        case 'O/U 2.5':
+          return prediction === '+2,5 buts' ? 'OU 2.5 +2,5 buts' : 'OU 2.5 -2,5 buts';
+        case '1X2':
+          if (prediction === 'Victoire domicile') return '1';
+          if (prediction === 'Match nul') return 'X';
+          return '2';
+        default:
+          return `${betType} ${prediction}`;
+      }
+    };
+
+    return (
+      <div className="text-sm font-medium text-center">
+        {formatPrediction(aiRec.betType, aiRec.prediction)}
       </div>
     );
   }
