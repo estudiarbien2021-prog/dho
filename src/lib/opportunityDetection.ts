@@ -28,6 +28,13 @@ export interface OpportunityRecommendation {
 export function detectOpportunities(match: ProcessedMatch): OpportunityRecommendation[] {
   console.log(`🎯 DETECT OPPORTUNITIES - ${match.home_team} vs ${match.away_team}`);
   console.log(`📊 Vigorish: 1X2=${(match.vig_1x2 * 100).toFixed(1)}%, BTTS=${(match.vig_btts * 100).toFixed(1)}%, O/U=${(match.vig_ou_2_5 * 100).toFixed(1)}%`);
+  console.log(`🔍 RÈGLES APPLIQUÉES:`);
+  console.log(`   - Negative vig: 1X2=${match.vig_1x2 < 0}, BTTS=${match.vig_btts < 0}, O/U=${match.vig_ou_2_5 < 0}`);
+  console.log(`   - High vig 1X2 (>=10%): ${match.vig_1x2 >= 0.10}`);
+  console.log(`   - High vig BTTS (>=8%): ${match.vig_btts >= 0.08}`);
+  console.log(`   - High vig O/U (>=8%): ${match.vig_ou_2_5 >= 0.08}`);
+  console.log(`   - Low vig BTTS (<6%): ${match.vig_btts < 0.06}`);
+  console.log(`   - Low vig O/U (<6%): ${match.vig_ou_2_5 < 0.06}`);
   
   const opportunities: OpportunityRecommendation[] = [];
   
@@ -332,6 +339,10 @@ export function detectOpportunities(match: ProcessedMatch): OpportunityRecommend
   } else {
     console.log(`❌ Cotes O/U manquantes - Pas d'analyse O/U 2.5`);
   }
+  
+  console.log('🔚 OPPORTUNITIES FINALES:', opportunities.map(o => 
+    `${o.type}: ${o.prediction} @${o.odds?.toFixed(2)} (inverted:${o.isInverted}) (${o.reason})`
+  ));
   
   return opportunities;
 }

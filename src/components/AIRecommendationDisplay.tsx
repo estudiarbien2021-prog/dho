@@ -22,31 +22,37 @@ export function AIRecommendationDisplay({
   
   // Utiliser le système unifié de détection d'opportunités
   const opportunities = detectOpportunities(match);
+  console.log('🎯 OPPORTUNITIES DÉTECTÉES:', opportunities.length, opportunities.map(o => `${o.type}:${o.prediction}(inverted:${o.isInverted})`));
   
-  // Helper functions for prioritization (same as MatchDetailModal)
-  const getProbabilityFromRecommendation = (opp: any) => {
-    if (!opp) return 0;
+  // PRIORITISATION CORRECTE - Respecter la hiérarchie des règles
+  const prioritizeOpportunities = (opps: any[]) => {
+    // 1. Negative vigorish (highest priority)
+    const negativeVig = opps.filter(o => o.type.includes('_NEGATIVE'));
     
-    switch (opp.type) {
-      case 'BTTS':
-        return opp.prediction === 'Oui' ? match.p_btts_yes_fair : match.p_btts_no_fair;
-      case 'O/U 2.5':
-        return opp.prediction === '+2,5 buts' ? match.p_over_2_5_fair : match.p_under_2_5_fair;
-      case '1X2':
-        if (opp.prediction === 'Victoire domicile') return match.p_home_fair;
-        if (opp.prediction === 'Match nul') return match.p_draw_fair;
-        return match.p_away_fair;
-      default:
-        return 0;
-    }
+    // 2. High vigorish with inversion
+    const highVigInverted = opps.filter(o => !o.type.includes('_NEGATIVE') && o.isInverted === true);
+    
+    // 3. Low vigorish direct recommendations  
+    const lowVigDirect = opps.filter(o => !o.type.includes('_NEGATIVE') && o.isInverted === false && o.reason?.includes('Faible vigorish'));
+    
+    // 4. High probability direct recommendations
+    const highProbDirect = opps.filter(o => !o.type.includes('_NEGATIVE') && o.isInverted === false && o.reason?.includes('Probabilité élevée'));
+    
+    // 5. Other opportunities
+    const others = opps.filter(o => !negativeVig.includes(o) && !highVigInverted.includes(o) && !lowVigDirect.includes(o) && !highProbDirect.includes(o));
+    
+    console.log('🔥 PRIORITISATION:', {
+      negative: negativeVig.length,
+      highVigInverted: highVigInverted.length, 
+      lowVigDirect: lowVigDirect.length,
+      highProbDirect: highProbDirect.length,
+      others: others.length
+    });
+    
+    return [...negativeVig, ...highVigInverted, ...lowVigDirect, ...highProbDirect, ...others];
   };
 
-  // Sort opportunities by highest probability first
-  const sortedOpportunities = [...opportunities].sort((a, b) => {
-    const probA = getProbabilityFromRecommendation(a);
-    const probB = getProbabilityFromRecommendation(b);
-    return probB - probA; // Descending order
-  });
+  const sortedOpportunities = prioritizeOpportunities(opportunities);
   
   const aiRecs = sortedOpportunities.length > 0 ? [convertOpportunityToAIRecommendation(sortedOpportunities[0])] : [];
   

@@ -135,25 +135,30 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
 
   // Generate ALL AI recommendations for the match
   const opportunities = detectOpportunities(match);
-  const allAIRecommendations = opportunities.map(convertOpportunityToAIRecommendation);
+  console.log('🔴 MODAL OPPORTUNITIES:', opportunities.length, opportunities.map(o => `${o.type}:${o.prediction}(inverted:${o.isInverted})`));
   
-  // Helper function to get probability from recommendation
-  const getProbabilityFromRecommendation = (opp: any) => {
-    if (!opp) return 0;
+  // PRIORITISATION UNIFIÉE - Même logique que AIRecommendationDisplay
+  const prioritizeOpportunities = (opps: any[]) => {
+    // 1. Negative vigorish (highest priority)
+    const negativeVig = opps.filter(o => o.type.includes('_NEGATIVE'));
     
-    switch (opp.type) {
-      case 'BTTS':
-        return opp.prediction === 'Oui' ? match.p_btts_yes_fair : match.p_btts_no_fair;
-      case 'O/U 2.5':
-        return opp.prediction === '+2,5 buts' ? match.p_over_2_5_fair : match.p_under_2_5_fair;
-      case '1X2':
-        if (opp.prediction === 'Victoire domicile') return match.p_home_fair;
-        if (opp.prediction === 'Match nul') return match.p_draw_fair;
-        return match.p_away_fair;
-      default:
-        return 0;
-    }
+    // 2. High vigorish with inversion
+    const highVigInverted = opps.filter(o => !o.type.includes('_NEGATIVE') && o.isInverted === true);
+    
+    // 3. Low vigorish direct recommendations  
+    const lowVigDirect = opps.filter(o => !o.type.includes('_NEGATIVE') && o.isInverted === false && o.reason?.includes('Faible vigorish'));
+    
+    // 4. High probability direct recommendations
+    const highProbDirect = opps.filter(o => !o.type.includes('_NEGATIVE') && o.isInverted === false && o.reason?.includes('Probabilité élevée'));
+    
+    // 5. Other opportunities
+    const others = opps.filter(o => !negativeVig.includes(o) && !highVigInverted.includes(o) && !lowVigDirect.includes(o) && !highProbDirect.includes(o));
+    
+    return [...negativeVig, ...highVigInverted, ...lowVigDirect, ...highProbDirect, ...others];
   };
+
+  const prioritizedOpportunities = prioritizeOpportunities(opportunities);
+  const allAIRecommendations = prioritizedOpportunities.map(convertOpportunityToAIRecommendation);
 
   // Helper function to get odds from recommendation
   const getOddsFromRecommendation = (opp: any) => {
@@ -182,29 +187,18 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     }
   };
 
-  // Prioritize recommendations: Highest probability first, then highest odds
+  // Les recommandations sont déjà triées par priorité dans prioritizeOpportunities
   const prioritizeRecommendations = (recs: any[], opps: any[]) => {
     const combined = recs.map((rec, index) => ({ rec, opp: opps[index] }));
     
-    // Sort by probability (descending), then by odds (descending)
-    const sorted = combined.sort((a, b) => {
-      const probA = getProbabilityFromRecommendation(a.opp);
-      const probB = getProbabilityFromRecommendation(b.opp);
-      
-      // Primary criterion: highest probability
-      if (probA !== probB) {
-        return probB - probA; // Descending order
-      }
-      
-      // Secondary criterion: highest odds (in case of equal probability)
-      const oddsA = getOddsFromRecommendation(a.opp);
-      const oddsB = getOddsFromRecommendation(b.opp);
-      return oddsB - oddsA; // Descending order
-    });
+    // Les opportunités sont déjà dans le bon ordre de priorité
+    console.log('🔴 RECOMMANDATIONS FINALES:', combined.map((c, i) => `${i+1}. ${c.opp.type}:${c.opp.prediction}(inverted:${c.opp.isInverted})`));
+    
+    return combined;
 
     // Save the main prediction if we have recommendations
-    if (sorted.length > 0) {
-      const mainRec = sorted[0];
+    if (combined.length > 0) {
+      const mainRec = combined[0];
       const formatPrediction = (betType: string, prediction: string) => {
         switch (betType) {
           case 'BTTS':
@@ -221,7 +215,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
       };
 
       const mainPrediction = formatPrediction(mainRec.opp?.type || '', mainRec.opp?.prediction || '');
-      const confidence = getProbabilityFromRecommendation(mainRec.opp) * 100;
+      const confidence = (mainRec.opp?.odds || 0) * 100;
       
       // Only save if we don't have a prediction yet or if it's different
       if (!match.ai_prediction || match.ai_prediction !== mainPrediction) {
@@ -229,10 +223,10 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
       }
     }
 
-    return sorted;
+    return combined;
   };
 
-  const prioritizedRecommendations = prioritizeRecommendations(allAIRecommendations, opportunities);
+  const prioritizedRecommendations = prioritizeRecommendations(allAIRecommendations, prioritizedOpportunities);
   
   // Map prioritized opportunities to the three recommendation slots
   const recommendation = prioritizedRecommendations.length > 0 ? {
