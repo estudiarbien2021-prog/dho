@@ -1046,7 +1046,9 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                         </div>
                         
                         {/* Second Recommendation - Low Vigorish Analysis */}
-                        {secondRecommendation && (
+                        {secondRecommendation && !(recommendation && 
+                           recommendation.type === secondRecommendation.type && 
+                           recommendation.prediction === secondRecommendation.prediction) && (
                           <div className="mt-6 pt-6 border-t border-brand/20">
                             <div className="space-y-4">
                               <div className="flex items-center gap-2 mb-3">
@@ -1055,21 +1057,12 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                               </div>
                               
                               <div className="flex items-center justify-between">
-                                {/* Only show prediction type if different from main recommendation */}
-                                {!(recommendation && 
-                                   recommendation.type === secondRecommendation.type && 
-                                   recommendation.prediction === secondRecommendation.prediction) ? (
-                                  <Badge className="bg-brand-400/20 text-brand-400 px-3 py-1 text-sm font-medium border border-brand-400/30">
-                                    {secondRecommendation.type} {secondRecommendation.prediction}
-                                    <span className="ml-2 text-xs bg-emerald-500/20 text-emerald-700 px-2 py-1 rounded">
-                                      Vigorish {(secondRecommendation.vigorish * 100).toFixed(1)}%
-                                    </span>
-                                  </Badge>
-                                ) : (
-                                  <Badge className="bg-emerald-500/20 text-emerald-700 px-3 py-1 text-sm font-medium border border-emerald-500/30">
+                                <Badge className="bg-brand-400/20 text-brand-400 px-3 py-1 text-sm font-medium border border-brand-400/30">
+                                  {secondRecommendation.type} {secondRecommendation.prediction}
+                                  <span className="ml-2 text-xs bg-emerald-500/20 text-emerald-700 px-2 py-1 rounded">
                                     Vigorish {(secondRecommendation.vigorish * 100).toFixed(1)}%
-                                  </Badge>
-                                )}
+                                  </span>
+                                </Badge>
                                 <div className="text-lg font-bold text-brand-400">
                                   {secondRecommendation.odds.toFixed(2)}
                                 </div>
