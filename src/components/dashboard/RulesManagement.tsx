@@ -266,19 +266,38 @@ export function RulesManagement() {
   };
 
   const renderRuleControl = (rule: Rule) => {
-    // Règles de priorité : input numérique de 1 à 5
+    // Règles de priorité : switch + input numérique de 1 à 5
     if (rule.category === 'priority_rules') {
+      // Pour les règles de priorité, on utilise un système où la valeur indique l'état :
+      // 0 = désactivé, 1-5 = activé avec priorité
+      const isEnabled = rule.value > 0;
+      const priorityValue = rule.value > 0 ? rule.value : 1;
+      
       return (
-        <div className="flex items-center gap-2">
-          <Input
-            type="number"
-            value={rule.value}
-            onChange={(e) => updateRuleValue(rule.id, Math.max(1, Math.min(5, parseInt(e.target.value) || 1)))}
-            min={1}
-            max={5}
-            className="w-16 text-center"
+        <div className="flex items-center gap-3">
+          <Switch
+            checked={isEnabled}
+            onCheckedChange={(checked) => {
+              if (checked) {
+                updateRuleValue(rule.id, priorityValue);
+              } else {
+                updateRuleValue(rule.id, 0);
+              }
+            }}
           />
-          <span className="text-sm text-text-weak">priorité</span>
+          {isEnabled && (
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                value={priorityValue}
+                onChange={(e) => updateRuleValue(rule.id, Math.max(1, Math.min(5, parseInt(e.target.value) || 1)))}
+                min={1}
+                max={5}
+                className="w-16 text-center"
+              />
+              <span className="text-sm text-text-weak">priorité</span>
+            </div>
+          )}
         </div>
       );
     }
