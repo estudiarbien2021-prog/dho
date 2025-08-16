@@ -51,7 +51,7 @@ export function detectOpportunities(match: ProcessedMatch): DetectedOpportunity[
       odds: odds1x2,
       reason: [`Vigorish négatif exceptionnel: ${(match.vig_1x2 * 100).toFixed(2)}%`],
       isInverted: false,
-      priority: 1
+      priority: 3
     });
     
     console.log('🎯 OPPORTUNITÉ NÉGATIVE 1X2 DÉTECTÉE:', prediction1x2, 'odds:', odds1x2);
@@ -76,7 +76,7 @@ export function detectOpportunities(match: ProcessedMatch): DetectedOpportunity[
         odds: oddsBtts,
         reason: [`Vigorish négatif exceptionnel: ${(match.vig_btts * 100).toFixed(2)}%`],
         isInverted: false,
-        priority: 1
+        priority: 3
       });
       
       console.log('🎯 OPPORTUNITÉ NÉGATIVE BTTS DÉTECTÉE:', predictionBtts, 'odds:', oddsBtts);
@@ -99,7 +99,7 @@ export function detectOpportunities(match: ProcessedMatch): DetectedOpportunity[
         odds: oddsOu,
         reason: [`Vigorish négatif exceptionnel: ${(match.vig_ou_2_5 * 100).toFixed(2)}%`],
         isInverted: false,
-        priority: 1
+        priority: 3
       });
       
       console.log('🎯 OPPORTUNITÉ NÉGATIVE O/U DÉTECTÉE:', predictionOu, 'odds:', oddsOu);
@@ -141,7 +141,7 @@ export function detectOpportunities(match: ProcessedMatch): DetectedOpportunity[
             `Probabilité max: ${(mostBttsProb * 100).toFixed(1)}% < ${(HIGH_PROB_THRESHOLD * 100).toFixed(1)}%`
           ],
           isInverted: true,
-          priority: 5
+          priority: 2
         });
         
         console.log('🔄 INVERSION BTTS APPLIQUÉE:', inversePrediction, 'odds:', inverseOdds);
@@ -183,7 +183,7 @@ export function detectOpportunities(match: ProcessedMatch): DetectedOpportunity[
             `Probabilité max: ${(mostOuProb * 100).toFixed(1)}% < ${(HIGH_PROB_THRESHOLD * 100).toFixed(1)}%`
           ],
           isInverted: true,
-          priority: 5
+          priority: 2
         });
         
         console.log('🔄 INVERSION O/U APPLIQUÉE:', inversePrediction, 'odds:', inverseOdds);
@@ -220,7 +220,7 @@ export function detectOpportunities(match: ProcessedMatch): DetectedOpportunity[
       odds: odds1x2,
       reason: [`Faible vigorish: ${(match.vig_1x2 * 100).toFixed(1)}%`, `Probabilité élevée: ${(most1x2Prob * 100).toFixed(1)}%`],
       isInverted: false,
-      priority: 3
+      priority: 4
     });
     
     console.log('💰 OPPORTUNITÉ DIRECTE 1X2:', prediction1x2, 'odds:', odds1x2);
@@ -245,7 +245,7 @@ export function detectOpportunities(match: ProcessedMatch): DetectedOpportunity[
         odds: oddsBtts,
         reason: [`Faible vigorish: ${(match.vig_btts * 100).toFixed(1)}%`, `Probabilité élevée: ${(mostBttsProb * 100).toFixed(1)}%`],
         isInverted: false,
-        priority: 3
+        priority: 4
       });
       
       console.log('💰 OPPORTUNITÉ DIRECTE BTTS:', predictionBtts, 'odds:', oddsBtts);
@@ -268,7 +268,7 @@ export function detectOpportunities(match: ProcessedMatch): DetectedOpportunity[
         odds: oddsOu,
         reason: [`Faible vigorish: ${(match.vig_ou_2_5 * 100).toFixed(1)}%`, `Probabilité élevée: ${(mostOuProb * 100).toFixed(1)}%`],
         isInverted: false,
-        priority: 3
+        priority: 4
       });
       
       console.log('💰 OPPORTUNITÉ DIRECTE O/U:', predictionOu, 'odds:', oddsOu);
@@ -300,7 +300,7 @@ export function detectOpportunities(match: ProcessedMatch): DetectedOpportunity[
       odds: odds1x2,
       reason: [`Probabilité élevée: ${(most1x2Prob * 100).toFixed(1)}%`],
       isInverted: false,
-      priority: 4
+      priority: 5
     });
     
     console.log('📈 OPPORTUNITÉ HAUTE PROB 1X2:', prediction1x2, 'odds:', odds1x2);
@@ -326,7 +326,7 @@ export function detectOpportunities(match: ProcessedMatch): DetectedOpportunity[
           odds: oddsBtts,
           reason: [`Probabilité élevée: ${(mostBttsProb * 100).toFixed(1)}%`],
           isInverted: false,
-          priority: 4
+          priority: 5
         });
         
         console.log('📈 OPPORTUNITÉ HAUTE PROB BTTS:', predictionBtts, 'odds:', oddsBtts);
@@ -350,7 +350,7 @@ export function detectOpportunities(match: ProcessedMatch): DetectedOpportunity[
         odds: oddsOu,
         reason: [`Probabilité élevée: ${(mostOuProb * 100).toFixed(1)}%`],
         isInverted: false,
-        priority: 4
+        priority: 5
       });
       
       console.log('📈 OPPORTUNITÉ HAUTE PROB O/U:', predictionOu, 'odds:', oddsOu);
@@ -392,7 +392,7 @@ export function detectOpportunities(match: ProcessedMatch): DetectedOpportunity[
         `Stratégie d'exclusion du plus probable: ${mostProbableOutcome}`
       ],
       isInverted: false,
-      priority: 2
+      priority: 1
     });
     
     console.log('🎲 DOUBLE CHANCE GÉNÉRÉE:', doubleChancePrediction, 'odds:', doubleChanceOdds);
