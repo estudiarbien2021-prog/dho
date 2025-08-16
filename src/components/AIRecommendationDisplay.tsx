@@ -154,17 +154,7 @@ export function AIRecommendationDisplay({
   }
 
   if (variant === 'table') {
-    // Table variant for dashboard - shows stored prediction from database
-    // If no stored prediction, fall back to calculated opportunities
-    if (match.ai_prediction) {
-      return (
-        <div className="text-sm font-medium text-center">
-          {match.ai_prediction}
-        </div>
-      );
-    }
-
-    // Fallback to calculated opportunities if no stored prediction
+    // Use same logic as popup detail modal for consistency
     if (aiRecs.length === 0) {
       return (
         <div className="text-xs text-muted-foreground text-center">
@@ -173,6 +163,7 @@ export function AIRecommendationDisplay({
       );
     }
 
+    // Use the highest priority recommendation (same as popup)
     const aiRec = aiRecs[0];
     const formatPrediction = (betType: string, prediction: string) => {
       switch (betType) {
