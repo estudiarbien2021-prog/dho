@@ -28,6 +28,7 @@ export function useDatabaseMatches(specificDate?: string) {
   const [filters, setFilters] = useState<MatchFilters>(defaultFilters);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [matchOpportunities, setMatchOpportunities] = useState<Map<string, any[]>>(new Map());
 
   // Load matches from database
   useEffect(() => {
@@ -106,6 +107,20 @@ export function useDatabaseMatches(specificDate?: string) {
         }));
         
         setRawMatches(processedMatches);
+        
+        // Load opportunities for all matches
+        const opportunitiesMap = new Map();
+        for (const match of processedMatches) {
+          try {
+            const opportunities = await detectOpportunities(match);
+            opportunitiesMap.set(match.id, opportunities);
+          } catch (error) {
+            console.error(`Error detecting opportunities for match ${match.id}:`, error);
+            opportunitiesMap.set(match.id, []);
+          }
+        }
+        setMatchOpportunities(opportunitiesMap);
+        
         setIsLoading(false);
         
       } catch (err) {
@@ -166,7 +181,7 @@ export function useDatabaseMatches(specificDate?: string) {
       }
 
       // ÉTAPE 2: Vérification des opportunités IA (après validation des données)
-      const opportunities = detectOpportunities(match);
+      const opportunities = matchOpportunities.get(match.id) || [];
       
       if (opportunities.length === 0) {
         console.log(`❌ EXCLU (PAS D'OPPORTUNITÉ IA): ${match.home_team} vs ${match.away_team} - Données complètes mais pas d'opportunité IA`);
@@ -234,7 +249,7 @@ export function useDatabaseMatches(specificDate?: string) {
     }
 
     return matches;
-  }, [rawMatches, filters]);
+  }, [rawMatches, filters, matchOpportunities]);
 
   // Get unique values for filters
   const availableLeagues = useMemo(() => 
@@ -248,9 +263,10 @@ export function useDatabaseMatches(specificDate?: string) {
     
     // Compter les matchs exclus pour pas d'opportunité IA
     const matchesWithCompleteData = rawMatches.filter(match => hasCompleteData(match));
-    const excludedForNoAI = matchesWithCompleteData.filter(match => 
-      detectOpportunities(match).length === 0
-    ).length;
+    const excludedForNoAI = matchesWithCompleteData.filter(match => {
+      const opportunities = matchOpportunities.get(match.id) || [];
+      return opportunities.length === 0;
+    }).length;
     
     console.log(`📊 STATS FILTRAGE: ${rawMatches.length} total → ${excludedForIncompleteData} exclus (données incomplètes) → ${excludedForNoAI} exclus (pas d'IA) → ${filteredMatches.length} final`);
     
@@ -261,18 +277,18 @@ export function useDatabaseMatches(specificDate?: string) {
       excludedNoAI: excludedForNoAI,
       lowVig: filteredMatches.filter(m => m.is_low_vig_1x2).length,
       watchBtts: filteredMatches.filter(m => {
-        const opportunities = detectOpportunities(m);
+        const opportunities = matchOpportunities.get(m.id) || [];
         return opportunities.some(opp => opp.type === 'BTTS' || opp.type === 'BTTS_NEGATIVE');
       }).length,
       watchOver25: filteredMatches.filter(m => {
-        const opportunities = detectOpportunities(m);
+        const opportunities = matchOpportunities.get(m.id) || [];
         return opportunities.some(opp => opp.type === 'O/U 2.5' || opp.type === 'OU_NEGATIVE');
       }).length,
       avgVig: filteredMatches.length > 0 
         ? filteredMatches.reduce((sum, m) => sum + m.vig_1x2, 0) / filteredMatches.length 
         : 0
     };
-  }, [filteredMatches, rawMatches]);
+  }, [filteredMatches, rawMatches, matchOpportunities]);
 
   return {
     matches: filteredMatches,

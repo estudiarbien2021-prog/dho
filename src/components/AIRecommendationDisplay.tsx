@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ProcessedMatch } from '@/types/match';
 import { Badge } from '@/components/ui/badge';
 import { Brain, Target } from 'lucide-react';
@@ -20,11 +20,37 @@ export function AIRecommendationDisplay({
 }: AIRecommendationDisplayProps) {
   console.log('🟢 AIRecommendationDisplay APPELÉ pour:', match.home_team, 'vs', match.away_team);
   
-  // ===== UTILISER LA MÊME LOGIQUE EXACTE QUE MatchDetailModal =====
+  const [opportunities, setOpportunities] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadOpportunities = async () => {
+      try {
+        setLoading(true);
+        const opps = await detectOpportunities(match);
+        setOpportunities(opps);
+        console.log('🎯 OPPORTUNITIES DÉTECTÉES (AIRecommendationDisplay):', opps.length, opps.map(o => `${o.type}:${o.prediction}(inverted:${o.isInverted})`));
+      } catch (error) {
+        console.error('Error loading opportunities:', error);
+        setOpportunities([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadOpportunities();
+  }, [match]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2">
+        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+        <span className="text-xs text-muted-foreground">Chargement...</span>
+      </div>
+    );
+  }
   
-  // 1. Détecter les opportunités comme dans le modal
-  const opportunities = detectOpportunities(match);
-  console.log('🎯 OPPORTUNITIES DÉTECTÉES (AIRecommendationDisplay):', opportunities.length, opportunities.map(o => `${o.type}:${o.prediction}(inverted:${o.isInverted})`));
+  // ===== UTILISER LA MÊME LOGIQUE EXACTE QUE MatchDetailModal =====
   
   // 2. Prioriser EXACTEMENT comme dans le modal
   const prioritizedOpportunities = prioritizeOpportunitiesByRealProbability(opportunities, match);

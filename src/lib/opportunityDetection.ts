@@ -1,5 +1,6 @@
 
 import { ProcessedMatch } from '@/types/match';
+import { rulesService } from '@/services/rulesService';
 
 export interface DetectedOpportunity {
   type: string;
@@ -10,27 +11,39 @@ export interface DetectedOpportunity {
   priority: number;
 }
 
-export function detectOpportunities(match: ProcessedMatch): DetectedOpportunity[] {
+export async function detectOpportunities(match: ProcessedMatch): Promise<DetectedOpportunity[]> {
   console.log('🔍 DÉTECTION OPPORTUNITÉS POUR:', match.home_team, 'vs', match.away_team);
   
   const opportunities: DetectedOpportunity[] = [];
   
-  // Seuils de configuration (nouvelles règles)
-  const HIGH_VIG_THRESHOLD = 0.081; // 8.1%
-  const LOW_VIG_THRESHOLD = 0.06;  // 6%
-  const HIGH_PROB_THRESHOLD = 0.58; // 58%
-  const MIN_ODDS = 1.5; // 1.5 au lieu de odds implicites
-  const MIN_PROBABILITY = 0.45; // 45%
+  // Charger les règles configurables depuis la base de données
+  const generalRules = await rulesService.getRules();
+  const ouRules = await rulesService.getMarketRules('ou');
+  const bttsRules = await rulesService.getMarketRules('btts');
+  const x12Rules = await rulesService.getMarketRules('1x2');
   
-  console.log('🔍 SEUILS:', {
-    HIGH_VIG_THRESHOLD,
-    LOW_VIG_THRESHOLD,
-    HIGH_PROB_THRESHOLD
+  // Seuils généraux
+  const EQUALITY_TOLERANCE = (generalRules.get('equality_tolerance') ?? 1) / 100;
+  const MIN_ODDS = generalRules.get('min_odds') ?? 1.5;
+  const MIN_PROBABILITY = (generalRules.get('min_probability') ?? 45) / 100;
+  
+  // Double Chance
+  const DOUBLE_CHANCE_ENABLED = (generalRules.get('double_chance_enabled') ?? 1) === 1;
+  const DOUBLE_CHANCE_VIG_THRESHOLD = (generalRules.get('double_chance_vigorish_threshold') ?? 10) / 100;
+  const DOUBLE_CHANCE_MAX_PROB = (generalRules.get('double_chance_max_probability') ?? 65) / 100;
+  
+  console.log('🔍 SEUILS CONFIGURABLES:', {
+    ouRules,
+    bttsRules,
+    x12Rules,
+    DOUBLE_CHANCE_ENABLED,
+    DOUBLE_CHANCE_VIG_THRESHOLD,
+    DOUBLE_CHANCE_MAX_PROB
   });
 
   // === 1. RÈGLE PRIORITAIRE ABSOLUE : Double Chance (X2) ===
   
-  if (match.vig_1x2 >= 0.10) { // 10%
+  if (DOUBLE_CHANCE_ENABLED && match.vig_1x2 >= DOUBLE_CHANCE_VIG_THRESHOLD) {
     const probHome = match.p_home_fair;
     const probDraw = match.p_draw_fair;
     const probAway = match.p_away_fair;
@@ -44,8 +57,8 @@ export function detectOpportunities(match: ProcessedMatch): DetectedOpportunity[
     const mostProbableOutcome = outcomes[0].label;
     const highestProb = outcomes[0].prob;
     
-    // EXCLUSION : la probabilité la plus haute entre 1 X 2 > 65%
-    if (highestProb <= 0.65) {
+    // EXCLUSION : la probabilité la plus haute entre 1 X 2 > seuil configuré
+    if (highestProb <= DOUBLE_CHANCE_MAX_PROB) {
       let doubleChancePrediction = '';
       let doubleChanceProb = 0;
       
@@ -79,7 +92,7 @@ export function detectOpportunities(match: ProcessedMatch): DetectedOpportunity[
       // RETOUR IMMÉDIAT - Double Chance est prioritaire absolu
       return opportunities.filter(opp => opp.odds >= MIN_ODDS);
     } else {
-      console.log('❌ DOUBLE CHANCE EXCLUE - Probabilité trop élevée:', (highestProb * 100).toFixed(1), '% > 65%');
+      console.log('❌ DOUBLE CHANCE EXCLUE - Probabilité trop élevée:', (highestProb * 100).toFixed(1), '% >', (DOUBLE_CHANCE_MAX_PROB * 100).toFixed(1), '%');
     }
   }
   
@@ -164,7 +177,8 @@ export function detectOpportunities(match: ProcessedMatch): DetectedOpportunity[
   // === 2. RÈGLE 1 : Opportunités Inversées (Haut Vigorish) ===
   
   // BTTS Inversion
-  if (match.vig_btts && match.vig_btts >= HIGH_VIG_THRESHOLD && 
+  if (bttsRules.invertedOpportunitiesEnabled && 
+      match.vig_btts && match.vig_btts >= bttsRules.highVigorishThreshold / 100 && 
       match.p_btts_yes_fair > 0 && match.p_btts_no_fair > 0 && 
       match.odds_btts_yes && match.odds_btts_no) {
     
@@ -172,32 +186,34 @@ export function detectOpportunities(match: ProcessedMatch): DetectedOpportunity[
       'vig_btts': match.vig_btts,
       'p_btts_yes_fair': match.p_btts_yes_fair,
       'p_btts_no_fair': match.p_btts_no_fair,
-      'seuil_inversion': HIGH_PROB_THRESHOLD
+      'seuil_inversion': bttsRules.highProbabilityThreshold / 100
     });
     
     // Vérifier que ce n'est pas une égalité 50/50
-    const isBTTSEqual = Math.abs(match.p_btts_yes_fair - match.p_btts_no_fair) <= 0.01;
+    const isBTTSEqual = Math.abs(match.p_btts_yes_fair - match.p_btts_no_fair) <= EQUALITY_TOLERANCE;
     
     if (!isBTTSEqual) {
       const mostBttsProb = Math.max(match.p_btts_yes_fair, match.p_btts_no_fair);
       
-      // INVERSION: Si probabilité la plus élevée < 58%, on inverse
-      if (mostBttsProb < HIGH_PROB_THRESHOLD) {
+      // INVERSION: Si probabilité la plus élevée < seuil configuré, on inverse
+      if (mostBttsProb < bttsRules.highProbabilityThreshold / 100) {
         const inversePrediction = mostBttsProb === match.p_btts_yes_fair ? 'Non' : 'Oui';
         const inverseOdds = mostBttsProb === match.p_btts_yes_fair ? match.odds_btts_no : match.odds_btts_yes;
         
-        opportunities.push({
-          type: 'BTTS',
-          prediction: inversePrediction,
-          odds: inverseOdds,
-          reason: [
-            `Inversion stratégique`,
-            `Vigorish élevé: ${(match.vig_btts * 100).toFixed(1)}%`,
-            `Probabilité max: ${(mostBttsProb * 100).toFixed(1)}% < ${(HIGH_PROB_THRESHOLD * 100).toFixed(1)}%`
-          ],
-          isInverted: true,
-          priority: 2
-        });
+        if (inverseOdds >= bttsRules.minOdds) {
+          opportunities.push({
+            type: 'BTTS',
+            prediction: inversePrediction,
+            odds: inverseOdds,
+            reason: [
+              `Inversion stratégique`,
+              `Vigorish élevé: ${(match.vig_btts * 100).toFixed(1)}%`,
+              `Probabilité max: ${(mostBttsProb * 100).toFixed(1)}% < ${(bttsRules.highProbabilityThreshold).toFixed(1)}%`
+            ],
+            isInverted: true,
+            priority: 2
+          });
+        }
         
         console.log('🔄 INVERSION BTTS APPLIQUÉE:', inversePrediction, 'odds:', inverseOdds);
       } else {
@@ -209,37 +225,40 @@ export function detectOpportunities(match: ProcessedMatch): DetectedOpportunity[
   }
   
   // O/U 2.5 Inversion
-  if (match.vig_ou_2_5 >= HIGH_VIG_THRESHOLD) {
+  if (ouRules.invertedOpportunitiesEnabled && 
+      match.vig_ou_2_5 >= ouRules.highVigorishThreshold / 100) {
     console.log('🔍 ANALYSE O/U INVERSION:', {
       'vig_ou_2_5': match.vig_ou_2_5,
       'p_over_2_5_fair': match.p_over_2_5_fair,
       'p_under_2_5_fair': match.p_under_2_5_fair,
-      'seuil_inversion': HIGH_PROB_THRESHOLD
+      'seuil_inversion': ouRules.highProbabilityThreshold / 100
     });
     
     // Vérifier que ce n'est pas une égalité 50/50
-    const isOUEqual = Math.abs(match.p_over_2_5_fair - match.p_under_2_5_fair) <= 0.01;
+    const isOUEqual = Math.abs(match.p_over_2_5_fair - match.p_under_2_5_fair) <= EQUALITY_TOLERANCE;
     
     if (!isOUEqual) {
       const mostOuProb = Math.max(match.p_over_2_5_fair, match.p_under_2_5_fair);
       
-      // INVERSION: Si probabilité la plus élevée < 58%, on inverse
-      if (mostOuProb < HIGH_PROB_THRESHOLD) {
+      // INVERSION: Si probabilité la plus élevée < seuil configuré, on inverse
+      if (mostOuProb < ouRules.highProbabilityThreshold / 100) {
         const inversePrediction = mostOuProb === match.p_over_2_5_fair ? '-2,5 buts' : '+2,5 buts';
         const inverseOdds = mostOuProb === match.p_over_2_5_fair ? match.odds_under_2_5 : match.odds_over_2_5;
         
-        opportunities.push({
-          type: 'O/U 2.5',
-          prediction: inversePrediction,
-          odds: inverseOdds,
-          reason: [
-            `Inversion stratégique`,
-            `Vigorish élevé: ${(match.vig_ou_2_5 * 100).toFixed(1)}%`,
-            `Probabilité max: ${(mostOuProb * 100).toFixed(1)}% < ${(HIGH_PROB_THRESHOLD * 100).toFixed(1)}%`
-          ],
-          isInverted: true,
-          priority: 2
-        });
+        if (inverseOdds >= ouRules.minOdds) {
+          opportunities.push({
+            type: 'O/U 2.5',
+            prediction: inversePrediction,
+            odds: inverseOdds,
+            reason: [
+              `Inversion stratégique`,
+              `Vigorish élevé: ${(match.vig_ou_2_5 * 100).toFixed(1)}%`,
+              `Probabilité max: ${(mostOuProb * 100).toFixed(1)}% < ${(ouRules.highProbabilityThreshold).toFixed(1)}%`
+            ],
+            isInverted: true,
+            priority: 2
+          });
+        }
         
         console.log('🔄 INVERSION O/U APPLIQUÉE:', inversePrediction, 'odds:', inverseOdds);
       } else {
@@ -253,7 +272,8 @@ export function detectOpportunities(match: ProcessedMatch): DetectedOpportunity[
   // === 3. RÈGLE 2 : Recommandations Directes (Faible vigorish) ===
   
   // 1X2 Direct (Faible vigorish)
-  if (match.vig_1x2 < LOW_VIG_THRESHOLD) {
+  if (x12Rules.directRecommendationsEnabled && 
+      match.vig_1x2 < x12Rules.lowVigorishThreshold / 100) {
     const most1x2Prob = Math.max(match.p_home_fair, match.p_draw_fair, match.p_away_fair);
     let prediction1x2 = '';
     let odds1x2 = 0;
@@ -269,72 +289,81 @@ export function detectOpportunities(match: ProcessedMatch): DetectedOpportunity[
       odds1x2 = match.odds_draw;
     }
     
-    opportunities.push({
-      type: '1X2',
-      prediction: prediction1x2,
-      odds: odds1x2,
-      reason: [`Faible vigorish: ${(match.vig_1x2 * 100).toFixed(1)}%`, `Probabilité élevée: ${(most1x2Prob * 100).toFixed(1)}%`],
-      isInverted: false,
-      priority: 4
-    });
+    if (odds1x2 >= x12Rules.minOdds && most1x2Prob >= x12Rules.minProbability / 100) {
+      opportunities.push({
+        type: '1X2',
+        prediction: prediction1x2,
+        odds: odds1x2,
+        reason: [`Faible vigorish: ${(match.vig_1x2 * 100).toFixed(1)}%`, `Probabilité élevée: ${(most1x2Prob * 100).toFixed(1)}%`],
+        isInverted: false,
+        priority: 4
+      });
+    }
     
     console.log('💰 OPPORTUNITÉ DIRECTE 1X2:', prediction1x2, 'odds:', odds1x2);
   }
   
   // BTTS Direct (Faible vigorish)
-  if (match.vig_btts && match.vig_btts < LOW_VIG_THRESHOLD && 
+  if (bttsRules.directRecommendationsEnabled && 
+      match.vig_btts && match.vig_btts < bttsRules.lowVigorishThreshold / 100 && 
       match.p_btts_yes_fair > 0 && match.p_btts_no_fair > 0 && 
       match.odds_btts_yes && match.odds_btts_no) {
     
     // Vérifier que ce n'est pas une égalité 50/50
-    const isBTTSEqual = Math.abs(match.p_btts_yes_fair - match.p_btts_no_fair) <= 0.01;
+    const isBTTSEqual = Math.abs(match.p_btts_yes_fair - match.p_btts_no_fair) <= EQUALITY_TOLERANCE;
     
     if (!isBTTSEqual) {
       const mostBttsProb = Math.max(match.p_btts_yes_fair, match.p_btts_no_fair);
       const predictionBtts = mostBttsProb === match.p_btts_yes_fair ? 'Oui' : 'Non';
       const oddsBtts = mostBttsProb === match.p_btts_yes_fair ? match.odds_btts_yes : match.odds_btts_no;
       
-      opportunities.push({
-        type: 'BTTS',
-        prediction: predictionBtts,
-        odds: oddsBtts,
-        reason: [`Faible vigorish: ${(match.vig_btts * 100).toFixed(1)}%`, `Probabilité élevée: ${(mostBttsProb * 100).toFixed(1)}%`],
-        isInverted: false,
-        priority: 4
-      });
+      if (oddsBtts >= bttsRules.minOdds && mostBttsProb >= bttsRules.minProbability / 100) {
+        opportunities.push({
+          type: 'BTTS',
+          prediction: predictionBtts,
+          odds: oddsBtts,
+          reason: [`Faible vigorish: ${(match.vig_btts * 100).toFixed(1)}%`, `Probabilité élevée: ${(mostBttsProb * 100).toFixed(1)}%`],
+          isInverted: false,
+          priority: 4
+        });
+      }
       
       console.log('💰 OPPORTUNITÉ DIRECTE BTTS:', predictionBtts, 'odds:', oddsBtts);
     }
   }
   
   // O/U 2.5 Direct (Faible vigorish)
-  if (match.vig_ou_2_5 < LOW_VIG_THRESHOLD) {
+  if (ouRules.directRecommendationsEnabled && 
+      match.vig_ou_2_5 < ouRules.lowVigorishThreshold / 100) {
     // Vérifier que ce n'est pas une égalité 50/50
-    const isOUEqual = Math.abs(match.p_over_2_5_fair - match.p_under_2_5_fair) <= 0.01;
+    const isOUEqual = Math.abs(match.p_over_2_5_fair - match.p_under_2_5_fair) <= EQUALITY_TOLERANCE;
     
     if (!isOUEqual) {
       const mostOuProb = Math.max(match.p_over_2_5_fair, match.p_under_2_5_fair);
       const predictionOu = mostOuProb === match.p_over_2_5_fair ? '+2,5 buts' : '-2,5 buts';
       const oddsOu = mostOuProb === match.p_over_2_5_fair ? match.odds_over_2_5 : match.odds_under_2_5;
       
-      opportunities.push({
-        type: 'O/U 2.5',
-        prediction: predictionOu,
-        odds: oddsOu,
-        reason: [`Faible vigorish: ${(match.vig_ou_2_5 * 100).toFixed(1)}%`, `Probabilité élevée: ${(mostOuProb * 100).toFixed(1)}%`],
-        isInverted: false,
-        priority: 4
-      });
+      if (oddsOu >= ouRules.minOdds && mostOuProb >= ouRules.minProbability / 100) {
+        opportunities.push({
+          type: 'O/U 2.5',
+          prediction: predictionOu,
+          odds: oddsOu,
+          reason: [`Faible vigorish: ${(match.vig_ou_2_5 * 100).toFixed(1)}%`, `Probabilité élevée: ${(mostOuProb * 100).toFixed(1)}%`],
+          isInverted: false,
+          priority: 4
+        });
+      }
       
       console.log('💰 OPPORTUNITÉ DIRECTE O/U:', predictionOu, 'odds:', oddsOu);
     }
   }
 
-  // === 4. RÈGLE EXCEPTION : Probabilité Élevée (≥ 58%) ===
+  // === 4. RÈGLE EXCEPTION : Probabilité Élevée (≥ seuil configuré) ===
   
   // 1X2 Haute Probabilité
   const most1x2Prob = Math.max(match.p_home_fair, match.p_draw_fair, match.p_away_fair);
-  if (most1x2Prob >= HIGH_PROB_THRESHOLD) {
+  if (x12Rules.highProbabilityExceptionEnabled && 
+      most1x2Prob >= x12Rules.highProbabilityThreshold / 100) {
     let prediction1x2 = '';
     let odds1x2 = 0;
     
@@ -349,40 +378,45 @@ export function detectOpportunities(match: ProcessedMatch): DetectedOpportunity[
       odds1x2 = match.odds_draw;
     }
     
-    opportunities.push({
-      type: '1X2',
-      prediction: prediction1x2,
-      odds: odds1x2,
-      reason: [`Probabilité élevée: ${(most1x2Prob * 100).toFixed(1)}%`],
-      isInverted: false,
-      priority: 5
-    });
+    if (odds1x2 >= x12Rules.minOdds) {
+      opportunities.push({
+        type: '1X2',
+        prediction: prediction1x2,
+        odds: odds1x2,
+        reason: [`Probabilité élevée: ${(most1x2Prob * 100).toFixed(1)}%`],
+        isInverted: false,
+        priority: 5
+      });
+    }
     
     console.log('📈 OPPORTUNITÉ HAUTE PROB 1X2:', prediction1x2, 'odds:', odds1x2);
   }
   
   // BTTS Haute Probabilité
-  if (match.p_btts_yes_fair > 0 && match.p_btts_no_fair > 0 && 
+  if (bttsRules.highProbabilityExceptionEnabled && 
+      match.p_btts_yes_fair > 0 && match.p_btts_no_fair > 0 && 
       match.odds_btts_yes && match.odds_btts_no) {
     
     // Vérifier que ce n'est pas une égalité 50/50
-    const isBTTSEqual = Math.abs(match.p_btts_yes_fair - match.p_btts_no_fair) <= 0.01;
+    const isBTTSEqual = Math.abs(match.p_btts_yes_fair - match.p_btts_no_fair) <= EQUALITY_TOLERANCE;
     
     if (!isBTTSEqual) {
       const mostBttsProb = Math.max(match.p_btts_yes_fair, match.p_btts_no_fair);
       
-      if (mostBttsProb >= HIGH_PROB_THRESHOLD) {
+      if (mostBttsProb >= bttsRules.highProbabilityThreshold / 100) {
         const predictionBtts = mostBttsProb === match.p_btts_yes_fair ? 'Oui' : 'Non';
         const oddsBtts = mostBttsProb === match.p_btts_yes_fair ? match.odds_btts_yes : match.odds_btts_no;
         
-        opportunities.push({
-          type: 'BTTS',
-          prediction: predictionBtts,
-          odds: oddsBtts,
-          reason: [`Probabilité élevée: ${(mostBttsProb * 100).toFixed(1)}%`],
-          isInverted: false,
-          priority: 5
-        });
+        if (oddsBtts >= bttsRules.minOdds) {
+          opportunities.push({
+            type: 'BTTS',
+            prediction: predictionBtts,
+            odds: oddsBtts,
+            reason: [`Probabilité élevée: ${(mostBttsProb * 100).toFixed(1)}%`],
+            isInverted: false,
+            priority: 5
+          });
+        }
         
         console.log('📈 OPPORTUNITÉ HAUTE PROB BTTS:', predictionBtts, 'odds:', oddsBtts);
       }
@@ -390,23 +424,25 @@ export function detectOpportunities(match: ProcessedMatch): DetectedOpportunity[
   }
   
   // O/U 2.5 Haute Probabilité
-  const isOUEqual = Math.abs(match.p_over_2_5_fair - match.p_under_2_5_fair) <= 0.01;
+  const isOUEqual = Math.abs(match.p_over_2_5_fair - match.p_under_2_5_fair) <= EQUALITY_TOLERANCE;
   
-  if (!isOUEqual) {
+  if (ouRules.highProbabilityExceptionEnabled && !isOUEqual) {
     const mostOuProb = Math.max(match.p_over_2_5_fair, match.p_under_2_5_fair);
     
-    if (mostOuProb >= HIGH_PROB_THRESHOLD) {
+    if (mostOuProb >= ouRules.highProbabilityThreshold / 100) {
       const predictionOu = mostOuProb === match.p_over_2_5_fair ? '+2,5 buts' : '-2,5 buts';
       const oddsOu = mostOuProb === match.p_over_2_5_fair ? match.odds_over_2_5 : match.odds_under_2_5;
       
-      opportunities.push({
-        type: 'O/U 2.5',
-        prediction: predictionOu,
-        odds: oddsOu,
-        reason: [`Probabilité élevée: ${(mostOuProb * 100).toFixed(1)}%`],
-        isInverted: false,
-        priority: 5
-      });
+      if (oddsOu >= ouRules.minOdds) {
+        opportunities.push({
+          type: 'O/U 2.5',
+          prediction: predictionOu,
+          odds: oddsOu,
+          reason: [`Probabilité élevée: ${(mostOuProb * 100).toFixed(1)}%`],
+          isInverted: false,
+          priority: 5
+        });
+      }
       
       console.log('📈 OPPORTUNITÉ HAUTE PROB O/U:', predictionOu, 'odds:', oddsOu);
     }
@@ -414,53 +450,57 @@ export function detectOpportunities(match: ProcessedMatch): DetectedOpportunity[
 
   // === 5. RÈGLE STANDARD : Logique par Défaut ===
   
-  // Évaluer inversions selon vigorish >= 8.1%
-  if (match.vig_btts && match.vig_btts >= HIGH_VIG_THRESHOLD && 
+  // Évaluer inversions selon seuils configurés
+  if (bttsRules.invertedOpportunitiesEnabled && 
+      match.vig_btts && match.vig_btts >= bttsRules.highVigorishThreshold / 100 && 
       match.p_btts_yes_fair > 0 && match.p_btts_no_fair > 0 && 
       match.odds_btts_yes && match.odds_btts_no) {
     
-    const isBTTSEqual = Math.abs(match.p_btts_yes_fair - match.p_btts_no_fair) <= 0.01;
+    const isBTTSEqual = Math.abs(match.p_btts_yes_fair - match.p_btts_no_fair) <= EQUALITY_TOLERANCE;
     
     if (!isBTTSEqual) {
       const mostBttsProb = Math.max(match.p_btts_yes_fair, match.p_btts_no_fair);
       const inversePrediction = mostBttsProb === match.p_btts_yes_fair ? 'Non' : 'Oui';
       const inverseOdds = mostBttsProb === match.p_btts_yes_fair ? match.odds_btts_no : match.odds_btts_yes;
-      const inverseProb = mostBttsProb === match.p_btts_yes_fair ? match.p_btts_no_fair : match.p_btts_yes_fair;
       
-      opportunities.push({
-        type: 'BTTS',
-        prediction: inversePrediction,
-        odds: inverseOdds,
-        reason: [
-          `Standard - Inversion vigorish élevé`,
-          `Vigorish: ${(match.vig_btts * 100).toFixed(1)}%`
-        ],
-        isInverted: true,
-        priority: 6
-      });
+      if (inverseOdds >= bttsRules.minOdds) {
+        opportunities.push({
+          type: 'BTTS',
+          prediction: inversePrediction,
+          odds: inverseOdds,
+          reason: [
+            `Standard - Inversion vigorish élevé`,
+            `Vigorish: ${(match.vig_btts * 100).toFixed(1)}%`
+          ],
+          isInverted: true,
+          priority: 6
+        });
+      }
     }
   }
   
-  if (match.vig_ou_2_5 >= HIGH_VIG_THRESHOLD) {
-    const isOUEqual = Math.abs(match.p_over_2_5_fair - match.p_under_2_5_fair) <= 0.01;
+  if (ouRules.invertedOpportunitiesEnabled && 
+      match.vig_ou_2_5 >= ouRules.highVigorishThreshold / 100) {
+    const isOUEqual = Math.abs(match.p_over_2_5_fair - match.p_under_2_5_fair) <= EQUALITY_TOLERANCE;
     
     if (!isOUEqual) {
       const mostOuProb = Math.max(match.p_over_2_5_fair, match.p_under_2_5_fair);
       const inversePrediction = mostOuProb === match.p_over_2_5_fair ? '-2,5 buts' : '+2,5 buts';
       const inverseOdds = mostOuProb === match.p_over_2_5_fair ? match.odds_under_2_5 : match.odds_over_2_5;
-      const inverseProb = mostOuProb === match.p_over_2_5_fair ? match.p_under_2_5_fair : match.p_over_2_5_fair;
       
-      opportunities.push({
-        type: 'O/U 2.5',
-        prediction: inversePrediction,
-        odds: inverseOdds,
-        reason: [
-          `Standard - Inversion vigorish élevé`,
-          `Vigorish: ${(match.vig_ou_2_5 * 100).toFixed(1)}%`
-        ],
-        isInverted: true,
-        priority: 6
-      });
+      if (inverseOdds >= ouRules.minOdds) {
+        opportunities.push({
+          type: 'O/U 2.5',
+          prediction: inversePrediction,
+          odds: inverseOdds,
+          reason: [
+            `Standard - Inversion vigorish élevé`,
+            `Vigorish: ${(match.vig_ou_2_5 * 100).toFixed(1)}%`
+          ],
+          isInverted: true,
+          priority: 6
+        });
+      }
     }
   }
 
@@ -472,8 +512,7 @@ export function detectOpportunities(match: ProcessedMatch): DetectedOpportunity[
   const seenPredictions = new Set<string>();
   
   for (const opp of sortedOpportunities) {
-    // Normaliser le type de marché pour le dédoublonnage
-    const normalizedType = opp.type.replace('_NEGATIVE', '').replace('_DIRECT', '');
+  const normalizedType = opp.type.replace('_NEGATIVE', '').replace('_DIRECT', '');
     const predictionKey = `${normalizedType}|${opp.prediction}`;
     
     if (!seenPredictions.has(predictionKey)) {

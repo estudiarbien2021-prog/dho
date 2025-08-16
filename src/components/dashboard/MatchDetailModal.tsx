@@ -134,8 +134,41 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
   };
 
   // Generate ALL AI recommendations for the match
-  const opportunities = detectOpportunities(match);
-  console.log('🔴 MODAL OPPORTUNITIES:', opportunities.length, opportunities.map(o => `${o.type}:${o.prediction}(inverted:${o.isInverted})`));
+  const [opportunities, setOpportunities] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadOpportunities = async () => {
+      try {
+        setLoading(true);
+        const opps = await detectOpportunities(match);
+        setOpportunities(opps);
+        console.log('🔴 MODAL OPPORTUNITIES:', opps.length, opps.map(o => `${o.type}:${o.prediction}(inverted:${o.isInverted})`));
+      } catch (error) {
+        console.error('Error loading opportunities:', error);
+        setOpportunities([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadOpportunities();
+  }, [match]);
+
+  if (loading) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Chargement...</DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
   
   // Utiliser la fonction centralisée de priorisation
   const prioritizedOpportunities = prioritizeOpportunitiesByRealProbability(opportunities, match);
