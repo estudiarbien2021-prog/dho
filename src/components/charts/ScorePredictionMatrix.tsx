@@ -358,8 +358,8 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
           isCoherent = totalGoals > 2.5; // Plus de 2.5 buts (donc au moins 3)
           console.log(`  🎯 O/U 2.5 OVER: ${totalGoals} > 2.5 = ${isCoherent} (rec: "${rec.prediction}")`);
         } else if (rec.prediction.includes('-2,5') || rec.prediction.includes('SOUS') || rec.prediction.includes('UNDER') || rec.prediction.includes('-2.5')) {
-          isCoherent = totalGoals < 2.5; // Moins de 2.5 buts (donc 2 maximum)
-          console.log(`  🎯 O/U 2.5 UNDER: ${totalGoals} < 2.5 = ${isCoherent} (rec: "${rec.prediction}")`);
+          isCoherent = totalGoals <= 2; // 2 buts maximum pour UNDER 2.5
+          console.log(`  🎯 O/U 2.5 UNDER: ${totalGoals} <= 2 = ${isCoherent} (rec: "${rec.prediction}")`);
         }
       } else if (rec.type === 'BTTS') {
         if (rec.prediction === 'Oui' || rec.prediction.includes('Oui') || rec.prediction.includes('OUI')) {
