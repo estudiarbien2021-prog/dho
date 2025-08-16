@@ -297,35 +297,51 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
       { type: 'AWAY', prob: probAway, prediction: match.away_team }
     ];
     
-    // LOGIQUE UNIVERSELLE : Appliquer la double chance si vigorish 1x2 élevé
+    // LOGIQUE UNIVERSELLE CORRIGÉE : Gérer la double chance avec priorité absolue
     const shouldUseDoubleChance = match.vig_1x2 >= 0.1;
     
     if (shouldUseDoubleChance) {
-      // Calculer la double chance optimale (exclure le plus probable)
+      // ÉTAPE 1: SUPPRIMER toutes les recommandations 1X2 contradictoires existantes
+      const originalCount = recommendations.length;
+      const cleaned1X2Recommendations = recommendations.filter(rec => {
+        if (rec.type === '1X2') {
+          console.log(`🧹 NETTOYAGE: Suppression recommandation 1X2 contradictoire: ${rec.source}:${rec.prediction} (sera remplacée par double chance)`);
+          return false; // Supprimer toutes les recommandations 1X2 existantes
+        }
+        return true; // Garder toutes les autres
+      });
+      
+      console.log(`🧹 NETTOYAGE TERMINÉ: ${originalCount - cleaned1X2Recommendations.length} recommandations 1X2 supprimées`);
+      
+      // ÉTAPE 2: Calculer et ajouter la double chance optimale
       const mostProbableOutcome = outcomes.sort((a, b) => b.prob - a.prob)[0];
       
       let doubleChancePrediction = '';
       if (mostProbableOutcome.type === 'HOME') {
-        doubleChancePrediction = 'X2'; // Exclut domicile → Nul ou Extérieur
+        doubleChancePrediction = 'X2'; // Nul OU Extérieur
       } else if (mostProbableOutcome.type === 'DRAW') {
-        doubleChancePrediction = '12'; // Exclut nul → Domicile ou Extérieur
+        doubleChancePrediction = '12'; // Domicile OU Extérieur
       } else {
-        doubleChancePrediction = '1X'; // Exclut extérieur → Domicile ou Nul
+        doubleChancePrediction = '1X'; // Domicile OU Nul
       }
       
-      if (!hasRecommendation(recommendations, '1X2', 'DOUBLE_CHANCE')) {
-        recommendations.push({
-          source: 'market',
-          type: '1X2',
-          prediction: doubleChancePrediction,
-          multiplier: 3.0
-        });
-        console.log('🚨 DOUBLE CHANCE AJOUTÉE (MATRICE):', {
-          mostProbable: mostProbableOutcome.type,
-          doubleChance: doubleChancePrediction,
-          vigOrish: match.vig_1x2
-        });
-      }
+      // Remplacer les recommandations par la version nettoyée + double chance
+      recommendations.length = 0; // Vider le tableau
+      recommendations.push(...cleaned1X2Recommendations); // Ajouter les recommandations nettoyées
+      
+      recommendations.push({
+        source: 'market',
+        type: '1X2',
+        prediction: doubleChancePrediction,
+        multiplier: 3.0 // Priorité élevée pour les opportunités marché
+      });
+      
+      console.log('🚨 DOUBLE CHANCE PRIORITAIRE AJOUTÉE:', {
+        mostProbable: mostProbableOutcome.type,
+        doubleChance: doubleChancePrediction,
+        vigorish: match.vig_1x2,
+        totalRecommendations: recommendations.length
+      });
     } else {
       // Logique classique seulement si pas de vigorish élevé
       const winner1X2 = outcomes.sort((a, b) => b.prob - a.prob)[0];
