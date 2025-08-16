@@ -22,7 +22,7 @@ export function AIRecommendationDisplay({
   
   // Utiliser le système unifié de détection d'opportunités
   const opportunities = detectOpportunities(match);
-  const aiRecs = opportunities.map(convertOpportunityToAIRecommendation);
+  const aiRecs = opportunities.length > 0 ? [convertOpportunityToAIRecommendation(opportunities[0])] : [];
   
   if (aiRecs.length === 0) {
     return (
