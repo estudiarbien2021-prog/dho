@@ -37,16 +37,22 @@ export function AIRecommendationDisplay({
 
   const finalRecommendations = prioritizedRecommendations;
   
-  // Helper function to normalize recommendation object (MÊME que modal)
+  // Helper function to normalize recommendation object (EXACTEMENT comme modal)
   const normalizeRecommendation = (rec: any) => {
+    console.log('🔍 NORMALIZE INPUT:', rec);
+    
     if (!rec) return null;
     
-    return {
+    const normalized = {
       type: rec.betType || rec.type || 'Aucune',
       prediction: rec.prediction || 'Aucune',
       odds: rec.odds || 0,
       confidence: rec.confidence || 'low'
     };
+    
+    console.log('🔍 NORMALIZE OUTPUT:', normalized);
+    
+    return normalized;
   };
 
   // 4. Créer la recommandation principale EXACTEMENT comme dans le modal
