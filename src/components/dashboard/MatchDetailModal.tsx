@@ -264,6 +264,25 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
   const getAllDisplayedOpportunities = () => {
     const opportunities = [];
     
+    // NOUVELLE RÈGLE : Vérifier que les données essentielles sont présentes
+    const hasValidBTTS = match.p_btts_yes_fair > 0 || match.p_btts_no_fair > 0;
+    const hasValidOU = match.p_over_2_5_fair > 0 && match.p_under_2_5_fair > 0;
+    
+    console.log('🔍 VÉRIFICATION DONNÉES:', {
+      hasValidBTTS,
+      hasValidOU,
+      'p_btts_yes_fair': match.p_btts_yes_fair,
+      'p_btts_no_fair': match.p_btts_no_fair,
+      'p_over_2_5_fair': match.p_over_2_5_fair,
+      'p_under_2_5_fair': match.p_under_2_5_fair
+    });
+    
+    // Si les données essentielles manquent, retourner un tableau vide
+    if (!hasValidBTTS && !hasValidOU) {
+      console.log('🚫 DONNÉES INSUFFISANTES - AUCUNE PRÉDICTION DE SCORE');
+      return [];
+    }
+    
     // 1. Recommandation IA principale
     if (recommendation) {
       opportunities.push({
@@ -274,9 +293,20 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
       });
     }
     
-    // 2. Opportunités de marché (faible vigorish)
+    // 2. CORRECTION X2 : Vérifier directement le vigorish 1x2
+    if (match.vig_1x2 >= 0.1) {
+      opportunities.push({
+        source: 'market_x2',
+        type: '1X2',
+        prediction: 'X2',
+        multiplier: 3.0
+      });
+      console.log('🚨 X2 AJOUTÉ DIRECTEMENT - vig_1x2:', match.vig_1x2);
+    }
+    
+    // 3. Opportunités de marché réelles (pas de fallback)
     const marketOpps = getAllMarketOpportunities();
-    marketOpps.forEach((opp, index) => {
+    marketOpps.forEach((opp) => {
       if (opp && opp.type && opp.prediction) {
         opportunities.push({
           source: 'market',
@@ -287,54 +317,10 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
       }
     });
     
-    // 3. Opportunités IA (incluant les doubles chances)
-    const aiRecs = generateAIRecommendations(match, marketFilters);
-    aiRecs.forEach(rec => {
-      if (rec.betType === 'Double Chance') {
-        opportunities.push({
-          source: 'ai_double_chance',
-          type: '1X2',
-          prediction: rec.prediction,
-          multiplier: 3.0
-        });
-      }
-    });
+    // 4. NE PLUS ajouter de recommandations probabilistes de fallback
     
-    // 4. Probabilités brutes comme fallback
-    if (opportunities.length < 3) {
-      opportunities.push({
-        source: 'probabilistic',
-        type: '1X2',
-        prediction: match.home_team,
-        multiplier: 0.25
-      });
-      
-      opportunities.push({
-        source: 'probabilistic',
-        type: 'BTTS',
-        prediction: 'Non',
-        multiplier: 0.25
-      });
-    }
-    
-    // 4. CORRECTION FINALE : Ajouter manuellement X2 si affiché dans l'interface
-    const hasHighVig1x2 = match.vig_1x2 >= 0.1;
-    if (hasHighVig1x2) {
-      // Calculer les cotes pour X2 (nul ou victoire extérieure)
-      const x2Probability = match.p_draw_fair + match.p_away_fair;
-      opportunities.push({
-        source: 'market_x2',
-        type: '1X2',
-        prediction: 'X2',
-        multiplier: 3.0
-      });
-      console.log('🚨 OPPORTUNITÉ X2 AJOUTÉE À LA MATRICE:', {
-        x2Probability,
-        'match.vig_1x2': match.vig_1x2
-      });
-    }
-    
-    return opportunities.slice(0, 5); // Maximum 5 recommandations
+    console.log('🔍 RECOMMANDATIONS FINALES POUR MATRICE:', opportunities);
+    return opportunities;
   };
   
   // Check for market distortions first
