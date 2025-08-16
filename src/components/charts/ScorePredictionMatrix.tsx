@@ -96,7 +96,7 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
     return analysis;
   };
 
-  // Générer la matrice avec logique forcée
+  // Générer la matrice avec logique forcée ET NORMALISÉE
   const generateMatrix = () => {
     const analysis = analyzeRecommendations();
 
@@ -123,8 +123,12 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
       return n * factorial(n - 1);
     };
     
+    // Première passe : calculer toutes les probabilités de base
+    let totalBaseProbability = 0;
+    const baseProbabilities: number[][] = [];
+    
     for (let home = 0; home <= maxScore; home++) {
-      const row: ScoreCell[] = [];
+      const row: number[] = [];
       for (let away = 0; away <= maxScore; away++) {
         // Calculate base probability using Poisson model
         const poissonHome = Math.exp(-lambdaHome) * Math.pow(lambdaHome, home) / factorial(home);
@@ -146,112 +150,136 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
           }
         }
         
-        // LOGIQUE DE FORCE BRUTALE : Analyser ce score
+        row.push(probability);
+        totalBaseProbability += probability;
+      }
+      baseProbabilities.push(row);
+    }
+    
+    // Deuxième passe : appliquer la logique de recommandations de façon STRICTE
+    let totalAdjustedProbability = 0;
+    const adjustedProbabilities: Array<{probability: number, reasons: string[], isValid: boolean}> = [];
+    
+    for (let home = 0; home <= maxScore; home++) {
+      for (let away = 0; away <= maxScore; away++) {
+        let probability = baseProbabilities[home][away];
+        
+        // LOGIQUE STRICTE : Analyser ce score
         const totalGoals = home + away;
         const bothTeamsScore = home > 0 && away > 0;
         const homeWins = home > away;
         const awayWins = away > home;
         const isDraw = home === away;
         
-        let multiplier = 1.0;
-        let reasons = [];
-        let isValid = true;
+        let reasons: string[] = [];
+        let isCompletelyValid = true; // DOIT respecter TOUTES les conditions
         
-        // 1. OVER/UNDER 2.5 - PRIORITÉ ABSOLUE
-        if (analysis.over25) {
-          if (totalGoals > 2) {
-            multiplier *= 10.0; // BOOST ÉNORME
-            reasons.push('+2.5 buts');
-          } else {
-            isValid = false; // ÉLIMINER COMPLÈTEMENT
-          }
+        // 1. OVER/UNDER 2.5 - CONDITION OBLIGATOIRE si recommandé
+        if (analysis.over25 && totalGoals <= 2) {
+          isCompletelyValid = false; // ÉLIMINER si ne respecte pas +2,5
         }
-        if (analysis.under25) {
-          if (totalGoals <= 2) {
-            multiplier *= 10.0;
-            reasons.push('-2.5 buts');
-          } else {
-            isValid = false;
-          }
+        if (analysis.under25 && totalGoals > 2) {
+          isCompletelyValid = false; // ÉLIMINER si ne respecte pas -2,5
         }
         
-        // 2. BTTS - PRIORITÉ HAUTE
-        if (analysis.bttsYes) {
-          if (bothTeamsScore) {
-            multiplier *= 8.0;
-            reasons.push('BTTS Oui');
-          } else {
-            isValid = false;
-          }
+        if (analysis.over25 && totalGoals > 2) {
+          reasons.push('+2.5 buts');
         }
-        if (analysis.bttsNo) {
-          if (!bothTeamsScore) {
-            multiplier *= 8.0;
-            reasons.push('BTTS Non');
-          } else {
-            isValid = false;
+        if (analysis.under25 && totalGoals <= 2) {
+          reasons.push('-2.5 buts');
+        }
+        
+        // 2. BTTS - CONDITION OBLIGATOIRE si recommandé
+        if (analysis.bttsYes && !bothTeamsScore) {
+          isCompletelyValid = false;
+        }
+        if (analysis.bttsNo && bothTeamsScore) {
+          isCompletelyValid = false;
+        }
+        
+        if (analysis.bttsYes && bothTeamsScore) {
+          reasons.push('BTTS Oui');
+        }
+        if (analysis.bttsNo && !bothTeamsScore) {
+          reasons.push('BTTS Non');
+        }
+        
+        // 3. 1X2 - CONDITION OBLIGATOIRE si recommandé
+        if (analysis.homeWin && !homeWins) {
+          isCompletelyValid = false;
+        }
+        if (analysis.awayWin && !awayWins) {
+          isCompletelyValid = false;
+        }
+        if (analysis.draw && !isDraw) {
+          isCompletelyValid = false;
+        }
+        
+        if (analysis.homeWin && homeWins) {
+          reasons.push(match.home_team);
+        }
+        if (analysis.awayWin && awayWins) {
+          reasons.push(match.away_team);
+        }
+        if (analysis.draw && isDraw) {
+          reasons.push('Nul');
+        }
+        
+        // 4. Favoris automatiques (seulement si aucune recommandation 1X2)
+        if (!analysis.homeWin && !analysis.awayWin && !analysis.draw) {
+          if (analysis.favoriteTeam === 'home' && homeWins) {
+            reasons.push(`${match.home_team} (favori)`);
+          }
+          if (analysis.favoriteTeam === 'away' && awayWins) {
+            reasons.push(`${match.away_team} (favori)`);
+          }
+          if (analysis.favoriteTeam === 'draw' && isDraw) {
+            reasons.push('Nul (favori)');
           }
         }
         
-        // 3. 1X2 - PRIORITÉ MOYENNE
-        if (analysis.homeWin) {
-          if (homeWins) {
-            multiplier *= 6.0;
-            reasons.push(match.home_team);
-          } else {
-            isValid = false;
-          }
-        }
-        if (analysis.awayWin) {
-          if (awayWins) {
-            multiplier *= 6.0;
-            reasons.push(match.away_team);
-          } else {
-            isValid = false;
-          }
-        }
-        if (analysis.draw) {
-          if (isDraw) {
-            multiplier *= 6.0;
-            reasons.push('Nul');
-          } else {
-            isValid = false;
-          }
+        // APPLIQUER LA LOGIQUE STRICTE
+        if (!isCompletelyValid) {
+          probability *= 0.001; // Diviser par 1000 les scores invalides
+        } else if (reasons.length > 0) {
+          // Boost modéré pour les scores valides (pas de multiplicateurs fous)
+          probability *= (1 + reasons.length * 0.5); // +50% par raison valide
         }
         
-        // 4. Favoris automatiques (priorité faible)
-        if (analysis.favoriteTeam === 'home' && homeWins && !analysis.homeWin) {
-          multiplier *= 3.0;
-          reasons.push(`${match.home_team} (favori)`);
-        }
-        if (analysis.favoriteTeam === 'away' && awayWins && !analysis.awayWin) {
-          multiplier *= 3.0;
-          reasons.push(`${match.away_team} (favori)`);
-        }
-        if (analysis.favoriteTeam === 'draw' && isDraw && !analysis.draw) {
-          multiplier *= 3.0;
-          reasons.push('Nul (favori)');
-        }
+        adjustedProbabilities.push({
+          probability,
+          reasons,
+          isValid: isCompletelyValid && reasons.length > 0
+        });
         
-        // APPLIQUER LA LOGIQUE
-        if (!isValid) {
-          probability *= 0.01; // Diviser par 100 les scores invalides
-        } else {
-          probability *= multiplier;
-        }
+        totalAdjustedProbability += probability;
+      }
+    }
+    
+    // Troisième passe : NORMALISER pour que la somme = 100%
+    let index = 0;
+    for (let home = 0; home <= maxScore; home++) {
+      const row: ScoreCell[] = [];
+      for (let away = 0; away <= maxScore; away++) {
+        const adjustedData = adjustedProbabilities[index];
+        
+        // Normaliser la probabilité
+        const normalizedProbability = (adjustedData.probability / totalAdjustedProbability) * 100;
         
         // Déterminer le highlight
-        const isHighlighted = reasons.length > 0 && isValid;
-        const highlightReason = reasons.length > 0 ? 
-          (reasons.length > 1 ? `🎯 PARFAIT: ${reasons.join(' + ')}` : `✅ ${reasons[0]}`) : '';
+        const isHighlighted = adjustedData.isValid;
+        const highlightReason = adjustedData.reasons.length > 0 ? 
+          (adjustedData.reasons.length > 1 ? `🎯 PARFAIT: ${adjustedData.reasons.join(' + ')}` : `✅ ${adjustedData.reasons[0]}`) : '';
         
         row.push({
           homeScore: home,
           awayScore: away,
-          probability: probability * 100,
+          probability: normalizedProbability,
           isHighlighted,
           highlightReason,
         });
+        
+        index++;
       }
       matrix.push(row);
     }
