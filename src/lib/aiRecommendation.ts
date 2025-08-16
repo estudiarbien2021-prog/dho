@@ -408,19 +408,19 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
     ouAvailable,
     bttsVigorish: match.vig_btts,
     ouVigorish: match.vig_ou_2_5,
-    shouldUseException: (bttsMaxProb >= 0.6 || ouMaxProb >= 0.6) && (bttsAvailable || ouAvailable)
+    shouldUseException: (bttsMaxProb >= 0.58 || ouMaxProb >= 0.58) && (bttsAvailable || ouAvailable)
   });
 
-  // Si une des probabilités >= 60%, appliquer l'exception
-  if ((bttsMaxProb >= 0.6 || ouMaxProb >= 0.6) && (bttsAvailable || ouAvailable)) {
+  // Si une des probabilités >= 58%, appliquer l'exception
+  if ((bttsMaxProb >= 0.58 || ouMaxProb >= 0.58) && (bttsAvailable || ouAvailable)) {
     const markets = [];
     
     if (bttsAvailable) {
-      // Vérifier si BTTS doit être inversé (vigorish >= 8.1% ET probabilité max < 60%)
+      // Vérifier si BTTS doit être inversé (vigorish >= 8.1% ET probabilité max < 58%)
       const bttsYesProb = match.p_btts_yes_fair;
       const bttsNoProb = match.p_btts_no_fair;
       const isBttsYesBetter = bttsYesProb > bttsNoProb;
-      const shouldInvertBTTS = match.vig_btts >= HIGH_VIG_THRESHOLD && bttsMaxProb < 0.6;
+      const shouldInvertBTTS = match.vig_btts >= HIGH_VIG_THRESHOLD && bttsMaxProb < 0.58;
       
       // Appliquer l'inversion si nécessaire
       const finalBttsPrediction = shouldInvertBTTS ? 
@@ -446,11 +446,11 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
     }
     
     if (ouAvailable) {
-      // Vérifier si O/U doit être inversé (vigorish >= 8.1% ET probabilité max < 60%)
+      // Vérifier si O/U doit être inversé (vigorish >= 8.1% ET probabilité max < 58%)
       const overProb = match.p_over_2_5_fair;
       const underProb = match.p_under_2_5_fair;
       const isOverBetter = overProb > underProb;
-      const shouldInvertOU = match.vig_ou_2_5 >= HIGH_VIG_THRESHOLD && ouMaxProb < 0.6;
+      const shouldInvertOU = match.vig_ou_2_5 >= HIGH_VIG_THRESHOLD && ouMaxProb < 0.58;
       
       // Appliquer l'inversion si nécessaire
       const finalOuPrediction = shouldInvertOU ?
@@ -489,7 +489,7 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
         betType: market.type,
         prediction: market.prediction,
         odds: market.odds,
-        confidence: market.probability > 0.6 ? 'high' : market.probability > 0.5 ? 'medium' : 'low',
+        confidence: market.probability > 0.58 ? 'high' : market.probability > 0.5 ? 'medium' : 'low',
         isInverted: market.isInverted || false
       });
     });
