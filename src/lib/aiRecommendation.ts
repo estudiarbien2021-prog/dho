@@ -22,7 +22,7 @@ function isBTTSEqual(match: ProcessedMatch, tolerance: number = 0.01): boolean {
 }
 
 export function generateAIRecommendations(match: ProcessedMatch, marketFilters: string[] = []): AIRecommendation[] {
-  console.log(`🔥 DÉBUT generateAIRecommendations pour ${match.home_team} vs ${match.away_team}`);
+  console.log(`🔥🔥🔥 APPEL generateAIRecommendations pour ${match.home_team} vs ${match.away_team} - vig_1x2: ${match.vig_1x2}`);
   
   // VALIDATION STRICTE DES DONNÉES DE BASE - BLOQUE LES RECOMMANDATIONS SI DONNÉES INCOMPLÈTES
   const hasComplete1X2Data = match.odds_home > 0 && match.odds_draw > 0 && match.odds_away > 0 &&
