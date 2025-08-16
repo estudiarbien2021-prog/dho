@@ -236,8 +236,8 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
       }
     }
     
-    // Ajouter O/U 2.5 si faible vigorish (ou fallback forcé)
-    if (ouLowVig || forceOnlyOULowVig) {
+    // Ajouter O/U 2.5 si faible vigorish (ou fallback forcé) ET pas d'égalité 50/50
+    if ((ouLowVig || forceOnlyOULowVig) && !isOUEqualProbs) {
       const overProb = match.p_over_2_5_fair;
       const underProb = match.p_under_2_5_fair;
       
@@ -260,6 +260,8 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
           vigorish: match.vig_ou_2_5
         });
       }
+    } else if (isOUEqualProbs && (ouLowVig || forceOnlyOULowVig)) {
+      console.log('🔄 O/U égalité détectée dans faible vigorish → Exclusion O/U, évaluation BTTS uniquement');
     }
     
     // Prendre la prédiction la plus probable
