@@ -376,6 +376,21 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
       recommendations: recommendations.map(r => `${r.source}:${r.type}:${r.prediction}`)
     });
 
+    // DEBUG SPÉCIAL POUR X2 
+    const x2Recommendations = recommendations.filter(r => 
+      r.prediction === 'X2' || 
+      r.prediction.toLowerCase().includes('x2') || 
+      r.prediction.toLowerCase().includes('double chance')
+    );
+    if (x2Recommendations.length > 0) {
+      console.log(`🚨 DEBUG X2 pour ${homeScore}-${awayScore}:`, {
+        x2Recommendations,
+        isDraw,
+        awayWins,
+        shouldBeCoherent: isDraw || awayWins
+      });
+    }
+
     recommendations.forEach(rec => {
       let isCoherent = false;
 
