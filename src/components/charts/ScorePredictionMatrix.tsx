@@ -57,7 +57,7 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
       });
     }
 
-    // 3. ANALYSES PROBABILISTES (x1.0) - seulement si un marché manque
+    // 3. ANALYSES PROBABILISTES (x0.25) - seulement si un marché manque
     const hasOU25 = recommendations.some(r => r.type === 'O/U 2.5');
     const hasBTTS = recommendations.some(r => r.type === 'BTTS');
     const has1X2 = recommendations.some(r => r.type === '1X2');
@@ -69,14 +69,14 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
           source: 'probabilistic',
           type: 'O/U 2.5',
           prediction: '+2,5 buts',
-          multiplier: 1.0
+          multiplier: 0.25
         });
       } else if (match.p_over_2_5_fair < 0.45) {
         recommendations.push({
           source: 'probabilistic',
           type: 'O/U 2.5', 
           prediction: '-2,5 buts',
-          multiplier: 1.0
+          multiplier: 0.25
         });
       }
     }
@@ -88,14 +88,14 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
           source: 'probabilistic',
           type: 'BTTS',
           prediction: 'Oui',
-          multiplier: 1.0
+          multiplier: 0.25
         });
       } else if (match.p_btts_yes_fair < 0.45) {
         recommendations.push({
           source: 'probabilistic',
           type: 'BTTS',
           prediction: 'Non',
-          multiplier: 1.0
+          multiplier: 0.25
         });
       }
     }
@@ -109,21 +109,21 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
             source: 'probabilistic',
             type: '1X2',
             prediction: match.home_team,
-            multiplier: 1.0
+            multiplier: 0.25
           });
         } else if (match.p_away_fair === maxProb) {
           recommendations.push({
             source: 'probabilistic',
             type: '1X2',
             prediction: match.away_team,
-            multiplier: 1.0
+            multiplier: 0.25
           });
         } else {
           recommendations.push({
             source: 'probabilistic',
             type: '1X2',
             prediction: 'Nul',
-            multiplier: 1.0
+            multiplier: 0.25
           });
         }
       }
