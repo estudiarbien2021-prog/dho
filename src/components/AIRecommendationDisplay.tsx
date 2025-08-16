@@ -2,7 +2,7 @@ import React from 'react';
 import { ProcessedMatch } from '@/types/match';
 import { Badge } from '@/components/ui/badge';
 import { Brain, Target } from 'lucide-react';
-import { generateAIRecommendation, generateAIRecommendations } from '@/lib/aiRecommendation';
+import { detectOpportunities, convertOpportunityToAIRecommendation } from '@/lib/opportunityDetection';
 import { generateConfidenceScore } from '@/lib/confidence';
 
 interface AIRecommendationDisplayProps {
@@ -20,7 +20,9 @@ export function AIRecommendationDisplay({
 }: AIRecommendationDisplayProps) {
   console.log('🟢 AIRecommendationDisplay APPELÉ pour:', match.home_team, 'vs', match.away_team);
   
-  const aiRecs = generateAIRecommendations(match, marketFilters);
+  // Utiliser le système unifié de détection d'opportunités
+  const opportunities = detectOpportunities(match);
+  const aiRecs = opportunities.map(convertOpportunityToAIRecommendation);
   
   if (aiRecs.length === 0) {
     return (
