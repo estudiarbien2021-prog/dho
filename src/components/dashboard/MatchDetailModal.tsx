@@ -137,25 +137,13 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
   const opportunities = detectOpportunities(match);
   console.log('🔴 MODAL OPPORTUNITIES:', opportunities.length, opportunities.map(o => `${o.type}:${o.prediction}(inverted:${o.isInverted})`));
   
-  // NOUVELLE LOGIQUE DE PRIORISATION : Comparer les probabilités réelles entre tous les marchés
+  // NOUVELLE LOGIQUE DE PRIORISATION : Trier TOUTES les recommandations par probabilité réelle
   const prioritizeOpportunities = (opps: any[]) => {
-    // 1. Negative vigorish (highest priority)
-    const negativeVig = opps.filter(o => o.type.includes('_NEGATIVE'));
-    
-    // 2. High vigorish with inversion
-    const highVigInverted = opps.filter(o => !o.type.includes('_NEGATIVE') && o.isInverted === true);
-    
-    // 3. Low vigorish direct recommendations  
-    const lowVigDirect = opps.filter(o => !o.type.includes('_NEGATIVE') && o.isInverted === false && o.reason?.includes('Faible vigorish'));
-    
-    // 4. High probability direct recommendations avec tri par probabilité RÉELLE puis vigorish
-    const highProbDirect = opps.filter(o => !o.type.includes('_NEGATIVE') && o.isInverted === false && o.reason?.includes('Probabilité élevée'));
-    
-    // NOUVELLE LOGIQUE: Calculer la probabilité réelle pour chaque recommandation
+    // Calculer la probabilité réelle pour chaque recommandation
     const calculateRealProbability = (opp: any) => {
       let probability = 0;
       
-      if (opp.type === '1X2') {
+      if (opp.type === '1X2' || opp.type === 'Double Chance') {
         const probHome = match.p_home_fair;
         const probDraw = match.p_draw_fair;
         const probAway = match.p_away_fair;
@@ -182,12 +170,12 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
       return probability;
     };
     
-    // Trier par probabilité RÉELLE décroissante, puis par vigorish décroissant en cas d'égalité
-    const sortedHighProbDirect = highProbDirect.sort((a, b) => {
+    // Trier TOUTES les recommandations par probabilité réelle décroissante
+    const sortedByProbability = [...opps].sort((a, b) => {
       const aProbability = calculateRealProbability(a);
       const bProbability = calculateRealProbability(b);
       
-      console.log('🔄 COMPARAISON PROBABILITÉS RÉELLES:', {
+      console.log('🔄 COMPARAISON PROBABILITÉS RÉELLES GLOBALE:', {
         'a.type': a.type,
         'a.prediction': a.prediction,
         'a.realProbability': (aProbability * 100).toFixed(1) + '%',
@@ -198,9 +186,9 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
       
       // Si les probabilités sont très proches (différence < 0.01), trier par vigorish décroissant
       if (Math.abs(aProbability - bProbability) < 0.01) {
-        const aVigorish = a.type === '1X2' ? match.vig_1x2 : 
+        const aVigorish = a.type === '1X2' || a.type === 'Double Chance' ? match.vig_1x2 : 
                          a.type === 'BTTS' ? match.vig_btts : match.vig_ou_2_5;
-        const bVigorish = b.type === '1X2' ? match.vig_1x2 : 
+        const bVigorish = b.type === '1X2' || b.type === 'Double Chance' ? match.vig_1x2 : 
                          b.type === 'BTTS' ? match.vig_btts : match.vig_ou_2_5;
         
         console.log('🔄 ÉGALITÉ PROBABILITÉ - TRI PAR VIGORISH:', {
@@ -209,26 +197,21 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
           'choix': bVigorish > aVigorish ? 'b (vigorish plus élevé)' : 'a'
         });
         
-        return bVigorish - aVigorish; // Vigorish décroissant
+        return bVigorish - aVigorish; // Vigorish décroissant en cas d'égalité
       }
       
       // Sinon, trier par probabilité RÉELLE décroissante
       return bProbability - aProbability;
     });
     
-    // 5. Other opportunities
-    const others = opps.filter(o => !negativeVig.includes(o) && !highVigInverted.includes(o) && !lowVigDirect.includes(o) && !highProbDirect.includes(o));
-    
-    const finalOrder = [...negativeVig, ...highVigInverted, ...lowVigDirect, ...sortedHighProbDirect, ...others];
-    
-    console.log('🎯 ORDRE FINAL AVEC PROBABILITÉS RÉELLES:', finalOrder.map((o, i) => {
+    console.log('🎯 ORDRE FINAL AVEC PROBABILITÉS RÉELLES:', sortedByProbability.map((o, i) => {
       const realProb = calculateRealProbability(o);
-      const vig = o.type === '1X2' ? match.vig_1x2 : 
+      const vig = o.type === '1X2' || o.type === 'Double Chance' ? match.vig_1x2 : 
                   o.type === 'BTTS' ? match.vig_btts : match.vig_ou_2_5;
       return `${i+1}. ${o.type}:${o.prediction} (prob_réelle:${(realProb*100).toFixed(1)}%, vig:${(vig*100).toFixed(1)}%, inv:${o.isInverted})`;
     }));
     
-    return finalOrder;
+    return sortedByProbability;
   };
 
   const prioritizedOpportunities = prioritizeOpportunities(opportunities);
