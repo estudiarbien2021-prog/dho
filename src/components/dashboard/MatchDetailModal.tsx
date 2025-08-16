@@ -1054,14 +1054,17 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                                 <span className="text-sm font-semibold text-brand-400">Analyse complète avec facteurs d'influence</span>
                               </div>
                               
-                               <div className="flex items-center justify-between">
-                                 <Badge className="bg-brand-400/20 text-brand-400 px-3 py-1 text-sm font-medium border border-brand-400/30">
-                                   Vigorish {(secondRecommendation.vigorish * 100).toFixed(1)}%
-                                 </Badge>
-                                 <div className="text-lg font-bold text-brand-400">
-                                   {secondRecommendation.odds.toFixed(2)}
-                                 </div>
-                               </div>
+                              <div className="flex items-center justify-between">
+                                <Badge className="bg-brand-400/20 text-brand-400 px-3 py-1 text-sm font-medium border border-brand-400/30">
+                                  {secondRecommendation.type} {secondRecommendation.prediction}
+                                  <span className="ml-2 text-xs bg-emerald-500/20 text-emerald-700 px-2 py-1 rounded">
+                                    Vigorish {(secondRecommendation.vigorish * 100).toFixed(1)}%
+                                  </span>
+                                </Badge>
+                                <div className="text-lg font-bold text-brand-400">
+                                  {secondRecommendation.odds.toFixed(2)}
+                                </div>
+                              </div>
                               
                               <div className="bg-brand-400/10 rounded-lg p-3 border border-brand-400/20">
                                 <div className="text-xs text-brand-400 leading-relaxed">
@@ -1083,14 +1086,17 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                                 <span className="text-sm font-semibold text-brand-400">Opportunité Détectée</span>
                               </div>
                               
-                               <div className="flex items-center justify-between">
-                                 <Badge className="bg-brand-400/20 text-brand-400 px-3 py-1 text-sm font-medium border border-brand-400/30">
-                                   Vigorish {(thirdMarketRecommendation.vigorish * 100).toFixed(1)}%
-                                 </Badge>
-                                 <div className="text-lg font-bold text-brand-400">
-                                   {thirdMarketRecommendation.odds.toFixed(2)}
-                                 </div>
-                               </div>
+                              <div className="flex items-center justify-between">
+                                <Badge className="bg-brand-400/20 text-brand-400 px-3 py-1 text-sm font-medium border border-brand-400/30">
+                                  {thirdMarketRecommendation.type} {thirdMarketRecommendation.prediction}
+                                  <span className="ml-2 text-xs bg-emerald-500/20 text-emerald-700 px-2 py-1 rounded">
+                                    Vigorish {(thirdMarketRecommendation.vigorish * 100).toFixed(1)}%
+                                  </span>
+                                </Badge>
+                                <div className="text-lg font-bold text-brand-400">
+                                  {thirdMarketRecommendation.odds.toFixed(2)}
+                                </div>
+                              </div>
                               
                               <div className="bg-brand-400/10 rounded-lg p-3 border border-brand-400/20">
                                 <div className="text-xs text-brand-400 leading-relaxed">
