@@ -33,6 +33,20 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
   const [matrix, setMatrix] = useState<ScoreCell[][]>([]);
   const [animationStep, setAnimationStep] = useState(0);
 
+  // DEBUG CRITIQUE : Afficher TOUS les props reçus
+  console.log('🚨 PROPS COMPLETS REÇUS:', {
+    homeTeam,
+    awayTeam, 
+    matchId,
+    aiRecommendation: JSON.stringify(aiRecommendation),
+    secondRecommendation: JSON.stringify(secondRecommendation),
+    'aiRecommendation.type': aiRecommendation?.type,
+    'aiRecommendation.betType': aiRecommendation?.betType,
+    'aiRecommendation.prediction': aiRecommendation?.prediction,
+    'secondRecommendation.type': secondRecommendation?.type,
+    'secondRecommendation.prediction': secondRecommendation?.prediction
+  });
+
   // Collecte TOUTES les recommandations disponibles
   const getAllRecommendations = (): Recommendation[] => {
     const recommendations: Recommendation[] = [];
