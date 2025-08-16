@@ -31,7 +31,10 @@ interface RulesByCategory {
   global_thresholds_general: Rule[];
   priority_rules: Rule[];
   exclusions: Rule[];
-  fallbacks: Rule[];
+  fallbacks_ou: Rule[];
+  fallbacks_btts: Rule[];
+  fallbacks_1x2: Rule[];
+  fallbacks_general: Rule[];
 }
 
 interface RuleConfiguration {
@@ -254,7 +257,10 @@ export function RulesManagement() {
     global_thresholds_general: rules.filter(r => r.category === 'global_thresholds' && !r.rule_name.startsWith('ou_') && !r.rule_name.startsWith('btts_') && !r.rule_name.startsWith('1x2_')),
     priority_rules: rules.filter(r => r.category === 'priority_rules'),
     exclusions: rules.filter(r => r.category === 'exclusions'),
-    fallbacks: rules.filter(r => r.category === 'fallbacks'),
+    fallbacks_ou: rules.filter(r => r.category === 'fallbacks_ou'),
+    fallbacks_btts: rules.filter(r => r.category === 'fallbacks_btts'),
+    fallbacks_1x2: rules.filter(r => r.category === 'fallbacks_1x2'),
+    fallbacks_general: rules.filter(r => r.category === 'fallbacks_general' || r.category === 'fallbacks'),
   };
 
   const renderRuleControl = (rule: Rule) => {
@@ -308,7 +314,10 @@ export function RulesManagement() {
     global_thresholds_general: "Seuils Généraux",
     priority_rules: "Règles de Priorité",
     exclusions: "Exclusions",
-    fallbacks: "Paramètres de Fallback"
+    fallbacks_ou: "Fallbacks Over/Under 2.5",
+    fallbacks_btts: "Fallbacks BTTS (Both Teams To Score)",
+    fallbacks_1x2: "Fallbacks 1X2 (Résultat du Match)",
+    fallbacks_general: "Fallbacks Généraux"
   };
 
   const categoryDescriptions = {
@@ -318,7 +327,10 @@ export function RulesManagement() {
     global_thresholds_general: "Seuils généraux applicables à tous les marchés",
     priority_rules: "Activation/désactivation des règles prioritaires et leurs paramètres",
     exclusions: "Paramètres d'exclusion pour filtrer les recommandations",
-    fallbacks: "Comportements par défaut quand aucune règle prioritaire ne s'applique"
+    fallbacks_ou: "Comportements par défaut spécifiques au marché Over/Under 2.5",
+    fallbacks_btts: "Comportements par défaut spécifiques au marché BTTS",
+    fallbacks_1x2: "Comportements par défaut spécifiques au marché 1X2",
+    fallbacks_general: "Comportements par défaut généraux pour tous les marchés"
   };
 
   if (isLoading) {
