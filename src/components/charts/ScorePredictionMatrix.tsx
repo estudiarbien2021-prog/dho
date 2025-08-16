@@ -297,15 +297,47 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
       { type: 'AWAY', prob: probAway, prediction: match.away_team }
     ];
     
-    const winner1X2 = outcomes.sort((a, b) => b.prob - a.prob)[0];
-    if (!hasRecommendation(recommendations, '1X2', winner1X2.type)) {
-      recommendations.push({
-        source: 'probabilistic',
-        type: '1X2',
-        prediction: winner1X2.prediction,
-        multiplier: 0.25
-      });
-      console.log('📊 1X2 PROBABILISTE AJOUTÉ:', winner1X2.prediction);
+    // LOGIQUE UNIVERSELLE : Appliquer la double chance si vigorish 1x2 élevé
+    const shouldUseDoubleChance = match.vig_1x2 >= 0.1;
+    
+    if (shouldUseDoubleChance) {
+      // Calculer la double chance optimale (exclure le plus probable)
+      const mostProbableOutcome = outcomes.sort((a, b) => b.prob - a.prob)[0];
+      
+      let doubleChancePrediction = '';
+      if (mostProbableOutcome.type === 'HOME') {
+        doubleChancePrediction = 'X2'; // Exclut domicile → Nul ou Extérieur
+      } else if (mostProbableOutcome.type === 'DRAW') {
+        doubleChancePrediction = '12'; // Exclut nul → Domicile ou Extérieur
+      } else {
+        doubleChancePrediction = '1X'; // Exclut extérieur → Domicile ou Nul
+      }
+      
+      if (!hasRecommendation(recommendations, '1X2', 'DOUBLE_CHANCE')) {
+        recommendations.push({
+          source: 'market',
+          type: '1X2',
+          prediction: doubleChancePrediction,
+          multiplier: 3.0
+        });
+        console.log('🚨 DOUBLE CHANCE AJOUTÉE (MATRICE):', {
+          mostProbable: mostProbableOutcome.type,
+          doubleChance: doubleChancePrediction,
+          vigOrish: match.vig_1x2
+        });
+      }
+    } else {
+      // Logique classique seulement si pas de vigorish élevé
+      const winner1X2 = outcomes.sort((a, b) => b.prob - a.prob)[0];
+      if (!hasRecommendation(recommendations, '1X2', winner1X2.type)) {
+        recommendations.push({
+          source: 'probabilistic',
+          type: '1X2',
+          prediction: winner1X2.prediction,
+          multiplier: 0.25
+        });
+        console.log('📊 1X2 PROBABILISTE AJOUTÉ:', winner1X2.prediction);
+      }
     }
     
     // BTTS - Utiliser les vraies recommandations IA (avec inversion)
