@@ -82,6 +82,76 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
     highVig1x2Threshold: HIGH_VIG_1X2_THRESHOLD
   });
   
+  // RÈGLE PRIORITAIRE 0 : Si vigorish 1x2 >= 10%, recommander la double chance (X2) - PRIORITÉ ABSOLUE
+  if (match.vig_1x2 >= HIGH_VIG_1X2_THRESHOLD) {
+    console.log('🚨🚨🚨 RÈGLE X2 ACTIVÉE - PRIORITÉ ABSOLUE:', {
+      'match.vig_1x2': match.vig_1x2,
+      'HIGH_VIG_1X2_THRESHOLD': HIGH_VIG_1X2_THRESHOLD,
+      'home_team': match.home_team,
+      'away_team': match.away_team
+    });
+    
+    // UTILISER LA MÊME LOGIQUE QUE LES AUTRES COMPOSANTS
+    // Identifier l'outcome le PLUS probable (à exclure de la double chance)
+    const probHome = match.p_home_fair;
+    const probDraw = match.p_draw_fair;
+    const probAway = match.p_away_fair;
+    
+    const outcomes = [
+      { label: 'home', prob: probHome },
+      { label: 'draw', prob: probDraw },
+      { label: 'away', prob: probAway }
+    ].sort((a, b) => b.prob - a.prob);
+    
+    const mostProbableOutcome = outcomes[0].label;
+    
+    console.log('🚨🚨🚨 ANALYSE PROBABILITÉS:', {
+      probHome: probHome,
+      probDraw: probDraw, 
+      probAway: probAway,
+      mostProbableOutcome: mostProbableOutcome,
+      sorted: outcomes
+    });
+    
+    // Choisir la double chance qui exclut le plus probable
+    let doubleChance = '';
+    let doubleChanceProb = 0;
+    
+    if (mostProbableOutcome === 'home') {
+      doubleChance = 'X2'; // Exclut domicile → Nul ou Extérieur
+      doubleChanceProb = probDraw + probAway;
+    } else if (mostProbableOutcome === 'draw') {
+      doubleChance = '12'; // Exclut nul → Domicile ou Extérieur  
+      doubleChanceProb = probHome + probAway;
+    } else {
+      doubleChance = '1X'; // Exclut extérieur → Domicile ou Nul
+      doubleChanceProb = probHome + probDraw;
+    }
+    
+    // Calculer les cotes de double chance
+    const doubleChanceOdds = 1 / doubleChanceProb;
+    
+    console.log('🚨🚨🚨 DOUBLE CHANCE CALCULÉ:', {
+      doubleChance,
+      doubleChanceProb,
+      'doubleChanceProb_percent': (doubleChanceProb * 100).toFixed(1) + '%',
+      doubleChanceOdds,
+      'doubleChanceOdds_formatted': doubleChanceOdds.toFixed(2)
+    });
+    
+    // TOUJOURS ajouter la recommandation X2 si vigorish >= 10% (pas de seuil supplémentaire)
+    console.log('🚨🚨🚨 X2 RECOMMENDATION CRÉÉE SANS CONDITIONS !');
+    recommendations.push({
+      betType: '1X2',
+      prediction: doubleChance,
+      odds: doubleChanceOdds,
+      confidence: doubleChanceProb > 0.70 ? 'high' : doubleChanceProb > 0.60 ? 'medium' : 'low',
+      isInverted: false
+    });
+    
+    return recommendations; // RETOUR IMMÉDIAT - X2 est prioritaire
+  }
+  
   // RÈGLE PRIORITAIRE 1 : Si vigorish BTTS >= 8.1% OU vigorish O/U >= 8.1%, recommander l'opportunité détectée (inverse)
   // LOGIQUE DE FALLBACK CROISÉE : Exclure les marchés avec égalité 50/50
   const isOUEqualProbs = isOUEqual(match);
