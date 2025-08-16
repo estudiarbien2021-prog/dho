@@ -319,24 +319,51 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     
     // 4. NE PLUS ajouter de recommandations probabilistes de fallback
     
-    // 4. CORRECTION FINALE : Remplacer les recommandations probabilistes par X2 si nécessaire
+    // 4. LOGIQUE UNIVERSELLE : Calculer la double chance optimale pour TOUS les matchs
     const hasHighVig1x2 = match.vig_1x2 >= 0.1;
     if (hasHighVig1x2) {
-      // Supprimer toute recommandation 1X2 probabiliste et la remplacer par X2
+      // Supprimer toute recommandation 1X2 probabiliste
       const filteredOpportunities = opportunities.filter(opp => 
         !(opp.source === 'probabilistic' && opp.type === '1X2')
       );
       
+      // CALCULER LA DOUBLE CHANCE OPTIMALE UNIVERSELLEMENT
+      const probHome = match.p_home_fair;
+      const probDraw = match.p_draw_fair;
+      const probAway = match.p_away_fair;
+      
+      // Identifier l'outcome le PLUS probable (à exclure de la double chance)
+      const outcomes = [
+        { label: 'home', prob: probHome },
+        { label: 'draw', prob: probDraw },
+        { label: 'away', prob: probAway }
+      ].sort((a, b) => b.prob - a.prob);
+      
+      const mostProbableOutcome = outcomes[0].label;
+      
+      // Choisir la double chance qui exclut le plus probable
+      let doubleChancePrediction = '';
+      if (mostProbableOutcome === 'home') {
+        doubleChancePrediction = 'X2'; // Exclut domicile → Nul ou Extérieur
+      } else if (mostProbableOutcome === 'draw') {
+        doubleChancePrediction = '12'; // Exclut nul → Domicile ou Extérieur
+      } else {
+        doubleChancePrediction = '1X'; // Exclut extérieur → Domicile ou Nul
+      }
+      
       filteredOpportunities.push({
-        source: 'market_x2',
+        source: 'market_double_chance',
         type: '1X2',
-        prediction: 'X2',
+        prediction: doubleChancePrediction,
         multiplier: 3.0
       });
       
-      console.log('🚨 X2 REMPLACE LA RECOMMANDATION PROBABILISTE:', {
-        'Original opportunities': opportunities.length,
-        'Après remplacement': filteredOpportunities.length,
+      console.log('🚨 DOUBLE CHANCE UNIVERSELLE CALCULÉE:', {
+        homeTeam: match.home_team,
+        awayTeam: match.away_team,
+        probabilities: { probHome, probDraw, probAway },
+        mostProbableOutcome,
+        doubleChancePrediction,
         'match.vig_1x2': match.vig_1x2
       });
       
