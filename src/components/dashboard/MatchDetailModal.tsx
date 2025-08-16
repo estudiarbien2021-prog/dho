@@ -1545,8 +1545,8 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
             </Card>
           </div>
 
-            {/* Matrice de Prédiction de Score */}
-            <div className="grid grid-cols-1 gap-6">
+          {/* Matrice de Prédiction de Score */}
+          <div className="grid grid-cols-1 gap-6">
               <ScorePredictionMatrix
                 homeTeam={match.home_team}
                 awayTeam={match.away_team}
@@ -1560,8 +1560,8 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
               />
             </div>
 
-            {/* Radar de Performance et Timeline de Momentum */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Radar de Performance et Timeline de Momentum */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Team Radar Chart */}
               <TeamRadarChart
                 homeTeam={match.home_team}
