@@ -109,9 +109,9 @@ export function MarketEfficiencyGauge({ match, className = "" }: MarketEfficienc
       };
     }
     
-    // 1X2 : si c'est le plus élevé ou le deuxième plus élevé ET >= 8%
+    // 1X2 : si c'est le plus élevé ou le deuxième plus élevé ET >= 10%
     const is1X2TopTwo = vigorishData[0].type === '1X2' || vigorishData[1].type === '1X2';
-    const is1X2HighVigorish = match.vig_1x2 >= 0.08;
+    const is1X2HighVigorish = match.vig_1x2 >= 0.10;
     
     if (is1X2TopTwo && is1X2HighVigorish) {
       // Calculer les probabilités implicites
