@@ -141,6 +141,19 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
   const prioritizedOpportunities = prioritizeOpportunitiesByRealProbability(opportunities, match);
   const allAIRecommendations = prioritizedOpportunities.map(convertOpportunityToAIRecommendation);
 
+  console.log('🚨 DEBUG MatchDetailModal:', {
+    matchName: `${match.home_team} vs ${match.away_team}`,
+    totalOpportunities: opportunities.length,
+    prioritizedCount: prioritizedOpportunities.length,
+    firstOpportunity: prioritizedOpportunities[0] ? {
+      type: prioritizedOpportunities[0].type,
+      prediction: prioritizedOpportunities[0].prediction,
+      odds: prioritizedOpportunities[0].odds,
+      isInverted: prioritizedOpportunities[0].isInverted
+    } : null,
+    firstAIRec: allAIRecommendations[0]
+  });
+
   // Helper function to get odds from recommendation
   const getOddsFromRecommendation = (opp: any) => {
     if (!opp || !opp.odds) return 0;
@@ -222,6 +235,8 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     isInverted: finalRecommendations[0].opp?.isInverted || false,
     reason: finalRecommendations[0].opp?.reason || []
   } : null;
+  
+  console.log('🚨 DEBUG MatchDetailModal - Final recommendation after normalize:', recommendation);
   
   const secondAIRecommendation = finalRecommendations.length > 1 ? {
     ...normalizeRecommendation(finalRecommendations[1].rec), 

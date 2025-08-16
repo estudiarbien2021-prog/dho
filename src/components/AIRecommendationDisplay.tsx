@@ -27,7 +27,21 @@ export function AIRecommendationDisplay({
   // Utiliser la fonction centralisée de priorisation
   const sortedOpportunities = prioritizeOpportunitiesByRealProbability(opportunities, match);
   
+  console.log('🚨 DEBUG AIRecommendationDisplay:', {
+    matchName: `${match.home_team} vs ${match.away_team}`,
+    totalOpportunities: opportunities.length,
+    sortedCount: sortedOpportunities.length,
+    firstOpportunity: sortedOpportunities[0] ? {
+      type: sortedOpportunities[0].type,
+      prediction: sortedOpportunities[0].prediction,
+      odds: sortedOpportunities[0].odds,
+      isInverted: sortedOpportunities[0].isInverted
+    } : null
+  });
+  
   const aiRecs = sortedOpportunities.length > 0 ? [convertOpportunityToAIRecommendation(sortedOpportunities[0])] : [];
+  
+  console.log('🚨 DEBUG AIRecommendationDisplay - Final aiRec:', aiRecs[0]);
   
   if (aiRecs.length === 0) {
     return (
