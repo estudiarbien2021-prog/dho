@@ -1348,82 +1348,52 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                 </div>
 
                  <div className="space-y-6">
-                   {/* Primary AI Recommendation */}
-                   {recommendation && shouldShowAIRecommendation() && (
-                     <Card className="p-6 bg-white border border-surface-strong">
-                       <div className="space-y-4">
-                         {/* Header */}
-                         <div className="flex items-center justify-between">
-                           <div className="flex items-center gap-3">
-                             <div className="w-10 h-10 bg-brand rounded-lg flex items-center justify-center">
-                               <Target className="w-5 h-5 text-white" />
-                             </div>
-                             <div>
-                               <h4 className="text-lg font-bold text-text">
-                                 {recommendation.type} {recommendation.prediction}
-                               </h4>
-                               <p className="text-sm text-text-weak">Recommandation principale</p>
-                             </div>
-                           </div>
-                           <div className="text-right">
-                             <div className="text-2xl font-bold text-brand">
-                               {recommendation.odds.toFixed(2)}
-                             </div>
-                             {allAIRecommendations.length > 0 && allAIRecommendations[0].isInverted && (
-                               <Badge className="bg-amber-500 text-white text-xs mt-1">
-                                 Opportunité détectée
-                               </Badge>
-                             )}
-                           </div>
-                         </div>
+                    {/* Primary AI Recommendation - Utiliser la même logique que le tableau */}
+                    {(() => {
+                      // Utiliser directement la même logique qu'AIRecommendationDisplay
+                      const opportunities = detectOpportunities(match);
+                      const sortedOpportunities = prioritizeOpportunitiesByRealProbability(opportunities, match);
+                      const mainRecommendation = sortedOpportunities.length > 0 ? convertOpportunityToAIRecommendation(sortedOpportunities[0]) : null;
+                      
+                      console.log('🚨 DEBUG MatchDetailModal - Main Recommendation:', mainRecommendation);
+                      
+                      if (!mainRecommendation) return null;
+                      
+                      return (
+                        <Card className="p-6 bg-white border border-surface-strong">
+                          <div className="space-y-4">
+                            {/* Header */}
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-brand rounded-lg flex items-center justify-center">
+                                  <Target className="w-5 h-5 text-white" />
+                                </div>
+                                <div>
+                                  <h4 className="text-lg font-bold text-text">
+                                    {mainRecommendation.betType} {mainRecommendation.prediction}
+                                  </h4>
+                                  <p className="text-sm text-text-weak">Recommandation principale</p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-2xl font-bold text-brand">
+                                  @{mainRecommendation.odds.toFixed(2)}
+                                </div>
+                                <div className="text-sm text-text-weak">
+                                  Confiance: {generateConfidenceScore(match.id, {
+                                    type: mainRecommendation.betType,
+                                    prediction: mainRecommendation.prediction,
+                                    confidence: mainRecommendation.confidence
+                                  })}%
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+                      );
+                     })()}
 
-                         {/* Confidence Score */}
-                         <div className="space-y-2">
-                           <div className="flex justify-between items-center">
-                             <span className="text-sm font-medium text-text">Niveau de confiance</span>
-                             <span className="text-lg font-bold text-brand">
-                               {generateConfidenceScore(match.id, recommendation)}%
-                             </span>
-                           </div>
-                           <div className="w-full bg-surface-soft rounded-full h-3">
-                             <div 
-                               className="bg-brand h-3 rounded-full transition-all duration-1000"
-                               style={{ width: `${showAIGraphics ? generateConfidenceScore(match.id, recommendation) : 0}%` }}
-                             />
-                           </div>
-                         </div>
-
-                         {/* Commentary */}
-                         <div className="bg-surface-soft rounded-lg p-4">
-                           <div className="text-sm text-text leading-6">
-                             {recommendation.isInverted ? (
-                               <div>
-                                 <p className="font-semibold mb-2">Opportunité d'inversion détectée</p>
-                                 <p>
-                                   Nos modèles IA détectent une probabilité de {recommendation.type === 'BTTS' ? 
-                                     (recommendation.prediction === 'Non' ? match.p_btts_no_fair * 100 : match.p_btts_yes_fair * 100) :
-                                     (recommendation.prediction === '-2,5 buts' ? match.p_under_2_5_fair * 100 : match.p_over_2_5_fair * 100)
-                                   }% pour cette prédiction.
-                                 </p>
-                                 <p className="mt-2 text-text-weak">
-                                   Le marché surestime probablement l'option opposée, créant une opportunité de valeur.
-                                 </p>
-                               </div>
-                             ) : (
-                               <div dangerouslySetInnerHTML={{ 
-                                 __html: (typeof generateRecommendationExplanation === 'function' 
-                                   ? generateRecommendationExplanation(recommendation).replace(/\n/g, '<br/>') 
-                                   : 'Explication temporairement indisponible'
-                                 )
-                               }} />
-                             )}
-                           </div>
-                         </div>
-                       </div>
-                     </Card>
-                   )}
-
-                   {/* Secondary AI Recommendation */}
+                    {/* Secondary AI Recommendation */}
                    {secondRecommendation && !(recommendation && 
                       recommendation.type === secondRecommendation.type && 
                       recommendation.prediction === secondRecommendation.prediction) && (
