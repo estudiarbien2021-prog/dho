@@ -101,6 +101,31 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     return normalized;
   };
 
+  // Utiliser les VRAIES recommandations IA (avec inversion) au lieu de recalculer
+  const getAIRecommendations = () => {
+    const aiRecs = allAIRecommendations || [];
+    
+    // Si on a les recommandations IA, les utiliser directement
+    if (aiRecs.length > 0) {
+      const bttsRec = aiRecs.find(r => r.betType === 'BTTS');
+      const ouRec = aiRecs.find(r => r.betType === 'O/U 2.5');
+      
+      return {
+        bttsWinner: bttsRec ? bttsRec.prediction : getBttsWinner(),
+        over25Winner: ouRec ? ouRec.prediction : getOver25Winner(),
+        // 1X2 reste inchangé car pas d'inversion sur ce marché
+        winner1x2: get1x2Winner()
+      };
+    }
+    
+    // Fallback vers les calculs de base si pas de recommandations IA
+    return {
+      bttsWinner: getBttsWinner(),
+      over25Winner: getOver25Winner(),
+      winner1x2: get1x2Winner()
+    };
+  };
+
   const getBttsWinner = () => match.p_btts_yes_fair > match.p_btts_no_fair ? 'Oui' : 'Non';
   const getOver25Winner = () => {
     return match.p_over_2_5_fair > match.p_under_2_5_fair ? '+2,5 buts' : '-2,5 buts';
@@ -114,16 +139,25 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
   // Generate second recommendation based on low vigorish criteria (<6%)
   // Récupérer les données BRUTES déjà affichées dans le popup (sans recalcul)
   
-  // DEBUG CRITIQUE : Afficher les vraies probabilités Over/Under
-  console.log('🚨 VRAIES PROBABILITÉS O/U 2.5:', {
-    'p_over_2_5_fair': match.p_over_2_5_fair,
-    'p_under_2_5_fair': match.p_under_2_5_fair,
-    'over_plus_probable': match.p_over_2_5_fair > match.p_under_2_5_fair,
-    'under_plus_probable': match.p_under_2_5_fair > match.p_over_2_5_fair,
-    'vigorish_ou_2_5': match.vig_ou_2_5,
-    'odds_over_2_5': match.odds_over_2_5,
-    'odds_under_2_5': match.odds_under_2_5
-  });
+    // DEBUG CRITIQUE : Afficher les vraies probabilités Over/Under
+    console.log('🚨 VRAIES PROBABILITÉS O/U 2.5:', {
+      'p_over_2_5_fair': match.p_over_2_5_fair,
+      'p_under_2_5_fair': match.p_under_2_5_fair,
+      'over_plus_probable': match.p_over_2_5_fair > match.p_under_2_5_fair,
+      'under_plus_probable': match.p_under_2_5_fair > match.p_over_2_5_fair,
+      'vigorish_ou_2_5': match.vig_ou_2_5,
+      'odds_over_2_5': match.odds_over_2_5,
+      'odds_under_2_5': match.odds_under_2_5
+    });
+    
+    // DEBUG CRITIQUE : Comparaison entre logique brute et logique IA
+    const aiRecs = getAIRecommendations();
+    console.log('🚨 COMPARAISON LOGIQUES:', {
+      'getOver25Winner_BRUTE': getOver25Winner(),
+      'aiRecs.over25Winner_IA': aiRecs.over25Winner,
+      'COHERENTES': getOver25Winner() === aiRecs.over25Winner,
+      'SI_INCOHERENTES_UTILISER': 'aiRecs.over25Winner (IA avec inversion)'
+    });
   
   // 1. RECOMMANDATION IA (Analyse complète avec facteurs d'influence) - Poids 3.0
   const aiRecommendationFromPopup = recommendation;
@@ -959,50 +993,50 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
               {/* BTTS */}
               {bttsData.length > 0 && (
                 <Card className="p-4">
-                  <DonutChart data={bttsData} title="Les Deux Équipes Marquent" prediction={getBttsPercentages()} chartKey="btts" />
-                  <div className="mt-4 grid grid-cols-2 gap-2 text-center">
-                    <div>
-                      <div className="text-xs text-muted-foreground mb-1">BTTS Oui</div>
-                      <div className={`px-2 py-1 bg-brand/10 rounded text-sm font-mono ${
-                        getBttsWinner() === 'Oui' ? 'font-bold text-brand' : 'font-normal text-muted-foreground'
-                      }`}>
-                        {match.odds_btts_yes && !isNaN(match.odds_btts_yes) ? match.odds_btts_yes.toFixed(2) : '0.00'}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted-foreground mb-1">BTTS Non</div>
-                      <div className={`px-2 py-1 bg-brand/10 rounded text-sm font-mono ${
-                        getBttsWinner() === 'Non' ? 'font-bold text-brand' : 'font-normal text-muted-foreground'
-                      }`}>
-                        {match.odds_btts_no && !isNaN(match.odds_btts_no) ? match.odds_btts_no.toFixed(2) : '0.00'}
-                      </div>
-                    </div>
-                  </div>
+                   <DonutChart data={bttsData} title="Les Deux Équipes Marquent" prediction={getBttsPercentages()} chartKey="btts" />
+                   <div className="mt-4 grid grid-cols-2 gap-2 text-center">
+                     <div>
+                       <div className="text-xs text-muted-foreground mb-1">BTTS Oui</div>
+                       <div className={`px-2 py-1 bg-brand/10 rounded text-sm font-mono ${
+                         getAIRecommendations().bttsWinner === 'Oui' ? 'font-bold text-brand' : 'font-normal text-muted-foreground'
+                       }`}>
+                         {match.odds_btts_yes && !isNaN(match.odds_btts_yes) ? match.odds_btts_yes.toFixed(2) : '0.00'}
+                       </div>
+                     </div>
+                     <div>
+                       <div className="text-xs text-muted-foreground mb-1">BTTS Non</div>
+                       <div className={`px-2 py-1 bg-brand/10 rounded text-sm font-mono ${
+                         getAIRecommendations().bttsWinner === 'Non' ? 'font-bold text-brand' : 'font-normal text-muted-foreground'
+                       }`}>
+                         {match.odds_btts_no && !isNaN(match.odds_btts_no) ? match.odds_btts_no.toFixed(2) : '0.00'}
+                       </div>
+                     </div>
+                   </div>
                 </Card>
               )}
 
               {/* Over/Under 2.5 */}
               {over25Data.length > 0 && (
                 <Card className="p-4">
-                  <DonutChart data={over25Data} title="Plus/Moins 2,5 Buts" prediction={getOver25Percentages()} chartKey="over25" />
-                  <div className="mt-4 grid grid-cols-2 gap-2 text-center">
-                    <div>
-                      <div className="text-xs text-muted-foreground mb-1">Plus de 2,5</div>
-                      <div className={`px-2 py-1 bg-brand/10 rounded text-sm font-mono ${
-                        getOver25Winner() === '+2,5 buts' ? 'font-bold text-brand' : 'font-normal text-muted-foreground'
-                      }`}>
-                        {match.odds_over_2_5 && !isNaN(match.odds_over_2_5) ? match.odds_over_2_5.toFixed(2) : '0.00'}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted-foreground mb-1">Moins de 2,5</div>
-                      <div className={`px-2 py-1 bg-brand/10 rounded text-sm font-mono ${
-                        getOver25Winner() === '-2,5 buts' ? 'font-bold text-brand' : 'font-normal text-muted-foreground'
-                      }`}>
-                        {match.odds_under_2_5 && !isNaN(match.odds_under_2_5) ? match.odds_under_2_5.toFixed(2) : '0.00'}
-                      </div>
-                    </div>
-                  </div>
+                   <DonutChart data={over25Data} title="Plus/Moins 2,5 Buts" prediction={getOver25Percentages()} chartKey="over25" />
+                   <div className="mt-4 grid grid-cols-2 gap-2 text-center">
+                     <div>
+                       <div className="text-xs text-muted-foreground mb-1">Plus de 2,5</div>
+                       <div className={`px-2 py-1 bg-brand/10 rounded text-sm font-mono ${
+                         getAIRecommendations().over25Winner === '+2,5 buts' ? 'font-bold text-brand' : 'font-normal text-muted-foreground'
+                       }`}>
+                         {match.odds_over_2_5 && !isNaN(match.odds_over_2_5) ? match.odds_over_2_5.toFixed(2) : '0.00'}
+                       </div>
+                     </div>
+                     <div>
+                       <div className="text-xs text-muted-foreground mb-1">Moins de 2,5</div>
+                       <div className={`px-2 py-1 bg-brand/10 rounded text-sm font-mono ${
+                         getAIRecommendations().over25Winner === '-2,5 buts' ? 'font-bold text-brand' : 'font-normal text-muted-foreground'
+                       }`}>
+                         {match.odds_under_2_5 && !isNaN(match.odds_under_2_5) ? match.odds_under_2_5.toFixed(2) : '0.00'}
+                       </div>
+                     </div>
+                   </div>
                 </Card>
               )}
             </div>
