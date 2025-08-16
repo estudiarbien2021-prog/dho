@@ -1436,9 +1436,9 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                                <Brain className="w-5 h-5 text-white" />
                              </div>
                              <div>
-                               <h4 className="text-lg font-bold text-text">
-                                 {secondRecommendation.type} {secondRecommendation.prediction}
-                               </h4>
+                                <h4 className="text-lg font-bold text-text">
+                                  {secondRecommendation.type === 'O/U 2.5' ? 'Plus/moins' : secondRecommendation.type} {secondRecommendation.prediction}
+                                </h4>
                                <p className="text-sm text-text-weak">
                                  {secondRecommendation.isInverted ? 'Opportunité détectée' : 'Recommandation secondaire'}
                                </p>
