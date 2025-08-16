@@ -339,20 +339,19 @@ export function PicksValidation() {
         const aiRec = generateAIRecommendation(match, []);
         
         if (aiRec) {
-          const probability = aiRec.betType === 'BTTS' 
-            ? (aiRec.prediction === 'Oui' ? match.p_btts_yes_fair : match.p_btts_no_fair)
-            : (aiRec.prediction === '+2,5 buts' ? match.p_over_2_5_fair : match.p_under_2_5_fair);
+          const betType = aiRec.prediction.includes('Oui') || aiRec.prediction.includes('Non') ? 'BTTS' : 'O/U 2.5';
+          const probability = aiRec.probability / 100;
           
           // Appliquer les nouveaux critères : probabilité >= 51% ET odds >= 1.6
           if (probability >= 0.51 && aiRec.odds >= 1.6) {
             validBets.push({
               match,
-              betType: aiRec.betType,
+              betType: betType,
               prediction: aiRec.prediction,
               odds: aiRec.odds,
               probability,
-              vigorish: aiRec.betType === 'BTTS' ? match.vig_btts : match.vig_ou_2_5,
-              id: `${match.id}-${aiRec.betType}-${aiRec.prediction}`
+              vigorish: betType === 'BTTS' ? match.vig_btts : match.vig_ou_2_5,
+              id: `${match.id}-${betType}-${aiRec.prediction}`
             });
           }
         }

@@ -177,7 +177,7 @@ function getMarketRecommendation(match: ProcessedMatch, marketType: string, inve
   return null;
 }
 
-export async function generateAIRecommendations(matches: ProcessedMatch[]): Promise<ProcessedMatch[]> {
+export async function generateAIRecommendationsAsync(matches: ProcessedMatch[]): Promise<ProcessedMatch[]> {
   // Load rules from database
   const rules = await rulesService.getRules();
   
@@ -320,5 +320,65 @@ export async function generateAIRecommendations(matches: ProcessedMatch[]): Prom
   });
 }
 
+// Legacy compatibility function for single match processing
+export function generateAIRecommendation(match: ProcessedMatch, marketFilters: string[] = []): AIRecommendation | null {
+  // Validate complete 1X2 data
+  if (!match.odds_home || !match.odds_draw || !match.odds_away || 
+      !match.p_home_fair || !match.p_draw_fair || !match.p_away_fair) {
+    return null;
+  }
+
+  // Use hardcoded values for legacy compatibility
+  const minOdds = 1.5;
+  const minProbability = 45;
+  const highVigorishThreshold = 8.1;
+  const lowVigorishThreshold = 6;
+  const equalityTolerance = 1;
+
+  // Try BTTS first
+  if (match.odds_btts_yes && match.odds_btts_no) {
+    const yesProb = match.p_btts_yes_fair;
+    const noProb = match.p_btts_no_fair;
+    
+    if (!isEqual(yesProb, noProb, equalityTolerance)) {
+      const isHighVig = match.vig_btts >= highVigorishThreshold;
+      const recommendation = getBTTSRecommendation(match, isHighVig, minOdds, minProbability, equalityTolerance);
+      
+      if (recommendation) {
+        return {
+          prediction: recommendation.prediction.includes('Oui') ? 'Oui' : 'Non',
+          confidence: recommendation.confidence,
+          odds: recommendation.odds,
+          probability: recommendation.probability,
+          vigorish: recommendation.vigorish
+        };
+      }
+    }
+  }
+
+  // Try O/U if BTTS didn't work
+  if (match.odds_over_2_5 && match.odds_under_2_5) {
+    const overProb = match.p_over_2_5_fair;
+    const underProb = match.p_under_2_5_fair;
+    
+    if (!isEqual(overProb, underProb, equalityTolerance)) {
+      const isHighVig = match.vig_ou_2_5 >= highVigorishThreshold;
+      const recommendation = getOURecommendation(match, isHighVig, minOdds, minProbability, equalityTolerance);
+      
+      if (recommendation) {
+        return {
+          prediction: recommendation.prediction.includes('Plus') ? '+2,5 buts' : '-2,5 buts',
+          confidence: recommendation.confidence,
+          odds: recommendation.odds,
+          probability: recommendation.probability,
+          vigorish: recommendation.vigorish
+        };
+      }
+    }
+  }
+
+  return null;
+}
+
 // Legacy export for backward compatibility
-export const generateAIRecommendation = generateAIRecommendations;
+export const generateAIRecommendations = generateAIRecommendationsAsync;

@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import * as React from "react";
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from "@/integrations/supabase/client";
 
@@ -12,12 +13,15 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  console.log('🔐 AuthProvider starting, React available:', !!React);
+  console.log('🔐 useState available:', !!React.useState);
+  
+  const [user, setUser] = React.useState<User | null>(null);
+  const [session, setSession] = React.useState<Session | null>(null);
+  const [loading, setLoading] = React.useState(true);
 
   // User activity tracking moved here to avoid circular dependencies
-  useEffect(() => {
+  React.useEffect(() => {
     const updateLastLogin = async () => {
       if (!user) {
         console.log('🔐 Pas d\'utilisateur connecté pour mettre à jour last_login_at');
@@ -50,7 +54,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -83,14 +87,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signOut }}>
-      {children}
-    </AuthContext.Provider>
+    <React.Fragment>
+      {React.createElement(AuthContext.Provider, { value: { user, session, loading, signOut } }, children)}
+    </React.Fragment>
   );
 };
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
+  const context = React.useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
