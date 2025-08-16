@@ -28,6 +28,17 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
   const hasComplete1X2Data = match.odds_home > 0 && match.odds_draw > 0 && match.odds_away > 0 &&
                               match.p_home_fair > 0 && match.p_draw_fair > 0 && match.p_away_fair > 0;
   
+  console.log(`🔍 VALIDATION DONNÉES pour ${match.home_team} vs ${match.away_team}:`, {
+    hasComplete1X2Data,
+    odds_home: match.odds_home,
+    odds_draw: match.odds_draw,
+    odds_away: match.odds_away,
+    p_home_fair: match.p_home_fair,
+    p_draw_fair: match.p_draw_fair,
+    p_away_fair: match.p_away_fair,
+    vig_1x2: match.vig_1x2
+  });
+  
   const hasCompleteBTTSData = match.odds_btts_yes && match.odds_btts_no &&
                               match.odds_btts_yes > 0 && match.odds_btts_no > 0 &&
                               match.p_btts_yes_fair > 0 && match.p_btts_no_fair > 0;
@@ -36,22 +47,18 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
                             match.odds_over_2_5 > 0 && match.odds_under_2_5 > 0 &&
                             match.p_over_2_5_fair > 0 && match.p_under_2_5_fair > 0;
   
-  if (!hasComplete1X2Data || !hasCompleteBTTSData || !hasCompleteOUData) {
-    console.log(`🚫 RECOMMANDATIONS IA BLOQUÉES - DONNÉES INCOMPLÈTES: ${match.home_team} vs ${match.away_team}`, {
+  if (!hasComplete1X2Data) {
+    console.log(`🚫 RECOMMANDATIONS IA BLOQUÉES - DONNÉES 1X2 INCOMPLÈTES: ${match.home_team} vs ${match.away_team}`, {
       hasComplete1X2: hasComplete1X2Data,
-      hasCompleteBTTS: hasCompleteBTTSData,
-      hasCompleteOU: hasCompleteOUData,
       odds_1x2: { home: match.odds_home, draw: match.odds_draw, away: match.odds_away },
-      odds_btts: { yes: match.odds_btts_yes, no: match.odds_btts_no },
-      odds_ou: { over: match.odds_over_2_5, under: match.odds_under_2_5 },
-      probs_1x2: { home: match.p_home_fair, draw: match.p_draw_fair, away: match.p_away_fair },
-      probs_btts: { yes: match.p_btts_yes_fair, no: match.p_btts_no_fair },
-      probs_ou: { over: match.p_over_2_5_fair, under: match.p_under_2_5_fair }
+      probs_1x2: { home: match.p_home_fair, draw: match.p_draw_fair, away: match.p_away_fair }
     });
     return []; // Retourner un tableau vide - AUCUNE RECOMMANDATION
   }
   
-  console.log(`✅ DONNÉES COMPLÈTES VALIDÉES: ${match.home_team} vs ${match.away_team} - Génération des recommandations IA autorisée`);
+  console.log(`✅ DONNÉES 1X2 VALIDÉES: ${match.home_team} vs ${match.away_team} - Génération des recommandations autorisée`);
+  
+  // Vérifier données BTTS/OU séparément (pour les autres règles)
   
   // Seuils uniformes pour toute l'application
   const MIN_ODDS = 1.3;
