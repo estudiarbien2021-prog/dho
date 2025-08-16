@@ -1,392 +1,430 @@
 
 import { ProcessedMatch } from '@/types/match';
 
-export interface OpportunityRecommendation {
-  type: '1X2' | 'BTTS' | 'O/U 2.5' | '1X2_NEGATIVE' | 'BTTS_NEGATIVE' | 'OU_NEGATIVE';
-  prediction?: string;
-  odds?: number;
-  confidence?: string;
-  reason?: string;
-  isInverted?: boolean;
-  
-  // Pour les recommandations 1X2
-  doubleChance?: string;
-  doubleChanceOdds?: number;
-  secondChoice?: { label: string; prob: number; odds: number; type: string };
-  thirdChoice?: { label: string; prob: number; odds: number; type: string };
-  
-  // Pour les recommandations inverses
-  inversePrediction?: string;
-  inverseOdds?: number;
-  originalAI?: string;
-  shouldMaskAI?: boolean;
+export interface DetectedOpportunity {
+  type: string;
+  prediction: string;
+  odds: number;
+  reason: string[];
+  isInverted: boolean;
+  priority: number;
 }
 
-/**
- * Détecte les opportunités basées sur les vigorish élevés et les marges négatives
- * Logique unifiée utilisée par MarketEfficiencyGauge et AIRecommendationDisplay
- */
-export function detectOpportunities(match: ProcessedMatch): OpportunityRecommendation[] {
-  console.log(`🎯 DETECT OPPORTUNITIES - ${match.home_team} vs ${match.away_team}`);
-  console.log(`📊 Vigorish: 1X2=${(match.vig_1x2 * 100).toFixed(1)}%, BTTS=${(match.vig_btts * 100).toFixed(1)}%, O/U=${(match.vig_ou_2_5 * 100).toFixed(1)}%`);
-  console.log(`🔍 Probabilités BTTS: Oui=${(match.p_btts_yes_fair * 100).toFixed(1)}%, Non=${(match.p_btts_no_fair * 100).toFixed(1)}%`);
-  console.log(`🔍 Probabilités O/U 2.5: Over=${(match.p_over_2_5_fair * 100).toFixed(1)}%, Under=${(match.p_under_2_5_fair * 100).toFixed(1)}%`);
+export function detectOpportunities(match: ProcessedMatch): DetectedOpportunity[] {
+  console.log('🔍 DÉTECTION OPPORTUNITÉS POUR:', match.home_team, 'vs', match.away_team);
   
-  const opportunities: OpportunityRecommendation[] = [];
+  const opportunities: DetectedOpportunity[] = [];
   
-  // Créer un tableau des vigorish avec leurs types et les trier
-  const vigorishData = [
-    { type: '1X2', value: match.vig_1x2 },
-    { type: 'BTTS', value: match.vig_btts },
-    { type: 'O/U2.5', value: match.vig_ou_2_5 }
-  ].sort((a, b) => b.value - a.value);
+  // Seuils de configuration
+  const HIGH_VIG_THRESHOLD = 0.08; // 8%
+  const LOW_VIG_THRESHOLD = 0.06;  // 6%
+  const HIGH_PROB_THRESHOLD = 0.565; // 56.5%
   
-  const highestVigorish = vigorishData[0];
+  console.log('🔍 SEUILS:', {
+    HIGH_VIG_THRESHOLD,
+    LOW_VIG_THRESHOLD,
+    HIGH_PROB_THRESHOLD
+  });
+
+  // === 1. OPPORTUNITÉS NÉGATIVES (Priorité maximale) ===
   
-  // 1. Vérifier les marges négatives d'abord (opportunités premium)
-  console.log(`🔍 VÉRIFICATION MARGES NÉGATIVES:`);
-  
+  // 1X2 Negative Vigorish
   if (match.vig_1x2 < 0) {
-    console.log(`✅ 1X2 NÉGATIF détecté: ${(match.vig_1x2 * 100).toFixed(1)}%`);
-    const homeProb = match.p_home_fair;
-    const drawProb = match.p_draw_fair;
-    const awayProb = match.p_away_fair;
+    const most1x2Prob = Math.max(match.p_home_fair, match.p_draw_fair, match.p_away_fair);
+    let prediction1x2 = '';
+    let odds1x2 = 0;
     
-    let prediction = '';
-    let odds = 0;
-    
-    if (homeProb > drawProb && homeProb > awayProb) {
-      prediction = match.home_team;
-      odds = match.odds_home;
-    } else if (awayProb > drawProb && awayProb > homeProb) {
-      prediction = match.away_team;
-      odds = match.odds_away;
+    if (most1x2Prob === match.p_home_fair) {
+      prediction1x2 = 'Victoire domicile';
+      odds1x2 = match.odds_home;
+    } else if (most1x2Prob === match.p_away_fair) {
+      prediction1x2 = 'Victoire extérieur';
+      odds1x2 = match.odds_away;
     } else {
-      prediction = 'Nul';
-      odds = match.odds_draw;
+      prediction1x2 = 'Match nul';
+      odds1x2 = match.odds_draw;
     }
     
     opportunities.push({
       type: '1X2_NEGATIVE',
-      prediction,
-      odds,
-      confidence: 'Très élevée',
-      reason: 'Opportunité Premium Disponible',
-      isInverted: false
+      prediction: prediction1x2,
+      odds: odds1x2,
+      reason: [`Vigorish négatif exceptionnel: ${(match.vig_1x2 * 100).toFixed(2)}%`],
+      isInverted: false,
+      priority: 1
     });
+    
+    console.log('🎯 OPPORTUNITÉ NÉGATIVE 1X2 DÉTECTÉE:', prediction1x2, 'odds:', odds1x2);
   }
   
-  if (match.vig_btts < 0 && match.odds_btts_yes && match.odds_btts_no) {
-    console.log(`✅ BTTS NÉGATIF détecté: ${(match.vig_btts * 100).toFixed(1)}%`);
-    const bttsYesProb = match.p_btts_yes_fair;
-    const bttsNoProb = match.p_btts_no_fair;
+  // BTTS Negative Vigorish
+  if (match.vig_btts && match.vig_btts < 0 && 
+      match.p_btts_yes_fair > 0 && match.p_btts_no_fair > 0 && 
+      match.odds_btts_yes && match.odds_btts_no) {
     
-    // Vérifier l'égalité 50/50 même pour les marges négatives
-    const isBTTSEqual = Math.abs(bttsYesProb - bttsNoProb) <= 0.01;
-    if (isBTTSEqual) {
-      console.log(`⚠️ BTTS 50/50 détecté même avec marge négative - PAS DE RECOMMANDATION`);
-    } else {
-      const prediction = bttsYesProb > bttsNoProb ? 'Oui' : 'Non';
-      const odds = bttsYesProb > bttsNoProb ? match.odds_btts_yes : match.odds_btts_no;
+    // Vérifier que ce n'est pas une égalité 50/50
+    const isBTTSEqual = Math.abs(match.p_btts_yes_fair - match.p_btts_no_fair) <= 0.01;
+    
+    if (!isBTTSEqual) {
+      const mostBttsProb = Math.max(match.p_btts_yes_fair, match.p_btts_no_fair);
+      const predictionBtts = mostBttsProb === match.p_btts_yes_fair ? 'Oui' : 'Non';
+      const oddsBtts = mostBttsProb === match.p_btts_yes_fair ? match.odds_btts_yes : match.odds_btts_no;
       
       opportunities.push({
         type: 'BTTS_NEGATIVE',
-        prediction,
-        odds,
-        confidence: 'Très élevée',
-        reason: 'Opportunité Premium Disponible',
-        isInverted: false
+        prediction: predictionBtts,
+        odds: oddsBtts,
+        reason: [`Vigorish négatif exceptionnel: ${(match.vig_btts * 100).toFixed(2)}%`],
+        isInverted: false,
+        priority: 1
       });
+      
+      console.log('🎯 OPPORTUNITÉ NÉGATIVE BTTS DÉTECTÉE:', predictionBtts, 'odds:', oddsBtts);
     }
   }
   
-  if (match.vig_ou_2_5 < 0 && match.odds_over_2_5 && match.odds_under_2_5) {
-    console.log(`✅ O/U 2.5 NÉGATIF détecté: ${(match.vig_ou_2_5 * 100).toFixed(1)}%`);
-    const overProb = match.p_over_2_5_fair;
-    const underProb = match.p_under_2_5_fair;
+  // O/U 2.5 Negative Vigorish
+  if (match.vig_ou_2_5 < 0) {
+    // Vérifier que ce n'est pas une égalité 50/50
+    const isOUEqual = Math.abs(match.p_over_2_5_fair - match.p_under_2_5_fair) <= 0.01;
     
-    // Vérifier l'égalité 50/50 même pour les marges négatives
-    const isOUEqual = Math.abs(overProb - underProb) <= 0.01;
-    if (isOUEqual) {
-      console.log(`⚠️ O/U 2.5 50/50 détecté même avec marge négative - PAS DE RECOMMANDATION`);
-    } else {
-      const prediction = overProb > underProb ? '+2,5 buts' : '-2,5 buts';
-      const odds = overProb > underProb ? match.odds_over_2_5 : match.odds_under_2_5;
+    if (!isOUEqual) {
+      const mostOuProb = Math.max(match.p_over_2_5_fair, match.p_under_2_5_fair);
+      const predictionOu = mostOuProb === match.p_over_2_5_fair ? '+2,5 buts' : '-2,5 buts';
+      const oddsOu = mostOuProb === match.p_over_2_5_fair ? match.odds_over_2_5 : match.odds_under_2_5;
       
       opportunities.push({
-        type: 'OU_NEGATIVE',
-        prediction,
-        odds,
-        confidence: 'Très élevée',
-        reason: 'Opportunité Premium Disponible',
-        isInverted: false
+        type: 'O/U_2.5_NEGATIVE',
+        prediction: predictionOu,
+        odds: oddsOu,
+        reason: [`Vigorish négatif exceptionnel: ${(match.vig_ou_2_5 * 100).toFixed(2)}%`],
+        isInverted: false,
+        priority: 1
       });
+      
+      console.log('🎯 OPPORTUNITÉ NÉGATIVE O/U DÉTECTÉE:', predictionOu, 'odds:', oddsOu);
+    }
+  }
+
+  // === 2. OPPORTUNITÉS D'INVERSION (Vigorish élevé + probabilité < 56.5%) ===
+  
+  // BTTS Inversion
+  if (match.vig_btts && match.vig_btts >= HIGH_VIG_THRESHOLD && 
+      match.p_btts_yes_fair > 0 && match.p_btts_no_fair > 0 && 
+      match.odds_btts_yes && match.odds_btts_no) {
+    
+    console.log('🔍 ANALYSE BTTS INVERSION:', {
+      'vig_btts': match.vig_btts,
+      'p_btts_yes_fair': match.p_btts_yes_fair,
+      'p_btts_no_fair': match.p_btts_no_fair,
+      'seuil_inversion': HIGH_PROB_THRESHOLD
+    });
+    
+    // Vérifier que ce n'est pas une égalité 50/50
+    const isBTTSEqual = Math.abs(match.p_btts_yes_fair - match.p_btts_no_fair) <= 0.01;
+    
+    if (!isBTTSEqual) {
+      const mostBttsProb = Math.max(match.p_btts_yes_fair, match.p_btts_no_fair);
+      
+      // INVERSION: Si probabilité la plus élevée < 56.5%, on inverse
+      if (mostBttsProb < HIGH_PROB_THRESHOLD) {
+        const inversePrediction = mostBttsProb === match.p_btts_yes_fair ? 'Non' : 'Oui';
+        const inverseOdds = mostBttsProb === match.p_btts_yes_fair ? match.odds_btts_no : match.odds_btts_yes;
+        
+        opportunities.push({
+          type: 'BTTS',
+          prediction: inversePrediction,
+          odds: inverseOdds,
+          reason: [
+            `Inversion stratégique`,
+            `Vigorish élevé: ${(match.vig_btts * 100).toFixed(1)}%`,
+            `Probabilité max: ${(mostBttsProb * 100).toFixed(1)}% < ${(HIGH_PROB_THRESHOLD * 100).toFixed(1)}%`
+          ],
+          isInverted: true,
+          priority: 2
+        });
+        
+        console.log('🔄 INVERSION BTTS APPLIQUÉE:', inversePrediction, 'odds:', inverseOdds);
+      } else {
+        console.log('❌ INVERSION BTTS REFUSÉE - Probabilité trop élevée:', (mostBttsProb * 100).toFixed(1), '%');
+      }
+    } else {
+      console.log('🔄 BTTS égalité 50/50 détectée → Exclusion');
     }
   }
   
-  // 2. 1X2 : si c'est le plus élevé ou le deuxième plus élevé ET >= 10%
-  console.log(`🔍 VÉRIFICATION 1X2 DOUBLE CHANCE:`);
-  const is1X2TopTwo = vigorishData[0].type === '1X2' || vigorishData[1].type === '1X2';
-  const is1X2HighVigorish = match.vig_1x2 >= 0.10;
+  // O/U 2.5 Inversion
+  if (match.vig_ou_2_5 >= HIGH_VIG_THRESHOLD) {
+    console.log('🔍 ANALYSE O/U INVERSION:', {
+      'vig_ou_2_5': match.vig_ou_2_5,
+      'p_over_2_5_fair': match.p_over_2_5_fair,
+      'p_under_2_5_fair': match.p_under_2_5_fair,
+      'seuil_inversion': HIGH_PROB_THRESHOLD
+    });
+    
+    // Vérifier que ce n'est pas une égalité 50/50
+    const isOUEqual = Math.abs(match.p_over_2_5_fair - match.p_under_2_5_fair) <= 0.01;
+    
+    if (!isOUEqual) {
+      const mostOuProb = Math.max(match.p_over_2_5_fair, match.p_under_2_5_fair);
+      
+      // INVERSION: Si probabilité la plus élevée < 56.5%, on inverse
+      if (mostOuProb < HIGH_PROB_THRESHOLD) {
+        const inversePrediction = mostOuProb === match.p_over_2_5_fair ? '-2,5 buts' : '+2,5 buts';
+        const inverseOdds = mostOuProb === match.p_over_2_5_fair ? match.odds_under_2_5 : match.odds_over_2_5;
+        
+        opportunities.push({
+          type: 'O/U 2.5',
+          prediction: inversePrediction,
+          odds: inverseOdds,
+          reason: [
+            `Inversion stratégique`,
+            `Vigorish élevé: ${(match.vig_ou_2_5 * 100).toFixed(1)}%`,
+            `Probabilité max: ${(mostOuProb * 100).toFixed(1)}% < ${(HIGH_PROB_THRESHOLD * 100).toFixed(1)}%`
+          ],
+          isInverted: true,
+          priority: 2
+        });
+        
+        console.log('🔄 INVERSION O/U APPLIQUÉE:', inversePrediction, 'odds:', inverseOdds);
+      } else {
+        console.log('❌ INVERSION O/U REFUSÉE - Probabilité trop élevée:', (mostOuProb * 100).toFixed(1), '%');
+      }
+    } else {
+      console.log('🔄 O/U égalité 50/50 détectée → Exclusion');
+    }
+  }
+
+  // === 3. OPPORTUNITÉS DIRECTES (Faible vigorish) ===
   
-  if (is1X2TopTwo && is1X2HighVigorish) {
-    console.log(`✅ 1X2 CONDITIONS REMPLIES: TopTwo=${is1X2TopTwo}, HighVig=${is1X2HighVigorish} (${(match.vig_1x2 * 100).toFixed(1)}%)`);
+  // 1X2 Direct (Faible vigorish)
+  if (match.vig_1x2 < LOW_VIG_THRESHOLD) {
+    const most1x2Prob = Math.max(match.p_home_fair, match.p_draw_fair, match.p_away_fair);
+    let prediction1x2 = '';
+    let odds1x2 = 0;
     
-    // Calculer les probabilités implicites
-    const probHome = 1 / match.odds_home;
-    const probDraw = 1 / match.odds_draw;
-    const probAway = 1 / match.odds_away;
-    
-    // Créer un tableau des probabilités avec leurs labels
-    const outcomes = [
-      { label: match.home_team, prob: probHome, odds: match.odds_home, type: 'home' },
-      { label: 'Nul', prob: probDraw, odds: match.odds_draw, type: 'draw' },
-      { label: match.away_team, prob: probAway, odds: match.odds_away, type: 'away' }
-    ];
-    
-    // Trier par probabilité décroissante
-    outcomes.sort((a, b) => b.prob - a.prob);
-    
-    // Prendre la 2ème et 3ème option
-    const secondChoice = outcomes[1];
-    const thirdChoice = outcomes[2];
-    
-    // Calculer les chances doubles
-    let doubleChance = '';
-    let doubleChanceOdds = 0;
-    
-    // Déterminer la combinaison de chance double basée sur les 2ème et 3ème choix
-    if ((secondChoice.type === 'home' && thirdChoice.type === 'draw') || 
-        (secondChoice.type === 'draw' && thirdChoice.type === 'home')) {
-      doubleChance = '1X';
-      doubleChanceOdds = 1 / (probHome + probDraw);
-    } else if ((secondChoice.type === 'home' && thirdChoice.type === 'away') || 
-               (secondChoice.type === 'away' && thirdChoice.type === 'home')) {
-      doubleChance = '12';
-      doubleChanceOdds = 1 / (probHome + probAway);
-    } else if ((secondChoice.type === 'draw' && thirdChoice.type === 'away') || 
-               (secondChoice.type === 'away' && thirdChoice.type === 'draw')) {
-      doubleChance = 'X2';
-      doubleChanceOdds = 1 / (probDraw + probAway);
+    if (most1x2Prob === match.p_home_fair) {
+      prediction1x2 = 'Victoire domicile';
+      odds1x2 = match.odds_home;
+    } else if (most1x2Prob === match.p_away_fair) {
+      prediction1x2 = 'Victoire extérieur';
+      odds1x2 = match.odds_away;
+    } else {
+      prediction1x2 = 'Match nul';
+      odds1x2 = match.odds_draw;
     }
     
-    // Ne proposer que si les cotes de chance double sont <= 4
-    if (doubleChanceOdds <= 4) {
-      console.log(`✅ DOUBLE CHANCE AJOUTÉE: ${doubleChance} @${doubleChanceOdds.toFixed(2)}`);
+    opportunities.push({
+      type: '1X2',
+      prediction: prediction1x2,
+      odds: odds1x2,
+      reason: [`Faible vigorish: ${(match.vig_1x2 * 100).toFixed(1)}%`, `Probabilité élevée: ${(most1x2Prob * 100).toFixed(1)}%`],
+      isInverted: false,
+      priority: 3
+    });
+    
+    console.log('💰 OPPORTUNITÉ DIRECTE 1X2:', prediction1x2, 'odds:', odds1x2);
+  }
+  
+  // BTTS Direct (Faible vigorish)
+  if (match.vig_btts && match.vig_btts < LOW_VIG_THRESHOLD && 
+      match.p_btts_yes_fair > 0 && match.p_btts_no_fair > 0 && 
+      match.odds_btts_yes && match.odds_btts_no) {
+    
+    // Vérifier que ce n'est pas une égalité 50/50
+    const isBTTSEqual = Math.abs(match.p_btts_yes_fair - match.p_btts_no_fair) <= 0.01;
+    
+    if (!isBTTSEqual) {
+      const mostBttsProb = Math.max(match.p_btts_yes_fair, match.p_btts_no_fair);
+      const predictionBtts = mostBttsProb === match.p_btts_yes_fair ? 'Oui' : 'Non';
+      const oddsBtts = mostBttsProb === match.p_btts_yes_fair ? match.odds_btts_yes : match.odds_btts_no;
+      
       opportunities.push({
-        type: '1X2',
-        prediction: doubleChance,
-        odds: doubleChanceOdds,
-        confidence: 'Élevée',
-        doubleChance,
-        doubleChanceOdds,
-        secondChoice,
-        thirdChoice,
-        shouldMaskAI: false,
-        isInverted: true
+        type: 'BTTS',
+        prediction: predictionBtts,
+        odds: oddsBtts,
+        reason: [`Faible vigorish: ${(match.vig_btts * 100).toFixed(1)}%`, `Probabilité élevée: ${(mostBttsProb * 100).toFixed(1)}%`],
+        isInverted: false,
+        priority: 3
       });
-    } else {
-      console.log(`❌ DOUBLE CHANCE REJETÉE: cotes trop élevées (${doubleChanceOdds.toFixed(2)} > 4.0)`);
+      
+      console.log('💰 OPPORTUNITÉ DIRECTE BTTS:', predictionBtts, 'odds:', oddsBtts);
     }
-  } else {
-    console.log(`❌ 1X2 CONDITIONS NON REMPLIES: TopTwo=${is1X2TopTwo}, HighVig=${is1X2HighVigorish} (${(match.vig_1x2 * 100).toFixed(1)}%)`);
   }
   
-  // 3. BTTS : nouvelle logique avec vérification d'égalité 50/50
-  console.log(`🔍 VÉRIFICATION BTTS:`);
-  if (match.odds_btts_yes && match.odds_btts_no) {
-    const bttsYesProb = match.p_btts_yes_fair;
-    const bttsNoProb = match.p_btts_no_fair;
-    const highestBTTSProb = Math.max(bttsYesProb, bttsNoProb);
+  // O/U 2.5 Direct (Faible vigorish)
+  if (match.vig_ou_2_5 < LOW_VIG_THRESHOLD) {
+    // Vérifier que ce n'est pas une égalité 50/50
+    const isOUEqual = Math.abs(match.p_over_2_5_fair - match.p_under_2_5_fair) <= 0.01;
     
-    // VÉRIFICATION CRITIQUE: Égalité 50/50
-    const isBTTSEqual = Math.abs(bttsYesProb - bttsNoProb) <= 0.01;
-    console.log(`🎯 BTTS Égalité 50/50: ${isBTTSEqual} (diff: ${Math.abs(bttsYesProb - bttsNoProb).toFixed(3)})`);
-    
-    if (isBTTSEqual) {
-      console.log(`⚠️ BTTS 50/50 DÉTECTÉ - AUCUNE RECOMMANDATION BTTS`);
-    } else {
-      // Si vigorish < 6%, proposer directement (plus haute probabilité)
-      if (match.vig_btts < 0.06) {
-        console.log(`✅ BTTS Vigorish < 6%: ${(match.vig_btts * 100).toFixed(1)}%`);
-        const prediction = bttsYesProb > bttsNoProb ? 'Oui' : 'Non';
-        const odds = bttsYesProb > bttsNoProb ? match.odds_btts_yes : match.odds_btts_no;
-        
-        opportunities.push({
-          type: 'BTTS',
-          prediction,
-          odds,
-          confidence: 'Élevée',
-          reason: 'Faible vigorish détecté',
-          isInverted: false
-        });
-      }
-      // NOUVELLE CONDITION: Si vigorish 6-8% ET probabilité > 60%, proposer directement
-      else if (match.vig_btts >= 0.06 && match.vig_btts < 0.08 && highestBTTSProb > 0.60) {
-        console.log(`✅ BTTS Forte probabilité: ${(match.vig_btts * 100).toFixed(1)}% vig, ${(highestBTTSProb * 100).toFixed(1)}% prob`);
-        const prediction = bttsYesProb > bttsNoProb ? 'Oui' : 'Non';
-        const odds = bttsYesProb > bttsNoProb ? match.odds_btts_yes : match.odds_btts_no;
-        
-        opportunities.push({
-          type: 'BTTS',
-          prediction,
-          odds,
-          confidence: 'Élevée',
-          reason: 'Forte probabilité détectée',
-          isInverted: false
-        });
-      }
-      // Si vigorish >= 8%, proposer l'inverse (sauf si probabilité >= 56.5%)
-      else if (match.vig_btts >= 0.08 && highestBTTSProb < 0.565) {
-        console.log(`🔄 BTTS Inversion: vig=${(match.vig_btts * 100).toFixed(1)}%, prob=${(highestBTTSProb * 100).toFixed(1)}%`);
-        
-        // Utiliser la prédiction d'analyse (basée sur les probabilités)
-        const analysisOriginalPrediction = bttsYesProb > bttsNoProb ? 'Oui' : 'Non';
-        
-        // Proposer l'inverse de la prédiction d'analyse
-        const inversePrediction = analysisOriginalPrediction === 'Oui' ? 'Non' : 'Oui';
-        const inverseOdds = analysisOriginalPrediction === 'Oui' ? match.odds_btts_no : match.odds_btts_yes;
-        
-        opportunities.push({
-          type: 'BTTS',
-          prediction: inversePrediction,
-          odds: inverseOdds,
-          confidence: 'Élevée',
-          inversePrediction,
-          inverseOdds,
-          originalAI: analysisOriginalPrediction,
-          shouldMaskAI: true,
-          isInverted: true
-        });
-      }
-      // Si probabilité >= 56.5%, recommander directement le plus probable (ignorer vigorish)
-      else if (highestBTTSProb >= 0.565) {
-        console.log(`✅ BTTS Probabilité élevée: ${(highestBTTSProb * 100).toFixed(1)}% (ignore vigorish)`);
-        const directPrediction = bttsYesProb > bttsNoProb ? 'Oui' : 'Non';
-        const directOdds = directPrediction === 'Oui' ? match.odds_btts_yes : match.odds_btts_no;
-        
-        opportunities.push({
-          type: 'BTTS',
-          prediction: directPrediction,
-          odds: directOdds,
-          confidence: 'Modérée', // Car vigorish élevé mais probabilité solide
-          reason: 'Probabilité élevée (>56.5%)',
-          isInverted: false
-        });
-      } else {
-        console.log(`❌ BTTS Aucune condition remplie`);
-      }
+    if (!isOUEqual) {
+      const mostOuProb = Math.max(match.p_over_2_5_fair, match.p_under_2_5_fair);
+      const predictionOu = mostOuProb === match.p_over_2_5_fair ? '+2,5 buts' : '-2,5 buts';
+      const oddsOu = mostOuProb === match.p_over_2_5_fair ? match.odds_over_2_5 : match.odds_under_2_5;
+      
+      opportunities.push({
+        type: 'O/U 2.5',
+        prediction: predictionOu,
+        odds: oddsOu,
+        reason: [`Faible vigorish: ${(match.vig_ou_2_5 * 100).toFixed(1)}%`, `Probabilité élevée: ${(mostOuProb * 100).toFixed(1)}%`],
+        isInverted: false,
+        priority: 3
+      });
+      
+      console.log('💰 OPPORTUNITÉ DIRECTE O/U:', predictionOu, 'odds:', oddsOu);
     }
-  } else {
-    console.log(`❌ BTTS Cotes manquantes`);
+  }
+
+  // === 4. OPPORTUNITÉS DE HAUTE PROBABILITÉ ===
+  
+  // 1X2 Haute Probabilité
+  const most1x2Prob = Math.max(match.p_home_fair, match.p_draw_fair, match.p_away_fair);
+  if (most1x2Prob >= HIGH_PROB_THRESHOLD) {
+    let prediction1x2 = '';
+    let odds1x2 = 0;
+    
+    if (most1x2Prob === match.p_home_fair) {
+      prediction1x2 = 'Victoire domicile';
+      odds1x2 = match.odds_home;
+    } else if (most1x2Prob === match.p_away_fair) {
+      prediction1x2 = 'Victoire extérieur';
+      odds1x2 = match.odds_away;
+    } else {
+      prediction1x2 = 'Match nul';
+      odds1x2 = match.odds_draw;
+    }
+    
+    opportunities.push({
+      type: '1X2',
+      prediction: prediction1x2,
+      odds: odds1x2,
+      reason: [`Probabilité élevée: ${(most1x2Prob * 100).toFixed(1)}%`],
+      isInverted: false,
+      priority: 4
+    });
+    
+    console.log('📈 OPPORTUNITÉ HAUTE PROB 1X2:', prediction1x2, 'odds:', odds1x2);
   }
   
-  // 4. O/U 2.5 : nouvelle logique avec vérification d'égalité 50/50
-  console.log(`🔍 VÉRIFICATION O/U 2.5:`);
-  if (match.odds_over_2_5 && match.odds_under_2_5) {
-    const overProb = match.p_over_2_5_fair;
-    const underProb = match.p_under_2_5_fair;
-    const highestOUProb = Math.max(overProb, underProb);
+  // BTTS Haute Probabilité
+  if (match.p_btts_yes_fair > 0 && match.p_btts_no_fair > 0 && 
+      match.odds_btts_yes && match.odds_btts_no) {
     
-    // VÉRIFICATION CRITIQUE: Égalité 50/50
-    const isOUEqual = Math.abs(overProb - underProb) <= 0.01;
-    console.log(`🎯 O/U 2.5 Égalité 50/50: ${isOUEqual} (diff: ${Math.abs(overProb - underProb).toFixed(3)})`);
+    // Vérifier que ce n'est pas une égalité 50/50
+    const isBTTSEqual = Math.abs(match.p_btts_yes_fair - match.p_btts_no_fair) <= 0.01;
     
-    if (isOUEqual) {
-      console.log(`⚠️ O/U 2.5 50/50 DÉTECTÉ - AUCUNE RECOMMANDATION O/U 2.5`);
-    } else {
-      // Si vigorish < 6%, proposer directement (plus haute probabilité)
-      if (match.vig_ou_2_5 < 0.06) {
-        console.log(`✅ O/U 2.5 Vigorish < 6%: ${(match.vig_ou_2_5 * 100).toFixed(1)}%`);
-        const prediction = overProb > underProb ? '+2,5 buts' : '-2,5 buts';
-        const odds = overProb > underProb ? match.odds_over_2_5 : match.odds_under_2_5;
+    if (!isBTTSEqual) {
+      const mostBttsProb = Math.max(match.p_btts_yes_fair, match.p_btts_no_fair);
+      
+      if (mostBttsProb >= HIGH_PROB_THRESHOLD) {
+        const predictionBtts = mostBttsProb === match.p_btts_yes_fair ? 'Oui' : 'Non';
+        const oddsBtts = mostBttsProb === match.p_btts_yes_fair ? match.odds_btts_yes : match.odds_btts_no;
         
         opportunities.push({
-          type: 'O/U 2.5',
-          prediction,
-          odds,
-          confidence: 'Élevée',
-          reason: 'Faible vigorish détecté',
-          isInverted: false
+          type: 'BTTS',
+          prediction: predictionBtts,
+          odds: oddsBtts,
+          reason: [`Probabilité élevée: ${(mostBttsProb * 100).toFixed(1)}%`],
+          isInverted: false,
+          priority: 4
         });
-      }
-      // NOUVELLE CONDITION: Si vigorish 6-8% ET probabilité > 60%, proposer directement
-      else if (match.vig_ou_2_5 >= 0.06 && match.vig_ou_2_5 < 0.08 && highestOUProb > 0.60) {
-        console.log(`✅ O/U 2.5 Forte probabilité: ${(match.vig_ou_2_5 * 100).toFixed(1)}% vig, ${(highestOUProb * 100).toFixed(1)}% prob`);
-        const prediction = overProb > underProb ? '+2,5 buts' : '-2,5 buts';
-        const odds = overProb > underProb ? match.odds_over_2_5 : match.odds_under_2_5;
         
-        opportunities.push({
-          type: 'O/U 2.5',
-          prediction,
-          odds,
-          confidence: 'Élevée',
-          reason: 'Forte probabilité détectée',
-          isInverted: false
-        });
-      }
-      // Si vigorish >= 8%, proposer l'inverse (sauf si probabilité >= 56.5%)
-      else if (match.vig_ou_2_5 >= 0.08 && highestOUProb < 0.565) {
-        console.log(`🔄 O/U 2.5 Inversion: vig=${(match.vig_ou_2_5 * 100).toFixed(1)}%, prob=${(highestOUProb * 100).toFixed(1)}%`);
-        
-        // Utiliser la prédiction d'analyse (basée sur les probabilités)
-        const analysisOriginalPrediction = overProb > underProb ? '+2,5 buts' : '-2,5 buts';
-        
-        // Proposer l'inverse de la prédiction d'analyse
-        const inversePrediction = analysisOriginalPrediction === '+2,5 buts' ? '-2,5 buts' : '+2,5 buts';
-        const inverseOdds = analysisOriginalPrediction === '+2,5 buts' ? match.odds_under_2_5 : match.odds_over_2_5;
-        
-        opportunities.push({
-          type: 'O/U 2.5',
-          prediction: inversePrediction,
-          odds: inverseOdds,
-          confidence: 'Élevée',
-          inversePrediction,
-          inverseOdds,
-          originalAI: analysisOriginalPrediction,
-          shouldMaskAI: true,
-          isInverted: true
-        });
-      }
-      // Si probabilité >= 56.5%, recommander directement le plus probable (ignorer vigorish)
-      else if (highestOUProb >= 0.565) {
-        console.log(`✅ O/U 2.5 Probabilité élevée: ${(highestOUProb * 100).toFixed(1)}% (ignore vigorish)`);
-        const directPrediction = overProb > underProb ? '+2,5 buts' : '-2,5 buts';
-        const directOdds = directPrediction === '+2,5 buts' ? match.odds_over_2_5 : match.odds_under_2_5;
-        
-        opportunities.push({
-          type: 'O/U 2.5',
-          prediction: directPrediction,
-          odds: directOdds,
-          confidence: 'Modérée', // Car vigorish élevé mais probabilité solide
-          reason: 'Probabilité élevée (>56.5%)',
-          isInverted: false
-        });
-      } else {
-        console.log(`❌ O/U 2.5 Aucune condition remplie`);
+        console.log('📈 OPPORTUNITÉ HAUTE PROB BTTS:', predictionBtts, 'odds:', oddsBtts);
       }
     }
-  } else {
-    console.log(`❌ O/U 2.5 Cotes manquantes`);
   }
   
-  console.log('🔚 OPPORTUNITIES FINALES:', opportunities.map(o => 
-    `${o.type}: ${o.prediction} @${o.odds?.toFixed(2)} (inverted:${o.isInverted}) (${o.reason})`
+  // O/U 2.5 Haute Probabilité
+  const isOUEqual = Math.abs(match.p_over_2_5_fair - match.p_under_2_5_fair) <= 0.01;
+  
+  if (!isOUEqual) {
+    const mostOuProb = Math.max(match.p_over_2_5_fair, match.p_under_2_5_fair);
+    
+    if (mostOuProb >= HIGH_PROB_THRESHOLD) {
+      const predictionOu = mostOuProb === match.p_over_2_5_fair ? '+2,5 buts' : '-2,5 buts';
+      const oddsOu = mostOuProb === match.p_over_2_5_fair ? match.odds_over_2_5 : match.odds_under_2_5;
+      
+      opportunities.push({
+        type: 'O/U 2.5',
+        prediction: predictionOu,
+        odds: oddsOu,
+        reason: [`Probabilité élevée: ${(mostOuProb * 100).toFixed(1)}%`],
+        isInverted: false,
+        priority: 4
+      });
+      
+      console.log('📈 OPPORTUNITÉ HAUTE PROB O/U:', predictionOu, 'odds:', oddsOu);
+    }
+  }
+
+  // === 5. DOUBLE CHANCE (Vigorish 1X2 >= 10%) ===
+  
+  if (match.vig_1x2 >= 0.1) {
+    const probHome = match.p_home_fair;
+    const probDraw = match.p_draw_fair;
+    const probAway = match.p_away_fair;
+    
+    const outcomes = [
+      { label: 'home', prob: probHome },
+      { label: 'draw', prob: probDraw },
+      { label: 'away', prob: probAway }
+    ].sort((a, b) => b.prob - a.prob);
+    
+    const mostProbableOutcome = outcomes[0].label;
+    
+    let doubleChancePrediction = '';
+    let doubleChanceOdds = 1.5; // Odds estimées par défaut
+    
+    if (mostProbableOutcome === 'home') {
+      doubleChancePrediction = 'X2';
+    } else if (mostProbableOutcome === 'draw') {
+      doubleChancePrediction = '12';
+    } else {
+      doubleChancePrediction = '1X';
+    }
+    
+    opportunities.push({
+      type: 'Double Chance',
+      prediction: doubleChancePrediction,
+      odds: doubleChanceOdds,
+      reason: [
+        `Vigorish 1X2 élevé: ${(match.vig_1x2 * 100).toFixed(1)}%`,
+        `Stratégie d'exclusion du plus probable: ${mostProbableOutcome}`
+      ],
+      isInverted: false,
+      priority: 5
+    });
+    
+    console.log('🎲 DOUBLE CHANCE GÉNÉRÉE:', doubleChancePrediction, 'odds:', doubleChanceOdds);
+  }
+
+  // FILTRAGE FINAL: Supprimer les recommandations principales avec odds < 1.5
+  const filteredOpportunities = opportunities.filter((opp, index) => {
+    // Si c'est la première opportunité (recommandation principale) et odds < 1.5, on l'exclut
+    if (index === 0 && opp.odds < 1.5) {
+      console.log('❌ RECOMMANDATION PRINCIPALE EXCLUE - Odds trop faibles:', opp.odds, 'pour', opp.type, opp.prediction);
+      return false;
+    }
+    return true;
+  });
+
+  // TRI FINAL par priorité (1 = priorité maximale)
+  const sortedOpportunities = filteredOpportunities.sort((a, b) => a.priority - b.priority);
+  
+  console.log('🏆 OPPORTUNITÉS FINALES TRIÉES:', sortedOpportunities.map((o, i) => 
+    `${i+1}. ${o.type}:${o.prediction} (priority:${o.priority}, inverted:${o.isInverted}, odds:${o.odds})`
   ));
   
-  return opportunities;
+  return sortedOpportunities;
 }
 
-/**
- * Convertit une opportunité en format AIRecommendation pour la compatibilité
- */
-export function convertOpportunityToAIRecommendation(opportunity: OpportunityRecommendation) {
+export function convertOpportunityToAIRecommendation(opportunity: DetectedOpportunity) {
   return {
-    betType: opportunity.type === '1X2' ? 'chance double' : opportunity.type,
-    prediction: opportunity.prediction || '',
-    odds: opportunity.odds || 0,
-    confidence: opportunity.confidence || 'low',
-    isInverted: opportunity.isInverted || false,
-    reason: opportunity.reason || []
+    betType: opportunity.type,
+    prediction: opportunity.prediction,
+    odds: opportunity.odds,
+    confidence: opportunity.isInverted ? 'high' : 'medium',
+    isInverted: opportunity.isInverted,
+    reason: opportunity.reason
   };
 }
