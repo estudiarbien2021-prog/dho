@@ -469,6 +469,22 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
 
   // Générer la matrice avec nouvelle logique de recommandations
   const generateMatrix = () => {
+    console.log('🔍 GÉNÉRATION MATRICE - VÉRIFICATION DONNÉES:', {
+      'p_btts_yes_fair': match.p_btts_yes_fair,
+      'p_btts_no_fair': match.p_btts_no_fair,
+      'p_over_2_5_fair': match.p_over_2_5_fair,
+      'p_under_2_5_fair': match.p_under_2_5_fair
+    });
+
+    // NOUVELLE RÈGLE : Vérifier les données essentielles AVANT de générer la matrice
+    const hasValidBTTS = match.p_btts_yes_fair > 0 || match.p_btts_no_fair > 0;
+    const hasValidOU = match.p_over_2_5_fair > 0 && match.p_under_2_5_fair > 0;
+    
+    if (!hasValidBTTS || !hasValidOU) {
+      console.log('🚫 ARRÊT GÉNÉRATION MATRICE - DONNÉES INSUFFISANTES');
+      return []; // Retourner matrice vide
+    }
+
     const recommendations = getAllRecommendations();
 
     // Use the real match probabilities with Poisson model
