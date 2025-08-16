@@ -364,17 +364,38 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
       coherenceLevel: number;
       coherentRecommendations: string[];
       highlightReason: string;
+      baseProbability: number; // DEBUG
+      multiplier: number; // DEBUG
     }> = [];
     
     for (let home = 0; home <= maxScore; home++) {
       for (let away = 0; away <= maxScore; away++) {
         let probability = baseProbabilities[home][away];
+        const originalBaseProbability = probability;
         
         // Évaluer la cohérence de ce score avec toutes les recommandations
         const coherenceResult = evaluateScoreCoherence(home, away, recommendations);
         
+        // DEBUG : Afficher le détail pour quelques scores clés
+        if ((home === 1 && away === 0) || (home === 0 && away === 0) || 
+            (home === 1 && away === 1) || (home === 2 && away === 1) || 
+            (home === 2 && away === 2) || (home === 3 && away === 1)) {
+          console.log(`🔍 DEBUG SCORE ${home}-${away}:`, {
+            baseProbability: originalBaseProbability,
+            coherenceMultiplier: coherenceResult.multiplier,
+            coherenceLevel: coherenceResult.coherenceLevel,
+            coherentRecs: coherenceResult.coherentRecommendations
+          });
+        }
+        
         // Appliquer le multiplicateur de cohérence
         probability *= coherenceResult.multiplier;
+        
+        if ((home === 1 && away === 0) || (home === 0 && away === 0) || 
+            (home === 1 && away === 1) || (home === 2 && away === 1) || 
+            (home === 2 && away === 2) || (home === 3 && away === 1)) {
+          console.log(`  → Probabilité finale: ${originalBaseProbability} x ${coherenceResult.multiplier} = ${probability}`);
+        }
         
         // Générer la raison d'highlight
         let highlightReason = '';
@@ -407,7 +428,9 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
           probability,
           coherenceLevel: coherenceResult.coherenceLevel,
           coherentRecommendations: coherenceResult.coherentRecommendations,
-          highlightReason
+          highlightReason,
+          baseProbability: originalBaseProbability,
+          multiplier: coherenceResult.multiplier
         });
         
         totalAdjustedProbability += probability;
