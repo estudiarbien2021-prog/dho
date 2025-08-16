@@ -78,11 +78,31 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
   
   console.log('🎯 DÉTECTION ÉGALITÉS 50/50:', {
     matchId: match.id,
+    homeTeam: match.home_team,
+    awayTeam: match.away_team,
     isOUEqual: isOUEqualProbs,
     isBTTSEqual: isBTTSEqualProbs,
-    ouProbs: { over: match.p_over_2_5_fair, under: match.p_under_2_5_fair },
-    bttsProbs: { yes: match.p_btts_yes_fair, no: match.p_btts_no_fair }
+    ouProbs: { over: match.p_over_2_5_fair, under: match.p_under_2_5_fair, diff: Math.abs(match.p_over_2_5_fair - match.p_under_2_5_fair) },
+    bttsProbs: { yes: match.p_btts_yes_fair, no: match.p_btts_no_fair, diff: Math.abs(match.p_btts_yes_fair - match.p_btts_no_fair) }
   });
+  
+  if (isOUEqualProbs) {
+    console.log('🚨 O/U ÉGALITÉ DÉTECTÉE - DOIT ÊTRE EXCLU!', {
+      match: `${match.home_team} vs ${match.away_team}`,
+      overProb: match.p_over_2_5_fair,
+      underProb: match.p_under_2_5_fair,
+      difference: Math.abs(match.p_over_2_5_fair - match.p_under_2_5_fair)
+    });
+  }
+  
+  if (isBTTSEqualProbs) {
+    console.log('🚨 BTTS ÉGALITÉ DÉTECTÉE - DOIT ÊTRE EXCLU!', {
+      match: `${match.home_team} vs ${match.away_team}`,
+      yesProb: match.p_btts_yes_fair,
+      noProb: match.p_btts_no_fair,
+      difference: Math.abs(match.p_btts_yes_fair - match.p_btts_no_fair)
+    });
+  }
   
   const bttsHighVig = match.vig_btts > 0 && match.vig_btts >= HIGH_VIG_THRESHOLD && 
                       match.odds_btts_yes && match.odds_btts_no && !isBTTSEqualProbs;
