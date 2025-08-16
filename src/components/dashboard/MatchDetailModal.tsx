@@ -9,7 +9,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recha
 import { FlagMini } from '@/components/Flag';
 import { leagueToFlag } from '@/lib/leagueCountry';
 import { generateConfidenceScore } from '@/lib/confidence';
-import { generateAIRecommendations } from '@/lib/aiRecommendation';
+import { detectOpportunities, convertOpportunityToAIRecommendation } from '@/lib/opportunityDetection';
 import AIRecommendationDisplay from '@/components/AIRecommendationDisplay';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -134,7 +134,8 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
   };
 
   // Generate ALL AI recommendations for the match
-  const allAIRecommendations = generateAIRecommendations(match, marketFilters);
+  const opportunities = detectOpportunities(match);
+  const allAIRecommendations = opportunities.map(convertOpportunityToAIRecommendation);
   const recommendation = allAIRecommendations.length > 0 ? normalizeRecommendation(allAIRecommendations[0]) : null;
   const thirdRecommendation = allAIRecommendations.length > 2 ? normalizeRecommendation(allAIRecommendations[2]) : null;
   
@@ -248,7 +249,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
   const marketRecommendation2 = allMarketOpportunities[1] || null;
   
   // Récupérer TOUTES les recommandations IA (y compris les doubles chances)
-  const allAIRecs = generateAIRecommendations(match, marketFilters);
+  const allAIRecs = opportunities.map(convertOpportunityToAIRecommendation);
   
   console.log('🚨 DEBUG TRANSMISSION RECOMMANDATIONS:', {
     'allAIRecs': allAIRecs,
