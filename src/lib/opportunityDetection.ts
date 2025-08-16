@@ -401,8 +401,31 @@ export function detectOpportunities(match: ProcessedMatch): DetectedOpportunity[
   // TRI FINAL par priorité (1 = priorité maximale)
   const sortedOpportunities = opportunities.sort((a, b) => a.priority - b.priority);
   
-  // FILTRAGE FINAL: Supprimer TOUTES les recommandations avec odds < 1.5 (APRÈS le tri par priorité)
-  const validOpportunities = sortedOpportunities.filter((opp) => {
+  // DÉDOUBLONNAGE: Éliminer les recommandations identiques (même marché + même prédiction)
+  const uniqueOpportunities: DetectedOpportunity[] = [];
+  const seenPredictions = new Set<string>();
+  
+  for (const opp of sortedOpportunities) {
+    // Normaliser le type de marché pour le dédoublonnage
+    const normalizedType = opp.type.replace('_NEGATIVE', '').replace('_DIRECT', '');
+    const predictionKey = `${normalizedType}|${opp.prediction}`;
+    
+    if (!seenPredictions.has(predictionKey)) {
+      seenPredictions.add(predictionKey);
+      uniqueOpportunities.push(opp);
+    } else {
+      console.log('🚫 DOUBLON ÉLIMINÉ:', opp.type, opp.prediction, 'odds:', opp.odds);
+    }
+  }
+  
+  console.log('📊 DÉDOUBLONNAGE:', {
+    'opportunités_avant': sortedOpportunities.length,
+    'opportunités_après': uniqueOpportunities.length,
+    'doublons_éliminés': sortedOpportunities.length - uniqueOpportunities.length
+  });
+  
+  // FILTRAGE FINAL: Supprimer TOUTES les recommandations avec odds < 1.5 (APRÈS le tri par priorité et dédoublonnage)
+  const validOpportunities = uniqueOpportunities.filter((opp) => {
     if (opp.odds < 1.5) {
       console.log('❌ RECOMMANDATION EXCLUE - Odds trop faibles:', opp.odds, 'pour', opp.type, opp.prediction);
       return false;
