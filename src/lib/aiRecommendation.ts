@@ -717,6 +717,11 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
   // LOGIQUE STANDARD : Proposer jusqu'à 2 marchés avec les meilleurs vigorish
   const sortedMarkets = availableMarkets.sort((a, b) => b.vigorish - a.vigorish);
   
+  console.log(`🔍 LOGIQUE STANDARD ACTIVÉE pour ${match.home_team} vs ${match.away_team}:`, {
+    availableMarkets: availableMarkets.map(m => `${m.type}-${m.prediction}`),
+    sortedMarkets: sortedMarkets.map(m => `${m.type}-${m.prediction}`)
+  });
+  
   // Première recommandation (meilleur vigorish)
   const bestMarket = sortedMarkets[0];
   recommendations.push({
@@ -727,17 +732,32 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
     isInverted: bestMarket.isInverted || false
   });
   
-  // Deuxième recommandation si disponible et suffisamment différente
+  console.log(`➕ AJOUT RECOMMANDATION 1: ${bestMarket.type} ${bestMarket.prediction}`);
+  
+  // Deuxième recommandation si disponible et suffisamment différente ET PAS LA MÊME
   if (sortedMarkets.length > 1 && sortedMarkets[1].vigorish >= 0.06) {
     const secondBestMarket = sortedMarkets[1];
-    recommendations.push({
-      betType: secondBestMarket.type,
-      prediction: secondBestMarket.prediction,
-      odds: secondBestMarket.odds,
-      confidence: secondBestMarket.probability > 0.6 ? 'high' : secondBestMarket.probability > 0.5 ? 'medium' : 'low',
-      isInverted: secondBestMarket.isInverted || false
-    });
+    
+    // Vérifier que ce n'est pas la même recommandation
+    const isDuplicate = bestMarket.type === secondBestMarket.type && 
+                       bestMarket.prediction === secondBestMarket.prediction;
+    
+    if (!isDuplicate) {
+      recommendations.push({
+        betType: secondBestMarket.type,
+        prediction: secondBestMarket.prediction,
+        odds: secondBestMarket.odds,
+        confidence: secondBestMarket.probability > 0.6 ? 'high' : secondBestMarket.probability > 0.5 ? 'medium' : 'low',
+        isInverted: secondBestMarket.isInverted || false
+      });
+      console.log(`➕ AJOUT RECOMMANDATION 2: ${secondBestMarket.type} ${secondBestMarket.prediction}`);
+    } else {
+      console.log(`🚫 RECOMMANDATION 2 REFUSÉE (DOUBLON): ${secondBestMarket.type} ${secondBestMarket.prediction}`);
+    }
   }
+  
+  console.log(`🏁 FIN generateAIRecommendations pour ${match.home_team} vs ${match.away_team}:`, 
+    recommendations.map(r => `${r.betType}-${r.prediction}`));
   
   return recommendations;
 }
