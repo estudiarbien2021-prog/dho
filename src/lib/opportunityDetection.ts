@@ -398,24 +398,34 @@ export function detectOpportunities(match: ProcessedMatch): DetectedOpportunity[
     console.log('🎲 DOUBLE CHANCE GÉNÉRÉE:', doubleChancePrediction, 'odds:', doubleChanceOdds);
   }
 
-  // FILTRAGE FINAL: Supprimer les recommandations principales avec odds < 1.5
-  const filteredOpportunities = opportunities.filter((opp, index) => {
-    // Si c'est la première opportunité (recommandation principale) et odds < 1.5, on l'exclut
-    if (index === 0 && opp.odds < 1.5) {
-      console.log('❌ RECOMMANDATION PRINCIPALE EXCLUE - Odds trop faibles:', opp.odds, 'pour', opp.type, opp.prediction);
+  // TRI FINAL par priorité (1 = priorité maximale)
+  const sortedOpportunities = opportunities.sort((a, b) => a.priority - b.priority);
+  
+  // FILTRAGE FINAL: Supprimer TOUTES les recommandations avec odds < 1.5 (APRÈS le tri par priorité)
+  const validOpportunities = sortedOpportunities.filter((opp) => {
+    if (opp.odds < 1.5) {
+      console.log('❌ RECOMMANDATION EXCLUE - Odds trop faibles:', opp.odds, 'pour', opp.type, opp.prediction);
       return false;
     }
     return true;
   });
-
-  // TRI FINAL par priorité (1 = priorité maximale)
-  const sortedOpportunities = filteredOpportunities.sort((a, b) => a.priority - b.priority);
   
-  console.log('🏆 OPPORTUNITÉS FINALES TRIÉES:', sortedOpportunities.map((o, i) => 
+  console.log('📊 FILTRAGE PAR COTE MINIMALE (1.5):', {
+    'opportunités_avant_filtrage': sortedOpportunities.length,
+    'opportunités_après_filtrage': validOpportunities.length,
+    'opportunités_filtrées': sortedOpportunities.length - validOpportunities.length
+  });
+  
+  if (validOpportunities.length === 0) {
+    console.log('❌ AUCUNE RECOMMANDATION VALIDE - Match exclu du dashboard');
+    return [];
+  }
+  
+  console.log('🏆 OPPORTUNITÉS FINALES TRIÉES:', validOpportunities.map((o, i) => 
     `${i+1}. ${o.type}:${o.prediction} (priority:${o.priority}, inverted:${o.isInverted}, odds:${o.odds})`
   ));
   
-  return sortedOpportunities;
+  return validOpportunities;
 }
 
 // Fonction centralisée pour prioriser les opportunités par probabilité réelle
