@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { ProcessedMatch } from '@/types/match';
 import { calculatePoisson } from '@/lib/poisson';
-import { generateAIRecommendations, getAnalysisPrediction } from '@/lib/aiRecommendation';
 
 interface ScorePredictionMatrixProps {
   homeTeam: string;
@@ -26,66 +25,6 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
   const [matrix, setMatrix] = useState<ScoreCell[][]>([]);
   const [animationStep, setAnimationStep] = useState(0);
 
-  // NOUVELLE LOGIQUE : Évaluer la cohérence d'un score avec toutes les recommandations
-  const evaluateScoreCoherence = (homeScore: number, awayScore: number, recommendations: any[]) => {
-    const totalGoals = homeScore + awayScore;
-    const bothTeamsScore = homeScore > 0 && awayScore > 0;
-    
-    // Déterminer le résultat de ce score
-    let scoreResult = '';
-    if (homeScore > awayScore) scoreResult = match.home_team;
-    else if (homeScore === awayScore) scoreResult = 'Nul';
-    else scoreResult = match.away_team;
-    
-    let coherentRecommendations = [];
-    let totalBoost = 1.0;
-    
-    // Analyser chaque recommandation
-    recommendations.forEach(rec => {
-      let isCoherent = false;
-      let boost = 1.0;
-      
-      // Déterminer la cohérence selon le type
-      if (rec.type === 'O/U 2.5') {
-        if (rec.prediction === '+2,5 buts' && totalGoals > 2) isCoherent = true;
-        if (rec.prediction === '-2,5 buts' && totalGoals <= 2) isCoherent = true;
-      }
-      else if (rec.type === 'BTTS') {
-        if (rec.prediction === 'Oui' && bothTeamsScore) isCoherent = true;
-        if (rec.prediction === 'Non' && !bothTeamsScore) isCoherent = true;
-      }
-      else if (rec.type === '1X2') {
-        if (scoreResult === rec.prediction) isCoherent = true;
-      }
-      
-      // Calculer le boost selon la source et la priorité
-      if (isCoherent) {
-        if (rec.source === 'IA_PRINCIPALE') boost = 3.0; // Boost maximal
-        else if (rec.source === 'EFFICACITE_MARCHE') boost = 2.5; // Boost élevé
-        else if (rec.source === 'ANALYSE_PROBABILITE') boost = 1.8; // Boost modéré
-        
-        coherentRecommendations.push({
-          ...rec,
-          boost
-        });
-        totalBoost *= boost;
-      }
-    });
-    
-    // Bonus de cohérence multiple
-    if (coherentRecommendations.length >= 3) {
-      totalBoost *= 2.0; // Double bonus pour cohérence totale
-    } else if (coherentRecommendations.length >= 2) {
-      totalBoost *= 1.5; // Bonus pour cohérence multiple
-    }
-    
-    return {
-      coherentRecommendations,
-      totalBoost,
-      coherenceCount: coherentRecommendations.length
-    };
-  };
-
   // Debug : afficher les recommandations reçues
   console.log('🔍 ScorePredictionMatrix DEBUG:', {
     aiRecommendation,
@@ -95,85 +34,71 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
     awayTeam: match.away_team
   });
 
-  // NOUVELLE LOGIQUE : Collecter TOUTES les recommandations disponibles
-  const getAllRecommendations = () => {
-    const recommendations = [];
-    
-    // 1. Recommandation principale de l'IA
+  // LOGIQUE ULTRA-SIMPLE : Analyser directement les recommandations
+  const analyzeRecommendations = () => {
+    const analysis = {
+      over25: false,
+      under25: false,
+      bttsYes: false,
+      bttsNo: false,
+      homeWin: false,
+      awayWin: false,
+      draw: false,
+      favoriteTeam: 'none'
+    };
+
+    // 1. Recommandation principale IA
     if (aiRecommendation && aiRecommendation.betType !== 'Aucune') {
-      recommendations.push({
-        source: 'IA_PRINCIPALE',
-        type: aiRecommendation.betType,
-        prediction: aiRecommendation.prediction,
-        confidence: 'high',
-        priority: 1
-      });
+      if (aiRecommendation.betType === 'O/U 2.5') {
+        if (aiRecommendation.prediction === '+2,5 buts') analysis.over25 = true;
+        if (aiRecommendation.prediction === '-2,5 buts') analysis.under25 = true;
+      }
+      if (aiRecommendation.betType === 'BTTS') {
+        if (aiRecommendation.prediction === 'Oui') analysis.bttsYes = true;
+        if (aiRecommendation.prediction === 'Non') analysis.bttsNo = true;
+      }
+      if (aiRecommendation.betType === '1X2') {
+        if (aiRecommendation.prediction === match.home_team) analysis.homeWin = true;
+        if (aiRecommendation.prediction === match.away_team) analysis.awayWin = true;
+        if (aiRecommendation.prediction === 'Nul') analysis.draw = true;
+      }
     }
-    
-    // 2. Seconde recommandation (faible vigorish)
+
+    // 2. Seconde recommandation (efficacité marché)
     if (secondRecommendation) {
-      recommendations.push({
-        source: 'EFFICACITE_MARCHE',
-        type: secondRecommendation.type,
-        prediction: secondRecommendation.prediction,
-        confidence: 'medium',
-        priority: 2,
-        vigorish: secondRecommendation.vigorish
-      });
-    }
-    
-    // 3. Déterminer le vainqueur le plus probable (1X2) si pas déjà recommandé
-    const hasWinnerRecommendation = recommendations.some(r => r.type === '1X2');
-    if (!hasWinnerRecommendation) {
-      const mostProbable1X2 = Math.max(match.p_home_fair, match.p_draw_fair, match.p_away_fair);
-      let winner = '';
-      if (mostProbable1X2 === match.p_home_fair) winner = match.home_team;
-      else if (mostProbable1X2 === match.p_away_fair) winner = match.away_team;
-      else winner = 'Nul';
-      
-      // Ajouter seulement si la probabilité est significative (>40%)
-      if (mostProbable1X2 > 0.4) {
-        recommendations.push({
-          source: 'ANALYSE_PROBABILITE',
-          type: '1X2',
-          prediction: winner,
-          confidence: 'low',
-          priority: 3,
-          probability: mostProbable1X2
-        });
+      if (secondRecommendation.type === 'O/U 2.5') {
+        if (secondRecommendation.prediction === '+2,5 buts') analysis.over25 = true;
+        if (secondRecommendation.prediction === '-2,5 buts') analysis.under25 = true;
+      }
+      if (secondRecommendation.type === 'BTTS') {
+        if (secondRecommendation.prediction === 'Oui') analysis.bttsYes = true;
+        if (secondRecommendation.prediction === 'Non') analysis.bttsNo = true;
+      }
+      if (secondRecommendation.type === '1X2') {
+        if (secondRecommendation.prediction === match.home_team) analysis.homeWin = true;
+        if (secondRecommendation.prediction === match.away_team) analysis.awayWin = true;
+        if (secondRecommendation.prediction === 'Nul') analysis.draw = true;
       }
     }
-    
-    // 4. BTTS le plus probable si pas déjà recommandé
-    const hasBTTSRecommendation = recommendations.some(r => r.type === 'BTTS');
-    if (!hasBTTSRecommendation) {
-      const mostProbableBTTS = Math.max(match.p_btts_yes_fair, match.p_btts_no_fair);
-      const bttsPrediction = mostProbableBTTS === match.p_btts_yes_fair ? 'Oui' : 'Non';
-      
-      // Ajouter seulement si la probabilité est significative (>55%) 
-      if (mostProbableBTTS > 0.55) {
-        recommendations.push({
-          source: 'ANALYSE_PROBABILITE',
-          type: 'BTTS',
-          prediction: bttsPrediction,
-          confidence: 'low',
-          priority: 4,
-          probability: mostProbableBTTS
-        });
+
+    // 3. Déterminer le favori automatiquement si pas de recommandation 1X2
+    if (!analysis.homeWin && !analysis.awayWin && !analysis.draw) {
+      if (match.p_home_fair > match.p_away_fair && match.p_home_fair > match.p_draw_fair) {
+        analysis.favoriteTeam = 'home';
+      } else if (match.p_away_fair > match.p_home_fair && match.p_away_fair > match.p_draw_fair) {
+        analysis.favoriteTeam = 'away';
+      } else {
+        analysis.favoriteTeam = 'draw';
       }
     }
-    
-    console.log('🎯 Toutes les recommandations collectées:', recommendations);
-    return recommendations;
+
+    console.log('🎯 ANALYSE FINALE:', analysis);
+    return analysis;
   };
 
-  // Generate probability matrix using real match data with Poisson model
-  // NOUVELLE APPROCHE : Se baser sur les recommandations collectées
+  // Générer la matrice avec logique forcée
   const generateMatrix = () => {
-    // Collecter toutes les recommandations disponibles
-    const allRecommendations = getAllRecommendations();
-    
-    console.log('🎯 Génération matrice avec recommandations:', allRecommendations);
+    const analysis = analyzeRecommendations();
 
     // Use the real match probabilities with Poisson model
     const poissonInputs = {
@@ -221,51 +146,104 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
           }
         }
         
-        // NOUVELLE LOGIQUE : Évaluer la cohérence avec toutes les recommandations
-        const coherenceResult = evaluateScoreCoherence(home, away, allRecommendations);
+        // LOGIQUE DE FORCE BRUTALE : Analyser ce score
+        const totalGoals = home + away;
+        const bothTeamsScore = home > 0 && away > 0;
+        const homeWins = home > away;
+        const awayWins = away > home;
+        const isDraw = home === away;
         
-        // Appliquer le boost de cohérence
-        probability *= coherenceResult.totalBoost;
+        let multiplier = 1.0;
+        let reasons = [];
+        let isValid = true;
         
-        // Déterminer le highlight et la raison
-        let isHighlighted = false;
-        let highlightReason = '';
-        
-        if (coherenceResult.coherenceCount >= 3) {
-          isHighlighted = true;
-          const sources = coherenceResult.coherentRecommendations.map(r => {
-            if (r.type === '1X2') return r.prediction;
-            if (r.type === 'BTTS') return `BTTS ${r.prediction}`;
-            if (r.type === 'O/U 2.5') return r.prediction;
-            return r.type;
-          }).join(' + ');
-          highlightReason = `🎯 PARFAIT: ${sources}`;
-        }
-        else if (coherenceResult.coherenceCount >= 2) {
-          isHighlighted = true;
-          const sources = coherenceResult.coherentRecommendations.map(r => {
-            if (r.type === '1X2') return r.prediction;
-            if (r.type === 'BTTS') return `BTTS ${r.prediction}`;
-            if (r.type === 'O/U 2.5') return r.prediction;
-            return r.type;
-          }).join(' + ');
-          highlightReason = `⭐ EXCELLENT: ${sources}`;
-        }
-        else if (coherenceResult.coherenceCount === 1) {
-          const cr = coherenceResult.coherentRecommendations[0];
-          if (cr.source === 'IA_PRINCIPALE') {
-            isHighlighted = true;
-            if (cr.type === '1X2') highlightReason = `✅ IA: ${cr.prediction}`;
-            else if (cr.type === 'BTTS') highlightReason = `✅ IA: BTTS ${cr.prediction}`;
-            else if (cr.type === 'O/U 2.5') highlightReason = `✅ IA: ${cr.prediction}`;
-          }
-          else if (cr.source === 'EFFICACITE_MARCHE') {
-            isHighlighted = true;
-            if (cr.type === '1X2') highlightReason = `📊 Marché: ${cr.prediction}`;
-            else if (cr.type === 'BTTS') highlightReason = `📊 Marché: BTTS ${cr.prediction}`;
-            else if (cr.type === 'O/U 2.5') highlightReason = `📊 Marché: ${cr.prediction}`;
+        // 1. OVER/UNDER 2.5 - PRIORITÉ ABSOLUE
+        if (analysis.over25) {
+          if (totalGoals > 2) {
+            multiplier *= 10.0; // BOOST ÉNORME
+            reasons.push('+2.5 buts');
+          } else {
+            isValid = false; // ÉLIMINER COMPLÈTEMENT
           }
         }
+        if (analysis.under25) {
+          if (totalGoals <= 2) {
+            multiplier *= 10.0;
+            reasons.push('-2.5 buts');
+          } else {
+            isValid = false;
+          }
+        }
+        
+        // 2. BTTS - PRIORITÉ HAUTE
+        if (analysis.bttsYes) {
+          if (bothTeamsScore) {
+            multiplier *= 8.0;
+            reasons.push('BTTS Oui');
+          } else {
+            isValid = false;
+          }
+        }
+        if (analysis.bttsNo) {
+          if (!bothTeamsScore) {
+            multiplier *= 8.0;
+            reasons.push('BTTS Non');
+          } else {
+            isValid = false;
+          }
+        }
+        
+        // 3. 1X2 - PRIORITÉ MOYENNE
+        if (analysis.homeWin) {
+          if (homeWins) {
+            multiplier *= 6.0;
+            reasons.push(match.home_team);
+          } else {
+            isValid = false;
+          }
+        }
+        if (analysis.awayWin) {
+          if (awayWins) {
+            multiplier *= 6.0;
+            reasons.push(match.away_team);
+          } else {
+            isValid = false;
+          }
+        }
+        if (analysis.draw) {
+          if (isDraw) {
+            multiplier *= 6.0;
+            reasons.push('Nul');
+          } else {
+            isValid = false;
+          }
+        }
+        
+        // 4. Favoris automatiques (priorité faible)
+        if (analysis.favoriteTeam === 'home' && homeWins && !analysis.homeWin) {
+          multiplier *= 3.0;
+          reasons.push(`${match.home_team} (favori)`);
+        }
+        if (analysis.favoriteTeam === 'away' && awayWins && !analysis.awayWin) {
+          multiplier *= 3.0;
+          reasons.push(`${match.away_team} (favori)`);
+        }
+        if (analysis.favoriteTeam === 'draw' && isDraw && !analysis.draw) {
+          multiplier *= 3.0;
+          reasons.push('Nul (favori)');
+        }
+        
+        // APPLIQUER LA LOGIQUE
+        if (!isValid) {
+          probability *= 0.01; // Diviser par 100 les scores invalides
+        } else {
+          probability *= multiplier;
+        }
+        
+        // Déterminer le highlight
+        const isHighlighted = reasons.length > 0 && isValid;
+        const highlightReason = reasons.length > 0 ? 
+          (reasons.length > 1 ? `🎯 PARFAIT: ${reasons.join(' + ')}` : `✅ ${reasons[0]}`) : '';
         
         row.push({
           homeScore: home,
@@ -320,240 +298,181 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
     
     // Couleurs spéciales pour les scores mis en évidence par différentes raisons
     if (isHighlighted) {
-      if (highlightReason === 'Double Chance') {
-        if (intensity > 0.8) return 'bg-gradient-to-br from-amber-500 to-amber-600 ring-2 ring-amber-400 shadow-lg';
-        if (intensity > 0.6) return 'bg-gradient-to-br from-amber-400 to-amber-500 ring-2 ring-amber-300 shadow-md';
-        if (intensity > 0.4) return 'bg-gradient-to-br from-amber-300 to-amber-400 ring-2 ring-amber-200';
-        return 'bg-gradient-to-br from-amber-200 to-amber-300 ring-1 ring-amber-100';
-      } else if (highlightReason === 'Opportunité Premium') {
-        if (intensity > 0.8) return 'bg-gradient-to-br from-red-500 to-red-600 ring-2 ring-red-400 shadow-lg';
-        if (intensity > 0.6) return 'bg-gradient-to-br from-red-400 to-red-500 ring-2 ring-red-300 shadow-md';
-        if (intensity > 0.4) return 'bg-gradient-to-br from-red-300 to-red-400 ring-2 ring-red-200';
-        return 'bg-gradient-to-br from-red-200 to-red-300 ring-1 ring-red-100';
-      } else if (highlightReason?.includes('BTTS')) {
-        if (intensity > 0.8) return 'bg-gradient-to-br from-blue-500 to-blue-600 ring-2 ring-blue-400 shadow-lg';
-        if (intensity > 0.6) return 'bg-gradient-to-br from-blue-400 to-blue-500 ring-2 ring-blue-300 shadow-md';
-        if (intensity > 0.4) return 'bg-gradient-to-br from-blue-300 to-blue-400 ring-2 ring-blue-200';
-        return 'bg-gradient-to-br from-blue-200 to-blue-300 ring-1 ring-blue-100';
-      } else if (highlightReason?.includes('Over') || highlightReason?.includes('Under')) {
-        if (intensity > 0.8) return 'bg-gradient-to-br from-emerald-500 to-emerald-600 ring-2 ring-emerald-400 shadow-lg';
-        if (intensity > 0.6) return 'bg-gradient-to-br from-emerald-400 to-emerald-500 ring-2 ring-emerald-300 shadow-md';
-        if (intensity > 0.4) return 'bg-gradient-to-br from-emerald-300 to-emerald-400 ring-2 ring-emerald-200';
-        return 'bg-gradient-to-br from-emerald-200 to-emerald-300 ring-1 ring-emerald-100';
-      } else {
-        // Couleur générique pour les autres cas
-        if (intensity > 0.8) return 'bg-gradient-to-br from-violet-500 to-violet-600 ring-2 ring-violet-400 shadow-lg';
-        if (intensity > 0.6) return 'bg-gradient-to-br from-violet-400 to-violet-500 ring-2 ring-violet-300 shadow-md';
-        if (intensity > 0.4) return 'bg-gradient-to-br from-violet-300 to-violet-400 ring-2 ring-violet-200';
-        return 'bg-gradient-to-br from-violet-200 to-violet-300 ring-1 ring-violet-100';
+      if (highlightReason?.includes('PARFAIT')) {
+        if (intensity > 0.8) return 'bg-gradient-to-br from-emerald-500 to-emerald-600 ring-2 ring-emerald-400 shadow-lg text-white';
+        if (intensity > 0.6) return 'bg-gradient-to-br from-emerald-400 to-emerald-500 ring-2 ring-emerald-300 shadow-md text-white';
+        if (intensity > 0.4) return 'bg-gradient-to-br from-emerald-300 to-emerald-400 ring-2 ring-emerald-200 text-white';
+        return 'bg-gradient-to-br from-emerald-200 to-emerald-300 ring-1 ring-emerald-100 text-gray-800';
+      }
+      
+      if (highlightReason?.includes('IA:')) {
+        if (intensity > 0.8) return 'bg-gradient-to-br from-brand to-brand-400 ring-2 ring-brand-300 shadow-lg text-white';
+        if (intensity > 0.6) return 'bg-gradient-to-br from-brand/80 to-brand-400/80 ring-2 ring-brand-200 shadow-md text-white';
+        if (intensity > 0.4) return 'bg-gradient-to-br from-brand/60 to-brand-400/60 ring-2 ring-brand-100 text-white';
+        return 'bg-gradient-to-br from-brand/40 to-brand-400/40 ring-1 ring-brand-50 text-gray-800';
+      }
+      
+      if (highlightReason?.includes('Marché:')) {
+        if (intensity > 0.8) return 'bg-gradient-to-br from-blue-500 to-blue-600 ring-2 ring-blue-400 shadow-lg text-white';
+        if (intensity > 0.6) return 'bg-gradient-to-br from-blue-400 to-blue-500 ring-2 ring-blue-300 shadow-md text-white';
+        if (intensity > 0.4) return 'bg-gradient-to-br from-blue-300 to-blue-400 ring-2 ring-blue-200 text-white';
+        return 'bg-gradient-to-br from-blue-200 to-blue-300 ring-1 ring-blue-100 text-gray-800';
       }
     }
     
-    // Couleurs standards
-    if (intensity > 0.8) return 'bg-purple-600';
-    if (intensity > 0.6) return 'bg-purple-500';
-    if (intensity > 0.4) return 'bg-purple-400';
-    if (intensity > 0.2) return 'bg-purple-300';
-    if (intensity > 0.1) return 'bg-purple-200';
-    return 'bg-purple-100';
+    // Couleurs normales pour les scores non-highlightés
+    if (intensity > 0.8) return 'bg-gradient-to-br from-purple-200 to-purple-300 text-gray-800';
+    if (intensity > 0.6) return 'bg-gradient-to-br from-purple-100 to-purple-200 text-gray-800';
+    if (intensity > 0.4) return 'bg-gradient-to-br from-purple-50 to-purple-100 text-gray-700';
+    if (intensity > 0.2) return 'bg-gradient-to-br from-gray-50 to-purple-50 text-gray-600';
+    return 'bg-gradient-to-br from-gray-25 to-gray-50 text-gray-500';
   };
 
-  const getMostLikelyScores = () => {
-    if (matrix.length === 0) return [];
-    return matrix.flat()
-      .sort((a, b) => b.probability - a.probability)
-      .slice(0, 3);
-  };
+  if (!matrix.length) {
+    return (
+      <Card className="p-8 bg-gradient-to-br from-surface to-surface-soft border-border shadow-lg">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-brand border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <h3 className="text-lg font-semibold text-text mb-2">Matrice de Prédiction de Score</h3>
+            <p className="text-text-weak">Calcul des probabilités en cours...</p>
+          </div>
+        </div>
+      </Card>
+    );
+  }
 
-  const getWinProbabilities = () => {
-    if (matrix.length === 0) return { home: 0, draw: 0, away: 0 };
-    
-    let homeWin = 0, draw = 0, awayWin = 0;
-    
-    matrix.forEach((row, homeScore) => {
-      row.forEach((cell, awayScore) => {
-        if (homeScore > awayScore) homeWin += cell.probability;
-        else if (homeScore === awayScore) draw += cell.probability;
-        else awayWin += cell.probability;
-      });
-    });
-    
-    // Normaliser les probabilités pour qu'elles totalisent 100%
-    const total = homeWin + draw + awayWin;
-    if (total > 0) {
-      return { 
-        home: (homeWin / total) * 100, 
-        draw: (draw / total) * 100, 
-        away: (awayWin / total) * 100 
-      };
-    }
-    
-    return { home: 0, draw: 0, away: 0 };
-  };
-
-  const winProbs = getWinProbabilities();
+  // Find top 3 most probable scores
+  const allScores = matrix.flat()
+    .filter(cell => cell.probability > 0)
+    .sort((a, b) => b.probability - a.probability)
+    .slice(0, 3);
 
   return (
-    <Card className="p-6 bg-gradient-to-br from-slate-50 to-white dark:from-slate-900/50 dark:to-slate-800/50 border-0 shadow-lg">
+    <Card className="p-8 bg-gradient-to-br from-surface to-surface-soft border-border shadow-lg">
       <div className="flex items-center gap-3 mb-6">
-        <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl shadow-lg">
-          <div className="w-3 h-3 bg-white rounded-full animate-pulse" />
+        <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl shadow-lg">
+          <span className="text-2xl">⚽</span>
         </div>
         <div>
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white">Matrice de Prédiction de Score</h3>
-          <p className="text-sm text-slate-600 dark:text-slate-400">Probabilités pour chaque score exact</p>
+          <h3 className="text-xl font-bold text-text">Matrice de Prédiction de Score</h3>
+          <p className="text-sm text-text-weak">Probabilités pour chaque score exact</p>
         </div>
       </div>
 
-      {/* Matrix Grid */}
-      <div className="mb-6">
-        <div className="grid grid-cols-7 gap-1 p-4 bg-slate-100 dark:bg-slate-800 rounded-xl">
-          {/* Header row */}
-          <div className="text-center font-semibold text-xs text-slate-600 dark:text-slate-400"></div>
-          {[0, 1, 2, 3, 4, 5].map(score => (
-            <div key={score} className="text-center font-semibold text-xs text-slate-600 dark:text-slate-400 p-2">
-              {score}
+      {/* Score Matrix */}
+      <div className="mb-8">
+        <div className="grid grid-cols-7 gap-2 mb-4">
+          <div className="p-2"></div>
+          {[0, 1, 2, 3, 4, 5].map(away => (
+            <div key={away} className="p-2 text-center text-sm font-semibold text-text-weak">
+              {away}
             </div>
-          ))}
-          
-          {/* Matrix rows */}
-          {matrix.map((row, homeScore) => (
-            <React.Fragment key={homeScore}>
-              {/* Row header */}
-              <div className="text-center font-semibold text-xs text-slate-600 dark:text-slate-400 p-2">
-                {homeScore}
-              </div>
-              
-              {/* Score cells */}
-              {row.map((cell, awayScore) => (
-                <div
-                  key={`${homeScore}-${awayScore}`}
-                  className={`
-                    relative group cursor-pointer transition-all duration-200 rounded-lg p-2 text-center
-                    ${getColorIntensity(cell.probability, cell.isHighlighted, cell.highlightReason)} 
-                    hover:scale-110 hover:z-10 hover:shadow-xl
-                    ${cell.isHighlighted ? 'animate-pulse' : ''}
-                  `}
-                  title={`${homeScore}-${awayScore}: ${cell.probability.toFixed(2)}%${cell.isHighlighted ? ` (${cell.highlightReason})` : ''}`}
-                >
-                  <div className={`text-xs font-bold ${
-                    cell.isHighlighted 
-                      ? cell.highlightReason === 'Double Chance' ? 'text-amber-900 dark:text-white'
-                      : cell.highlightReason === 'Opportunité Premium' ? 'text-red-900 dark:text-white'
-                      : cell.highlightReason?.includes('BTTS') ? 'text-blue-900 dark:text-white'
-                      : cell.highlightReason?.includes('Over') || cell.highlightReason?.includes('Under') ? 'text-emerald-900 dark:text-white'
-                      : 'text-violet-900 dark:text-white'
-                      : 'text-purple-900 dark:text-white'
-                  }`}>
-                    {cell.probability > 0.1 ? cell.probability.toFixed(1) : ''}
-                  </div>
-                  
-                  {/* Indicateur IA avec icône spécifique */}
-                  {cell.isHighlighted && (
-                    <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full flex items-center justify-center ${
-                      cell.highlightReason === 'Double Chance' ? 'bg-amber-500'
-                      : cell.highlightReason === 'Opportunité Premium' ? 'bg-red-500'
-                      : cell.highlightReason?.includes('BTTS') ? 'bg-blue-500'
-                      : cell.highlightReason?.includes('Over') || cell.highlightReason?.includes('Under') ? 'bg-emerald-500'
-                      : 'bg-violet-500'
-                    }`}>
-                      <div className="w-1.5 h-1.5 bg-white rounded-full animate-ping"></div>
-                    </div>
-                  )}
-                  
-                  {/* Tooltip on hover */}
-                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-slate-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-20 shadow-xl">
-                    <div className="font-semibold">{homeScore}-{awayScore}: {cell.probability.toFixed(2)}%</div>
-                    {cell.isHighlighted && (
-                      <div className={`font-semibold mt-1 ${
-                        cell.highlightReason === 'Double Chance' ? 'text-amber-300'
-                        : cell.highlightReason === 'Opportunité Premium' ? 'text-red-300'
-                        : cell.highlightReason?.includes('BTTS') ? 'text-blue-300'
-                        : cell.highlightReason?.includes('Over') || cell.highlightReason?.includes('Under') ? 'text-emerald-300'
-                        : 'text-violet-300'
-                      }`}>
-                        ✨ {cell.highlightReason}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </React.Fragment>
           ))}
         </div>
         
-        {/* Legend */}
-        <div className="flex items-center justify-center gap-2 mt-4 text-xs text-slate-600 dark:text-slate-400 flex-wrap">
-          <span>{awayTeam} →</span>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 bg-purple-100 rounded"></div>
-            <span>Faible</span>
+        {matrix.map((row, homeIndex) => (
+          <div key={homeIndex} className="grid grid-cols-7 gap-2 mb-2">
+            <div className="p-2 text-center text-sm font-semibold text-text-weak">
+              {homeIndex}
+            </div>
+            {row.map((cell, awayIndex) => (
+              <div
+                key={`${homeIndex}-${awayIndex}`}
+                className={`
+                  relative p-3 rounded-lg text-center text-sm font-semibold transition-all duration-300
+                  ${getColorIntensity(cell.probability, cell.isHighlighted, cell.highlightReason)}
+                  ${cell.isHighlighted ? 'transform scale-105' : ''}
+                `}
+                title={cell.highlightReason || `${cell.homeScore}-${cell.awayScore}: ${cell.probability.toFixed(1)}%`}
+              >
+                <div className="text-lg font-bold">
+                  {cell.probability.toFixed(1)}
+                </div>
+                {cell.isHighlighted && (
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full flex items-center justify-center">
+                    <span className="text-xs">⭐</span>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 bg-purple-400 rounded"></div>
-            <span>Moyenne</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 bg-purple-600 rounded"></div>
-            <span>Élevée</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 bg-gradient-to-r from-amber-400 to-amber-500 rounded ring-1 ring-amber-300"></div>
-            <span>Double Chance</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 bg-gradient-to-r from-red-400 to-red-500 rounded ring-1 ring-red-300"></div>
-            <span>Premium</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 bg-gradient-to-r from-blue-400 to-blue-500 rounded ring-1 ring-blue-300"></div>
-            <span>BTTS</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 bg-gradient-to-r from-emerald-400 to-emerald-500 rounded ring-1 ring-emerald-300"></div>
-            <span>O/U 2.5</span>
-          </div>
-          <span>↑ {homeTeam}</span>
-        </div>
+        ))}
       </div>
 
-      {/* Insights */}
-      <div className="grid grid-cols-2 gap-4 mb-4">
-        <div className="p-4 bg-indigo-50 dark:bg-indigo-950/20 rounded-xl border border-indigo-200 dark:border-indigo-800">
-          <h4 className="font-semibold text-indigo-700 dark:text-indigo-300 mb-2">Top 3 Scores Probables</h4>
-          <div className="space-y-1">
-            {getMostLikelyScores().map((score, index) => (
-              <div key={index} className="flex justify-between text-sm">
-                <span className="text-slate-600 dark:text-slate-400">
+      {/* Legend */}
+      <div className="flex flex-wrap justify-center gap-4 text-xs mb-6">
+        <div className="flex items-center gap-1">
+          <div className="w-3 h-3 bg-gray-200 rounded"></div>
+          <span className="text-text-weak">{awayTeam} →</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="w-3 h-3 bg-purple-300 rounded"></div>
+          <span className="text-text-weak">Faible</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="w-3 h-3 bg-purple-500 rounded"></div>
+          <span className="text-text-weak">Moyenne</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="w-3 h-3 bg-purple-700 rounded"></div>
+          <span className="text-text-weak">Élevée</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="w-3 h-3 bg-emerald-500 rounded"></div>
+          <span className="text-text-weak">🎯 PARFAIT</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="w-3 h-3 bg-brand rounded"></div>
+          <span className="text-text-weak">✅ IA</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="w-3 h-3 bg-blue-500 rounded"></div>
+          <span className="text-text-weak">📊 Marché</span>
+        </div>
+        <div className="text-text-weak">↑ {homeTeam}</div>
+      </div>
+
+      {/* Top 3 Scores and 1X2 Probabilities */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Top 3 Scores */}
+        <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4">
+          <h4 className="font-bold text-purple-900 mb-3">Top 3 Scores Probables</h4>
+          <div className="space-y-2">
+            {allScores.map((score, index) => (
+              <div key={index} className="flex justify-between items-center">
+                <span className="font-medium text-purple-800">
                   {score.homeScore}-{score.awayScore}
+                  {score.isHighlighted && <span className="ml-1 text-xs">⭐</span>}
                 </span>
-                <span className="font-semibold text-indigo-600 dark:text-indigo-400">
+                <span className="font-bold text-purple-900">
                   {score.probability.toFixed(1)}%
                 </span>
               </div>
             ))}
           </div>
         </div>
-        
-        <div className="p-4 bg-purple-50 dark:bg-purple-950/20 rounded-xl border border-purple-200 dark:border-purple-800">
-          <h4 className="font-semibold text-purple-700 dark:text-purple-300 mb-2">Probabilités 1X2</h4>
-          <div className="space-y-1">
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-600 dark:text-slate-400">{homeTeam} gagne</span>
-              <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                {winProbs.home.toFixed(1)}%
+
+        {/* 1X2 Probabilities */}
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4">
+          <h4 className="font-bold text-blue-900 mb-3">Probabilités 1X2</h4>
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="font-medium text-blue-800">{homeTeam} gagne</span>
+              <span className="font-bold text-blue-900">
+                {(match.p_home_fair * 100).toFixed(1)}%
               </span>
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-600 dark:text-slate-400">Match nul</span>
-              <span className="font-semibold text-amber-600 dark:text-amber-400">
-                {winProbs.draw.toFixed(1)}%
+            <div className="flex justify-between items-center">
+              <span className="font-medium text-blue-800">Match nul</span>
+              <span className="font-bold text-blue-900">
+                {(match.p_draw_fair * 100).toFixed(1)}%
               </span>
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-600 dark:text-slate-400">{awayTeam} gagne</span>
-              <span className="font-semibold text-blue-600 dark:text-blue-400">
-                {winProbs.away.toFixed(1)}%
+            <div className="flex justify-between items-center">
+              <span className="font-medium text-blue-800">{awayTeam} gagne</span>
+              <span className="font-bold text-blue-900">
+                {(match.p_away_fair * 100).toFixed(1)}%
               </span>
             </div>
           </div>
