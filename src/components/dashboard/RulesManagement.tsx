@@ -25,16 +25,12 @@ interface Rule {
 }
 
 interface RulesByCategory {
-  global_thresholds_ou: Rule[];
-  global_thresholds_btts: Rule[];
-  global_thresholds_1x2: Rule[];
-  global_thresholds_general: Rule[];
+  market_ou: Rule[];
+  market_btts: Rule[];
+  market_1x2: Rule[];
+  market_general: Rule[];
   priority_rules: Rule[];
   exclusions: Rule[];
-  fallbacks_ou: Rule[];
-  fallbacks_btts: Rule[];
-  fallbacks_1x2: Rule[];
-  fallbacks_general: Rule[];
 }
 
 interface RuleConfiguration {
@@ -251,16 +247,22 @@ export function RulesManagement() {
   };
 
   const groupedRules: RulesByCategory = {
-    global_thresholds_ou: rules.filter(r => r.category === 'global_thresholds' && r.rule_name.startsWith('ou_')),
-    global_thresholds_btts: rules.filter(r => r.category === 'global_thresholds' && r.rule_name.startsWith('btts_')),
-    global_thresholds_1x2: rules.filter(r => r.category === 'global_thresholds' && r.rule_name.startsWith('1x2_')),
-    global_thresholds_general: rules.filter(r => r.category === 'global_thresholds' && !r.rule_name.startsWith('ou_') && !r.rule_name.startsWith('btts_') && !r.rule_name.startsWith('1x2_')),
+    market_ou: rules.filter(r => 
+      (r.category === 'global_thresholds' || r.category === 'fallbacks_ou') && r.rule_name.startsWith('ou_')
+    ),
+    market_btts: rules.filter(r => 
+      (r.category === 'global_thresholds' || r.category === 'fallbacks_btts') && r.rule_name.startsWith('btts_')
+    ),
+    market_1x2: rules.filter(r => 
+      (r.category === 'global_thresholds' || r.category === 'fallbacks_1x2') && r.rule_name.startsWith('1x2_')
+    ),
+    market_general: rules.filter(r => 
+      (r.category === 'global_thresholds' && !r.rule_name.startsWith('ou_') && !r.rule_name.startsWith('btts_') && !r.rule_name.startsWith('1x2_')) ||
+      r.category === 'fallbacks_general' || 
+      r.category === 'fallbacks'
+    ),
     priority_rules: rules.filter(r => r.category === 'priority_rules'),
     exclusions: rules.filter(r => r.category === 'exclusions'),
-    fallbacks_ou: rules.filter(r => r.category === 'fallbacks_ou'),
-    fallbacks_btts: rules.filter(r => r.category === 'fallbacks_btts'),
-    fallbacks_1x2: rules.filter(r => r.category === 'fallbacks_1x2'),
-    fallbacks_general: rules.filter(r => r.category === 'fallbacks_general' || r.category === 'fallbacks'),
   };
 
   const renderRuleControl = (rule: Rule) => {
@@ -277,20 +279,17 @@ export function RulesManagement() {
 
     if (rule.type === 'percentage') {
       return (
-        <div className="w-48 space-y-1">
-          <div className="flex items-center space-x-3">
-            <Slider
-              value={[rule.value]}
-              onValueChange={([value]) => updateRuleValue(rule.id, value)}
-              max={100}
-              min={0}
-              step={0.1}
-              className="flex-1"
-            />
-            <div className="text-sm font-medium text-primary w-12 text-right">
-              {rule.value}%
-            </div>
-          </div>
+        <div className="flex items-center gap-2">
+          <Input
+            type="number"
+            value={rule.value}
+            onChange={(e) => updateRuleValue(rule.id, parseFloat(e.target.value) || 0)}
+            step={0.1}
+            min={0}
+            max={100}
+            className="w-20 text-center"
+          />
+          <span className="text-sm text-text-weak">%</span>
         </div>
       );
     }
@@ -302,35 +301,27 @@ export function RulesManagement() {
         onChange={(e) => updateRuleValue(rule.id, parseFloat(e.target.value) || 0)}
         step={rule.rule_name.includes('odds') ? 0.1 : 1}
         min={0}
-        className="w-32 text-center"
+        className="w-24 text-center"
       />
     );
   };
 
   const categoryTitles = {
-    global_thresholds_ou: "Seuils Over/Under 2.5",
-    global_thresholds_btts: "Seuils BTTS (Both Teams To Score)",
-    global_thresholds_1x2: "Seuils 1X2 (Résultat du Match)",
-    global_thresholds_general: "Seuils Généraux",
+    market_ou: "Marché Over/Under 2.5",
+    market_btts: "Marché BTTS (Both Teams To Score)",
+    market_1x2: "Marché 1X2 (Résultat du Match)",
+    market_general: "Paramètres Généraux",
     priority_rules: "Règles de Priorité",
-    exclusions: "Exclusions",
-    fallbacks_ou: "Fallbacks Over/Under 2.5",
-    fallbacks_btts: "Fallbacks BTTS (Both Teams To Score)",
-    fallbacks_1x2: "Fallbacks 1X2 (Résultat du Match)",
-    fallbacks_general: "Fallbacks Généraux"
+    exclusions: "Exclusions"
   };
 
   const categoryDescriptions = {
-    global_thresholds_ou: "Seuils spécifiques au marché Over/Under 2.5 buts",
-    global_thresholds_btts: "Seuils spécifiques au marché Both Teams To Score",
-    global_thresholds_1x2: "Seuils spécifiques au marché 1X2 (résultat du match)",
-    global_thresholds_general: "Seuils généraux applicables à tous les marchés",
+    market_ou: "Seuils et comportements spécifiques au marché Over/Under 2.5 buts",
+    market_btts: "Seuils et comportements spécifiques au marché Both Teams To Score",
+    market_1x2: "Seuils et comportements spécifiques au marché 1X2 (résultat du match)",
+    market_general: "Seuils généraux et comportements par défaut pour tous les marchés",
     priority_rules: "Activation/désactivation des règles prioritaires et leurs paramètres",
-    exclusions: "Paramètres d'exclusion pour filtrer les recommandations",
-    fallbacks_ou: "Comportements par défaut spécifiques au marché Over/Under 2.5",
-    fallbacks_btts: "Comportements par défaut spécifiques au marché BTTS",
-    fallbacks_1x2: "Comportements par défaut spécifiques au marché 1X2",
-    fallbacks_general: "Comportements par défaut généraux pour tous les marchés"
+    exclusions: "Paramètres d'exclusion pour filtrer les recommandations"
   };
 
   if (isLoading) {
