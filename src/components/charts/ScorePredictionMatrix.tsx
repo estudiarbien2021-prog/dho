@@ -212,34 +212,66 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
     let totalMultiplier = 1.0;
     const coherentRecommendations: string[] = [];
 
+    console.log(`🔍 ÉVALUATION SCORE ${homeScore}-${awayScore}:`, {
+      totalGoals,
+      bothTeamsScore,
+      homeWins,
+      awayWins,
+      isDraw,
+      recommendations: recommendations.map(r => `${r.source}:${r.type}:${r.prediction}`)
+    });
+
     recommendations.forEach(rec => {
       let isCoherent = false;
 
       if (rec.type === 'O/U 2.5') {
-        if (rec.prediction === '+2,5 buts' && totalGoals > 2) {
-          isCoherent = true;
-        } else if (rec.prediction === '-2,5 buts' && totalGoals <= 2) {
-          isCoherent = true;
+        if (rec.prediction.includes('+2,5') || rec.prediction.includes('SUR') || rec.prediction.includes('OVER')) {
+          isCoherent = totalGoals > 2; // Plus de 2.5 buts
+          console.log(`  🎯 O/U 2.5 OVER: ${totalGoals} > 2 = ${isCoherent}`);
+        } else if (rec.prediction.includes('-2,5') || rec.prediction.includes('SOUS') || rec.prediction.includes('UNDER')) {
+          isCoherent = totalGoals <= 2; // 2.5 buts ou moins
+          console.log(`  🎯 O/U 2.5 UNDER: ${totalGoals} <= 2 = ${isCoherent}`);
         }
       } else if (rec.type === 'BTTS') {
-        if (rec.prediction === 'Oui' && bothTeamsScore) {
-          isCoherent = true;
-        } else if (rec.prediction === 'Non' && !bothTeamsScore) {
-          isCoherent = true;
+        if (rec.prediction === 'Oui' || rec.prediction.includes('Oui')) {
+          isCoherent = bothTeamsScore; // Les deux équipes marquent
+          console.log(`  🎯 BTTS OUI: ${homeScore} > 0 && ${awayScore} > 0 = ${isCoherent}`);
+        } else if (rec.prediction === 'Non' || rec.prediction.includes('Non')) {
+          isCoherent = !bothTeamsScore; // Au moins une équipe ne marque pas
+          console.log(`  🎯 BTTS NON: !bothTeamsScore = ${isCoherent}`);
         }
       } else if (rec.type === '1X2') {
-        if (rec.prediction === match.home_team && homeWins) {
-          isCoherent = true;
-        } else if (rec.prediction === match.away_team && awayWins) {
-          isCoherent = true;
-        } else if (rec.prediction === 'Nul' && isDraw) {
-          isCoherent = true;
+        if (rec.prediction === match.home_team || (rec.prediction.includes('1X') && (homeWins || isDraw))) {
+          isCoherent = homeWins;
+          console.log(`  🎯 1X2 HOME: ${match.home_team} wins = ${isCoherent}`);
+        } else if (rec.prediction === match.away_team || (rec.prediction.includes('X2') && (awayWins || isDraw))) {
+          isCoherent = awayWins;
+          console.log(`  🎯 1X2 AWAY: ${match.away_team} wins = ${isCoherent}`);
+        } else if (rec.prediction === 'Nul' || rec.prediction.includes('1X') || rec.prediction.includes('X2')) {
+          // Pour Double Chance 1X = Domicile gagne OU Nul
+          if (rec.prediction.includes('1X')) {
+            isCoherent = homeWins || isDraw;
+            console.log(`  🎯 DOUBLE CHANCE 1X: (${homeWins} || ${isDraw}) = ${isCoherent}`);
+          }
+          // Pour Double Chance X2 = Nul OU Extérieur gagne  
+          else if (rec.prediction.includes('X2')) {
+            isCoherent = isDraw || awayWins;
+            console.log(`  🎯 DOUBLE CHANCE X2: (${isDraw} || ${awayWins}) = ${isCoherent}`);
+          }
+          // Pour Nul simple
+          else {
+            isCoherent = isDraw;
+            console.log(`  🎯 1X2 DRAW: ${isDraw} = ${isCoherent}`);
+          }
         }
       }
 
       if (isCoherent) {
         totalMultiplier *= rec.multiplier;
         coherentRecommendations.push(`${rec.source}:${rec.type}`);
+        console.log(`  ✅ COHÉRENT: ${rec.source}:${rec.type} (x${rec.multiplier})`);
+      } else {
+        console.log(`  ❌ INCOHÉRENT: ${rec.source}:${rec.type}`);
       }
     });
 
@@ -250,6 +282,8 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
       totalMultiplier *= 1.5; // x1.5 pour 2 cohérences
     }
 
+    console.log(`  🏆 RÉSULTAT ${homeScore}-${awayScore}: multiplier=${totalMultiplier.toFixed(2)}, cohérences=${coherentRecommendations.length}`);
+    
     return {
       multiplier: totalMultiplier,
       coherentRecommendations,
