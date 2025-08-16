@@ -8,6 +8,19 @@ export interface AIRecommendation {
   isInverted?: boolean; // Nouvelle propriété pour identifier les recommandations inversées
 }
 
+// Fonctions utilitaires pour détecter les égalités 50/50
+function isOUEqual(match: ProcessedMatch, tolerance: number = 0.01): boolean {
+  const overProb = match.p_over_2_5_fair;
+  const underProb = match.p_under_2_5_fair;
+  return Math.abs(overProb - underProb) <= tolerance;
+}
+
+function isBTTSEqual(match: ProcessedMatch, tolerance: number = 0.01): boolean {
+  const yesProb = match.p_btts_yes_fair;
+  const noProb = match.p_btts_no_fair;
+  return Math.abs(yesProb - noProb) <= tolerance;
+}
+
 export function generateAIRecommendations(match: ProcessedMatch, marketFilters: string[] = []): AIRecommendation[] {
   // VALIDATION STRICTE DES DONNÉES DE BASE - BLOQUE LES RECOMMANDATIONS SI DONNÉES INCOMPLÈTES
   const hasComplete1X2Data = match.odds_home > 0 && match.odds_draw > 0 && match.odds_away > 0 &&
@@ -59,17 +72,45 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
   });
   
   // RÈGLE PRIORITAIRE 1 : Si vigorish BTTS >= 8.1% OU vigorish O/U >= 8.1%, recommander l'opportunité détectée (inverse)
+  // LOGIQUE DE FALLBACK CROISÉE : Exclure les marchés avec égalité 50/50
+  const isOUEqualProbs = isOUEqual(match);
+  const isBTTSEqualProbs = isBTTSEqual(match);
+  
+  console.log('🎯 DÉTECTION ÉGALITÉS 50/50:', {
+    matchId: match.id,
+    isOUEqual: isOUEqualProbs,
+    isBTTSEqual: isBTTSEqualProbs,
+    ouProbs: { over: match.p_over_2_5_fair, under: match.p_under_2_5_fair },
+    bttsProbs: { yes: match.p_btts_yes_fair, no: match.p_btts_no_fair }
+  });
+  
   const bttsHighVig = match.vig_btts > 0 && match.vig_btts >= HIGH_VIG_THRESHOLD && 
-                      match.odds_btts_yes && match.odds_btts_no;
+                      match.odds_btts_yes && match.odds_btts_no && !isBTTSEqualProbs;
   
   const ouHighVig = match.vig_ou_2_5 > 0 && match.vig_ou_2_5 >= HIGH_VIG_THRESHOLD && 
-                    match.odds_over_2_5 && match.odds_under_2_5;
+                    match.odds_over_2_5 && match.odds_under_2_5 && !isOUEqualProbs;
   
-  if (bttsHighVig || ouHighVig) {
+  // Si O/U est 50/50 mais BTTS éligible, forcer BTTS seulement
+  const forceOnlyBTTS = isOUEqualProbs && !isBTTSEqualProbs && match.vig_btts > 0 && match.vig_btts >= HIGH_VIG_THRESHOLD && 
+                        match.odds_btts_yes && match.odds_btts_no;
+  
+  // Si BTTS est 50/50 mais O/U éligible, forcer O/U seulement  
+  const forceOnlyOU = isBTTSEqualProbs && !isOUEqualProbs && match.vig_ou_2_5 > 0 && match.vig_ou_2_5 >= HIGH_VIG_THRESHOLD && 
+                      match.odds_over_2_5 && match.odds_under_2_5;
+
+  if (bttsHighVig || ouHighVig || forceOnlyBTTS || forceOnlyOU) {
     const candidates = [];
     
-    // Ajouter BTTS inversé si haut vigorish
-    if (bttsHighVig) {
+    if (isOUEqualProbs && forceOnlyBTTS) {
+      console.log('🔀 FALLBACK ACTIVÉ: O/U égalité 50/50 → Fallback sur BTTS uniquement');
+    }
+    
+    if (isBTTSEqualProbs && forceOnlyOU) {
+      console.log('🔀 FALLBACK ACTIVÉ: BTTS égalité 50/50 → Fallback sur O/U uniquement');
+    }
+    
+    // Ajouter BTTS inversé si haut vigorish (ou fallback forcé)
+    if (bttsHighVig || forceOnlyBTTS) {
       const bttsYesProb = match.p_btts_yes_fair;
       const bttsNoProb = match.p_btts_no_fair;
       
@@ -95,8 +136,8 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
       }
     }
     
-    // Ajouter O/U inversé si haut vigorish
-    if (ouHighVig) {
+    // Ajouter O/U inversé si haut vigorish (ou fallback forcé)
+    if (ouHighVig || forceOnlyOU) {
       const overProb = match.p_over_2_5_fair;
       const underProb = match.p_under_2_5_fair;
       
@@ -139,21 +180,38 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
   }
   
   // RÈGLE PRIORITAIRE 2 : Si vigorish BTTS <= 6% OU vigorish O/U <= 6%, recommander la prédiction la plus probable
+  // LOGIQUE DE FALLBACK CROISÉE : Exclure les marchés avec égalité 50/50
   const LOW_VIG_THRESHOLD = 0.06; // 6%
   
-  // Vérifier si BTTS a un faible vigorish
+  // Vérifier si BTTS a un faible vigorish (et n'est pas en égalité 50/50)
   const bttsLowVig = match.vig_btts > 0 && match.vig_btts <= LOW_VIG_THRESHOLD && 
-                     match.odds_btts_yes && match.odds_btts_no;
+                     match.odds_btts_yes && match.odds_btts_no && !isBTTSEqualProbs;
   
-  // Vérifier si O/U 2.5 a un faible vigorish
+  // Vérifier si O/U 2.5 a un faible vigorish (et n'est pas en égalité 50/50)
   const ouLowVig = match.vig_ou_2_5 > 0 && match.vig_ou_2_5 <= LOW_VIG_THRESHOLD && 
-                   match.odds_over_2_5 && match.odds_under_2_5;
+                   match.odds_over_2_5 && match.odds_under_2_5 && !isOUEqualProbs;
   
-  if (bttsLowVig || ouLowVig) {
+  // Si O/U est 50/50 mais BTTS éligible pour faible vigorish, forcer BTTS seulement
+  const forceOnlyBTTSLowVig = isOUEqualProbs && !isBTTSEqualProbs && match.vig_btts > 0 && match.vig_btts <= LOW_VIG_THRESHOLD && 
+                              match.odds_btts_yes && match.odds_btts_no;
+  
+  // Si BTTS est 50/50 mais O/U éligible pour faible vigorish, forcer O/U seulement  
+  const forceOnlyOULowVig = isBTTSEqualProbs && !isOUEqualProbs && match.vig_ou_2_5 > 0 && match.vig_ou_2_5 <= LOW_VIG_THRESHOLD && 
+                            match.odds_over_2_5 && match.odds_under_2_5;
+
+  if (bttsLowVig || ouLowVig || forceOnlyBTTSLowVig || forceOnlyOULowVig) {
     const candidates = [];
     
-    // Ajouter BTTS si faible vigorish
-    if (bttsLowVig) {
+    if (isOUEqualProbs && forceOnlyBTTSLowVig) {
+      console.log('🔀 FALLBACK ACTIVÉ (Faible Vig): O/U égalité 50/50 → Fallback sur BTTS uniquement');
+    }
+    
+    if (isBTTSEqualProbs && forceOnlyOULowVig) {
+      console.log('🔀 FALLBACK ACTIVÉ (Faible Vig): BTTS égalité 50/50 → Fallback sur O/U uniquement');
+    }
+    
+    // Ajouter BTTS si faible vigorish (ou fallback forcé)
+    if (bttsLowVig || forceOnlyBTTSLowVig) {
       const bttsYesProb = match.p_btts_yes_fair;
       const bttsNoProb = match.p_btts_no_fair;
       
@@ -178,8 +236,8 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
       }
     }
     
-    // Ajouter O/U 2.5 si faible vigorish
-    if (ouLowVig) {
+    // Ajouter O/U 2.5 si faible vigorish (ou fallback forcé)
+    if (ouLowVig || forceOnlyOULowVig) {
       const overProb = match.p_over_2_5_fair;
       const underProb = match.p_under_2_5_fair;
       
@@ -416,10 +474,11 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
   }
   
   // LOGIQUE STANDARD si pas d'exception des 60%
+  // LOGIQUE DE FALLBACK CROISÉE : Exclure les marchés avec égalité 50/50
   const availableMarkets = [];
   
-  // Évaluer BTTS si les cotes sont disponibles et respectent les filtres
-  if (includeBTTS && match.odds_btts_yes && match.odds_btts_no && match.vig_btts > 0) {
+  // Évaluer BTTS si les cotes sont disponibles et respectent les filtres (et pas d'égalité 50/50)
+  if (includeBTTS && match.odds_btts_yes && match.odds_btts_no && match.vig_btts > 0 && !isBTTSEqualProbs) {
     const bttsYesProb = match.p_btts_yes_fair;
     const bttsNoProb = match.p_btts_no_fair;
     const highestBTTSProb = Math.max(bttsYesProb, bttsNoProb);
@@ -461,8 +520,8 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
     }
   }
   
-  // Évaluer Over/Under 2.5 si les cotes sont disponibles et respectent les filtres
-  if (includeOU && match.odds_over_2_5 && match.odds_under_2_5 && match.vig_ou_2_5 > 0) {
+  // Évaluer Over/Under 2.5 si les cotes sont disponibles et respectent les filtres (et pas d'égalité 50/50)
+  if (includeOU && match.odds_over_2_5 && match.odds_under_2_5 && match.vig_ou_2_5 > 0 && !isOUEqualProbs) {
     const overProb = match.p_over_2_5_fair;
     const underProb = match.p_under_2_5_fair;
     const highestOUProb = Math.max(overProb, underProb);
@@ -502,6 +561,97 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
     if (bestOU) {
       availableMarkets.push(bestOU);
     }
+  }
+  
+  // FALLBACK FORCÉ : Si un marché est exclu à cause d'égalité 50/50, forcer l'autre marché
+  if (isOUEqualProbs && !isBTTSEqualProbs && includeBTTS && match.odds_btts_yes && match.odds_btts_no && match.vig_btts > 0) {
+    console.log('🔀 FALLBACK STANDARD ACTIVÉ: O/U égalité 50/50 → Fallback sur BTTS uniquement');
+    
+    const bttsYesProb = match.p_btts_yes_fair;
+    const bttsNoProb = match.p_btts_no_fair;
+    const highestBTTSProb = Math.max(bttsYesProb, bttsNoProb);
+    
+    const isHighVigBTTS = match.vig_btts >= HIGH_VIG_THRESHOLD;
+    const shouldInvertBTTS = isHighVigBTTS && highestBTTSProb < 0.6;
+    
+    let fallbackBTTS = null;
+    if (match.odds_btts_yes >= MIN_ODDS && bttsYesProb >= MIN_PROBABILITY) {
+      fallbackBTTS = {
+        type: 'BTTS',
+        originalPrediction: 'Oui',
+        prediction: shouldInvertBTTS ? 'Non' : 'Oui',
+        odds: shouldInvertBTTS ? match.odds_btts_no : match.odds_btts_yes,
+        probability: shouldInvertBTTS ? bttsNoProb : bttsYesProb,
+        vigorish: match.vig_btts,
+        isInverted: shouldInvertBTTS
+      };
+    }
+    
+    if (match.odds_btts_no >= MIN_ODDS && bttsNoProb >= MIN_PROBABILITY) {
+      if (!fallbackBTTS || bttsNoProb > fallbackBTTS.probability) {
+        fallbackBTTS = {
+          type: 'BTTS',
+          originalPrediction: 'Non',
+          prediction: shouldInvertBTTS ? 'Oui' : 'Non',
+          odds: shouldInvertBTTS ? match.odds_btts_yes : match.odds_btts_no,
+          probability: shouldInvertBTTS ? bttsYesProb : bttsNoProb,
+          vigorish: match.vig_btts,
+          isInverted: shouldInvertBTTS
+        };
+      }
+    }
+    
+    if (fallbackBTTS) {
+      availableMarkets.push(fallbackBTTS);
+    }
+  }
+  
+  if (isBTTSEqualProbs && !isOUEqualProbs && includeOU && match.odds_over_2_5 && match.odds_under_2_5 && match.vig_ou_2_5 > 0) {
+    console.log('🔀 FALLBACK STANDARD ACTIVÉ: BTTS égalité 50/50 → Fallback sur O/U uniquement');
+    
+    const overProb = match.p_over_2_5_fair;
+    const underProb = match.p_under_2_5_fair;
+    const highestOUProb = Math.max(overProb, underProb);
+    
+    const isHighVigOU = match.vig_ou_2_5 >= HIGH_VIG_THRESHOLD;
+    const shouldInvertOU = isHighVigOU && highestOUProb < 0.6;
+    
+    let fallbackOU = null;
+    if (match.odds_over_2_5 >= MIN_ODDS && overProb >= MIN_PROBABILITY) {
+      fallbackOU = {
+        type: 'O/U 2.5',
+        originalPrediction: '+2,5 buts',
+        prediction: shouldInvertOU ? '-2,5 buts' : '+2,5 buts',
+        odds: shouldInvertOU ? match.odds_under_2_5 : match.odds_over_2_5,
+        probability: shouldInvertOU ? underProb : overProb,
+        vigorish: match.vig_ou_2_5,
+        isInverted: shouldInvertOU
+      };
+    }
+    
+    if (match.odds_under_2_5 >= MIN_ODDS && underProb >= MIN_PROBABILITY) {
+      if (!fallbackOU || underProb > fallbackOU.probability) {
+        fallbackOU = {
+          type: 'O/U 2.5',
+          originalPrediction: '-2,5 buts',
+          prediction: shouldInvertOU ? '+2,5 buts' : '-2,5 buts',
+          odds: shouldInvertOU ? match.odds_over_2_5 : match.odds_under_2_5,
+          probability: shouldInvertOU ? overProb : underProb,
+          vigorish: match.vig_ou_2_5,
+          isInverted: shouldInvertOU
+        };
+      }
+    }
+    
+    if (fallbackOU) {
+      availableMarkets.push(fallbackOU);
+    }
+  }
+  
+  // Si les deux marchés sont en égalité 50/50, ne générer aucune recommandation
+  if (isOUEqualProbs && isBTTSEqualProbs) {
+    console.log('⚠️  DOUBLE ÉGALITÉ 50/50: O/U et BTTS → Aucune recommandation générée');
+    return [];
   }
   
   if (availableMarkets.length === 0) {
