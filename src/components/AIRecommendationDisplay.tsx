@@ -18,6 +18,8 @@ export function AIRecommendationDisplay({
   variant = 'compact',
   showIcon = true 
 }: AIRecommendationDisplayProps) {
+  console.log('🟢 AIRecommendationDisplay APPELÉ pour:', match.home_team, 'vs', match.away_team);
+  
   const aiRecs = generateAIRecommendations(match, marketFilters);
   
   if (aiRecs.length === 0) {
