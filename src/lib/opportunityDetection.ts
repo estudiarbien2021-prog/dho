@@ -219,6 +219,20 @@ export function detectOpportunities(match: ProcessedMatch): OpportunityRecommend
         isInverted: true
       });
     }
+    // Si probabilité >= 56.5%, recommander directement le plus probable (ignorer vigorish)
+    else if (highestBTTSProb >= 0.565) {
+      const directPrediction = bttsYesProb > bttsNoProb ? 'Oui' : 'Non';
+      const directOdds = directPrediction === 'Oui' ? match.odds_btts_yes : match.odds_btts_no;
+      
+      opportunities.push({
+        type: 'BTTS',
+        prediction: directPrediction,
+        odds: directOdds,
+        confidence: 'Modérée', // Car vigorish élevé mais probabilité solide
+        reason: 'Probabilité élevée (>56.5%)',
+        isInverted: false
+      });
+    }
   }
   
   // 4. O/U 2.5 : nouvelle logique avec conditions vigorish < 6% ou >= 8%
@@ -293,10 +307,27 @@ export function detectOpportunities(match: ProcessedMatch): OpportunityRecommend
         isInverted: true
       });
       console.log(`✅ Opportunité inverse ajoutée`);
+    }
+    // Si probabilité >= 56.5%, recommander directement le plus probable (ignorer vigorish)
+    else if (highestOUProb >= 0.565) {
+      console.log(`🎯 Condition probabilité >= 56.5% remplie: ${(highestOUProb * 100).toFixed(1)}% - Recommandation directe`);
+      const directPrediction = overProb > underProb ? '+2,5 buts' : '-2,5 buts';
+      const directOdds = directPrediction === '+2,5 buts' ? match.odds_over_2_5 : match.odds_under_2_5;
+      
+      console.log(`➡️ Ajout opportunité directe (probabilité élevée): ${directPrediction} @${directOdds?.toFixed(2)}`);
+      opportunities.push({
+        type: 'O/U 2.5',
+        prediction: directPrediction,
+        odds: directOdds,
+        confidence: 'Modérée', // Car vigorish élevé mais probabilité solide
+        reason: 'Probabilité élevée (>56.5%)',
+        isInverted: false
+      });
     } else {
-      console.log(`❌ Conditions inverse non remplies:`);
+      console.log(`❌ Conditions non remplies:`);
       console.log(`   - Vigorish >= 8%: ${match.vig_ou_2_5 >= 0.08} (${(match.vig_ou_2_5 * 100).toFixed(1)}%)`);
       console.log(`   - HighestProb < 56.5%: ${highestOUProb < 0.565} (${(highestOUProb * 100).toFixed(1)}%)`);
+      console.log(`   - HighestProb >= 56.5%: ${highestOUProb >= 0.565} (${(highestOUProb * 100).toFixed(1)}%)`);
     }
   } else {
     console.log(`❌ Cotes O/U manquantes - Pas d'analyse O/U 2.5`);
