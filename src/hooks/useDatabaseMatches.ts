@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { ProcessedMatch } from '@/types/match';
 import { supabase } from '@/integrations/supabase/client';
+import { detectOpportunities } from '@/lib/opportunityDetection';
 
 export interface MatchFilters {
   search: string;
@@ -136,20 +137,6 @@ export function useDatabaseMatches(specificDate?: string) {
     return has1X2Data && hasBTTSData && hasOUData;
   };
 
-  // Function to check if match has AI recommendation for specific market
-  const hasAIRecommendation = (match: ProcessedMatch, marketType: 'BTTS' | 'OU') => {
-    if (marketType === 'BTTS') {
-      const bttsYesValid = match.odds_btts_yes && match.odds_btts_yes >= 1.3 && match.p_btts_yes_fair > 0.45;
-      const bttsNoValid = match.odds_btts_no && match.odds_btts_no >= 1.3 && match.p_btts_no_fair > 0.45;
-      return bttsYesValid || bttsNoValid;
-    } else if (marketType === 'OU') {
-      const overValid = match.odds_over_2_5 && match.odds_over_2_5 >= 1.3 && match.p_over_2_5_fair > 0.45;
-      const underValid = match.odds_under_2_5 && match.odds_under_2_5 >= 1.3 && match.p_under_2_5_fair > 0.45;
-      return overValid || underValid;
-    }
-    return false;
-  };
-
   // Filter matches
   const filteredMatches = useMemo(() => {
     console.log('🔍 Filtering matches, total rawMatches:', rawMatches.length);
@@ -178,16 +165,15 @@ export function useDatabaseMatches(specificDate?: string) {
         return false;
       }
 
-      // ÉTAPE 2: Vérification des recommandations IA (après validation des données)
-      const hasBTTSRecommendation = hasAIRecommendation(match, 'BTTS');
-      const hasOURecommendation = hasAIRecommendation(match, 'OU');
+      // ÉTAPE 2: Vérification des opportunités IA (après validation des données)
+      const opportunities = detectOpportunities(match);
       
-      if (!hasBTTSRecommendation && !hasOURecommendation) {
-        console.log(`❌ EXCLU (PAS DE RECOMMANDATION IA): ${match.home_team} vs ${match.away_team} - Données complètes mais pas d'opportunité IA`);
+      if (opportunities.length === 0) {
+        console.log(`❌ EXCLU (PAS D'OPPORTUNITÉ IA): ${match.home_team} vs ${match.away_team} - Données complètes mais pas d'opportunité IA`);
         return false;
       }
       
-      console.log(`✅ MATCH VALIDÉ: ${match.home_team} vs ${match.away_team} - Données complètes + Recommandation IA disponible`);
+      console.log(`✅ MATCH VALIDÉ: ${match.home_team} vs ${match.away_team} - Données complètes + ${opportunities.length} opportunité(s) IA disponible(s)`);
 
       // Search filter
       if (filters.search) {
@@ -260,10 +246,10 @@ export function useDatabaseMatches(specificDate?: string) {
     // Compter les matchs exclus pour données incomplètes
     const excludedForIncompleteData = rawMatches.filter(match => !hasCompleteData(match)).length;
     
-    // Compter les matchs exclus pour pas de recommandation IA
+    // Compter les matchs exclus pour pas d'opportunité IA
     const matchesWithCompleteData = rawMatches.filter(match => hasCompleteData(match));
     const excludedForNoAI = matchesWithCompleteData.filter(match => 
-      !hasAIRecommendation(match, 'BTTS') && !hasAIRecommendation(match, 'OU')
+      detectOpportunities(match).length === 0
     ).length;
     
     console.log(`📊 STATS FILTRAGE: ${rawMatches.length} total → ${excludedForIncompleteData} exclus (données incomplètes) → ${excludedForNoAI} exclus (pas d'IA) → ${filteredMatches.length} final`);
@@ -274,8 +260,14 @@ export function useDatabaseMatches(specificDate?: string) {
       excludedIncompleteData: excludedForIncompleteData,
       excludedNoAI: excludedForNoAI,
       lowVig: filteredMatches.filter(m => m.is_low_vig_1x2).length,
-      watchBtts: filteredMatches.filter(m => hasAIRecommendation(m, 'BTTS')).length,
-      watchOver25: filteredMatches.filter(m => hasAIRecommendation(m, 'OU')).length,
+      watchBtts: filteredMatches.filter(m => {
+        const opportunities = detectOpportunities(m);
+        return opportunities.some(opp => opp.type === 'BTTS' || opp.type === 'BTTS_NEGATIVE');
+      }).length,
+      watchOver25: filteredMatches.filter(m => {
+        const opportunities = detectOpportunities(m);
+        return opportunities.some(opp => opp.type === 'O/U 2.5' || opp.type === 'OU_NEGATIVE');
+      }).length,
       avgVig: filteredMatches.length > 0 
         ? filteredMatches.reduce((sum, m) => sum + m.vig_1x2, 0) / filteredMatches.length 
         : 0
