@@ -53,14 +53,17 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
       console.log('🔍 DEBUG aiRecommendation structure:', {
         aiRecommendation,
         betType: aiRecommendation.betType,
+        type: aiRecommendation.type, // Nouvelle propriété détectée
         betTypeType: typeof aiRecommendation.betType,
         prediction: aiRecommendation.prediction
       });
 
-      // Handle different betType structures
+      // Handle different betType structures - try both betType and type
       let betTypeString = '';
       if (typeof aiRecommendation.betType === 'string') {
         betTypeString = aiRecommendation.betType;
+      } else if (aiRecommendation.type && typeof aiRecommendation.type === 'string') {
+        betTypeString = aiRecommendation.type; // Utiliser la propriété 'type'
       } else if (aiRecommendation.betType && aiRecommendation.betType.value) {
         betTypeString = aiRecommendation.betType.value;
       } else if (aiRecommendation.betType && aiRecommendation.betType._type) {
@@ -79,7 +82,9 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
           betTypeString = 'O/U 2.5';
         } else if (predictionText.includes('BTTS') || predictionText.includes('Oui') || predictionText.includes('Non')) {
           betTypeString = 'BTTS';
-        } else if (predictionText.includes('1X2') || predictionText.includes('Botafogo') || predictionText.includes('LDU')) {
+        } else if (predictionText.includes('1X') || predictionText.includes('X2') || predictionText.includes('12')) {
+          betTypeString = 'Double Chance';
+        } else if (predictionText.includes('Botafogo') || predictionText.includes('LDU') || predictionText.includes('Inter Miami') || predictionText.includes('Huntsville')) {
           betTypeString = '1X2';
         }
         console.log('🔍 DEDUCED betType from prediction:', betTypeString, 'from:', predictionText);
@@ -102,6 +107,7 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
         console.warn('⚠️ TYPE IA NON RECONNU:', {
           betTypeString,
           originalBetType: aiRecommendation.betType,
+          originalType: aiRecommendation.type,
           prediction: aiRecommendation.prediction
         });
       }
