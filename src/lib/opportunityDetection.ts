@@ -198,8 +198,8 @@ export function detectOpportunities(match: ProcessedMatch): OpportunityRecommend
         isInverted: false
       });
     }
-    // Si vigorish >= 8%, proposer l'inverse (sauf si probabilité >= 58%)
-    else if (match.vig_btts >= 0.08 && highestBTTSProb < 0.58) {
+    // Si vigorish >= 8%, proposer l'inverse (sauf si probabilité >= 56.5%)
+    else if (match.vig_btts >= 0.08 && highestBTTSProb < 0.565) {
       // Utiliser la prédiction d'analyse (basée sur les probabilités)
       const analysisOriginalPrediction = bttsYesProb > bttsNoProb ? 'Oui' : 'Non';
       
@@ -268,9 +268,9 @@ export function detectOpportunities(match: ProcessedMatch): OpportunityRecommend
         isInverted: false
       });
     }
-    // Si vigorish >= 8%, proposer l'inverse (sauf si probabilité >= 58%)
-    else if (match.vig_ou_2_5 >= 0.08 && highestOUProb < 0.58) {
-      console.log(`🔄 Condition inverse remplie: vigorish >= 8% (${(match.vig_ou_2_5 * 100).toFixed(1)}%) ET highestProb < 58% (${(highestOUProb * 100).toFixed(1)}%)`);
+    // Si vigorish >= 8%, proposer l'inverse (sauf si probabilité >= 56.5%)
+    else if (match.vig_ou_2_5 >= 0.08 && highestOUProb < 0.565) {
+      console.log(`🔄 Condition inverse remplie: vigorish >= 8% (${(match.vig_ou_2_5 * 100).toFixed(1)}%) ET highestProb < 56.5% (${(highestOUProb * 100).toFixed(1)}%)`);
       
       // Utiliser la prédiction d'analyse (basée sur les probabilités)
       const analysisOriginalPrediction = overProb > underProb ? '+2,5 buts' : '-2,5 buts';
@@ -296,7 +296,7 @@ export function detectOpportunities(match: ProcessedMatch): OpportunityRecommend
     } else {
       console.log(`❌ Conditions inverse non remplies:`);
       console.log(`   - Vigorish >= 8%: ${match.vig_ou_2_5 >= 0.08} (${(match.vig_ou_2_5 * 100).toFixed(1)}%)`);
-      console.log(`   - HighestProb < 58%: ${highestOUProb < 0.58} (${(highestOUProb * 100).toFixed(1)}%)`);
+      console.log(`   - HighestProb < 56.5%: ${highestOUProb < 0.565} (${(highestOUProb * 100).toFixed(1)}%)`);
     }
   } else {
     console.log(`❌ Cotes O/U manquantes - Pas d'analyse O/U 2.5`);
