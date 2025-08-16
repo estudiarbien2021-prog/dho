@@ -49,16 +49,25 @@ export function RulesManagement() {
 
   const loadRules = async () => {
     try {
+      console.log('Loading rules...');
       const { data, error } = await supabase
         .from('recommendation_rules')
         .select('*')
         .order('category', { ascending: true })
         .order('rule_name', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
 
+      console.log('Rules loaded:', data);
+      console.log('Number of rules:', data?.length);
+      
       setRules(data || []);
       setOriginalRules(data || []);
+      
+      console.log('State updated, rules:', data);
     } catch (error) {
       console.error('Error loading rules:', error);
       toast({
@@ -132,6 +141,9 @@ export function RulesManagement() {
     exclusions: rules.filter(r => r.category === 'exclusions'),
     fallbacks: rules.filter(r => r.category === 'fallbacks'),
   };
+
+  console.log('Current rules state:', rules);
+  console.log('Grouped rules:', groupedRules);
 
   const renderRuleControl = (rule: Rule) => {
     if (rule.type === 'boolean') {
