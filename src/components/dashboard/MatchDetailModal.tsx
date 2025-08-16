@@ -40,6 +40,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
   if (!match) return null;
 
   console.log('🔴 MODAL OUVERT POUR:', match.home_team, 'vs', match.away_team, '- ID:', match.id);
+  console.log('🔍 JSX STRUCTURE DEBUG: Modal component started');
 
   const [showAIGraphics, setShowAIGraphics] = useState(false);
   
@@ -1547,37 +1548,37 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
 
           {/* Matrice de Prédiction de Score */}
           <div className="grid grid-cols-1 gap-6">
-              <ScorePredictionMatrix
-                homeTeam={match.home_team}
-                awayTeam={match.away_team}
-                matchId={match.id}
-                isActive={showAIGraphics}
-                match={match}
-                aiRecommendation={recommendation}
-                secondRecommendation={secondRecommendation}
-                thirdRecommendation={thirdMarketRecommendation}
-                allRecommendations={getAllDisplayedOpportunities()}
-              />
-            </div>
+            <ScorePredictionMatrix
+              homeTeam={match.home_team}
+              awayTeam={match.away_team}
+              matchId={match.id}
+              isActive={showAIGraphics}
+              match={match}
+              aiRecommendation={recommendation}
+              secondRecommendation={secondRecommendation}
+              thirdRecommendation={thirdMarketRecommendation}
+              allRecommendations={getAllDisplayedOpportunities()}
+            />
+          </div>
 
           {/* Radar de Performance et Timeline de Momentum */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Team Radar Chart */}
-              <TeamRadarChart
-                homeTeam={match.home_team}
-                awayTeam={match.away_team}
-                matchId={match.id}
-                isActive={showAIGraphics}
-              />
+            {/* Team Radar Chart */}
+            <TeamRadarChart
+              homeTeam={match.home_team}
+              awayTeam={match.away_team}
+              matchId={match.id}
+              isActive={showAIGraphics}
+            />
 
-              {/* Timeline Momentum */}
-              <TimelineMomentum
-                homeTeam={match.home_team}
-                awayTeam={match.away_team}
-                matchId={match.id}
-                isActive={showAIGraphics}
-              />
-            </div>
+            {/* Timeline Momentum */}
+            <TimelineMomentum
+              homeTeam={match.home_team}
+              awayTeam={match.away_team}
+              matchId={match.id}
+              isActive={showAIGraphics}
+            />
+          </div>
           </div>
 
           <Separator className="bg-gradient-to-r from-transparent via-brand/30 to-transparent" />
