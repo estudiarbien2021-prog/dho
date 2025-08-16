@@ -50,7 +50,42 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
 
     // 1. IA PRINCIPALE (x3.0)
     if (aiRecommendation && aiRecommendation.betType !== 'Aucune') {
-      const mappedType = mapBetType(aiRecommendation.betType);
+      console.log('🔍 DEBUG aiRecommendation structure:', {
+        aiRecommendation,
+        betType: aiRecommendation.betType,
+        betTypeType: typeof aiRecommendation.betType,
+        prediction: aiRecommendation.prediction
+      });
+
+      // Handle different betType structures
+      let betTypeString = '';
+      if (typeof aiRecommendation.betType === 'string') {
+        betTypeString = aiRecommendation.betType;
+      } else if (aiRecommendation.betType && aiRecommendation.betType.value) {
+        betTypeString = aiRecommendation.betType.value;
+      } else if (aiRecommendation.betType && aiRecommendation.betType._type) {
+        betTypeString = aiRecommendation.betType._type;
+      }
+
+      // Extract prediction information to deduce bet type
+      const predictionText = aiRecommendation.prediction || '';
+      
+      // Try to deduce bet type from prediction if betType is undefined
+      if (!betTypeString || betTypeString === 'undefined') {
+        if (predictionText.includes('2,5') || predictionText.includes('2.5') || 
+            predictionText.includes('SOUS') || predictionText.includes('SUR') ||
+            predictionText.includes('OVER') || predictionText.includes('UNDER') ||
+            predictionText.toLowerCase().includes('buts')) {
+          betTypeString = 'O/U 2.5';
+        } else if (predictionText.includes('BTTS') || predictionText.includes('Oui') || predictionText.includes('Non')) {
+          betTypeString = 'BTTS';
+        } else if (predictionText.includes('1X2') || predictionText.includes('Botafogo') || predictionText.includes('LDU')) {
+          betTypeString = '1X2';
+        }
+        console.log('🔍 DEDUCED betType from prediction:', betTypeString, 'from:', predictionText);
+      }
+
+      const mappedType = mapBetType(betTypeString);
       if (mappedType) {
         recommendations.push({
           source: 'ai',
@@ -59,12 +94,16 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
           multiplier: 3.0
         });
         console.log('🎯 IA PRINCIPALE AJOUTÉE:', {
-          originalType: aiRecommendation.betType,
+          originalType: betTypeString,
           mappedType,
           prediction: aiRecommendation.prediction
         });
       } else {
-        console.warn('⚠️ TYPE IA NON RECONNU:', aiRecommendation.betType);
+        console.warn('⚠️ TYPE IA NON RECONNU:', {
+          betTypeString,
+          originalBetType: aiRecommendation.betType,
+          prediction: aiRecommendation.prediction
+        });
       }
     }
 
