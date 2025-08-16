@@ -20,15 +20,6 @@ export function AIRecommendationDisplay({
 }: AIRecommendationDisplayProps) {
   console.log('🟢 AIRecommendationDisplay APPELÉ pour:', match.home_team, 'vs', match.away_team);
   
-  // Check if we have a stored prediction first
-  if (variant === 'table' && match.ai_prediction) {
-    return (
-      <div className="text-sm font-medium text-center">
-        {match.ai_prediction}
-      </div>
-    );
-  }
-  
   // Utiliser le système unifié de détection d'opportunités
   const opportunities = detectOpportunities(match);
   
@@ -163,7 +154,17 @@ export function AIRecommendationDisplay({
   }
 
   if (variant === 'table') {
-    // Table variant for dashboard - shows only main prediction
+    // Table variant for dashboard - shows stored prediction from database
+    // If no stored prediction, fall back to calculated opportunities
+    if (match.ai_prediction) {
+      return (
+        <div className="text-sm font-medium text-center">
+          {match.ai_prediction}
+        </div>
+      );
+    }
+
+    // Fallback to calculated opportunities if no stored prediction
     if (aiRecs.length === 0) {
       return (
         <div className="text-xs text-muted-foreground text-center">
