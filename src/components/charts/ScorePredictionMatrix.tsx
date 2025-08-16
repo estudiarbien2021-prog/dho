@@ -49,6 +49,62 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
     'secondRecommendation.prediction': secondRecommendation?.prediction
   });
 
+  // Utiliser les MÊMES fonctions que le MatchDetailModal pour la cohérence
+  const get1x2Winner = () => {
+    if (match.p_home_fair > match.p_draw_fair && match.p_home_fair > match.p_away_fair) {
+      return match.home_team;
+    } else if (match.p_away_fair > match.p_draw_fair && match.p_away_fair > match.p_home_fair) {
+      return match.away_team;
+    } else {
+      return 'Nul';
+    }
+  };
+
+  const getBttsWinner = () => match.p_btts_yes_fair > match.p_btts_no_fair ? 'Oui' : 'Non';
+  
+  const getOver25Winner = () => {
+    return match.p_over_2_5_fair > match.p_under_2_5_fair ? '+2,5 buts' : '-2,5 buts';
+  };
+
+  // Utiliser les MÊMES pourcentages que le modal
+  const get1x2Percentages = () => {
+    const homePercent = (match.p_home_fair * 100).toFixed(1);
+    const drawPercent = (match.p_draw_fair * 100).toFixed(1);
+    const awayPercent = (match.p_away_fair * 100).toFixed(1);
+    return { homePercent, drawPercent, awayPercent };
+  };
+
+  const getBttsPercentages = () => {
+    const yesPercent = (match.p_btts_yes_fair * 100).toFixed(1);
+    const noPercent = (match.p_btts_no_fair * 100).toFixed(1);
+    return { yesPercent, noPercent };
+  };
+
+  const getOver25Percentages = () => {
+    const overPercent = (match.p_over_2_5_fair * 100).toFixed(1);
+    const underPercent = (match.p_under_2_5_fair * 100).toFixed(1);
+    return { overPercent, underPercent };
+  };
+
+  // DEBUG : Afficher les données utilisées (identiques au modal)  
+  console.log('📊 DONNÉES DU MODAL UTILISÉES DANS LA MATRICE:', {
+    '1X2_Winner': get1x2Winner(),
+    '1X2_Percentages': get1x2Percentages(),
+    'BTTS_Winner': getBttsWinner(),
+    'BTTS_Percentages': getBttsPercentages(),
+    'Over25_Winner': getOver25Winner(),
+    'Over25_Percentages': getOver25Percentages(),
+    'Raw_Data': {
+      p_home_fair: match.p_home_fair,
+      p_draw_fair: match.p_draw_fair,
+      p_away_fair: match.p_away_fair,
+      p_btts_yes_fair: match.p_btts_yes_fair,
+      p_btts_no_fair: match.p_btts_no_fair,
+      p_over_2_5_fair: match.p_over_2_5_fair,
+      p_under_2_5_fair: match.p_under_2_5_fair
+    }
+  });
+
   // Collecte TOUTES les recommandations disponibles
   const getAllRecommendations = (): Recommendation[] => {
     const recommendations: Recommendation[] = [];
