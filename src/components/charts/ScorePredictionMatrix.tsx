@@ -357,44 +357,69 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
       baseProbabilities.push(row);
     }
     
-    // Deuxième passe : appliquer les recommandations avec boosts exponentiels
-    let totalAdjustedProbability = 0;
+    // Deuxième passe : créer un système de scoring basé sur la cohérence pure
     const scoreResults: Array<{
       probability: number;
       coherenceLevel: number;
       coherentRecommendations: string[];
       highlightReason: string;
-      baseProbability: number; // DEBUG
-      multiplier: number; // DEBUG
+      baseProbability: number;
+      coherenceScore: number;
     }> = [];
     
+    // Calculer les scores de cohérence pour tous les scores possibles
+    const coherenceScores: number[] = [];
     for (let home = 0; home <= maxScore; home++) {
       for (let away = 0; away <= maxScore; away++) {
-        let probability = baseProbabilities[home][away];
-        const originalBaseProbability = probability;
-        
-        // Évaluer la cohérence de ce score avec toutes les recommandations
         const coherenceResult = evaluateScoreCoherence(home, away, recommendations);
         
-        // DEBUG : Afficher le détail pour quelques scores clés
-        if ((home === 1 && away === 0) || (home === 0 && away === 0) || 
-            (home === 1 && away === 1) || (home === 2 && away === 1) || 
-            (home === 2 && away === 2) || (home === 3 && away === 1)) {
-          console.log(`🔍 DEBUG SCORE ${home}-${away}:`, {
-            baseProbability: originalBaseProbability,
-            coherenceMultiplier: coherenceResult.multiplier,
-            coherenceLevel: coherenceResult.coherenceLevel,
-            coherentRecs: coherenceResult.coherentRecommendations
-          });
+        // Créer un score de cohérence basé sur le niveau et les multiplicateurs
+        let coherenceScore = 0;
+        if (coherenceResult.coherenceLevel >= 3) {
+          coherenceScore = 1000; // Score maximum pour 3+ cohérences
+        } else if (coherenceResult.coherenceLevel === 2) {
+          coherenceScore = 100; // Score élevé pour 2 cohérences
+        } else if (coherenceResult.coherenceLevel === 1) {
+          // Score variable selon la source de la cohérence
+          const hasAI = coherenceResult.coherentRecommendations.some(r => r.startsWith('ai:'));
+          const hasMarket = coherenceResult.coherentRecommendations.some(r => r.startsWith('market:'));
+          if (hasAI) coherenceScore = 30; // IA principale
+          else if (hasMarket) coherenceScore = 30; // Marché
+          else coherenceScore = 10; // Probabiliste seul
+        } else {
+          coherenceScore = 1; // Score minimal pour incohérent
         }
         
-        // Appliquer le multiplicateur de cohérence
-        probability *= coherenceResult.multiplier;
+        // Ajouter un bonus basé sur la probabilité Poisson pour départager
+        const poissonBonus = baseProbabilities[home][away] * 10;
+        coherenceScore += poissonBonus;
         
+        coherenceScores.push(coherenceScore);
+      }
+    }
+    
+    // Normaliser les scores de cohérence en probabilités
+    const totalCoherenceScore = coherenceScores.reduce((sum, score) => sum + score, 0);
+    
+    let index = 0;
+    for (let home = 0; home <= maxScore; home++) {
+      for (let away = 0; away <= maxScore; away++) {
+        const coherenceResult = evaluateScoreCoherence(home, away, recommendations);
+        const baseProbability = baseProbabilities[home][away];
+        const coherenceScore = coherenceScores[index];
+        const finalProbability = coherenceScore / totalCoherenceScore;
+        
+        // DEBUG pour les scores clés
         if ((home === 1 && away === 0) || (home === 0 && away === 0) || 
             (home === 1 && away === 1) || (home === 2 && away === 1) || 
             (home === 2 && away === 2) || (home === 3 && away === 1)) {
-          console.log(`  → Probabilité finale: ${originalBaseProbability} x ${coherenceResult.multiplier} = ${probability}`);
+          console.log(`🔍 NOUVEAU SYSTÈME ${home}-${away}:`, {
+            coherenceLevel: coherenceResult.coherenceLevel,
+            coherenceScore,
+            baseProbability,
+            finalProbability: (finalProbability * 100).toFixed(2) + '%',
+            coherentRecs: coherenceResult.coherentRecommendations
+          });
         }
         
         // Générer la raison d'highlight
@@ -425,27 +450,27 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
         }
         
         scoreResults.push({
-          probability,
+          probability: finalProbability,
           coherenceLevel: coherenceResult.coherenceLevel,
           coherentRecommendations: coherenceResult.coherentRecommendations,
           highlightReason,
-          baseProbability: originalBaseProbability,
-          multiplier: coherenceResult.multiplier
+          baseProbability,
+          coherenceScore
         });
         
-        totalAdjustedProbability += probability;
+        index++;
       }
     }
     
-    // Troisième passe : normaliser et construire la matrice finale
-    let index = 0;
+    // Troisième passe : construire la matrice finale
+    let matrixIndex = 0;
     for (let home = 0; home <= maxScore; home++) {
       const row: ScoreCell[] = [];
       for (let away = 0; away <= maxScore; away++) {
-        const result = scoreResults[index];
+        const result = scoreResults[matrixIndex];
         
-        // Normaliser la probabilité pour que la somme = 100%
-        const normalizedProbability = (result.probability / totalAdjustedProbability) * 100;
+        // Les probabilités sont déjà normalisées dans le système de cohérence
+        const normalizedProbability = result.probability * 100;
         
         row.push({
           homeScore: home,
@@ -455,7 +480,7 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
           highlightReason: result.highlightReason,
         });
         
-        index++;
+        matrixIndex++;
       }
       matrix.push(row);
     }
