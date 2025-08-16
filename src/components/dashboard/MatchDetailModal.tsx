@@ -39,6 +39,8 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
   // Early return BEFORE any hooks - TeamChemistryAnalyzer removed
   if (!match) return null;
 
+  console.log('🔴 MODAL OUVERT POUR:', match.home_team, 'vs', match.away_team, '- ID:', match.id);
+
   const [showAIGraphics, setShowAIGraphics] = useState(false);
   
   // Trigger AI graphics animation when modal opens
