@@ -184,6 +184,20 @@ export function detectOpportunities(match: ProcessedMatch): OpportunityRecommend
         isInverted: false
       });
     }
+    // NOUVELLE CONDITION: Si vigorish 6-8% ET probabilité > 60%, proposer directement
+    else if (match.vig_btts >= 0.06 && match.vig_btts < 0.08 && highestBTTSProb > 0.60) {
+      const prediction = bttsYesProb > bttsNoProb ? 'Oui' : 'Non';
+      const odds = bttsYesProb > bttsNoProb ? match.odds_btts_yes : match.odds_btts_no;
+      
+      opportunities.push({
+        type: 'BTTS',
+        prediction,
+        odds,
+        confidence: 'Élevée',
+        reason: 'Forte probabilité détectée',
+        isInverted: false
+      });
+    }
     // Si vigorish >= 8%, proposer l'inverse (sauf si probabilité >= 58%)
     else if (match.vig_btts >= 0.08 && highestBTTSProb < 0.58) {
       // Utiliser la prédiction d'analyse (basée sur les probabilités)
@@ -235,6 +249,22 @@ export function detectOpportunities(match: ProcessedMatch): OpportunityRecommend
         odds,
         confidence: 'Élevée',
         reason: 'Faible vigorish détecté',
+        isInverted: false
+      });
+    }
+    // NOUVELLE CONDITION: Si vigorish 6-8% ET probabilité > 60%, proposer directement
+    else if (match.vig_ou_2_5 >= 0.06 && match.vig_ou_2_5 < 0.08 && highestOUProb > 0.60) {
+      console.log(`🟡 Condition forte probabilité remplie: vigorish ${(match.vig_ou_2_5 * 100).toFixed(1)}% ET probabilité ${(highestOUProb * 100).toFixed(1)}%`);
+      const prediction = overProb > underProb ? '+2,5 buts' : '-2,5 buts';
+      const odds = overProb > underProb ? match.odds_over_2_5 : match.odds_under_2_5;
+      
+      console.log(`➡️ Ajout opportunité directe forte probabilité: ${prediction} @${odds?.toFixed(2)}`);
+      opportunities.push({
+        type: 'O/U 2.5',
+        prediction,
+        odds,
+        confidence: 'Élevée',
+        reason: 'Forte probabilité détectée',
         isInverted: false
       });
     }
