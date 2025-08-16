@@ -10,7 +10,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recha
 import { FlagMini } from '@/components/Flag';
 import { leagueToFlag } from '@/lib/leagueCountry';
 import { generateConfidenceScore } from '@/lib/confidence';
-import { detectOpportunities, convertOpportunityToAIRecommendation } from '@/lib/opportunityDetection';
+import { detectOpportunities, convertOpportunityToAIRecommendation, prioritizeOpportunitiesByRealProbability } from '@/lib/opportunityDetection';
 import AIRecommendationDisplay from '@/components/AIRecommendationDisplay';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -137,84 +137,8 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
   const opportunities = detectOpportunities(match);
   console.log('🔴 MODAL OPPORTUNITIES:', opportunities.length, opportunities.map(o => `${o.type}:${o.prediction}(inverted:${o.isInverted})`));
   
-  // NOUVELLE LOGIQUE DE PRIORISATION : Trier TOUTES les recommandations par probabilité réelle
-  const prioritizeOpportunities = (opps: any[]) => {
-    // Calculer la probabilité réelle pour chaque recommandation
-    const calculateRealProbability = (opp: any) => {
-      let probability = 0;
-      
-      if (opp.type === '1X2' || opp.type === 'Double Chance') {
-        const probHome = match.p_home_fair;
-        const probDraw = match.p_draw_fair;
-        const probAway = match.p_away_fair;
-        
-        if (opp.prediction === match.home_team) probability = probHome;
-        else if (opp.prediction === match.away_team) probability = probAway;
-        else if (opp.prediction === 'Nul') probability = probDraw;
-        else if (opp.prediction === '1X') probability = probHome + probDraw; // Double chance
-        else if (opp.prediction === 'X2') probability = probDraw + probAway; // Double chance
-        else if (opp.prediction === '12') probability = probHome + probAway; // Double chance
-        else probability = Math.max(probHome, probDraw, probAway); // Fallback
-        
-      } else if (opp.type === 'BTTS') {
-        if (opp.prediction === 'Oui') probability = match.p_btts_yes_fair;
-        else if (opp.prediction === 'Non') probability = match.p_btts_no_fair;
-        else probability = Math.max(match.p_btts_yes_fair, match.p_btts_no_fair); // Fallback
-        
-      } else if (opp.type === 'O/U 2.5') {
-        if (opp.prediction === '+2,5 buts') probability = match.p_over_2_5_fair;
-        else if (opp.prediction === '-2,5 buts') probability = match.p_under_2_5_fair;
-        else probability = Math.max(match.p_over_2_5_fair, match.p_under_2_5_fair); // Fallback
-      }
-      
-      return probability;
-    };
-    
-    // Trier TOUTES les recommandations par probabilité réelle décroissante
-    const sortedByProbability = [...opps].sort((a, b) => {
-      const aProbability = calculateRealProbability(a);
-      const bProbability = calculateRealProbability(b);
-      
-      console.log('🔄 COMPARAISON PROBABILITÉS RÉELLES GLOBALE:', {
-        'a.type': a.type,
-        'a.prediction': a.prediction,
-        'a.realProbability': (aProbability * 100).toFixed(1) + '%',
-        'b.type': b.type,
-        'b.prediction': b.prediction,
-        'b.realProbability': (bProbability * 100).toFixed(1) + '%'
-      });
-      
-      // Si les probabilités sont très proches (différence < 0.01), trier par vigorish décroissant
-      if (Math.abs(aProbability - bProbability) < 0.01) {
-        const aVigorish = a.type === '1X2' || a.type === 'Double Chance' ? match.vig_1x2 : 
-                         a.type === 'BTTS' ? match.vig_btts : match.vig_ou_2_5;
-        const bVigorish = b.type === '1X2' || b.type === 'Double Chance' ? match.vig_1x2 : 
-                         b.type === 'BTTS' ? match.vig_btts : match.vig_ou_2_5;
-        
-        console.log('🔄 ÉGALITÉ PROBABILITÉ - TRI PAR VIGORISH:', {
-          'a.vigorish': (aVigorish * 100).toFixed(1) + '%',
-          'b.vigorish': (bVigorish * 100).toFixed(1) + '%',
-          'choix': bVigorish > aVigorish ? 'b (vigorish plus élevé)' : 'a'
-        });
-        
-        return bVigorish - aVigorish; // Vigorish décroissant en cas d'égalité
-      }
-      
-      // Sinon, trier par probabilité RÉELLE décroissante
-      return bProbability - aProbability;
-    });
-    
-    console.log('🎯 ORDRE FINAL AVEC PROBABILITÉS RÉELLES:', sortedByProbability.map((o, i) => {
-      const realProb = calculateRealProbability(o);
-      const vig = o.type === '1X2' || o.type === 'Double Chance' ? match.vig_1x2 : 
-                  o.type === 'BTTS' ? match.vig_btts : match.vig_ou_2_5;
-      return `${i+1}. ${o.type}:${o.prediction} (prob_réelle:${(realProb*100).toFixed(1)}%, vig:${(vig*100).toFixed(1)}%, inv:${o.isInverted})`;
-    }));
-    
-    return sortedByProbability;
-  };
-
-  const prioritizedOpportunities = prioritizeOpportunities(opportunities);
+  // Utiliser la fonction centralisée de priorisation
+  const prioritizedOpportunities = prioritizeOpportunitiesByRealProbability(opportunities, match);
   const allAIRecommendations = prioritizedOpportunities.map(convertOpportunityToAIRecommendation);
 
   // Helper function to get odds from recommendation
