@@ -1,5 +1,7 @@
 import { ProcessedMatch } from '@/types/match';
 
+console.log('🎯🎯🎯 FICHIER aiRecommendation.ts CHARGÉ ET EXÉCUTÉ !');
+
 export interface AIRecommendation {
   betType: string;
   prediction: string;
