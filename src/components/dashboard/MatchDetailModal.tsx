@@ -9,7 +9,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recha
 import { FlagMini } from '@/components/Flag';
 import { leagueToFlag } from '@/lib/leagueCountry';
 import { generateConfidenceScore } from '@/lib/confidence';
-import { generateAIRecommendation } from '@/lib/aiRecommendation';
+import { generateAIRecommendations } from '@/lib/aiRecommendation';
 import AIRecommendationDisplay from '@/components/AIRecommendationDisplay';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -99,9 +99,10 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     return match.p_over_2_5_fair > match.p_under_2_5_fair ? '+2,5 buts' : '-2,5 buts';
   };
 
-  // Generate AI recommendation for the match
-  const aiRecommendation = generateAIRecommendation(match, marketFilters);
-  const recommendation = normalizeRecommendation(aiRecommendation);
+  // Generate ALL AI recommendations for the match
+  const allAIRecommendations = generateAIRecommendations(match, marketFilters);
+  const recommendation = allAIRecommendations.length > 0 ? normalizeRecommendation(allAIRecommendations[0]) : null;
+  const thirdRecommendation = allAIRecommendations.length > 2 ? normalizeRecommendation(allAIRecommendations[2]) : null;
   
   // Generate second recommendation based on low vigorish criteria (<6%)
   const generateSecondRecommendation = () => {
@@ -222,7 +223,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     if (!recommendation) return false;
     
     // NOUVELLE RÈGLE : Toujours afficher les recommandations inversées (opportunités détectées)
-    if (aiRecommendation && aiRecommendation.isInverted) {
+    if (allAIRecommendations.length > 0 && allAIRecommendations[0].isInverted) {
       return true;
     }
     
@@ -243,7 +244,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     matchId: match.id,
     homeTeam: match.home_team,
     awayTeam: match.away_team,
-    aiRecommendation,
+    allAIRecommendations,
     recommendation,
     marketFilters
   });
@@ -705,7 +706,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
 
     // Check if this chart matches the AI recommendation
     const isAIRecommended = () => {
-      const aiRec = generateAIRecommendation(match, marketFilters);
+      const aiRec = allAIRecommendations.length > 0 ? allAIRecommendations[0] : null;
       if (!aiRec) return false;
       
       if (aiRec.betType === 'BTTS' && chartKey === 'btts' && 
@@ -1011,7 +1012,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                          <div className="flex items-center justify-between">
                            <Badge className="bg-brand text-brand-fg px-4 py-2 text-base font-semibold">
                              {recommendation.type} {recommendation.prediction}
-                             {aiRecommendation?.isInverted && (
+                             {allAIRecommendations.length > 0 && allAIRecommendations[0].isInverted && (
                                <span className="ml-2 text-xs bg-amber-500/20 text-amber-700 px-2 py-1 rounded">
                                  Opportunité détectée
                                </span>
@@ -1141,6 +1142,8 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                 match={match}
                 aiRecommendation={recommendation}
                 secondRecommendation={secondRecommendation}
+                thirdRecommendation={thirdRecommendation}
+                allRecommendations={allAIRecommendations}
               />
             </div>
 

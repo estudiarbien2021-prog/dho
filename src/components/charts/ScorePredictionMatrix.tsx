@@ -11,6 +11,8 @@ interface ScorePredictionMatrixProps {
   match: ProcessedMatch;
   aiRecommendation?: any; // Recommandation principale de l'IA du modal
   secondRecommendation?: any; // Seconde recommandation du modal
+  thirdRecommendation?: any; // Troisième recommandation
+  allRecommendations?: any[]; // Toutes les recommandations IA
 }
 
 interface ScoreCell {
@@ -29,7 +31,7 @@ interface Recommendation {
   multiplier: number;
 }
 
-export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, match, aiRecommendation, secondRecommendation }: ScorePredictionMatrixProps) {
+export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, match, aiRecommendation, secondRecommendation, thirdRecommendation, allRecommendations }: ScorePredictionMatrixProps) {
   const [matrix, setMatrix] = useState<ScoreCell[][]>([]);
   const [animationStep, setAnimationStep] = useState(0);
 
@@ -62,8 +64,32 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
       return null;
     };
 
-    // 1. IA PRINCIPALE (x3.0)
-    if (aiRecommendation && aiRecommendation.betType !== 'Aucune') {
+    // 1. RECOMMANDATIONS IA (x3.0) - TOUTES LES RECOMMANDATIONS
+    if (allRecommendations && allRecommendations.length > 0) {
+      allRecommendations.forEach((aiRec, index) => {
+        console.log(`🔍 DEBUG recommendation ${index + 1}:`, aiRec);
+        
+        const mappedType = mapBetType(aiRec.betType);
+        if (mappedType) {
+          recommendations.push({
+            source: 'ai',
+            type: mappedType,
+            prediction: aiRec.prediction,
+            multiplier: 3.0
+          });
+          console.log(`🎯 IA RECOMMANDATION ${index + 1} AJOUTÉE:`, {
+            originalType: aiRec.betType,
+            mappedType,
+            prediction: aiRec.prediction
+          });
+        }
+      });
+    }
+    
+    // FALLBACK: Si pas d'allRecommendations, utiliser les anciennes props
+    if (recommendations.filter(r => r.source === 'ai').length === 0) {
+      // 1. IA PRINCIPALE (x3.0)
+      if (aiRecommendation && aiRecommendation.betType !== 'Aucune') {
       console.log('🔍 DEBUG aiRecommendation structure:', {
         aiRecommendation,
         betType: aiRecommendation.betType,
@@ -125,6 +151,7 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
           prediction: aiRecommendation.prediction
         });
       }
+    }
     }
 
     // 2. EFFICACITÉ MARCHÉ (x3.0)
