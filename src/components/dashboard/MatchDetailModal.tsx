@@ -260,24 +260,65 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
   });
   const thirdMarketRecommendation = marketRecommendation2;
   
-  // NOUVEAU : Forcer la transmission des opportunités X2 vers la matrice
-  let forcedX2Recommendation = null;
-  if (!secondRecommendation && !thirdMarketRecommendation) {
-    // Vérifier si on a un vigorish 1x2 élevé qui indiquerait une opportunité X2
-    if (match.vig_1x2 >= 0.1) {
-      // Créer manuellement une recommandation X2 pour la matrice
-      forcedX2Recommendation = {
-        type: '1X2',
-        prediction: 'X2',
-        odds: 1.5, // Valeur approximative
-        vigorish: match.vig_1x2,
-        probability: match.p_draw_fair + match.p_away_fair
-      };
-      console.log('🚨 OPPORTUNITÉ X2 FORCÉE POUR LA MATRICE:', forcedX2Recommendation);
+  // SOLUTION DÉFINITIVE : Inclure TOUTES les opportunités affichées dans l'interface
+  const getAllDisplayedOpportunities = () => {
+    const opportunities = [];
+    
+    // 1. Recommandation IA principale
+    if (recommendation) {
+      opportunities.push({
+        source: 'ai',
+        type: recommendation.type,
+        prediction: recommendation.prediction,
+        multiplier: 3.0
+      });
     }
-  }
-  
-  const finalSecondRecommendation = secondRecommendation || forcedX2Recommendation;
+    
+    // 2. Opportunités de marché (faible vigorish)
+    const marketOpps = getAllMarketOpportunities();
+    marketOpps.forEach((opp, index) => {
+      if (opp && opp.type && opp.prediction) {
+        opportunities.push({
+          source: 'market',
+          type: opp.type,
+          prediction: opp.prediction,
+          multiplier: 3.0
+        });
+      }
+    });
+    
+    // 3. Opportunités IA (incluant les doubles chances)
+    const aiRecs = generateAIRecommendations(match, marketFilters);
+    aiRecs.forEach(rec => {
+      if (rec.betType === 'Double Chance') {
+        opportunities.push({
+          source: 'ai_double_chance',
+          type: '1X2',
+          prediction: rec.prediction,
+          multiplier: 3.0
+        });
+      }
+    });
+    
+    // 4. Probabilités brutes comme fallback
+    if (opportunities.length < 3) {
+      opportunities.push({
+        source: 'probabilistic',
+        type: '1X2',
+        prediction: match.home_team,
+        multiplier: 0.25
+      });
+      
+      opportunities.push({
+        source: 'probabilistic',
+        type: 'BTTS',
+        prediction: 'Non',
+        multiplier: 0.25
+      });
+    }
+    
+    return opportunities.slice(0, 5); // Maximum 5 recommandations
+  };
   
   // Check for market distortions first
   const marketDistortion = (() => {
@@ -1286,9 +1327,9 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                 isActive={showAIGraphics}
                 match={match}
                 aiRecommendation={recommendation}
-                secondRecommendation={finalSecondRecommendation}
-                thirdRecommendation={thirdMarketRecommendation}
-                allRecommendations={allAIRecommendations}
+                secondRecommendation={null}
+                thirdRecommendation={null}
+                allRecommendations={getAllDisplayedOpportunities()}
               />
             </div>
 
