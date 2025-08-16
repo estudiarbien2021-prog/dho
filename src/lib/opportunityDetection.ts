@@ -161,14 +161,28 @@ export function detectOpportunities(match: ProcessedMatch): OpportunityRecommend
     }
   }
   
-  // 3. BTTS : si c'est le vigorish le plus élevé ET >= 8% ET probabilité < 60%
-  if (highestVigorish.type === 'BTTS' && highestVigorish.value >= 0.08 && match.odds_btts_yes && match.odds_btts_no) {
+  // 3. BTTS : nouvelle logique avec conditions vigorish < 6% ou >= 8%
+  if (match.odds_btts_yes && match.odds_btts_no) {
     const bttsYesProb = match.p_btts_yes_fair;
     const bttsNoProb = match.p_btts_no_fair;
     const highestBTTSProb = Math.max(bttsYesProb, bttsNoProb);
     
-    // Si la probabilité >= 60%, ne pas appliquer l'inversion
-    if (highestBTTSProb < 0.6) {
+    // Si vigorish < 6%, proposer directement (plus haute probabilité)
+    if (match.vig_btts < 0.06) {
+      const prediction = bttsYesProb > bttsNoProb ? 'Oui' : 'Non';
+      const odds = bttsYesProb > bttsNoProb ? match.odds_btts_yes : match.odds_btts_no;
+      
+      opportunities.push({
+        type: 'BTTS',
+        prediction,
+        odds,
+        confidence: 'Élevée',
+        reason: 'Faible vigorish détecté',
+        isInverted: false
+      });
+    }
+    // Si vigorish >= 8%, proposer l'inverse (sauf si probabilité >= 58%)
+    else if (match.vig_btts >= 0.08 && highestBTTSProb < 0.58) {
       // Utiliser la prédiction d'analyse (basée sur les probabilités)
       const analysisOriginalPrediction = bttsYesProb > bttsNoProb ? 'Oui' : 'Non';
       
@@ -190,14 +204,28 @@ export function detectOpportunities(match: ProcessedMatch): OpportunityRecommend
     }
   }
   
-  // 4. O/U 2.5 : si c'est le vigorish le plus élevé ET >= 8% ET probabilité < 60%
-  if (highestVigorish.type === 'O/U2.5' && highestVigorish.value >= 0.08 && match.odds_over_2_5 && match.odds_under_2_5) {
+  // 4. O/U 2.5 : nouvelle logique avec conditions vigorish < 6% ou >= 8%
+  if (match.odds_over_2_5 && match.odds_under_2_5) {
     const overProb = match.p_over_2_5_fair;
     const underProb = match.p_under_2_5_fair;
     const highestOUProb = Math.max(overProb, underProb);
     
-    // Si la probabilité >= 60%, ne pas appliquer l'inversion
-    if (highestOUProb < 0.6) {
+    // Si vigorish < 6%, proposer directement (plus haute probabilité)
+    if (match.vig_ou_2_5 < 0.06) {
+      const prediction = overProb > underProb ? '+2,5 buts' : '-2,5 buts';
+      const odds = overProb > underProb ? match.odds_over_2_5 : match.odds_under_2_5;
+      
+      opportunities.push({
+        type: 'O/U 2.5',
+        prediction,
+        odds,
+        confidence: 'Élevée',
+        reason: 'Faible vigorish détecté',
+        isInverted: false
+      });
+    }
+    // Si vigorish >= 8%, proposer l'inverse (sauf si probabilité >= 58%)
+    else if (match.vig_ou_2_5 >= 0.08 && highestOUProb < 0.58) {
       // Utiliser la prédiction d'analyse (basée sur les probabilités)
       const analysisOriginalPrediction = overProb > underProb ? '+2,5 buts' : '-2,5 buts';
       
