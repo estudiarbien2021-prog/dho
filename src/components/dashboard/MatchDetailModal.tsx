@@ -199,31 +199,45 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     if (match.vig_btts && match.vig_btts < lowVigThreshold && 
         match.p_btts_yes_fair && match.p_btts_no_fair && 
         match.odds_btts_yes && match.odds_btts_no) {
-      const mostBttsProb = Math.max(match.p_btts_yes_fair, match.p_btts_no_fair);
-      const predictionBtts = mostBttsProb === match.p_btts_yes_fair ? 'Oui' : 'Non';
-      const oddsBtts = mostBttsProb === match.p_btts_yes_fair ? match.odds_btts_yes : match.odds_btts_no;
+      // Vérifier l'égalité 50/50 avant d'ajouter l'opportunité BTTS
+      const isBTTSEqual = Math.abs(match.p_btts_yes_fair - match.p_btts_no_fair) <= 0.01;
       
-      opportunities.push({
-        type: 'BTTS',
-        prediction: predictionBtts,
-        odds: oddsBtts || 0,
-        vigorish: match.vig_btts,
-        probability: mostBttsProb
-      });
+      if (!isBTTSEqual) {
+        const mostBttsProb = Math.max(match.p_btts_yes_fair, match.p_btts_no_fair);
+        const predictionBtts = mostBttsProb === match.p_btts_yes_fair ? 'Oui' : 'Non';
+        const oddsBtts = mostBttsProb === match.p_btts_yes_fair ? match.odds_btts_yes : match.odds_btts_no;
+        
+        opportunities.push({
+          type: 'BTTS',
+          prediction: predictionBtts,
+          odds: oddsBtts || 0,
+          vigorish: match.vig_btts,
+          probability: mostBttsProb
+        });
+      } else {
+        console.log('🔄 BTTS égalité 50/50 détectée dans Efficacité du Marché → Exclusion BTTS');
+      }
     }
     
     if (match.vig_ou_2_5 < lowVigThreshold) {
-      const mostOuProb = Math.max(match.p_over_2_5_fair, match.p_under_2_5_fair);
-      const predictionOu = mostOuProb === match.p_over_2_5_fair ? '+2,5 buts' : '-2,5 buts';
-      const oddsOu = mostOuProb === match.p_over_2_5_fair ? match.odds_over_2_5 : match.odds_under_2_5;
+      // Vérifier l'égalité 50/50 avant d'ajouter l'opportunité O/U
+      const isOUEqual = Math.abs(match.p_over_2_5_fair - match.p_under_2_5_fair) <= 0.01;
       
-      opportunities.push({
-        type: 'O/U 2.5',
-        prediction: predictionOu,
-        odds: oddsOu || 0,
-        vigorish: match.vig_ou_2_5,
-        probability: mostOuProb
-      });
+      if (!isOUEqual) {
+        const mostOuProb = Math.max(match.p_over_2_5_fair, match.p_under_2_5_fair);
+        const predictionOu = mostOuProb === match.p_over_2_5_fair ? '+2,5 buts' : '-2,5 buts';
+        const oddsOu = mostOuProb === match.p_over_2_5_fair ? match.odds_over_2_5 : match.odds_under_2_5;
+        
+        opportunities.push({
+          type: 'O/U 2.5',
+          prediction: predictionOu,
+          odds: oddsOu || 0,
+          vigorish: match.vig_ou_2_5,
+          probability: mostOuProb
+        });
+      } else {
+        console.log('🔄 O/U égalité 50/50 détectée dans Efficacité du Marché → Exclusion O/U');
+      }
     }
     
     return opportunities.sort((a, b) => a.vigorish - b.vigorish);
