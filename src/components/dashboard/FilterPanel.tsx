@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Search, Filter, X, ArrowUpDown, Trophy } from 'lucide-react';
-import { MatchFilters } from '@/hooks/useMatchesData';
+import { MatchFilters } from '@/hooks/useDatabaseMatches';
 
 interface FilterPanelProps {
   filters: MatchFilters;

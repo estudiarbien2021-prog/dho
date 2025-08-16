@@ -186,28 +186,12 @@ export function useMatchesData() {
     [...new Set(rawMatches.map(m => m.league))].sort(), [rawMatches]
   );
 
-  // Function to check if match has AI recommendation for specific market
-  const hasAIRecommendation = (match: ProcessedMatch, marketType: 'BTTS' | 'OU') => {
-    if (marketType === 'BTTS') {
-      // Évaluer les deux options BTTS et voir si au moins une passe les critères
-      const bttsYesValid = match.odds_btts_yes && match.odds_btts_yes >= 1.3 && match.p_btts_yes_fair > 0.45;
-      const bttsNoValid = match.odds_btts_no && match.odds_btts_no >= 1.3 && match.p_btts_no_fair > 0.45;
-      return bttsYesValid || bttsNoValid;
-    } else if (marketType === 'OU') {
-      // Évaluer les deux options Over/Under et voir si au moins une passe les critères
-      const overValid = match.odds_over_2_5 && match.odds_over_2_5 >= 1.3 && match.p_over_2_5_fair > 0.45;
-      const underValid = match.odds_under_2_5 && match.odds_under_2_5 >= 1.3 && match.p_under_2_5_fair > 0.45;
-      return overValid || underValid;
-    }
-    return false;
-  };
-
   // Stats
   const stats = useMemo(() => ({
     total: filteredMatches.length,
     lowVig: filteredMatches.filter(m => m.is_low_vig_1x2).length,
-    watchBtts: filteredMatches.filter(m => hasAIRecommendation(m, 'BTTS')).length,
-    watchOver25: filteredMatches.filter(m => hasAIRecommendation(m, 'OU')).length,
+    watchBtts: filteredMatches.filter(m => m.watch_btts).length,
+    watchOver25: filteredMatches.filter(m => m.watch_over25).length,
     avgVig: filteredMatches.length > 0 
       ? filteredMatches.reduce((sum, m) => sum + m.vig_1x2, 0) / filteredMatches.length 
       : 0
