@@ -26,6 +26,9 @@ export interface OpportunityRecommendation {
  * Logique unifiée utilisée par MarketEfficiencyGauge et AIRecommendationDisplay
  */
 export function detectOpportunities(match: ProcessedMatch): OpportunityRecommendation[] {
+  console.log(`🎯 DETECT OPPORTUNITIES - ${match.home_team} vs ${match.away_team}`);
+  console.log(`📊 Vigorish: 1X2=${(match.vig_1x2 * 100).toFixed(1)}%, BTTS=${(match.vig_btts * 100).toFixed(1)}%, O/U=${(match.vig_ou_2_5 * 100).toFixed(1)}%`);
+  
   const opportunities: OpportunityRecommendation[] = [];
   
   // Créer un tableau des vigorish avec leurs types et les trier
