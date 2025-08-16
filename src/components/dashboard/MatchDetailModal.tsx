@@ -136,28 +136,43 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
   const opportunities = detectOpportunities(match);
   const allAIRecommendations = opportunities.map(convertOpportunityToAIRecommendation);
   
-  // Map all detected opportunities to the three recommendation slots
-  const recommendation = allAIRecommendations.length > 0 ? {
-    ...normalizeRecommendation(allAIRecommendations[0]),
-    isInverted: opportunities[0]?.isInverted || false,
-    reason: opportunities[0]?.reason || []
+  // Prioritize recommendations: BTTS > O/U 2.5 > 1X2
+  const prioritizeRecommendations = (recs: any[], opps: any[]) => {
+    const combined = recs.map((rec, index) => ({ rec, opp: opps[index] }));
+    return combined.sort((a, b) => {
+      const getPriority = (type: string) => {
+        if (type === 'BTTS') return 1;
+        if (type === 'O/U 2.5') return 2;
+        return 3; // 1X2
+      };
+      return getPriority(a.opp?.type || '') - getPriority(b.opp?.type || '');
+    });
+  };
+
+  const prioritizedRecommendations = prioritizeRecommendations(allAIRecommendations, opportunities);
+  
+  // Map prioritized opportunities to the three recommendation slots
+  const recommendation = prioritizedRecommendations.length > 0 ? {
+    ...normalizeRecommendation(prioritizedRecommendations[0].rec),
+    isInverted: prioritizedRecommendations[0].opp?.isInverted || false,
+    reason: prioritizedRecommendations[0].opp?.reason || []
   } : null;
   
-  const secondAIRecommendation = allAIRecommendations.length > 1 ? {
-    ...normalizeRecommendation(allAIRecommendations[1]), 
-    isInverted: opportunities[1]?.isInverted || false,
-    reason: opportunities[1]?.reason || [],
-    vigorish: opportunities[1]?.type === '1X2' ? match.vig_1x2 : 
-              opportunities[1]?.type === 'BTTS' ? match.vig_btts : match.vig_ou_2_5,
-    probability: opportunities[1]?.type === '1X2' ? Math.max(match.p_home_fair, match.p_draw_fair, match.p_away_fair) :
-                 opportunities[1]?.type === 'BTTS' ? Math.max(match.p_btts_yes_fair, match.p_btts_no_fair) :
+  const secondAIRecommendation = prioritizedRecommendations.length > 1 ? {
+    ...normalizeRecommendation(prioritizedRecommendations[1].rec), 
+    isInverted: prioritizedRecommendations[1].opp?.isInverted || false,
+    reason: prioritizedRecommendations[1].opp?.reason || [],
+    vigorish: prioritizedRecommendations[1].opp?.type === '1X2' ? match.vig_1x2 : 
+              prioritizedRecommendations[1].opp?.type === 'BTTS' ? match.vig_btts : match.vig_ou_2_5,
+    probability: prioritizedRecommendations[1].opp?.type === '1X2' ? Math.max(match.p_home_fair, match.p_draw_fair, match.p_away_fair) :
+                 prioritizedRecommendations[1].opp?.type === 'BTTS' ? Math.max(match.p_btts_yes_fair, match.p_btts_no_fair) :
                  Math.max(match.p_over_2_5_fair, match.p_under_2_5_fair)
   } : null;
   
-  const thirdAIRecommendation = allAIRecommendations.length > 2 ? {
-    ...normalizeRecommendation(allAIRecommendations[2]),
-    isInverted: opportunities[2]?.isInverted || false,
-    reason: opportunities[2]?.reason || [],
+  const thirdAIRecommendation = prioritizedRecommendations.length > 2 ? {
+    ...normalizeRecommendation(prioritizedRecommendations[2].rec),
+    isInverted: prioritizedRecommendations[2].opp?.isInverted || false,
+    reason: prioritizedRecommendations[2].opp?.reason || [],
     vigorish: opportunities[2]?.type === '1X2' ? match.vig_1x2 : 
               opportunities[2]?.type === 'BTTS' ? match.vig_btts : match.vig_ou_2_5,
     probability: opportunities[2]?.type === '1X2' ? Math.max(match.p_home_fair, match.p_draw_fair, match.p_away_fair) :
