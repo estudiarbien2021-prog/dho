@@ -188,17 +188,17 @@ export function NeuralNetworkVisualization({ isActive, confidence, match }: Neur
 
         <div className="grid grid-cols-3 gap-4 text-center">
           <div className="space-y-1">
-            <div className="text-2xl font-bold text-blue-400">{match.odds_home.toFixed(2)}</div>
+            <div className="text-2xl font-bold text-blue-400">{match.odds_home}</div>
             <div className="text-xs text-slate-400">Domicile</div>
             <div className="text-xs text-slate-300">{match.p_home_fair.toFixed(1)}%</div>
           </div>
           <div className="space-y-1">
-            <div className="text-2xl font-bold text-yellow-400">{match.odds_draw.toFixed(2)}</div>
+            <div className="text-2xl font-bold text-yellow-400">{match.odds_draw}</div>
             <div className="text-xs text-slate-400">Nul</div>
             <div className="text-xs text-slate-300">{match.p_draw_fair.toFixed(1)}%</div>
           </div>
           <div className="space-y-1">
-            <div className="text-2xl font-bold text-red-400">{match.odds_away.toFixed(2)}</div>
+            <div className="text-2xl font-bold text-red-400">{match.odds_away}</div>
             <div className="text-xs text-slate-400">Extérieur</div>
             <div className="text-xs text-slate-300">{match.p_away_fair.toFixed(1)}%</div>
           </div>
@@ -226,7 +226,7 @@ export function NeuralNetworkVisualization({ isActive, confidence, match }: Neur
                   <div>
                     <div className="font-medium text-white">{bet.market}</div>
                     <div className="text-xs text-slate-400">
-                      Cote: {bet.odds.toFixed(2)} • Fair: {bet.fairProb.toFixed(1)}%
+                      Cote: {bet.odds} • Fair: {bet.fairProb.toFixed(1)}%
                     </div>
                   </div>
                 </div>
