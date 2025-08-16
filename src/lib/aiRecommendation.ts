@@ -62,11 +62,13 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
   
   // Vérifier données BTTS/OU séparément (pour les autres règles)
   
-  // Seuils uniformes pour toute l'application
-  const MIN_ODDS = 1.3;
+  // Seuils uniformes pour toute l'application (nouvelles règles)
+  const MIN_ODDS = 1.5; // 1.5 au lieu de 1.3
   const MIN_PROBABILITY = 0.45;
   const HIGH_VIG_THRESHOLD = 0.081; // 8.1%
+  const LOW_VIG_THRESHOLD = 0.06; // 6%
   const HIGH_VIG_1X2_THRESHOLD = 0.10; // 10% pour le vigorish 1x2
+  const HIGH_PROB_THRESHOLD = 0.58; // 58% pour probabilité élevée
   
   const recommendations: AIRecommendation[] = [];
   
@@ -82,7 +84,7 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
     highVig1x2Threshold: HIGH_VIG_1X2_THRESHOLD
   });
   
-  // RÈGLE PRIORITAIRE 0 : Si vigorish 1x2 >= 10%, recommander la double chance (X2) - PRIORITÉ ABSOLUE
+  // RÈGLE PRIORITAIRE ABSOLUE : Double Chance (X2) - Si vigorish 1x2 >= 10%
   if (match.vig_1x2 >= HIGH_VIG_1X2_THRESHOLD) {
     console.log('🚨🚨🚨 RÈGLE X2 ACTIVÉE - PRIORITÉ ABSOLUE:', {
       'match.vig_1x2': match.vig_1x2,
@@ -91,7 +93,6 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
       'away_team': match.away_team
     });
     
-    // UTILISER LA MÊME LOGIQUE QUE LES AUTRES COMPOSANTS
     // Identifier l'outcome le PLUS probable (à exclure de la double chance)
     const probHome = match.p_home_fair;
     const probDraw = match.p_draw_fair;
@@ -104,56 +105,63 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
     ].sort((a, b) => b.prob - a.prob);
     
     const mostProbableOutcome = outcomes[0].label;
+    const highestProb = outcomes[0].prob;
     
-    console.log('🚨🚨🚨 ANALYSE PROBABILITÉS:', {
-      probHome: probHome,
-      probDraw: probDraw, 
-      probAway: probAway,
-      mostProbableOutcome: mostProbableOutcome,
-      sorted: outcomes
-    });
-    
-    // Choisir la double chance qui exclut le plus probable
-    let doubleChance = '';
-    let doubleChanceProb = 0;
-    
-    if (mostProbableOutcome === 'home') {
-      doubleChance = 'X2'; // Exclut domicile → Nul ou Extérieur
-      doubleChanceProb = probDraw + probAway;
-    } else if (mostProbableOutcome === 'draw') {
-      doubleChance = '12'; // Exclut nul → Domicile ou Extérieur  
-      doubleChanceProb = probHome + probAway;
+    // EXCLUSION : la probabilité la plus haute entre 1 X 2 > 65%
+    if (highestProb > 0.65) {
+      console.log('❌ DOUBLE CHANCE EXCLUE - Probabilité trop élevée:', (highestProb * 100).toFixed(1), '% > 65%');
     } else {
-      doubleChance = '1X'; // Exclut extérieur → Domicile ou Nul
-      doubleChanceProb = probHome + probDraw;
+    
+      console.log('🚨🚨🚨 ANALYSE PROBABILITÉS:', {
+        probHome: probHome,
+        probDraw: probDraw, 
+        probAway: probAway,
+        mostProbableOutcome: mostProbableOutcome,
+        highestProb: (highestProb * 100).toFixed(1) + '%',
+        sorted: outcomes
+      });
+      
+      // Choisir la double chance qui exclut le plus probable
+      let doubleChance = '';
+      let doubleChanceProb = 0;
+      
+      if (mostProbableOutcome === 'home') {
+        doubleChance = 'X2'; // Exclut domicile → Nul ou Extérieur
+        doubleChanceProb = probDraw + probAway;
+      } else if (mostProbableOutcome === 'draw') {
+        doubleChance = '12'; // Exclut nul → Domicile ou Extérieur  
+        doubleChanceProb = probHome + probAway;
+      } else {
+        doubleChance = '1X'; // Exclut extérieur → Domicile ou Nul
+        doubleChanceProb = probHome + probDraw;
+      }
+      
+      // Calculer les cotes de double chance
+      const doubleChanceOdds = 1 / doubleChanceProb;
+      
+      console.log('🚨🚨🚨 DOUBLE CHANCE CALCULÉ:', {
+        doubleChance,
+        doubleChanceProb,
+        'doubleChanceProb_percent': (doubleChanceProb * 100).toFixed(1) + '%',
+        doubleChanceOdds,
+        'doubleChanceOdds_formatted': doubleChanceOdds.toFixed(2)
+      });
+      
+      // Ajouter la recommandation X2
+      console.log('🚨🚨🚨 X2 RECOMMENDATION CRÉÉE !');
+      recommendations.push({
+        betType: '1X2',
+        prediction: doubleChance,
+        odds: doubleChanceOdds,
+        confidence: doubleChanceProb > 0.70 ? 'high' : doubleChanceProb > 0.60 ? 'medium' : 'low',
+        isInverted: false
+      });
+      
+      return recommendations; // RETOUR IMMÉDIAT - X2 est prioritaire
     }
-    
-    // Calculer les cotes de double chance
-    const doubleChanceOdds = 1 / doubleChanceProb;
-    
-    console.log('🚨🚨🚨 DOUBLE CHANCE CALCULÉ:', {
-      doubleChance,
-      doubleChanceProb,
-      'doubleChanceProb_percent': (doubleChanceProb * 100).toFixed(1) + '%',
-      doubleChanceOdds,
-      'doubleChanceOdds_formatted': doubleChanceOdds.toFixed(2)
-    });
-    
-    // TOUJOURS ajouter la recommandation X2 si vigorish >= 10% (pas de seuil supplémentaire)
-    console.log('🚨🚨🚨 X2 RECOMMENDATION CRÉÉE SANS CONDITIONS !');
-    recommendations.push({
-      betType: '1X2',
-      prediction: doubleChance,
-      odds: doubleChanceOdds,
-      confidence: doubleChanceProb > 0.70 ? 'high' : doubleChanceProb > 0.60 ? 'medium' : 'low',
-      isInverted: false
-    });
-    
-    return recommendations; // RETOUR IMMÉDIAT - X2 est prioritaire
   }
   
-  // RÈGLE PRIORITAIRE 1 : Si vigorish BTTS >= 8.1% OU vigorish O/U >= 8.1%, recommander l'opportunité détectée (inverse)
-  // LOGIQUE DE FALLBACK CROISÉE : Exclure les marchés avec égalité 50/50
+  // RÈGLE 1 : Opportunités Inversées (Haut Vigorish) - Si vigorish BTTS >= 8.1% OU vigorish O/U >= 8.1%
   const isOUEqualProbs = isOUEqual(match);
   const isBTTSEqualProbs = isBTTSEqual(match);
   
@@ -280,9 +288,7 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
     }
   }
   
-  // RÈGLE PRIORITAIRE 2 : Si vigorish BTTS <= 6% OU vigorish O/U <= 6%, recommander la prédiction la plus probable
-  // LOGIQUE DE FALLBACK CROISÉE : Exclure les marchés avec égalité 50/50
-  const LOW_VIG_THRESHOLD = 0.06; // 6%
+  // RÈGLE 2 : Recommandations Directes (Faible Vigorish) - Si vigorish BTTS <= 6% OU vigorish O/U <= 6%
   
   // Vérifier si BTTS a un faible vigorish (et n'est pas en égalité 50/50)
   const bttsLowVig = match.vig_btts > 0 && match.vig_btts <= LOW_VIG_THRESHOLD && 
@@ -381,74 +387,139 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
     }
   }
   
-  // RÈGLE PRIORITAIRE 2 : Si vigorish 1x2 >= 10%, recommander la double chance (opportunité détectée)
-  if (match.vig_1x2 >= HIGH_VIG_1X2_THRESHOLD) {
-    console.log('🚨🚨🚨 RÈGLE X2 ACTIVÉE - NOUVELLE LOGIQUE:', {
-      'match.vig_1x2': match.vig_1x2,
-      'HIGH_VIG_1X2_THRESHOLD': HIGH_VIG_1X2_THRESHOLD,
-      'home_team': match.home_team,
-      'away_team': match.away_team
-    });
+  // RÈGLE EXCEPTION : Probabilité Élevée (≥ 58%) - Choisir le marché avec le vigorish le plus faible
+  const highProbExists = match.p_home_fair >= HIGH_PROB_THRESHOLD || 
+                         match.p_draw_fair >= HIGH_PROB_THRESHOLD || 
+                         match.p_away_fair >= HIGH_PROB_THRESHOLD ||
+                         match.p_btts_yes_fair >= HIGH_PROB_THRESHOLD || 
+                         match.p_btts_no_fair >= HIGH_PROB_THRESHOLD ||
+                         match.p_over_2_5_fair >= HIGH_PROB_THRESHOLD || 
+                         match.p_under_2_5_fair >= HIGH_PROB_THRESHOLD;
+  
+  if (highProbExists) {
+    console.log('📈 RÈGLE EXCEPTION 58% ACTIVÉE - Analyse des marchés disponibles');
     
-    // UTILISER LA MÊME LOGIQUE QUE LES AUTRES COMPOSANTS
-    // Identifier l'outcome le PLUS probable (à exclure de la double chance)
-    const probHome = match.p_home_fair;
-    const probDraw = match.p_draw_fair;
-    const probAway = match.p_away_fair;
+    const candidates = [];
     
-    const outcomes = [
-      { label: 'home', prob: probHome },
-      { label: 'draw', prob: probDraw },
-      { label: 'away', prob: probAway }
-    ].sort((a, b) => b.prob - a.prob);
-    
-    const mostProbableOutcome = outcomes[0].label;
-    
-    console.log('🚨🚨🚨 ANALYSE PROBABILITÉS:', {
-      probHome: probHome,
-      probDraw: probDraw, 
-      probAway: probAway,
-      mostProbableOutcome: mostProbableOutcome,
-      sorted: outcomes
-    });
-    
-    // Choisir la double chance qui exclut le plus probable
-    let doubleChance = '';
-    let doubleChanceProb = 0;
-    
-    if (mostProbableOutcome === 'home') {
-      doubleChance = 'X2'; // Exclut domicile → Nul ou Extérieur
-      doubleChanceProb = probDraw + probAway;
-    } else if (mostProbableOutcome === 'draw') {
-      doubleChance = '12'; // Exclut nul → Domicile ou Extérieur  
-      doubleChanceProb = probHome + probAway;
-    } else {
-      doubleChance = '1X'; // Exclut extérieur → Domicile ou Nul
-      doubleChanceProb = probHome + probDraw;
+    // Ajouter 1X2 si données complètes
+    if (hasComplete1X2Data) {
+      const mostProb1x2 = Math.max(match.p_home_fair, match.p_draw_fair, match.p_away_fair);
+      if (mostProb1x2 >= HIGH_PROB_THRESHOLD) {
+        let prediction = '';
+        let odds = 0;
+        if (mostProb1x2 === match.p_home_fair) {
+          prediction = 'Victoire domicile';
+          odds = match.odds_home;
+        } else if (mostProb1x2 === match.p_away_fair) {
+          prediction = 'Victoire extérieur';
+          odds = match.odds_away;
+        } else {
+          prediction = 'Match nul';
+          odds = match.odds_draw;
+        }
+        
+        candidates.push({
+          type: '1X2',
+          prediction,
+          odds,
+          probability: mostProb1x2,
+          vigorish: match.vig_1x2,
+          isInverted: false
+        });
+      }
     }
     
-    // Calculer les cotes de double chance
-    const doubleChanceOdds = 1 / doubleChanceProb;
+    // Ajouter BTTS si données complètes et pas 50/50
+    if (hasCompleteBTTSData && !isBTTSEqualProbs) {
+      const mostProbBtts = Math.max(match.p_btts_yes_fair, match.p_btts_no_fair);
+      if (mostProbBtts >= HIGH_PROB_THRESHOLD) {
+        const prediction = mostProbBtts === match.p_btts_yes_fair ? 'Oui' : 'Non';
+        const odds = mostProbBtts === match.p_btts_yes_fair ? match.odds_btts_yes! : match.odds_btts_no!;
+        
+        // Logique d'inversion si vigorish >= 8.1% et probabilité < 58%
+        if (match.vig_btts >= HIGH_VIG_THRESHOLD && mostProbBtts < HIGH_PROB_THRESHOLD) {
+          const invertedPrediction = prediction === 'Oui' ? 'Non' : 'Oui';
+          const invertedOdds = prediction === 'Oui' ? match.odds_btts_no! : match.odds_btts_yes!;
+          const invertedProb = prediction === 'Oui' ? match.p_btts_no_fair : match.p_btts_yes_fair;
+          
+          candidates.push({
+            type: 'BTTS',
+            prediction: invertedPrediction,
+            odds: invertedOdds,
+            probability: invertedProb,
+            vigorish: match.vig_btts,
+            isInverted: true
+          });
+        } else {
+          candidates.push({
+            type: 'BTTS',
+            prediction,
+            odds,
+            probability: mostProbBtts,
+            vigorish: match.vig_btts,
+            isInverted: false
+          });
+        }
+      }
+    }
     
-    console.log('🚨🚨🚨 DOUBLE CHANCE CALCULÉ:', {
-      doubleChance,
-      doubleChanceProb,
-      'doubleChanceProb_percent': (doubleChanceProb * 100).toFixed(1) + '%',
-      doubleChanceOdds,
-      'doubleChanceOdds_formatted': doubleChanceOdds.toFixed(2)
-    });
+    // Ajouter O/U si données complètes et pas 50/50
+    if (hasCompleteOUData && !isOUEqualProbs) {
+      const mostProbOu = Math.max(match.p_over_2_5_fair, match.p_under_2_5_fair);
+      if (mostProbOu >= HIGH_PROB_THRESHOLD) {
+        const prediction = mostProbOu === match.p_over_2_5_fair ? '+2,5 buts' : '-2,5 buts';
+        const odds = mostProbOu === match.p_over_2_5_fair ? match.odds_over_2_5! : match.odds_under_2_5!;
+        
+        // Logique d'inversion si vigorish >= 8.1% et probabilité < 58%
+        if (match.vig_ou_2_5 >= HIGH_VIG_THRESHOLD && mostProbOu < HIGH_PROB_THRESHOLD) {
+          const invertedPrediction = prediction === '+2,5 buts' ? '-2,5 buts' : '+2,5 buts';
+          const invertedOdds = prediction === '+2,5 buts' ? match.odds_under_2_5! : match.odds_over_2_5!;
+          const invertedProb = prediction === '+2,5 buts' ? match.p_under_2_5_fair : match.p_over_2_5_fair;
+          
+          candidates.push({
+            type: 'O/U 2.5',
+            prediction: invertedPrediction,
+            odds: invertedOdds,
+            probability: invertedProb,
+            vigorish: match.vig_ou_2_5,
+            isInverted: true
+          });
+        } else {
+          candidates.push({
+            type: 'O/U 2.5',
+            prediction,
+            odds,
+            probability: mostProbOu,
+            vigorish: match.vig_ou_2_5,
+            isInverted: false
+          });
+        }
+      }
+    }
     
-    // TOUJOURS ajouter la recommandation X2 si vigorish >= 10% (pas de seuil supplémentaire)
-    console.log('🚨🚨🚨 X2 RECOMMENDATION CRÉÉE SANS CONDITIONS !');
-    recommendations.push({
-      betType: '1X2',
-      prediction: doubleChance,
-      odds: doubleChanceOdds,
-      confidence: doubleChanceProb > 0.70 ? 'high' : doubleChanceProb > 0.60 ? 'medium' : 'low',
-      isInverted: false
-    });
-    
-    return recommendations;
+    // Trier par vigorish croissant, puis probabilité décroissante
+    if (candidates.length > 0) {
+      const sortedCandidates = candidates.sort((a, b) => {
+        if (Math.abs(a.vigorish - b.vigorish) < 0.001) {
+          return b.probability - a.probability;
+        }
+        return a.vigorish - b.vigorish;
+      });
+      
+      const bestCandidate = sortedCandidates[0];
+      
+      if (bestCandidate.odds >= MIN_ODDS && bestCandidate.probability >= MIN_PROBABILITY) {
+        recommendations.push({
+          betType: bestCandidate.type,
+          prediction: bestCandidate.prediction,
+          odds: bestCandidate.odds,
+          confidence: bestCandidate.probability > 0.70 ? 'high' : bestCandidate.probability > 0.60 ? 'medium' : 'low',
+          isInverted: bestCandidate.isInverted
+        });
+        
+        return recommendations;
+      }
+    }
   }
   
   // EXCEPTION PRIORITAIRE : Si une probabilité >= 60%, choisir le marché avec le vigorish le plus faible
@@ -826,10 +897,24 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
     }
   }
   
-  console.log(`🏁 FIN generateAIRecommendations pour ${match.home_team} vs ${match.away_team}:`, 
-    recommendations.map(r => `${r.betType}-${r.prediction}`));
+  // Filtrage final : supprimer toutes les recommandations avec odds ≤ 1.5
+  const validRecommendations = recommendations.filter(rec => {
+    if (rec.odds <= MIN_ODDS) {
+      console.log('❌ RECOMMANDATION EXCLUE - Odds trop faibles:', rec.odds, 'pour', rec.betType, rec.prediction);
+      return false;
+    }
+    return true;
+  });
   
-  return recommendations;
+  console.log('📊 DEBUG generateAIRecommendations FINAL RECOMMENDATIONS:', validRecommendations.map(r => 
+    `${r.betType}:${r.prediction}(odds:${r.odds.toFixed(2)}, conf:${r.confidence}, inv:${r.isInverted})`
+  ));
+  
+  if (validRecommendations.length === 0) {
+    console.log('❌ AUCUNE RECOMMANDATION VALIDE - Match exclu du dashboard');
+  }
+  
+  return validRecommendations;
 }
 
 // Fonction de compatibilité pour les composants existants
