@@ -252,8 +252,29 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
       }
     }
 
-    // BTTS automatique désactivé pour éviter les conflits
-    // L'utilisateur doit fournir explicitement la recommandation BTTS
+    if (!hasBTTS) {
+      // Ajouter recommandation BTTS basée sur probabilités si claire (différence > 4%)
+      const bttsDiff = Math.abs(match.p_btts_yes_fair - match.p_btts_no_fair);
+      if (bttsDiff > 0.04) {
+        if (match.p_btts_yes_fair > match.p_btts_no_fair) {
+          recommendations.push({
+            source: 'probabilistic',
+            type: 'BTTS',
+            prediction: 'Oui',
+            multiplier: 0.25
+          });
+          console.log('📊 BTTS OUI PROBABILISTE AJOUTÉ:', match.p_btts_yes_fair, 'vs', match.p_btts_no_fair);
+        } else {
+          recommendations.push({
+            source: 'probabilistic',
+            type: 'BTTS',
+            prediction: 'Non',
+            multiplier: 0.25
+          });
+          console.log('📊 BTTS NON PROBABILISTE AJOUTÉ:', match.p_btts_no_fair, 'vs', match.p_btts_yes_fair);
+        }
+      }
+    }
 
     if (!has1X2) {
       // Ajouter recommandation 1X2 basée sur probabilités
