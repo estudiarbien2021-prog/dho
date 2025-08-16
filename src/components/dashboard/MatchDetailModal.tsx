@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ProcessedMatch } from '@/types/match';
-import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -161,33 +160,12 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     return opp.odds;
   };
 
-  // Save main prediction to database
-  const saveMainPrediction = async (mainPrediction: string, confidence: number) => {
-    try {
-      const { error } = await supabase
-        .from('matches')
-        .update({ 
-          ai_prediction: mainPrediction,
-          ai_confidence: confidence 
-        })
-        .eq('id', match.id);
-      
-      if (error) {
-        console.error('Error saving AI prediction:', error);
-      } else {
-        console.log('AI prediction saved successfully:', mainPrediction);
-      }
-    } catch (error) {
-      console.error('Error saving AI prediction:', error);
-    }
-  };
-
   // Prioritize recommendations: Highest probability first, then highest odds
   const prioritizeRecommendations = (recs: any[], opps: any[]) => {
     const combined = recs.map((rec, index) => ({ rec, opp: opps[index] }));
     
     // Sort by probability (descending), then by odds (descending)
-    const sorted = combined.sort((a, b) => {
+    return combined.sort((a, b) => {
       const probA = getProbabilityFromRecommendation(a.opp);
       const probB = getProbabilityFromRecommendation(b.opp);
       
@@ -201,35 +179,6 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
       const oddsB = getOddsFromRecommendation(b.opp);
       return oddsB - oddsA; // Descending order
     });
-
-    // Save the main prediction if we have recommendations
-    if (sorted.length > 0) {
-      const mainRec = sorted[0];
-      const formatPrediction = (betType: string, prediction: string) => {
-        switch (betType) {
-          case 'BTTS':
-            return prediction === 'Oui' ? 'BTTS Oui' : 'BTTS Non';
-          case 'O/U 2.5':
-            return prediction === '+2,5 buts' ? 'OU 2.5 +2,5 buts' : 'OU 2.5 -2,5 buts';
-          case '1X2':
-            if (prediction === 'Victoire domicile') return '1';
-            if (prediction === 'Match nul') return 'X';
-            return '2';
-          default:
-            return `${betType} ${prediction}`;
-        }
-      };
-
-      const mainPrediction = formatPrediction(mainRec.opp?.type || '', mainRec.opp?.prediction || '');
-      const confidence = getProbabilityFromRecommendation(mainRec.opp) * 100;
-      
-      // Only save if we don't have a prediction yet or if it's different
-      if (!match.ai_prediction || match.ai_prediction !== mainPrediction) {
-        saveMainPrediction(mainPrediction, confidence);
-      }
-    }
-
-    return sorted;
   };
 
   const prioritizedRecommendations = prioritizeRecommendations(allAIRecommendations, opportunities);
