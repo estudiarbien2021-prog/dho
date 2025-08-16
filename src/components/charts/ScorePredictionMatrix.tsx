@@ -247,28 +247,28 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
           console.log(`  🎯 BTTS NON: !bothTeamsScore = ${isCoherent}`);
         }
       } else if (rec.type === '1X2') {
-        if (rec.prediction === match.home_team || (rec.prediction.includes('1X') && (homeWins || isDraw))) {
+        // Gestion spécifique des prédictions 1X2 et Double Chance
+        if (rec.prediction === match.home_team) {
           isCoherent = homeWins;
           console.log(`  🎯 1X2 HOME: ${match.home_team} wins = ${isCoherent}`);
-        } else if (rec.prediction === match.away_team || (rec.prediction.includes('X2') && (awayWins || isDraw))) {
+        } else if (rec.prediction === match.away_team) {
           isCoherent = awayWins;
           console.log(`  🎯 1X2 AWAY: ${match.away_team} wins = ${isCoherent}`);
-        } else if (rec.prediction === 'Nul' || rec.prediction.includes('1X') || rec.prediction.includes('X2')) {
-          // Pour Double Chance 1X = Domicile gagne OU Nul
-          if (rec.prediction.includes('1X')) {
-            isCoherent = homeWins || isDraw;
-            console.log(`  🎯 DOUBLE CHANCE 1X: (${homeWins} || ${isDraw}) = ${isCoherent}`);
-          }
-          // Pour Double Chance X2 = Nul OU Extérieur gagne  
-          else if (rec.prediction.includes('X2')) {
-            isCoherent = isDraw || awayWins;
-            console.log(`  🎯 DOUBLE CHANCE X2: (${isDraw} || ${awayWins}) = ${isCoherent}`);
-          }
-          // Pour Nul simple
-          else {
-            isCoherent = isDraw;
-            console.log(`  🎯 1X2 DRAW: ${isDraw} = ${isCoherent}`);
-          }
+        } else if (rec.prediction === 'Nul') {
+          isCoherent = isDraw;
+          console.log(`  🎯 1X2 DRAW: ${isDraw} = ${isCoherent}`);
+        } else if (rec.prediction === '1X') {
+          // Double Chance 1X = Domicile gagne OU Match nul
+          isCoherent = homeWins || isDraw;
+          console.log(`  🎯 DOUBLE CHANCE 1X: (${homeWins} || ${isDraw}) = ${isCoherent}`);
+        } else if (rec.prediction === 'X2') {
+          // Double Chance X2 = Match nul OU Extérieur gagne  
+          isCoherent = isDraw || awayWins;
+          console.log(`  🎯 DOUBLE CHANCE X2: (${isDraw} || ${awayWins}) = ${isCoherent}`);
+        } else if (rec.prediction === '12') {
+          // Double Chance 12 = Domicile gagne OU Extérieur gagne
+          isCoherent = homeWins || awayWins;
+          console.log(`  🎯 DOUBLE CHANCE 12: (${homeWins} || ${awayWins}) = ${isCoherent}`);
         }
       }
 
