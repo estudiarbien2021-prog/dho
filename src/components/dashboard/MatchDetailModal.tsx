@@ -85,13 +85,20 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
 
   // Helper function to normalize recommendation object
   const normalizeRecommendation = (rec: any) => {
+    console.log('🔍 NORMALIZE INPUT:', rec);
+    
     if (!rec) return null;
-    return {
+    
+    const normalized = {
       type: rec.betType || rec.type || 'Aucune',
       prediction: rec.prediction || 'Aucune',
       odds: rec.odds || 0,
       confidence: rec.confidence || 'low'
     };
+    
+    console.log('🔍 NORMALIZE OUTPUT:', normalized);
+    
+    return normalized;
   };
 
   const getBttsWinner = () => match.p_btts_yes_fair > match.p_btts_no_fair ? 'Oui' : 'Non';
@@ -106,6 +113,17 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
   
   // Generate second recommendation based on low vigorish criteria (<6%)
   // Récupérer les données BRUTES déjà affichées dans le popup (sans recalcul)
+  
+  // DEBUG CRITIQUE : Afficher les vraies probabilités Over/Under
+  console.log('🚨 VRAIES PROBABILITÉS O/U 2.5:', {
+    'p_over_2_5_fair': match.p_over_2_5_fair,
+    'p_under_2_5_fair': match.p_under_2_5_fair,
+    'over_plus_probable': match.p_over_2_5_fair > match.p_under_2_5_fair,
+    'under_plus_probable': match.p_under_2_5_fair > match.p_over_2_5_fair,
+    'vigorish_ou_2_5': match.vig_ou_2_5,
+    'odds_over_2_5': match.odds_over_2_5,
+    'odds_under_2_5': match.odds_under_2_5
+  });
   
   // 1. RECOMMANDATION IA (Analyse complète avec facteurs d'influence) - Poids 3.0
   const aiRecommendationFromPopup = recommendation;
@@ -243,6 +261,22 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     allAIRecommendations,
     recommendation,
     marketFilters
+  });
+  
+  // NOUVEAU DEBUG CRITIQUE : Analyser chaque étape de transformation
+  console.log('🚨 ANALYSE DÉTAILLÉE DES RECOMMANDATIONS:', {
+    'allAIRecommendations_RAW': allAIRecommendations,
+    'recommendation_after_normalize': recommendation,
+    'recommendation_type': recommendation?.type,
+    'recommendation_prediction': recommendation?.prediction,
+    'shouldShow': shouldShowAIRecommendation()
+  });
+  
+  // DEBUG des données d'opportunités de marché
+  console.log('🔍 DEBUG MARKET OPPORTUNITIES:', {
+    'getAllMarketOpportunities()': getAllMarketOpportunities(),
+    'secondRecommendation': secondRecommendation,
+    'thirdMarketRecommendation': thirdMarketRecommendation
   });
 
   // Generate AI recommendation explanation combining all 3 styles
