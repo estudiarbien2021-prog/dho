@@ -207,34 +207,41 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     return combined;
   };
 
-  const prioritizedRecommendations = prioritizeRecommendations(allAIRecommendations, prioritizedOpportunities);
+  // Convertir les opportunités priorisées en recommandations IA
+  const prioritizedRecommendations = prioritizedOpportunities.map(opp => ({
+    rec: convertOpportunityToAIRecommendation(opp),
+    opp: opp
+  }));
+
+  // Utiliser les recommandations déjà priorisées par la logique centralisée
+  const finalRecommendations = prioritizedRecommendations;
   
   // Map prioritized opportunities to the three recommendation slots
-  const recommendation = prioritizedRecommendations.length > 0 ? {
-    ...normalizeRecommendation(prioritizedRecommendations[0].rec),
-    isInverted: prioritizedRecommendations[0].opp?.isInverted || false,
-    reason: prioritizedRecommendations[0].opp?.reason || []
+  const recommendation = finalRecommendations.length > 0 ? {
+    ...normalizeRecommendation(finalRecommendations[0].rec),
+    isInverted: finalRecommendations[0].opp?.isInverted || false,
+    reason: finalRecommendations[0].opp?.reason || []
   } : null;
   
-  const secondAIRecommendation = prioritizedRecommendations.length > 1 ? {
-    ...normalizeRecommendation(prioritizedRecommendations[1].rec), 
-    isInverted: prioritizedRecommendations[1].opp?.isInverted || false,
-    reason: prioritizedRecommendations[1].opp?.reason || [],
-    vigorish: prioritizedRecommendations[1].opp?.type === '1X2' ? match.vig_1x2 : 
-              prioritizedRecommendations[1].opp?.type === 'BTTS' ? match.vig_btts : match.vig_ou_2_5,
-    probability: prioritizedRecommendations[1].opp?.type === '1X2' ? Math.max(match.p_home_fair, match.p_draw_fair, match.p_away_fair) :
-                 prioritizedRecommendations[1].opp?.type === 'BTTS' ? Math.max(match.p_btts_yes_fair, match.p_btts_no_fair) :
+  const secondAIRecommendation = finalRecommendations.length > 1 ? {
+    ...normalizeRecommendation(finalRecommendations[1].rec), 
+    isInverted: finalRecommendations[1].opp?.isInverted || false,
+    reason: finalRecommendations[1].opp?.reason || [],
+    vigorish: finalRecommendations[1].opp?.type === '1X2' ? match.vig_1x2 : 
+              finalRecommendations[1].opp?.type === 'BTTS' ? match.vig_btts : match.vig_ou_2_5,
+    probability: finalRecommendations[1].opp?.type === '1X2' ? Math.max(match.p_home_fair, match.p_draw_fair, match.p_away_fair) :
+                 finalRecommendations[1].opp?.type === 'BTTS' ? Math.max(match.p_btts_yes_fair, match.p_btts_no_fair) :
                  Math.max(match.p_over_2_5_fair, match.p_under_2_5_fair)
   } : null;
   
-  const thirdAIRecommendation = prioritizedRecommendations.length > 2 ? {
-    ...normalizeRecommendation(prioritizedRecommendations[2].rec),
-    isInverted: prioritizedRecommendations[2].opp?.isInverted || false,
-    reason: prioritizedRecommendations[2].opp?.reason || [],
-    vigorish: opportunities[2]?.type === '1X2' ? match.vig_1x2 : 
-              opportunities[2]?.type === 'BTTS' ? match.vig_btts : match.vig_ou_2_5,
-    probability: opportunities[2]?.type === '1X2' ? Math.max(match.p_home_fair, match.p_draw_fair, match.p_away_fair) :
-                 opportunities[2]?.type === 'BTTS' ? Math.max(match.p_btts_yes_fair, match.p_btts_no_fair) :
+  const thirdAIRecommendation = finalRecommendations.length > 2 ? {
+    ...normalizeRecommendation(finalRecommendations[2].rec),
+    isInverted: finalRecommendations[2].opp?.isInverted || false,
+    reason: finalRecommendations[2].opp?.reason || [],
+    vigorish: finalRecommendations[2]?.opp?.type === '1X2' ? match.vig_1x2 : 
+              finalRecommendations[2]?.opp?.type === 'BTTS' ? match.vig_btts : match.vig_ou_2_5,
+    probability: finalRecommendations[2]?.opp?.type === '1X2' ? Math.max(match.p_home_fair, match.p_draw_fair, match.p_away_fair) :
+                 finalRecommendations[2]?.opp?.type === 'BTTS' ? Math.max(match.p_btts_yes_fair, match.p_btts_no_fair) :
                  Math.max(match.p_over_2_5_fair, match.p_under_2_5_fair)
   } : null;
   
