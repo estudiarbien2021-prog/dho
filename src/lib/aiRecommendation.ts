@@ -9,6 +9,35 @@ export interface AIRecommendation {
 }
 
 export function generateAIRecommendations(match: ProcessedMatch, marketFilters: string[] = []): AIRecommendation[] {
+  // VALIDATION STRICTE DES DONNÉES DE BASE - BLOQUE LES RECOMMANDATIONS SI DONNÉES INCOMPLÈTES
+  const hasComplete1X2Data = match.odds_home > 0 && match.odds_draw > 0 && match.odds_away > 0 &&
+                              match.p_home_fair > 0 && match.p_draw_fair > 0 && match.p_away_fair > 0;
+  
+  const hasCompleteBTTSData = match.odds_btts_yes && match.odds_btts_no &&
+                              match.odds_btts_yes > 0 && match.odds_btts_no > 0 &&
+                              match.p_btts_yes_fair > 0 && match.p_btts_no_fair > 0;
+  
+  const hasCompleteOUData = match.odds_over_2_5 && match.odds_under_2_5 &&
+                            match.odds_over_2_5 > 0 && match.odds_under_2_5 > 0 &&
+                            match.p_over_2_5_fair > 0 && match.p_under_2_5_fair > 0;
+  
+  if (!hasComplete1X2Data || !hasCompleteBTTSData || !hasCompleteOUData) {
+    console.log(`🚫 RECOMMANDATIONS IA BLOQUÉES - DONNÉES INCOMPLÈTES: ${match.home_team} vs ${match.away_team}`, {
+      hasComplete1X2: hasComplete1X2Data,
+      hasCompleteBTTS: hasCompleteBTTSData,
+      hasCompleteOU: hasCompleteOUData,
+      odds_1x2: { home: match.odds_home, draw: match.odds_draw, away: match.odds_away },
+      odds_btts: { yes: match.odds_btts_yes, no: match.odds_btts_no },
+      odds_ou: { over: match.odds_over_2_5, under: match.odds_under_2_5 },
+      probs_1x2: { home: match.p_home_fair, draw: match.p_draw_fair, away: match.p_away_fair },
+      probs_btts: { yes: match.p_btts_yes_fair, no: match.p_btts_no_fair },
+      probs_ou: { over: match.p_over_2_5_fair, under: match.p_under_2_5_fair }
+    });
+    return []; // Retourner un tableau vide - AUCUNE RECOMMANDATION
+  }
+  
+  console.log(`✅ DONNÉES COMPLÈTES VALIDÉES: ${match.home_team} vs ${match.away_team} - Génération des recommandations IA autorisée`);
+  
   // Seuils uniformes pour toute l'application
   const MIN_ODDS = 1.3;
   const MIN_PROBABILITY = 0.45;
@@ -541,8 +570,16 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
 
 // Fonction de compatibilité pour les composants existants
 export function generateAIRecommendation(match: ProcessedMatch, marketFilters: string[] = []): AIRecommendation | null {
+  // UTILISE LA MÊME VALIDATION STRICTE QUE generateAIRecommendations
   const recommendations = generateAIRecommendations(match, marketFilters);
-  return recommendations.length > 0 ? recommendations[0] : null;
+  
+  if (recommendations.length === 0) {
+    console.log(`🚫 generateAIRecommendation: Aucune recommandation pour ${match.home_team} vs ${match.away_team} - Données incomplètes ou pas d'opportunités`);
+    return null;
+  }
+  
+  console.log(`✅ generateAIRecommendation: Recommandation générée pour ${match.home_team} vs ${match.away_team}:`, recommendations[0]);
+  return recommendations[0];
 }
 
 // Fonction pour obtenir la prédiction d'analyse (basée sur les probabilités, sans inversion)

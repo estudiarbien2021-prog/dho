@@ -117,6 +117,25 @@ export function useDatabaseMatches(specificDate?: string) {
     loadMatches();
   }, [specificDate]);
 
+  // Function to check if match has complete basic data (STRICT VALIDATION)
+  const hasCompleteData = (match: ProcessedMatch) => {
+    // Check 1X2 data completeness
+    const has1X2Data = match.odds_home > 0 && match.odds_draw > 0 && match.odds_away > 0 &&
+                       match.p_home_fair > 0 && match.p_draw_fair > 0 && match.p_away_fair > 0;
+    
+    // Check BTTS data completeness  
+    const hasBTTSData = match.odds_btts_yes && match.odds_btts_no &&
+                        match.odds_btts_yes > 0 && match.odds_btts_no > 0 &&
+                        match.p_btts_yes_fair > 0 && match.p_btts_no_fair > 0;
+    
+    // Check Over/Under data completeness
+    const hasOUData = match.odds_over_2_5 && match.odds_under_2_5 &&
+                      match.odds_over_2_5 > 0 && match.odds_under_2_5 > 0 &&
+                      match.p_over_2_5_fair > 0 && match.p_under_2_5_fair > 0;
+    
+    return has1X2Data && hasBTTSData && hasOUData;
+  };
+
   // Function to check if match has AI recommendation for specific market
   const hasAIRecommendation = (match: ProcessedMatch, marketType: 'BTTS' | 'OU') => {
     if (marketType === 'BTTS') {
@@ -136,29 +155,39 @@ export function useDatabaseMatches(specificDate?: string) {
     console.log('🔍 Filtering matches, total rawMatches:', rawMatches.length);
     
     let matches = rawMatches.filter(match => {
-      // Filter out matches without AI recommendations - THIS IS CRITICAL
+      // ÉTAPE 1: VALIDATION STRICTE DES DONNÉES DE BASE (PRIORITÉ ABSOLUE)
+      const isDataComplete = hasCompleteData(match);
+      
+      if (!isDataComplete) {
+        console.log(`🚫 EXCLU (DONNÉES INCOMPLÈTES): ${match.home_team} vs ${match.away_team}`, {
+          odds_home: match.odds_home,
+          odds_draw: match.odds_draw, 
+          odds_away: match.odds_away,
+          odds_btts_yes: match.odds_btts_yes,
+          odds_btts_no: match.odds_btts_no,
+          odds_over_2_5: match.odds_over_2_5,
+          odds_under_2_5: match.odds_under_2_5,
+          p_home_fair: match.p_home_fair,
+          p_draw_fair: match.p_draw_fair,
+          p_away_fair: match.p_away_fair,
+          p_btts_yes_fair: match.p_btts_yes_fair,
+          p_btts_no_fair: match.p_btts_no_fair,
+          p_over_2_5_fair: match.p_over_2_5_fair,
+          p_under_2_5_fair: match.p_under_2_5_fair
+        });
+        return false;
+      }
+
+      // ÉTAPE 2: Vérification des recommandations IA (après validation des données)
       const hasBTTSRecommendation = hasAIRecommendation(match, 'BTTS');
       const hasOURecommendation = hasAIRecommendation(match, 'OU');
       
-      console.log(`🔍 Checking: ${match.home_team} vs ${match.away_team}`, {
-        btts_yes_odds: match.odds_btts_yes,
-        btts_yes_prob: match.p_btts_yes_fair,
-        btts_no_odds: match.odds_btts_no,
-        btts_no_prob: match.p_btts_no_fair,
-        over_odds: match.odds_over_2_5,
-        over_prob: match.p_over_2_5_fair,
-        under_odds: match.odds_under_2_5,
-        under_prob: match.p_under_2_5_fair,
-        hasBTTSRec: hasBTTSRecommendation,
-        hasOURec: hasOURecommendation
-      });
-      
       if (!hasBTTSRecommendation && !hasOURecommendation) {
-        console.log(`❌ FILTERED OUT: ${match.home_team} vs ${match.away_team} - No AI recommendation`);
+        console.log(`❌ EXCLU (PAS DE RECOMMANDATION IA): ${match.home_team} vs ${match.away_team} - Données complètes mais pas d'opportunité IA`);
         return false;
-      } else {
-        console.log(`✅ KEPT: ${match.home_team} vs ${match.away_team} - Has AI recommendation`);
       }
+      
+      console.log(`✅ MATCH VALIDÉ: ${match.home_team} vs ${match.away_team} - Données complètes + Recommandation IA disponible`);
 
       // Search filter
       if (filters.search) {
@@ -227,15 +256,31 @@ export function useDatabaseMatches(specificDate?: string) {
   );
 
   // Stats
-  const stats = useMemo(() => ({
-    total: filteredMatches.length,
-    lowVig: filteredMatches.filter(m => m.is_low_vig_1x2).length,
-    watchBtts: filteredMatches.filter(m => hasAIRecommendation(m, 'BTTS')).length,
-    watchOver25: filteredMatches.filter(m => hasAIRecommendation(m, 'OU')).length,
-    avgVig: filteredMatches.length > 0 
-      ? filteredMatches.reduce((sum, m) => sum + m.vig_1x2, 0) / filteredMatches.length 
-      : 0
-  }), [filteredMatches]);
+  const stats = useMemo(() => {
+    // Compter les matchs exclus pour données incomplètes
+    const excludedForIncompleteData = rawMatches.filter(match => !hasCompleteData(match)).length;
+    
+    // Compter les matchs exclus pour pas de recommandation IA
+    const matchesWithCompleteData = rawMatches.filter(match => hasCompleteData(match));
+    const excludedForNoAI = matchesWithCompleteData.filter(match => 
+      !hasAIRecommendation(match, 'BTTS') && !hasAIRecommendation(match, 'OU')
+    ).length;
+    
+    console.log(`📊 STATS FILTRAGE: ${rawMatches.length} total → ${excludedForIncompleteData} exclus (données incomplètes) → ${excludedForNoAI} exclus (pas d'IA) → ${filteredMatches.length} final`);
+    
+    return {
+      total: filteredMatches.length,
+      totalRaw: rawMatches.length,
+      excludedIncompleteData: excludedForIncompleteData,
+      excludedNoAI: excludedForNoAI,
+      lowVig: filteredMatches.filter(m => m.is_low_vig_1x2).length,
+      watchBtts: filteredMatches.filter(m => hasAIRecommendation(m, 'BTTS')).length,
+      watchOver25: filteredMatches.filter(m => hasAIRecommendation(m, 'OU')).length,
+      avgVig: filteredMatches.length > 0 
+        ? filteredMatches.reduce((sum, m) => sum + m.vig_1x2, 0) / filteredMatches.length 
+        : 0
+    };
+  }, [filteredMatches, rawMatches]);
 
   return {
     matches: filteredMatches,
