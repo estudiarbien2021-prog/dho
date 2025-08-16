@@ -20,6 +20,15 @@ export function AIRecommendationDisplay({
 }: AIRecommendationDisplayProps) {
   console.log('🟢 AIRecommendationDisplay APPELÉ pour:', match.home_team, 'vs', match.away_team);
   
+  // Check if we have a stored prediction first
+  if (variant === 'table' && match.ai_prediction) {
+    return (
+      <div className="text-sm font-medium text-center">
+        {match.ai_prediction}
+      </div>
+    );
+  }
+  
   // Utiliser le système unifié de détection d'opportunités
   const opportunities = detectOpportunities(match);
   
@@ -154,7 +163,7 @@ export function AIRecommendationDisplay({
   }
 
   if (variant === 'table') {
-    // Use same logic as popup detail modal for consistency
+    // Table variant for dashboard - shows only main prediction
     if (aiRecs.length === 0) {
       return (
         <div className="text-xs text-muted-foreground text-center">
@@ -163,7 +172,6 @@ export function AIRecommendationDisplay({
       );
     }
 
-    // Use the highest priority recommendation (same as popup)
     const aiRec = aiRecs[0];
     const formatPrediction = (betType: string, prediction: string) => {
       switch (betType) {
@@ -180,51 +188,11 @@ export function AIRecommendationDisplay({
       }
     };
 
-    const confidence = generateConfidenceScore(match.id, {
-      type: aiRec.betType,
-      prediction: aiRec.prediction,
-      confidence: aiRec.confidence
-    });
-
     return (
-      <div className="bg-green-100 p-3 rounded-lg border border-green-200 min-w-[200px]">
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <span className="text-green-600">🎯</span>
-          <span className="text-sm font-semibold text-green-800">
-            Recommandation IA
-          </span>
-        </div>
-        
-        <div className="grid grid-cols-3 gap-2 text-xs text-center">
-          <div>
-            <div className="text-green-600 font-medium">Type de pari</div>
-            <div className="text-green-800">{formatBetType(aiRec.betType)}</div>
-          </div>
-          <div>
-            <div className="text-green-600 font-medium">Prédiction</div>
-            <div className="text-green-800">{aiRec.prediction}</div>
-          </div>
-          <div>
-            <div className="text-green-600 font-medium">Cote</div>
-            <div className="text-green-800 font-bold">{aiRec.odds.toFixed(2)}</div>
-          </div>
-        </div>
-        
-        <div className="pt-2 text-center">
-          <div className="text-green-600 text-xs font-medium">Confiance</div>
-          <div className="text-green-800 font-bold">{confidence}%</div>
-        </div>
+      <div className="text-sm font-medium text-center">
+        {formatPrediction(aiRec.betType, aiRec.prediction)}
       </div>
     );
-
-    function formatBetType(betType: string) {
-      switch (betType) {
-        case '1X2': return 'chance double';
-        case 'BTTS': return 'BTTS';
-        case 'O/U 2.5': return 'O/U 2.5';
-        default: return betType;
-      }
-    }
   }
 
   if (variant === 'card') {
