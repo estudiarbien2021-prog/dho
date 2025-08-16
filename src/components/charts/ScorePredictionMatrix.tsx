@@ -217,8 +217,29 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
       }
     }
 
-    console.log('🔍 TOUTES LES RECOMMANDATIONS COLLECTÉES:', recommendations);
-    return recommendations;
+    // Filtrer les recommandations probabilistiques qui contredisent les principales
+    const filteredRecommendations = recommendations.filter(rec => {
+      // Garder toutes les recommandations principales (IA et marché)
+      if (rec.source === 'ai' || rec.source === 'market') {
+        return true;
+      }
+      
+      // Pour les recommandations probabilistiques, vérifier qu'elles ne contredisent pas les principales
+      if (rec.source === 'probabilistic') {
+        const mainRecommendations = recommendations.filter(r => (r.source === 'ai' || r.source === 'market') && r.type === rec.type);
+        
+        // S'il y a une recommandation principale du même type, ignorer la probabiliste
+        if (mainRecommendations.length > 0) {
+          console.log(`🚫 IGNORANT recommandation probabiliste ${rec.type}:${rec.prediction} car existe déjà en principal`);
+          return false;
+        }
+      }
+      
+      return true;
+    });
+
+    console.log('🔍 RECOMMANDATIONS APRÈS FILTRAGE:', filteredRecommendations);
+    return filteredRecommendations;
   };
 
   // Évalue la cohérence d'un score avec toutes les recommandations
