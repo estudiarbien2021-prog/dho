@@ -136,16 +136,48 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
   const opportunities = detectOpportunities(match);
   const allAIRecommendations = opportunities.map(convertOpportunityToAIRecommendation);
   
-  // Prioritize recommendations: BTTS > O/U 2.5 > 1X2
+  // Helper function to get probability from recommendation
+  const getProbabilityFromRecommendation = (opp: any) => {
+    if (!opp) return 0;
+    
+    switch (opp.type) {
+      case 'BTTS':
+        return opp.prediction === 'Oui' ? match.p_btts_yes_fair : match.p_btts_no_fair;
+      case 'O/U 2.5':
+        return opp.prediction === '+2,5 buts' ? match.p_over_2_5_fair : match.p_under_2_5_fair;
+      case '1X2':
+        if (opp.prediction === 'Victoire domicile') return match.p_home_fair;
+        if (opp.prediction === 'Match nul') return match.p_draw_fair;
+        return match.p_away_fair;
+      default:
+        return 0;
+    }
+  };
+
+  // Helper function to get odds from recommendation
+  const getOddsFromRecommendation = (opp: any) => {
+    if (!opp || !opp.odds) return 0;
+    return opp.odds;
+  };
+
+  // Prioritize recommendations: Highest probability first, then highest odds
   const prioritizeRecommendations = (recs: any[], opps: any[]) => {
     const combined = recs.map((rec, index) => ({ rec, opp: opps[index] }));
+    
+    // Sort by probability (descending), then by odds (descending)
     return combined.sort((a, b) => {
-      const getPriority = (type: string) => {
-        if (type === 'BTTS') return 1;
-        if (type === 'O/U 2.5') return 2;
-        return 3; // 1X2
-      };
-      return getPriority(a.opp?.type || '') - getPriority(b.opp?.type || '');
+      const probA = getProbabilityFromRecommendation(a.opp);
+      const probB = getProbabilityFromRecommendation(b.opp);
+      
+      // Primary criterion: highest probability
+      if (probA !== probB) {
+        return probB - probA; // Descending order
+      }
+      
+      // Secondary criterion: highest odds (in case of equal probability)
+      const oddsA = getOddsFromRecommendation(a.opp);
+      const oddsB = getOddsFromRecommendation(b.opp);
+      return oddsB - oddsA; // Descending order
     });
   };
 
