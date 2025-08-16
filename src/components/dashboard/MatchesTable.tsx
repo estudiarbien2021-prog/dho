@@ -10,8 +10,6 @@ import { leagueToFlag } from '@/lib/leagueCountry';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { generateConfidenceScore } from '@/lib/confidence';
-
-import { generateAIRecommendation, AIRecommendation } from '@/lib/aiRecommendation';
 import AIRecommendationDisplay from '@/components/AIRecommendationDisplay';
 
 interface MatchesTableProps {
@@ -342,8 +340,6 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
           {/* Mobile Cards */}
           <div className="md:hidden space-y-4">
             {group.matches.map((match) => {
-              const flagInfo = leagueToFlag(match.league, match.country, match.home_team, match.away_team);
-              const aiRec = generateAIRecommendation(match, marketFilters);
               
               return (
                 <Card 
@@ -377,31 +373,12 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
                     
                     {/* AI Recommendation */}
                     <div className="space-y-2">
-                      {aiRec ? (
-                        <div className="bg-green-100 p-3 rounded-lg border border-green-200 text-center">
-                          <div className="flex items-center justify-center gap-2 mb-2">
-                            <Brain className="h-4 w-4 text-green-600" />
-                            <span className="text-sm font-medium text-green-800">
-                              Recommandation IA
-                            </span>
-                          </div>
-                          <div className="text-sm">
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="font-medium">{aiRec.betType} - {aiRec.prediction}</span>
-                              <span className="text-green-600 font-bold">
-                                @{aiRec.odds.toFixed(2)}
-                              </span>
-                            </div>
-                            <div className="text-xs text-muted-foreground text-center">
-                              Confiance: {generateConfidenceScore(match.id, aiRec)}%
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="text-xs text-muted-foreground text-center py-2">
-                          Aucune opportunité détectée
-                        </div>
-                      )}
+                      <AIRecommendationDisplay
+                        match={match}
+                        marketFilters={marketFilters}
+                        variant="card"
+                        showIcon={true}
+                      />
                     </div>
                     
                     {/* Action Button */}
