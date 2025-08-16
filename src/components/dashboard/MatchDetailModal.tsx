@@ -41,13 +41,12 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
 
   console.log('🔴 MODAL OUVERT POUR:', match.home_team, 'vs', match.away_team, '- ID:', match.id);
 
-  const [showAIGraphics, setShowAIGraphics] = useState(false);
+  const [showAIGraphics, setShowAIGraphics] = useState(true);
   
-  // Trigger AI graphics animation when modal opens
+  // Reset AI graphics when modal closes
   useEffect(() => {
     if (isOpen) {
-      const timer = setTimeout(() => setShowAIGraphics(true), 500);
-      return () => clearTimeout(timer);
+      setShowAIGraphics(true);
     } else {
       setShowAIGraphics(false);
     }
@@ -1493,8 +1492,8 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                       </div>
                       <div className="h-2 bg-surface-strong rounded-full overflow-hidden">
                         <div 
-                          className="h-full bg-gradient-to-r from-brand to-brand-400 rounded-full transition-all duration-1000"
-                          style={{ width: `${showAIGraphics ? generateConfidenceScore(match.id, recommendation || {}) : 0}%` }}
+                          className="h-full bg-gradient-to-r from-brand to-brand-400 rounded-full"
+                          style={{ width: `${generateConfidenceScore(match.id, recommendation || {})}%` }}
                         />
                       </div>
                     </div>
@@ -1508,8 +1507,8 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                       </div>
                       <div className="h-2 bg-surface-strong rounded-full overflow-hidden">
                         <div 
-                          className="h-full bg-gradient-to-r from-destructive to-destructive/80 rounded-full transition-all duration-1000 delay-200"
-                          style={{ width: `${showAIGraphics ? Math.round(match.vig_1x2 * 100) : 0}%` }}
+                          className="h-full bg-gradient-to-r from-destructive to-destructive/80 rounded-full"
+                          style={{ width: `${Math.round(match.vig_1x2 * 100)}%` }}
                         />
                       </div>
                     </div>
@@ -1524,7 +1523,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                 homeTeam={match.home_team}
                 awayTeam={match.away_team}
                 matchId={match.id}
-                isActive={showAIGraphics}
+                isActive={true}
                 match={match}
                 aiRecommendation={recommendation}
                 secondRecommendation={secondRecommendation}
@@ -1540,7 +1539,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                 homeTeam={match.home_team}
                 awayTeam={match.away_team}
                 matchId={match.id}
-                isActive={showAIGraphics}
+                isActive={true}
               />
 
               {/* Timeline Momentum */}
@@ -1548,7 +1547,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                 homeTeam={match.home_team}
                 awayTeam={match.away_team}
                 matchId={match.id}
-                isActive={showAIGraphics}
+                isActive={true}
               />
             </div>
           </div>
@@ -1557,33 +1556,31 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
 
 
           {/* Section Analyses Avancées IA */}
-          {showAIGraphics && (
-            <div className="space-y-6 animate-fade-in">
-              <div className="text-center py-4">
-                <h2 className="text-xl font-bold text-foreground mb-2 flex items-center justify-center gap-2">
-                  <Brain className="w-6 h-6 text-brand" />
-                  Analyses Avancées IA
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Métriques de nouvelle génération pour une analyse complète
-                </p>
-              </div>
-
-
-              {/* Consensus IA et Barres de Certitude */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Consensus IA */}
-                <Card className="p-6 bg-gradient-to-br from-background to-muted/20 border-border/50">
-                  <AIConsensusGauge match={match} />
-                </Card>
-
-                {/* Barres de Certitude */}
-                <Card className="p-6 bg-gradient-to-br from-background to-muted/20 border-border/50">
-                  <PredictionCertaintyBars match={match} />
-                </Card>
-              </div>
+          <div className="space-y-6">
+            <div className="text-center py-4">
+              <h2 className="text-xl font-bold text-foreground mb-2 flex items-center justify-center gap-2">
+                <Brain className="w-6 h-6 text-brand" />
+                Analyses Avancées IA
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Métriques de nouvelle génération pour une analyse complète
+              </p>
             </div>
-          )}
+
+
+            {/* Consensus IA et Barres de Certitude */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Consensus IA */}
+              <Card className="p-6 bg-gradient-to-br from-background to-muted/20 border-border/50">
+                <AIConsensusGauge match={match} />
+              </Card>
+
+              {/* Barres de Certitude */}
+              <Card className="p-6 bg-gradient-to-br from-background to-muted/20 border-border/50">
+                <PredictionCertaintyBars match={match} />
+              </Card>
+            </div>
+          </div>
 
           {/* Modern Actions Section */}
           <div className="flex justify-center pt-4 border-t border-border">
