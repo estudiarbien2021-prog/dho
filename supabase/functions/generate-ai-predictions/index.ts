@@ -60,8 +60,22 @@ function generateAIRecommendation(match: ProcessedMatch, marketFilters: string[]
     odds_btts_no: match.odds_btts_no,
     p_btts_yes_fair: match.p_btts_yes_fair,
     p_btts_no_fair: match.p_btts_no_fair,
-    vig_btts: match.vig_btts
+    p_over_2_5_fair: match.p_over_2_5_fair,
+    p_under_2_5_fair: match.p_under_2_5_fair,
+    vig_btts: match.vig_btts,
+    vig_ou_2_5: match.vig_ou_2_5
   });
+
+  // Détection des égalités 50/50
+  const isOUEqual = Math.abs((match.p_over_2_5_fair || 0) - (match.p_under_2_5_fair || 0)) <= 0.01;
+  const isBTTSEqual = Math.abs((match.p_btts_yes_fair || 0) - (match.p_btts_no_fair || 0)) <= 0.01;
+  
+  if (isOUEqual) {
+    console.log('🔄 O/U égalité détectée (50%/50%) → Exclusion O/U, fallback sur BTTS uniquement');
+  }
+  if (isBTTSEqual) {
+    console.log('🔄 BTTS égalité détectée (50%/50%) → Exclusion BTTS, fallback sur O/U uniquement');
+  }
 
   // Analyser uniquement les marchés BTTS et Over/Under selon les filtres
   const markets = [];
@@ -72,102 +86,106 @@ function generateAIRecommendation(match: ProcessedMatch, marketFilters: string[]
   const allowOver25 = marketFilters.length === 0 || marketFilters.includes('over25');
   const allowUnder25 = marketFilters.length === 0 || marketFilters.includes('under25');
 
-  // Marché BTTS - évaluer les deux options et garder la meilleure (seulement si on a des données)
-  const bttsSuggestions = [];
-  
-  if (allowBttsYes && match.odds_btts_yes && match.odds_btts_yes >= 1.3 && match.p_btts_yes_fair && match.p_btts_yes_fair > 0.45) {
-    const score = match.p_btts_yes_fair * match.odds_btts_yes * (1 + match.vig_btts);
-    console.log('BTTS YES passed all conditions, score:', score);
-    bttsSuggestions.push({
-      betType: 'BTTS',
-      prediction: 'Oui',
-      odds: match.odds_btts_yes,
-      probability: match.p_btts_yes_fair,
-      vigorish: match.vig_btts,
-      score,
-      confidence: match.p_btts_yes_fair > 0.65 && match.vig_btts > 0.08 ? 'high' : 'medium'
-    });
-  }
-  
-  if (allowBttsNo && match.odds_btts_no && match.odds_btts_no >= 1.3 && match.p_btts_no_fair && match.p_btts_no_fair > 0.45) {
-    const score = match.p_btts_no_fair * match.odds_btts_no * (1 + match.vig_btts);
-    console.log('BTTS NO passed all conditions, score:', score);
-    bttsSuggestions.push({
-      betType: 'BTTS',
-      prediction: 'Non',
-      odds: match.odds_btts_no,
-      probability: match.p_btts_no_fair,
-      vigorish: match.vig_btts,
-      score,
-      confidence: match.p_btts_no_fair > 0.65 && match.vig_btts > 0.08 ? 'high' : 'medium'
-    });
-  }
-
-  console.log('BTTS suggestions count:', bttsSuggestions.length);
-
-  // Garder seulement la meilleure option BTTS
-  if (bttsSuggestions.length > 0) {
-    const bestBtts = bttsSuggestions.reduce((prev, current) => {
-      const scoreDifference = Math.abs(current.score - prev.score);
-      console.log('Comparing BTTS scores:', prev.prediction, prev.score, 'vs', current.prediction, current.score);
-      
-      // Si les scores sont très proches (différence < 0.001), choisir celui avec la plus haute probabilité
-      if (scoreDifference < 0.001) {
-        console.log('Scores égaux, choisir par probabilité:', prev.probability, 'vs', current.probability);
-        return current.probability > prev.probability ? current : prev;
-      }
-      
-      return current.score > prev.score ? current : prev;
-    });
-    console.log('Best BTTS chosen:', bestBtts.prediction, 'with score:', bestBtts.score, 'and probability:', bestBtts.probability);
+  // Marché BTTS - évaluer seulement si pas d'égalité 50/50
+  if (!isBTTSEqual) {
+    const bttsSuggestions = [];
     
-    // Ajouter le préfixe BTTS à la prédiction
-    bestBtts.prediction = `BTTS ${bestBtts.prediction}`;
+    if (allowBttsYes && match.odds_btts_yes && match.odds_btts_yes >= 1.3 && match.p_btts_yes_fair && match.p_btts_yes_fair > 0.45) {
+      const score = match.p_btts_yes_fair * match.odds_btts_yes * (1 + match.vig_btts);
+      console.log('BTTS YES passed all conditions, score:', score);
+      bttsSuggestions.push({
+        betType: 'BTTS',
+        prediction: 'Oui',
+        odds: match.odds_btts_yes,
+        probability: match.p_btts_yes_fair,
+        vigorish: match.vig_btts,
+        score,
+        confidence: match.p_btts_yes_fair > 0.65 && match.vig_btts > 0.08 ? 'high' : 'medium'
+      });
+    }
     
-    markets.push(bestBtts);
+    if (allowBttsNo && match.odds_btts_no && match.odds_btts_no >= 1.3 && match.p_btts_no_fair && match.p_btts_no_fair > 0.45) {
+      const score = match.p_btts_no_fair * match.odds_btts_no * (1 + match.vig_btts);
+      console.log('BTTS NO passed all conditions, score:', score);
+      bttsSuggestions.push({
+        betType: 'BTTS',
+        prediction: 'Non',
+        odds: match.odds_btts_no,
+        probability: match.p_btts_no_fair,
+        vigorish: match.vig_btts,
+        score,
+        confidence: match.p_btts_no_fair > 0.65 && match.vig_btts > 0.08 ? 'high' : 'medium'
+      });
+    }
+
+    console.log('BTTS suggestions count:', bttsSuggestions.length);
+
+    // Garder seulement la meilleure option BTTS
+    if (bttsSuggestions.length > 0) {
+      const bestBtts = bttsSuggestions.reduce((prev, current) => {
+        const scoreDifference = Math.abs(current.score - prev.score);
+        console.log('Comparing BTTS scores:', prev.prediction, prev.score, 'vs', current.prediction, current.score);
+        
+        // Si les scores sont très proches (différence < 0.001), choisir celui avec la plus haute probabilité
+        if (scoreDifference < 0.001) {
+          console.log('Scores égaux, choisir par probabilité:', prev.probability, 'vs', current.probability);
+          return current.probability > prev.probability ? current : prev;
+        }
+        
+        return current.score > prev.score ? current : prev;
+      });
+      console.log('Best BTTS chosen:', bestBtts.prediction, 'with score:', bestBtts.score, 'and probability:', bestBtts.probability);
+      
+      // Ajouter le préfixe BTTS à la prédiction
+      bestBtts.prediction = `BTTS ${bestBtts.prediction}`;
+      
+      markets.push(bestBtts);
+    }
   }
 
-  // Marché Over/Under 2.5 - évaluer les deux options et garder la meilleure
-  const ouSuggestions = [];
-  if (allowOver25 && match.odds_over_2_5 && match.odds_over_2_5 >= 1.3 && match.p_over_2_5_fair > 0.45) {
-    const score = match.p_over_2_5_fair * match.odds_over_2_5 * (1 + match.vig_ou_2_5);
-    ouSuggestions.push({
-      betType: 'O/U 2.5',
-      prediction: '+2,5 buts',
-      odds: match.odds_over_2_5,
-      probability: match.p_over_2_5_fair,
-      vigorish: match.vig_ou_2_5,
-      score,
-      confidence: match.p_over_2_5_fair > 0.65 && match.vig_ou_2_5 > 0.08 ? 'high' : 'medium'
-    });
-  }
-  
-  if (allowUnder25 && match.odds_under_2_5 && match.odds_under_2_5 >= 1.3 && match.p_under_2_5_fair > 0.45) {
-    const score = match.p_under_2_5_fair * match.odds_under_2_5 * (1 + match.vig_ou_2_5);
-    ouSuggestions.push({
-      betType: 'O/U 2.5',
-      prediction: '-2,5 buts',
-      odds: match.odds_under_2_5,
-      probability: match.p_under_2_5_fair,
-      vigorish: match.vig_ou_2_5,
-      score,
-      confidence: match.p_under_2_5_fair > 0.65 && match.vig_ou_2_5 > 0.08 ? 'high' : 'medium'
-    });
-  }
+  // Marché Over/Under 2.5 - évaluer seulement si pas d'égalité 50/50
+  if (!isOUEqual) {
+    const ouSuggestions = [];
+    if (allowOver25 && match.odds_over_2_5 && match.odds_over_2_5 >= 1.3 && match.p_over_2_5_fair > 0.45) {
+      const score = match.p_over_2_5_fair * match.odds_over_2_5 * (1 + match.vig_ou_2_5);
+      ouSuggestions.push({
+        betType: 'O/U 2.5',
+        prediction: '+2,5 buts',
+        odds: match.odds_over_2_5,
+        probability: match.p_over_2_5_fair,
+        vigorish: match.vig_ou_2_5,
+        score,
+        confidence: match.p_over_2_5_fair > 0.65 && match.vig_ou_2_5 > 0.08 ? 'high' : 'medium'
+      });
+    }
+    
+    if (allowUnder25 && match.odds_under_2_5 && match.odds_under_2_5 >= 1.3 && match.p_under_2_5_fair > 0.45) {
+      const score = match.p_under_2_5_fair * match.odds_under_2_5 * (1 + match.vig_ou_2_5);
+      ouSuggestions.push({
+        betType: 'O/U 2.5',
+        prediction: '-2,5 buts',
+        odds: match.odds_under_2_5,
+        probability: match.p_under_2_5_fair,
+        vigorish: match.vig_ou_2_5,
+        score,
+        confidence: match.p_under_2_5_fair > 0.65 && match.vig_ou_2_5 > 0.08 ? 'high' : 'medium'
+      });
+    }
 
-  // Garder seulement la meilleure option Over/Under
-  if (ouSuggestions.length > 0) {
-    const bestOU = ouSuggestions.reduce((prev, current) => 
-      current.score > prev.score ? current : prev
-    );
-    markets.push(bestOU);
+    // Garder seulement la meilleure option Over/Under
+    if (ouSuggestions.length > 0) {
+      const bestOU = ouSuggestions.reduce((prev, current) => 
+        current.score > prev.score ? current : prev
+      );
+      markets.push(bestOU);
+    }
   }
 
   console.log('Total markets found:', markets.length);
 
   // Retourner le marché avec le meilleur score global (priorisant vigorish élevé)
   if (markets.length === 0) {
-    console.log('No markets found, returning null');
+    console.log('No markets found - both markets may be at 50/50 equality or insufficient data');
     return null;
   }
   
