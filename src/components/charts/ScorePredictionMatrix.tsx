@@ -121,6 +121,15 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
     return null;
   };
 
+  // Debug : afficher les recommandations reçues
+  console.log('🔍 ScorePredictionMatrix DEBUG:', {
+    aiRecommendation,
+    secondRecommendation,
+    matchId: match.id,
+    homeTeam: match.home_team,
+    awayTeam: match.away_team
+  });
+
   // Obtenir les recommandations IA principales du modal et l'efficacité du marché
   const getModalRecommendations = () => {
     // Utiliser les recommandations du modal (priorité absolue)
@@ -259,93 +268,74 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
         
         // LOGIQUE COHÉRENTE : Vérifier la compatibilité avec TOUTES les recommandations
         let coherentRecommendations = [];
-        let maxCoherenceScore = 0;
+        let totalCoherenceBoost = 1.0;
         
         // Analyser chaque recommandation et son degré de cohérence avec ce score
         if (modalRecommendations.primary && modalRecommendations.primary.type !== 'Aucune') {
           const rec = modalRecommendations.primary;
-          let isCoherent = false;
           
           if (rec.type === 'BTTS' && ((rec.prediction === 'Oui' && bothTeamsScore) || (rec.prediction === 'Non' && !bothTeamsScore))) {
-            isCoherent = true;
+            coherentRecommendations.push({ type: 'primary', market: 'BTTS', prediction: rec.prediction });
+            totalCoherenceBoost *= 2.0; // Boost massif pour cohérence BTTS
           }
           if (rec.type === 'O/U 2.5' && ((rec.prediction === '+2,5 buts' && totalGoals > 2) || (rec.prediction === '-2,5 buts' && totalGoals <= 2))) {
-            isCoherent = true;
+            coherentRecommendations.push({ type: 'primary', market: 'O/U 2.5', prediction: rec.prediction });
+            totalCoherenceBoost *= 2.0; // Boost massif pour cohérence O/U
           }
           if (rec.type === '1X2' && scoreResult === rec.prediction) {
-            isCoherent = true;
-          }
-          
-          if (isCoherent) {
-            coherentRecommendations.push({ type: 'primary', recommendation: rec, boost: 1.5 });
-            maxCoherenceScore += 3; // Score de cohérence maximal pour recommandation principale
+            coherentRecommendations.push({ type: 'primary', market: '1X2', prediction: rec.prediction });
+            totalCoherenceBoost *= 2.0; // Boost massif pour cohérence 1X2
           }
         }
         
         if (modalRecommendations.secondary) {
           const secRec = modalRecommendations.secondary;
-          let isCoherent = false;
           
           if (secRec.type === 'BTTS' && ((secRec.prediction === 'Oui' && bothTeamsScore) || (secRec.prediction === 'Non' && !bothTeamsScore))) {
-            isCoherent = true;
+            coherentRecommendations.push({ type: 'secondary', market: 'BTTS', prediction: secRec.prediction });
+            totalCoherenceBoost *= 1.8; // Boost élevé pour cohérence BTTS secondaire
           }
           if (secRec.type === 'O/U 2.5' && ((secRec.prediction === '+2,5 buts' && totalGoals > 2) || (secRec.prediction === '-2,5 buts' && totalGoals <= 2))) {
-            isCoherent = true;
+            coherentRecommendations.push({ type: 'secondary', market: 'O/U 2.5', prediction: secRec.prediction });
+            totalCoherenceBoost *= 1.8; // Boost élevé pour cohérence O/U secondaire
           }
           if (secRec.type === '1X2' && scoreResult === secRec.prediction) {
-            isCoherent = true;
-          }
-          
-          if (isCoherent) {
-            coherentRecommendations.push({ type: 'secondary', recommendation: secRec, boost: 1.3 });
-            maxCoherenceScore += 2; // Score de cohérence pour recommandation secondaire
+            coherentRecommendations.push({ type: 'secondary', market: '1X2', prediction: secRec.prediction });
+            totalCoherenceBoost *= 1.8; // Boost élevé pour cohérence 1X2 secondaire
           }
         }
         
-        // BOOST CUMULATIF basé sur la cohérence globale
-        let totalBoost = 1.0;
-        let bestReason = '';
-        
-        if (coherentRecommendations.length > 0) {
-          // Appliquer le boost de chaque recommandation cohérente
-          coherentRecommendations.forEach(cr => {
-            totalBoost *= cr.boost;
-          });
+        // BOOST EXPONENTIELS pour cohérence multiple
+        if (coherentRecommendations.length >= 3) {
+          // Score parfait : cohérent avec 3+ recommandations
+          totalCoherenceBoost *= 3.0; // Triple boost pour cohérence totale !
+          isHighlighted = true;
           
-          // Bonus de cohérence multiple (scores qui matchent plusieurs recommandations)
-          if (coherentRecommendations.length >= 2) {
-            totalBoost *= 1.2; // +20% pour cohérence multiple
-            isHighlighted = true;
-            
-            const recommendations = coherentRecommendations.map(cr => {
-              const rec = cr.recommendation;
-              if (rec.type === 'BTTS') return `BTTS ${rec.prediction}`;
-              if (rec.type === 'O/U 2.5') return rec.prediction;
-              if (rec.type === '1X2') return rec.prediction;
-              return rec.type;
-            }).join(' + ');
-            
-            highlightReason = `Cohérence Totale: ${recommendations}`;
+          const markets = coherentRecommendations.map(cr => `${cr.market} ${cr.prediction}`).join(' + ');
+          highlightReason = `🎯 PARFAIT: ${markets}`;
+          
+        } else if (coherentRecommendations.length === 2) {
+          // Très bon : cohérent avec 2 recommandations
+          totalCoherenceBoost *= 2.5;
+          isHighlighted = true;
+          
+          const markets = coherentRecommendations.map(cr => `${cr.market} ${cr.prediction}`).join(' + ');
+          highlightReason = `⭐ EXCELLENT: ${markets}`;
+          
+        } else if (coherentRecommendations.length === 1) {
+          // Bon : cohérent avec 1 recommandation
+          const cr = coherentRecommendations[0];
+          isHighlighted = true;
+          
+          if (cr.type === 'primary') {
+            highlightReason = `✅ IA: ${cr.market} ${cr.prediction}`;
           } else {
-            // Une seule recommandation cohérente
-            const cr = coherentRecommendations[0];
-            const rec = cr.recommendation;
-            isHighlighted = true;
-            
-            if (cr.type === 'primary') {
-              if (rec.type === 'BTTS') highlightReason = `IA Principal: BTTS ${rec.prediction}`;
-              else if (rec.type === 'O/U 2.5') highlightReason = `IA Principal: ${rec.prediction}`;
-              else if (rec.type === '1X2') highlightReason = `IA Principal: ${rec.prediction}`;
-            } else {
-              if (rec.type === 'BTTS') highlightReason = `Efficacité Marché: BTTS ${rec.prediction} (${(rec.vigorish * 100).toFixed(1)}%)`;
-              else if (rec.type === 'O/U 2.5') highlightReason = `Efficacité Marché: ${rec.prediction} (${(rec.vigorish * 100).toFixed(1)}%)`;
-              else if (rec.type === '1X2') highlightReason = `Efficacité Marché: ${rec.prediction} (${(rec.vigorish * 100).toFixed(1)}%)`;
-            }
+            highlightReason = `📊 Marché: ${cr.market} ${cr.prediction}`;
           }
         }
         
-        // Appliquer le boost total
-        probability *= totalBoost;
+        // Appliquer le boost de cohérence massive
+        probability *= totalCoherenceBoost;
         
         // Opportunités de marché générales - seulement si pas déjà highlighted par cohérence
         if (!isHighlighted && marketOpportunity) {
