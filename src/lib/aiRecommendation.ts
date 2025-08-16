@@ -371,7 +371,7 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
     // TOUJOURS ajouter la recommandation X2 si vigorish >= 10% (pas de seuil supplémentaire)
     console.log('🚨🚨🚨 X2 RECOMMENDATION CRÉÉE SANS CONDITIONS !');
     recommendations.push({
-      betType: 'Double Chance',
+      betType: '1X2',
       prediction: doubleChance,
       odds: doubleChanceOdds,
       confidence: doubleChanceProb > 0.70 ? 'high' : doubleChanceProb > 0.60 ? 'medium' : 'low',
