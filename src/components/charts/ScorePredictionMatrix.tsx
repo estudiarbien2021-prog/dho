@@ -262,27 +262,31 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
         }
       } else if (rec.type === '1X2') {
         // Gestion spécifique des prédictions 1X2 et Double Chance
+        const prediction = rec.prediction.toLowerCase();
+        
         if (rec.prediction === match.home_team) {
           isCoherent = homeWins;
           console.log(`  🎯 1X2 HOME: ${match.home_team} wins = ${isCoherent}`);
         } else if (rec.prediction === match.away_team) {
           isCoherent = awayWins;
           console.log(`  🎯 1X2 AWAY: ${match.away_team} wins = ${isCoherent}`);
-        } else if (rec.prediction === 'Nul') {
+        } else if (rec.prediction === 'Nul' || prediction.includes('nul')) {
           isCoherent = isDraw;
           console.log(`  🎯 1X2 DRAW: ${isDraw} = ${isCoherent}`);
-        } else if (rec.prediction === '1X') {
+        } else if (rec.prediction === '1X' || prediction.includes('1x')) {
           // Double Chance 1X = Domicile gagne OU Match nul
           isCoherent = homeWins || isDraw;
           console.log(`  🎯 DOUBLE CHANCE 1X: (${homeWins} || ${isDraw}) = ${isCoherent}`);
-        } else if (rec.prediction === 'X2') {
+        } else if (rec.prediction === 'X2' || prediction.includes('x2') || prediction.includes('double chance x2')) {
           // Double Chance X2 = Match nul OU Extérieur gagne  
           isCoherent = isDraw || awayWins;
-          console.log(`  🎯 DOUBLE CHANCE X2: (${isDraw} || ${awayWins}) = ${isCoherent}`);
-        } else if (rec.prediction === '12') {
+          console.log(`  🎯 DOUBLE CHANCE X2: (${isDraw} || ${awayWins}) = ${isCoherent} - Score ${homeScore}-${awayScore}`);
+        } else if (rec.prediction === '12' || prediction.includes('12')) {
           // Double Chance 12 = Domicile gagne OU Extérieur gagne
           isCoherent = homeWins || awayWins;
           console.log(`  🎯 DOUBLE CHANCE 12: (${homeWins} || ${awayWins}) = ${isCoherent}`);
+        } else {
+          console.log(`  ⚠️ PRÉDICTION 1X2 NON RECONNUE: "${rec.prediction}"`);
         }
       }
 
