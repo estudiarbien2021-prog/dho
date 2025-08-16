@@ -25,80 +25,173 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
   const [matrix, setMatrix] = useState<ScoreCell[][]>([]);
   const [animationStep, setAnimationStep] = useState(0);
 
-  // Debug : afficher les recommandations reçues
-  console.log('🔍 ScorePredictionMatrix DEBUG:', {
-    aiRecommendation,
-    secondRecommendation,
-    matchId: match.id,
-    homeTeam: match.home_team,
-    awayTeam: match.away_team
-  });
+  // Interface pour les recommandations
+  interface Recommendation {
+    source: 'ai' | 'market' | 'probabilistic';
+    type: 'O/U 2.5' | 'BTTS' | '1X2';
+    prediction: string;
+    multiplier: number;
+  }
 
-  // LOGIQUE ULTRA-SIMPLE : Analyser directement les recommandations
-  const analyzeRecommendations = () => {
-    const analysis = {
-      over25: false,
-      under25: false,
-      bttsYes: false,
-      bttsNo: false,
-      homeWin: false,
-      awayWin: false,
-      draw: false,
-      favoriteTeam: 'none'
-    };
+  // Collecte TOUTES les recommandations disponibles
+  const getAllRecommendations = (): Recommendation[] => {
+    const recommendations: Recommendation[] = [];
 
-    // 1. Recommandation principale IA
+    // 1. IA PRINCIPALE (x3.0)
     if (aiRecommendation && aiRecommendation.betType !== 'Aucune') {
-      if (aiRecommendation.betType === 'O/U 2.5') {
-        if (aiRecommendation.prediction === '+2,5 buts') analysis.over25 = true;
-        if (aiRecommendation.prediction === '-2,5 buts') analysis.under25 = true;
-      }
-      if (aiRecommendation.betType === 'BTTS') {
-        if (aiRecommendation.prediction === 'Oui') analysis.bttsYes = true;
-        if (aiRecommendation.prediction === 'Non') analysis.bttsNo = true;
-      }
-      if (aiRecommendation.betType === '1X2') {
-        if (aiRecommendation.prediction === match.home_team) analysis.homeWin = true;
-        if (aiRecommendation.prediction === match.away_team) analysis.awayWin = true;
-        if (aiRecommendation.prediction === 'Nul') analysis.draw = true;
-      }
+      recommendations.push({
+        source: 'ai',
+        type: aiRecommendation.betType as any,
+        prediction: aiRecommendation.prediction,
+        multiplier: 3.0
+      });
     }
 
-    // 2. Seconde recommandation (efficacité marché)
+    // 2. EFFICACITÉ MARCHÉ (x2.5)
     if (secondRecommendation) {
-      if (secondRecommendation.type === 'O/U 2.5') {
-        if (secondRecommendation.prediction === '+2,5 buts') analysis.over25 = true;
-        if (secondRecommendation.prediction === '-2,5 buts') analysis.under25 = true;
-      }
-      if (secondRecommendation.type === 'BTTS') {
-        if (secondRecommendation.prediction === 'Oui') analysis.bttsYes = true;
-        if (secondRecommendation.prediction === 'Non') analysis.bttsNo = true;
-      }
-      if (secondRecommendation.type === '1X2') {
-        if (secondRecommendation.prediction === match.home_team) analysis.homeWin = true;
-        if (secondRecommendation.prediction === match.away_team) analysis.awayWin = true;
-        if (secondRecommendation.prediction === 'Nul') analysis.draw = true;
+      recommendations.push({
+        source: 'market', 
+        type: secondRecommendation.type as any,
+        prediction: secondRecommendation.prediction,
+        multiplier: 2.5
+      });
+    }
+
+    // 3. ANALYSES PROBABILISTES (x1.8) - seulement si un marché manque
+    const hasOU25 = recommendations.some(r => r.type === 'O/U 2.5');
+    const hasBTTS = recommendations.some(r => r.type === 'BTTS');
+    const has1X2 = recommendations.some(r => r.type === '1X2');
+
+    if (!hasOU25) {
+      // Ajouter recommandation O/U basée sur probabilités
+      if (match.p_over_2_5_fair > 0.55) {
+        recommendations.push({
+          source: 'probabilistic',
+          type: 'O/U 2.5',
+          prediction: '+2,5 buts',
+          multiplier: 1.8
+        });
+      } else if (match.p_over_2_5_fair < 0.45) {
+        recommendations.push({
+          source: 'probabilistic',
+          type: 'O/U 2.5', 
+          prediction: '-2,5 buts',
+          multiplier: 1.8
+        });
       }
     }
 
-    // 3. Déterminer le favori automatiquement si pas de recommandation 1X2
-    if (!analysis.homeWin && !analysis.awayWin && !analysis.draw) {
-      if (match.p_home_fair > match.p_away_fair && match.p_home_fair > match.p_draw_fair) {
-        analysis.favoriteTeam = 'home';
-      } else if (match.p_away_fair > match.p_home_fair && match.p_away_fair > match.p_draw_fair) {
-        analysis.favoriteTeam = 'away';
-      } else {
-        analysis.favoriteTeam = 'draw';
+    if (!hasBTTS) {
+      // Ajouter recommandation BTTS basée sur probabilités
+      if (match.p_btts_yes_fair > 0.55) {
+        recommendations.push({
+          source: 'probabilistic',
+          type: 'BTTS',
+          prediction: 'Oui',
+          multiplier: 1.8
+        });
+      } else if (match.p_btts_yes_fair < 0.45) {
+        recommendations.push({
+          source: 'probabilistic',
+          type: 'BTTS',
+          prediction: 'Non',
+          multiplier: 1.8
+        });
       }
     }
 
-    console.log('🎯 ANALYSE FINALE:', analysis);
-    return analysis;
+    if (!has1X2) {
+      // Ajouter recommandation 1X2 basée sur probabilités
+      const maxProb = Math.max(match.p_home_fair, match.p_draw_fair, match.p_away_fair);
+      if (maxProb > 0.4) {
+        if (match.p_home_fair === maxProb) {
+          recommendations.push({
+            source: 'probabilistic',
+            type: '1X2',
+            prediction: match.home_team,
+            multiplier: 1.8
+          });
+        } else if (match.p_away_fair === maxProb) {
+          recommendations.push({
+            source: 'probabilistic',
+            type: '1X2',
+            prediction: match.away_team,
+            multiplier: 1.8
+          });
+        } else {
+          recommendations.push({
+            source: 'probabilistic',
+            type: '1X2',
+            prediction: 'Nul',
+            multiplier: 1.8
+          });
+        }
+      }
+    }
+
+    console.log('🔍 TOUTES LES RECOMMANDATIONS COLLECTÉES:', recommendations);
+    return recommendations;
   };
 
-  // Générer la matrice avec logique forcée ET NORMALISÉE
+  // Évalue la cohérence d'un score avec toutes les recommandations
+  const evaluateScoreCoherence = (homeScore: number, awayScore: number, recommendations: Recommendation[]) => {
+    const totalGoals = homeScore + awayScore;
+    const bothTeamsScore = homeScore > 0 && awayScore > 0;
+    const homeWins = homeScore > awayScore;
+    const awayWins = awayScore > homeScore;
+    const isDraw = homeScore === awayScore;
+
+    let totalMultiplier = 1.0;
+    const coherentRecommendations: string[] = [];
+
+    recommendations.forEach(rec => {
+      let isCoherent = false;
+
+      if (rec.type === 'O/U 2.5') {
+        if (rec.prediction === '+2,5 buts' && totalGoals > 2) {
+          isCoherent = true;
+        } else if (rec.prediction === '-2,5 buts' && totalGoals <= 2) {
+          isCoherent = true;
+        }
+      } else if (rec.type === 'BTTS') {
+        if (rec.prediction === 'Oui' && bothTeamsScore) {
+          isCoherent = true;
+        } else if (rec.prediction === 'Non' && !bothTeamsScore) {
+          isCoherent = true;
+        }
+      } else if (rec.type === '1X2') {
+        if (rec.prediction === match.home_team && homeWins) {
+          isCoherent = true;
+        } else if (rec.prediction === match.away_team && awayWins) {
+          isCoherent = true;
+        } else if (rec.prediction === 'Nul' && isDraw) {
+          isCoherent = true;
+        }
+      }
+
+      if (isCoherent) {
+        totalMultiplier *= rec.multiplier;
+        coherentRecommendations.push(`${rec.source}:${rec.type}`);
+      }
+    });
+
+    // BONUS COHÉRENCE MULTIPLE
+    if (coherentRecommendations.length >= 3) {
+      totalMultiplier *= 2.0; // x2.0 pour 3+ cohérences
+    } else if (coherentRecommendations.length === 2) {
+      totalMultiplier *= 1.5; // x1.5 pour 2 cohérences
+    }
+
+    return {
+      multiplier: totalMultiplier,
+      coherentRecommendations,
+      coherenceLevel: coherentRecommendations.length
+    };
+  };
+
+  // Générer la matrice avec nouvelle logique de recommandations
   const generateMatrix = () => {
-    const analysis = analyzeRecommendations();
+    const recommendations = getAllRecommendations();
 
     // Use the real match probabilities with Poisson model
     const poissonInputs = {
@@ -123,7 +216,7 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
       return n * factorial(n - 1);
     };
     
-    // Première passe : calculer toutes les probabilités de base
+    // Première passe : calculer toutes les probabilités de base avec Poisson
     let totalBaseProbability = 0;
     const baseProbabilities: number[][] = [];
     
@@ -156,127 +249,79 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
       baseProbabilities.push(row);
     }
     
-    // Deuxième passe : appliquer la logique de recommandations de façon STRICTE
+    // Deuxième passe : appliquer les recommandations avec boosts exponentiels
     let totalAdjustedProbability = 0;
-    const adjustedProbabilities: Array<{probability: number, reasons: string[], isValid: boolean}> = [];
+    const scoreResults: Array<{
+      probability: number;
+      coherenceLevel: number;
+      coherentRecommendations: string[];
+      highlightReason: string;
+    }> = [];
     
     for (let home = 0; home <= maxScore; home++) {
       for (let away = 0; away <= maxScore; away++) {
         let probability = baseProbabilities[home][away];
         
-        // LOGIQUE STRICTE : Analyser ce score
-        const totalGoals = home + away;
-        const bothTeamsScore = home > 0 && away > 0;
-        const homeWins = home > away;
-        const awayWins = away > home;
-        const isDraw = home === away;
+        // Évaluer la cohérence de ce score avec toutes les recommandations
+        const coherenceResult = evaluateScoreCoherence(home, away, recommendations);
         
-        let reasons: string[] = [];
-        let isCompletelyValid = true; // DOIT respecter TOUTES les conditions
+        // Appliquer le multiplicateur de cohérence
+        probability *= coherenceResult.multiplier;
         
-        // 1. OVER/UNDER 2.5 - CONDITION OBLIGATOIRE si recommandé
-        if (analysis.over25 && totalGoals <= 2) {
-          isCompletelyValid = false; // ÉLIMINER si ne respecte pas +2,5
-        }
-        if (analysis.under25 && totalGoals > 2) {
-          isCompletelyValid = false; // ÉLIMINER si ne respecte pas -2,5
-        }
-        
-        if (analysis.over25 && totalGoals > 2) {
-          reasons.push('+2.5 buts');
-        }
-        if (analysis.under25 && totalGoals <= 2) {
-          reasons.push('-2.5 buts');
-        }
-        
-        // 2. BTTS - CONDITION OBLIGATOIRE si recommandé
-        if (analysis.bttsYes && !bothTeamsScore) {
-          isCompletelyValid = false;
-        }
-        if (analysis.bttsNo && bothTeamsScore) {
-          isCompletelyValid = false;
-        }
-        
-        if (analysis.bttsYes && bothTeamsScore) {
-          reasons.push('BTTS Oui');
-        }
-        if (analysis.bttsNo && !bothTeamsScore) {
-          reasons.push('BTTS Non');
-        }
-        
-        // 3. 1X2 - CONDITION OBLIGATOIRE si recommandé
-        if (analysis.homeWin && !homeWins) {
-          isCompletelyValid = false;
-        }
-        if (analysis.awayWin && !awayWins) {
-          isCompletelyValid = false;
-        }
-        if (analysis.draw && !isDraw) {
-          isCompletelyValid = false;
-        }
-        
-        if (analysis.homeWin && homeWins) {
-          reasons.push(match.home_team);
-        }
-        if (analysis.awayWin && awayWins) {
-          reasons.push(match.away_team);
-        }
-        if (analysis.draw && isDraw) {
-          reasons.push('Nul');
-        }
-        
-        // 4. Favoris automatiques (seulement si aucune recommandation 1X2)
-        if (!analysis.homeWin && !analysis.awayWin && !analysis.draw) {
-          if (analysis.favoriteTeam === 'home' && homeWins) {
-            reasons.push(`${match.home_team} (favori)`);
-          }
-          if (analysis.favoriteTeam === 'away' && awayWins) {
-            reasons.push(`${match.away_team} (favori)`);
-          }
-          if (analysis.favoriteTeam === 'draw' && isDraw) {
-            reasons.push('Nul (favori)');
+        // Générer la raison d'highlight
+        let highlightReason = '';
+        if (coherenceResult.coherenceLevel >= 3) {
+          highlightReason = `🎯 PARFAIT: ${coherenceResult.coherentRecommendations.map(r => {
+            const [source, type] = r.split(':');
+            if (source === 'ai') return '✅ IA';
+            if (source === 'market') return '📊 Marché';
+            return '📈 Probabiliste';
+          }).join(' + ')}`;
+        } else if (coherenceResult.coherenceLevel === 2) {
+          highlightReason = `⭐ EXCELLENT: ${coherenceResult.coherentRecommendations.map(r => {
+            const [source, type] = r.split(':');
+            if (source === 'ai') return '✅ IA';
+            if (source === 'market') return '📊 Marché';
+            return '📈 Probabiliste';
+          }).join(' + ')}`;
+        } else if (coherenceResult.coherenceLevel === 1) {
+          const [source, type] = coherenceResult.coherentRecommendations[0].split(':');
+          if (source === 'ai') {
+            highlightReason = '✅ IA';
+          } else if (source === 'market') {
+            highlightReason = '📊 Marché';
+          } else {
+            highlightReason = '📈 Probabiliste';
           }
         }
         
-        // APPLIQUER LA LOGIQUE STRICTE
-        if (!isCompletelyValid) {
-          probability *= 0.001; // Diviser par 1000 les scores invalides
-        } else if (reasons.length > 0) {
-          // Boost modéré pour les scores valides (pas de multiplicateurs fous)
-          probability *= (1 + reasons.length * 0.5); // +50% par raison valide
-        }
-        
-        adjustedProbabilities.push({
+        scoreResults.push({
           probability,
-          reasons,
-          isValid: isCompletelyValid && reasons.length > 0
+          coherenceLevel: coherenceResult.coherenceLevel,
+          coherentRecommendations: coherenceResult.coherentRecommendations,
+          highlightReason
         });
         
         totalAdjustedProbability += probability;
       }
     }
     
-    // Troisième passe : NORMALISER pour que la somme = 100%
+    // Troisième passe : normaliser et construire la matrice finale
     let index = 0;
     for (let home = 0; home <= maxScore; home++) {
       const row: ScoreCell[] = [];
       for (let away = 0; away <= maxScore; away++) {
-        const adjustedData = adjustedProbabilities[index];
+        const result = scoreResults[index];
         
-        // Normaliser la probabilité
-        const normalizedProbability = (adjustedData.probability / totalAdjustedProbability) * 100;
-        
-        // Déterminer le highlight
-        const isHighlighted = adjustedData.isValid;
-        const highlightReason = adjustedData.reasons.length > 0 ? 
-          (adjustedData.reasons.length > 1 ? `🎯 PARFAIT: ${adjustedData.reasons.join(' + ')}` : `✅ ${adjustedData.reasons[0]}`) : '';
+        // Normaliser la probabilité pour que la somme = 100%
+        const normalizedProbability = (result.probability / totalAdjustedProbability) * 100;
         
         row.push({
           homeScore: home,
           awayScore: away,
           probability: normalizedProbability,
-          isHighlighted,
-          highlightReason,
+          isHighlighted: result.coherenceLevel > 0,
+          highlightReason: result.highlightReason,
         });
         
         index++;
