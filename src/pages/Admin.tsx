@@ -657,11 +657,6 @@ export function Admin() {
           <RulesManagement />
         </TabsContent>
 
-        {/* Rules Management Tab */}
-        <TabsContent value="rules" className="space-y-6">
-          <RulesManagement />
-        </TabsContent>
-
         {/* Data Management Tab */}
         <TabsContent value="data" className="space-y-6">
           {/* CSV Upload Form */}
