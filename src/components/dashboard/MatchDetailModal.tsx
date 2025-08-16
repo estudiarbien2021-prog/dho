@@ -317,6 +317,23 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
       });
     }
     
+    // 4. CORRECTION FINALE : Ajouter manuellement X2 si affiché dans l'interface
+    const hasHighVig1x2 = match.vig_1x2 >= 0.1;
+    if (hasHighVig1x2) {
+      // Calculer les cotes pour X2 (nul ou victoire extérieure)
+      const x2Probability = match.p_draw_fair + match.p_away_fair;
+      opportunities.push({
+        source: 'market_x2',
+        type: '1X2',
+        prediction: 'X2',
+        multiplier: 3.0
+      });
+      console.log('🚨 OPPORTUNITÉ X2 AJOUTÉE À LA MATRICE:', {
+        x2Probability,
+        'match.vig_1x2': match.vig_1x2
+      });
+    }
+    
     return opportunities.slice(0, 5); // Maximum 5 recommandations
   };
   
