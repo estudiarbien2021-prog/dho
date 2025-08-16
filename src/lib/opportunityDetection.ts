@@ -190,10 +190,8 @@ export function detectOpportunities(match: ProcessedMatch): OpportunityRecommend
     }
   }
   
-  // 4. O/U 2.5 : si vigorish <= 6% OU (plus haut ET >= 6%) ET probabilité < 60%
-  const isGoodOUVigorish = match.vig_ou_2_5 <= 0.06 || (highestVigorish.type === 'O/U2.5' && highestVigorish.value >= 0.06);
-  
-  if (isGoodOUVigorish && match.odds_over_2_5 && match.odds_under_2_5) {
+  // 4. O/U 2.5 : si c'est le vigorish le plus élevé ET >= 8% ET probabilité < 60%
+  if (highestVigorish.type === 'O/U2.5' && highestVigorish.value >= 0.08 && match.odds_over_2_5 && match.odds_under_2_5) {
     const overProb = match.p_over_2_5_fair;
     const underProb = match.p_under_2_5_fair;
     const highestOUProb = Math.max(overProb, underProb);
