@@ -137,7 +137,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
   const opportunities = detectOpportunities(match);
   console.log('🔴 MODAL OPPORTUNITIES:', opportunities.length, opportunities.map(o => `${o.type}:${o.prediction}(inverted:${o.isInverted})`));
   
-  // PRIORITISATION UNIFIÉE - Même logique que AIRecommendationDisplay
+  // PRIORITISATION UNIFIÉE avec logique de vigorish en cas d'égalité de probabilité
   const prioritizeOpportunities = (opps: any[]) => {
     // 1. Negative vigorish (highest priority)
     const negativeVig = opps.filter(o => o.type.includes('_NEGATIVE'));
@@ -148,13 +148,73 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     // 3. Low vigorish direct recommendations  
     const lowVigDirect = opps.filter(o => !o.type.includes('_NEGATIVE') && o.isInverted === false && o.reason?.includes('Faible vigorish'));
     
-    // 4. High probability direct recommendations
+    // 4. High probability direct recommendations avec tri par vigorish en cas d'égalité
     const highProbDirect = opps.filter(o => !o.type.includes('_NEGATIVE') && o.isInverted === false && o.reason?.includes('Probabilité élevée'));
+    
+    // NOUVELLE LOGIQUE: Trier les recommandations de haute probabilité par vigorish décroissant en cas d'égalité
+    const sortedHighProbDirect = highProbDirect.sort((a, b) => {
+      // Récupérer les probabilités et vigorish pour chaque recommandation
+      const getProbabilityAndVigorish = (opp: any) => {
+        let probability = 0;
+        let vigorish = 0;
+        
+        if (opp.type === '1X2') {
+          const probHome = match.p_home_fair;
+          const probDraw = match.p_draw_fair;
+          const probAway = match.p_away_fair;
+          probability = Math.max(probHome, probDraw, probAway);
+          vigorish = match.vig_1x2;
+        } else if (opp.type === 'BTTS') {
+          probability = Math.max(match.p_btts_yes_fair, match.p_btts_no_fair);
+          vigorish = match.vig_btts || 0;
+        } else if (opp.type === 'O/U 2.5') {
+          probability = Math.max(match.p_over_2_5_fair, match.p_under_2_5_fair);
+          vigorish = match.vig_ou_2_5;
+        }
+        
+        return { probability, vigorish };
+      };
+      
+      const aData = getProbabilityAndVigorish(a);
+      const bData = getProbabilityAndVigorish(b);
+      
+      // Si les probabilités sont égales (différence < 0.01), trier par vigorish décroissant
+      if (Math.abs(aData.probability - bData.probability) < 0.01) {
+        console.log('🔄 ÉGALITÉ PROBABILITÉ DÉTECTÉE:', {
+          'a.type': a.type,
+          'a.prediction': a.prediction,
+          'a.probability': (aData.probability * 100).toFixed(1) + '%',
+          'a.vigorish': (aData.vigorish * 100).toFixed(1) + '%',
+          'b.type': b.type,
+          'b.prediction': b.prediction,
+          'b.probability': (bData.probability * 100).toFixed(1) + '%',
+          'b.vigorish': (bData.vigorish * 100).toFixed(1) + '%',
+          'choix': bData.vigorish > aData.vigorish ? 'b (vigorish plus élevé)' : 'a'
+        });
+        return bData.vigorish - aData.vigorish; // Vigorish décroissant
+      }
+      
+      // Sinon, trier par probabilité décroissante (comportement normal)
+      return bData.probability - aData.probability;
+    });
     
     // 5. Other opportunities
     const others = opps.filter(o => !negativeVig.includes(o) && !highVigInverted.includes(o) && !lowVigDirect.includes(o) && !highProbDirect.includes(o));
     
-    return [...negativeVig, ...highVigInverted, ...lowVigDirect, ...highProbDirect, ...others];
+    const finalOrder = [...negativeVig, ...highVigInverted, ...lowVigDirect, ...sortedHighProbDirect, ...others];
+    
+    console.log('🎯 ORDRE FINAL AVEC VIGORISH:', finalOrder.map((o, i) => {
+      const getProbAndVig = (opp: any) => {
+        if (opp.type === '1X2') return { prob: Math.max(match.p_home_fair, match.p_draw_fair, match.p_away_fair), vig: match.vig_1x2 };
+        if (opp.type === 'BTTS') return { prob: Math.max(match.p_btts_yes_fair, match.p_btts_no_fair), vig: match.vig_btts || 0 };
+        if (opp.type === 'O/U 2.5') return { prob: Math.max(match.p_over_2_5_fair, match.p_under_2_5_fair), vig: match.vig_ou_2_5 };
+        return { prob: 0, vig: 0 };
+      };
+      const data = getProbAndVig(o);
+      return `${i+1}. ${o.type}:${o.prediction} (prob:${(data.prob*100).toFixed(1)}%, vig:${(data.vig*100).toFixed(1)}%, inv:${o.isInverted})`;
+    }));
+    
+    return finalOrder;
   };
 
   const prioritizedOpportunities = prioritizeOpportunities(opportunities);
@@ -1075,7 +1135,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
         <div className={`absolute inset-0 rounded-lg transition-opacity duration-500 ${
           aiRecommended 
             ? 'bg-gradient-to-br from-brand/15 to-brand-300/20 opacity-100' 
-            : 'bg-gradient-to-br from-brand/5 to-brand-300/10 opacity-0 group-hover:opacity-100'
+            : 'bg-gradient-to-br from-brand/5 to-brand-300/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300'
         }`} />
         {aiRecommended && (
           <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-transparent via-brand/10 to-transparent animate-pulse border-2 border-brand/30" />
@@ -1197,7 +1257,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                 {match.home_team} vs {match.away_team}
               </div>
               <div className="flex items-center gap-3">
-                <div className="px-4 py-2 bg-gradient-to-r from-brand/10 to-brand/20 rounded-full border border-brand/20">
+                <div className="px-4 py-2 bg-gradient-to-r from-brand to-brand-400 rounded-full border border-brand/20">
                   <span className="text-sm font-semibold text-brand">{match.league}</span>
                 </div>
                 <div className="w-2 h-2 bg-brand rounded-full animate-pulse" />
