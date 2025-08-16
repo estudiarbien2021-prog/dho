@@ -141,7 +141,7 @@ export function detectOpportunities(match: ProcessedMatch): DetectedOpportunity[
             `Probabilité max: ${(mostBttsProb * 100).toFixed(1)}% < ${(HIGH_PROB_THRESHOLD * 100).toFixed(1)}%`
           ],
           isInverted: true,
-          priority: 2
+          priority: 5
         });
         
         console.log('🔄 INVERSION BTTS APPLIQUÉE:', inversePrediction, 'odds:', inverseOdds);
@@ -183,7 +183,7 @@ export function detectOpportunities(match: ProcessedMatch): DetectedOpportunity[
             `Probabilité max: ${(mostOuProb * 100).toFixed(1)}% < ${(HIGH_PROB_THRESHOLD * 100).toFixed(1)}%`
           ],
           isInverted: true,
-          priority: 2
+          priority: 5
         });
         
         console.log('🔄 INVERSION O/U APPLIQUÉE:', inversePrediction, 'odds:', inverseOdds);
@@ -392,7 +392,7 @@ export function detectOpportunities(match: ProcessedMatch): DetectedOpportunity[
         `Stratégie d'exclusion du plus probable: ${mostProbableOutcome}`
       ],
       isInverted: false,
-      priority: 5
+      priority: 2
     });
     
     console.log('🎲 DOUBLE CHANCE GÉNÉRÉE:', doubleChancePrediction, 'odds:', doubleChanceOdds);
