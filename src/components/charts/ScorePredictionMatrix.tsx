@@ -394,7 +394,9 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
         coherentRecommendations.push(`${rec.source}:${rec.type}`);
         console.log(`  ✅ COHÉRENT: ${rec.source}:${rec.type} (x${rec.multiplier})`);
       } else {
-        console.log(`  ❌ INCOHÉRENT: ${rec.source}:${rec.type}`);
+        // PÉNALITÉ pour les recommandations incohérentes
+        totalMultiplier *= 0.1; // Réduction drastique pour incohérence
+        console.log(`  ❌ INCOHÉRENT: ${rec.source}:${rec.type} (x0.1 pénalité)`);
       }
     });
 
