@@ -60,6 +60,31 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
     }
   };
 
+  // Utiliser les VRAIES recommandations IA (avec inversion) au lieu de recalculer
+  const getAIRecommendations = () => {
+    const aiRecs = allRecommendations || [];
+    
+    // Si on a les recommandations IA, les utiliser directement
+    if (aiRecs.length > 0) {
+      const bttsRec = aiRecs.find(r => r.betType === 'BTTS');
+      const ouRec = aiRecs.find(r => r.betType === 'O/U 2.5');
+      
+      return {
+        bttsWinner: bttsRec ? bttsRec.prediction : getBttsWinner(),
+        over25Winner: ouRec ? ouRec.prediction : getOver25Winner(),
+        // 1X2 reste inchangé car pas d'inversion sur ce marché
+        winner1x2: get1x2Winner()
+      };
+    }
+    
+    // Fallback vers les calculs de base si pas de recommandations IA
+    return {
+      bttsWinner: getBttsWinner(),
+      over25Winner: getOver25Winner(),
+      winner1x2: get1x2Winner()
+    };
+  };
+
   const getBttsWinner = () => match.p_btts_yes_fair > match.p_btts_no_fair ? 'Oui' : 'Non';
   
   const getOver25Winner = () => {
@@ -86,24 +111,28 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
     return { overPercent, underPercent };
   };
 
-  // DEBUG : Afficher les données utilisées (identiques au modal)  
-  console.log('📊 DONNÉES DU MODAL UTILISÉES DANS LA MATRICE:', {
-    '1X2_Winner': get1x2Winner(),
-    '1X2_Percentages': get1x2Percentages(),
-    'BTTS_Winner': getBttsWinner(),
-    'BTTS_Percentages': getBttsPercentages(),
-    'Over25_Winner': getOver25Winner(),
-    'Over25_Percentages': getOver25Percentages(),
-    'Raw_Data': {
-      p_home_fair: match.p_home_fair,
-      p_draw_fair: match.p_draw_fair,
-      p_away_fair: match.p_away_fair,
-      p_btts_yes_fair: match.p_btts_yes_fair,
-      p_btts_no_fair: match.p_btts_no_fair,
-      p_over_2_5_fair: match.p_over_2_5_fair,
-      p_under_2_5_fair: match.p_under_2_5_fair
-    }
-  });
+    // DEBUG : Afficher les données utilisées pour la matrice
+    const aiRecommendations = getAIRecommendations();
+    console.log('📊 DONNÉES MATRICE (SUIVANT IA AVEC INVERSION):', {
+      '1X2_Winner': aiRecommendations.winner1x2,
+      '1X2_Percentages': get1x2Percentages(),
+      'BTTS_Winner_IA': aiRecommendations.bttsWinner,
+      'BTTS_Winner_Raw': getBttsWinner(),
+      'BTTS_Percentages': getBttsPercentages(),
+      'Over25_Winner_IA': aiRecommendations.over25Winner,
+      'Over25_Winner_Raw': getOver25Winner(),
+      'Over25_Percentages': getOver25Percentages(),
+      'AI_Recommendations': allRecommendations,
+      'Raw_Data': {
+        p_home_fair: match.p_home_fair,
+        p_draw_fair: match.p_draw_fair,
+        p_away_fair: match.p_away_fair,
+        p_btts_yes_fair: match.p_btts_yes_fair,
+        p_btts_no_fair: match.p_btts_no_fair,
+        p_over_2_5_fair: match.p_over_2_5_fair,
+        p_under_2_5_fair: match.p_under_2_5_fair
+      }
+    });
 
   // Collecte TOUTES les recommandations disponibles
   const getAllRecommendations = (): Recommendation[] => {
@@ -239,6 +268,9 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
     }
 
     // 3. ANALYSES PROBABILISTES (x0.25) - Basées sur l'Analyse des Probabilités IA
+    // Utiliser les vraies recommandations IA (avec inversion) au lieu de recalculer
+    const aiRecsData = getAIRecommendations();
+    
     // Fonction helper pour éviter les doublons
     const hasRecommendation = (recs: Recommendation[], type: string, prediction: string) => {
       return recs.some(r => r.type === type && (
@@ -253,7 +285,7 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
       ));
     };
 
-    // 1X2 - Basé sur les cotes (même logique que AIProbabilitiesAnalysis)
+    // 1X2 - Reste basé sur les cotes car pas d'inversion sur ce marché
     const probHome = 1 / match.odds_home;
     const probDraw = 1 / match.odds_draw;
     const probAway = 1 / match.odds_away;
@@ -275,34 +307,28 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
       console.log('📊 1X2 PROBABILISTE AJOUTÉ:', winner1X2.prediction);
     }
     
-    // BTTS - Basé sur les probabilités fair (même logique que AIProbabilitiesAnalysis)
-    const bttsYesProb = match.p_btts_yes_fair || 0.5;
-    const bttsNoProb = match.p_btts_no_fair || 0.5;
-    
-    const bttsPrediction = bttsYesProb > bttsNoProb ? 'Oui' : 'Non';
-    if (!hasRecommendation(recommendations, 'BTTS', bttsPrediction === 'Oui' ? 'YES' : 'NO')) {
+    // BTTS - Utiliser les vraies recommandations IA (avec inversion)
+    const bttsPredictionIA = aiRecsData.bttsWinner;
+    if (!hasRecommendation(recommendations, 'BTTS', bttsPredictionIA === 'Oui' ? 'YES' : 'NO')) {
       recommendations.push({
         source: 'probabilistic',
         type: 'BTTS',
-        prediction: bttsPrediction,
+        prediction: bttsPredictionIA,
         multiplier: 0.25
       });
-      console.log('📊 BTTS PROBABILISTE AJOUTÉ:', bttsPrediction, '(', bttsYesProb.toFixed(3), 'vs', bttsNoProb.toFixed(3), ')');
+      console.log('📊 BTTS PROBABILISTE AJOUTÉ (IA avec inversion):', bttsPredictionIA);
     }
     
-    // Over/Under 2.5 - Basé sur les probabilités fair (même logique que AIProbabilitiesAnalysis)
-    const overProb = match.p_over_2_5_fair || 0.5;
-    const underProb = match.p_under_2_5_fair || 0.5;
-    
-    const ouPrediction = overProb > underProb ? '+2,5 buts' : '-2,5 buts';
-    if (!hasRecommendation(recommendations, 'O/U 2.5', ouPrediction.includes('+') ? 'OVER' : 'UNDER')) {
+    // Over/Under 2.5 - Utiliser les vraies recommandations IA (avec inversion)
+    const ouPredictionIA = aiRecsData.over25Winner;
+    if (!hasRecommendation(recommendations, 'O/U 2.5', ouPredictionIA.includes('+') ? 'OVER' : 'UNDER')) {
       recommendations.push({
         source: 'probabilistic',
         type: 'O/U 2.5',
-        prediction: ouPrediction,
+        prediction: ouPredictionIA,
         multiplier: 0.25
       });
-      console.log('📊 O/U 2.5 PROBABILISTE AJOUTÉ:', ouPrediction, '(', overProb.toFixed(3), 'vs', underProb.toFixed(3), ')');
+      console.log('📊 O/U 2.5 PROBABILISTE AJOUTÉ (IA avec inversion):', ouPredictionIA);
     }
 
     // Filtrer les recommandations probabilistiques qui contredisent les principales
