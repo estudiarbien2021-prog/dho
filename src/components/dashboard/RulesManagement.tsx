@@ -25,7 +25,10 @@ interface Rule {
 }
 
 interface RulesByCategory {
-  global_thresholds: Rule[];
+  global_thresholds_ou: Rule[];
+  global_thresholds_btts: Rule[];
+  global_thresholds_1x2: Rule[];
+  global_thresholds_general: Rule[];
   priority_rules: Rule[];
   exclusions: Rule[];
   fallbacks: Rule[];
@@ -245,7 +248,10 @@ export function RulesManagement() {
   };
 
   const groupedRules: RulesByCategory = {
-    global_thresholds: rules.filter(r => r.category === 'global_thresholds'),
+    global_thresholds_ou: rules.filter(r => r.category === 'global_thresholds' && r.rule_name.startsWith('ou_')),
+    global_thresholds_btts: rules.filter(r => r.category === 'global_thresholds' && r.rule_name.startsWith('btts_')),
+    global_thresholds_1x2: rules.filter(r => r.category === 'global_thresholds' && r.rule_name.startsWith('1x2_')),
+    global_thresholds_general: rules.filter(r => r.category === 'global_thresholds' && !r.rule_name.startsWith('ou_') && !r.rule_name.startsWith('btts_') && !r.rule_name.startsWith('1x2_')),
     priority_rules: rules.filter(r => r.category === 'priority_rules'),
     exclusions: rules.filter(r => r.category === 'exclusions'),
     fallbacks: rules.filter(r => r.category === 'fallbacks'),
@@ -296,14 +302,20 @@ export function RulesManagement() {
   };
 
   const categoryTitles = {
-    global_thresholds: "Seuils Globaux",
+    global_thresholds_ou: "Seuils Over/Under 2.5",
+    global_thresholds_btts: "Seuils BTTS (Both Teams To Score)",
+    global_thresholds_1x2: "Seuils 1X2 (Résultat du Match)",
+    global_thresholds_general: "Seuils Généraux",
     priority_rules: "Règles de Priorité",
     exclusions: "Exclusions",
     fallbacks: "Paramètres de Fallback"
   };
 
   const categoryDescriptions = {
-    global_thresholds: "Seuils numériques utilisés dans toutes les règles de recommandation",
+    global_thresholds_ou: "Seuils spécifiques au marché Over/Under 2.5 buts",
+    global_thresholds_btts: "Seuils spécifiques au marché Both Teams To Score",
+    global_thresholds_1x2: "Seuils spécifiques au marché 1X2 (résultat du match)",
+    global_thresholds_general: "Seuils généraux applicables à tous les marchés",
     priority_rules: "Activation/désactivation des règles prioritaires et leurs paramètres",
     exclusions: "Paramètres d'exclusion pour filtrer les recommandations",
     fallbacks: "Comportements par défaut quand aucune règle prioritaire ne s'applique"
@@ -437,7 +449,9 @@ export function RulesManagement() {
       )}
 
       {/* Rules Categories */}
-      {Object.entries(groupedRules).map(([category, categoryRules]) => (
+      {Object.entries(groupedRules)
+        .filter(([_, categoryRules]) => categoryRules.length > 0)
+        .map(([category, categoryRules]) => (
         <Card key={category}>
           <CardHeader className="pb-4">
             <CardTitle className="text-lg flex items-center gap-2">
