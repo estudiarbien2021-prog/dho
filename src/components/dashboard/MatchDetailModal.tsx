@@ -110,11 +110,6 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     const lowVigThreshold = 0.06; // 6%
     const candidates = [];
     
-    // CORRECTION TEMPORAIRE : Forcer les recommandations visibles dans votre popup
-    // IA: "OU 2.5 +2,5 buts" (1.90)
-    // Market 1: "1X2 Atlético Mineiro" (1.50, Vigorish 5.5%)
-    // Market 2: "BTTS Oui" (2.25)
-    
     // Check 1X2 market (most probable outcome)
     if (match.vig_1x2 < lowVigThreshold) {
       const most1x2Prob = Math.max(match.p_home_fair, match.p_draw_fair, match.p_away_fair);
@@ -142,53 +137,39 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
       });
     }
 
-    // FORCER BTTS OUI pour votre exemple (match Atlético Mineiro vs Godoy Cruz)
-    if (match.home_team === 'Atlético Mineiro' && match.away_team === 'Godoy Cruz') {
-      candidates.push({
-        type: 'BTTS',
-        prediction: 'Oui',
-        odds: 2.25,
-        confidence: 'high',
-        vigorish: 0.05, // 5% simulé
-        probability: 0.411 // Probabilité fair BTTS Yes
-      });
-    } else {
-      // Logique normale pour autres matchs
-      // Check BTTS market - BOTH outcomes as opportunities, not just most probable
-      if (match.vig_btts < lowVigThreshold) {
-        // Check BTTS Yes opportunity
-        if (match.odds_btts_yes && match.p_btts_yes_fair) {
-          const impliedProbBttsYes = 1 / match.odds_btts_yes;
-          const fairProbBttsYes = match.p_btts_yes_fair;
-          // If fair prob > implied prob, it's an opportunity
-          if (fairProbBttsYes > impliedProbBttsYes * 1.05) { // 5% margin
-            candidates.push({
-              type: 'BTTS',
-              prediction: 'Oui',
-              odds: match.odds_btts_yes,
-              confidence: 'high',
-              vigorish: match.vig_btts,
-              probability: fairProbBttsYes
-            });
-          }
-        }
-        
-        // Check BTTS No opportunity
-        if (match.odds_btts_no && match.p_btts_no_fair) {
-          const impliedProbBttsNo = 1 / match.odds_btts_no;
-          const fairProbBttsNo = match.p_btts_no_fair;
-          // If fair prob > implied prob, it's an opportunity
-          if (fairProbBttsNo > impliedProbBttsNo * 1.05) { // 5% margin
-            candidates.push({
-              type: 'BTTS',
-              prediction: 'Non',
-              odds: match.odds_btts_no,
-              confidence: 'high',
-              vigorish: match.vig_btts,
-              probability: fairProbBttsNo
-            });
-          }
-        }
+    // Check BTTS market - DETECT VALUE OPPORTUNITIES (not just most probable)
+    if (match.vig_btts < lowVigThreshold && match.odds_btts_yes && match.odds_btts_no) {
+      // Check BTTS Yes for value
+      const impliedProbBttsYes = 1 / match.odds_btts_yes;
+      const fairProbBttsYes = match.p_btts_yes_fair || 0.5;
+      const valueBttsYes = fairProbBttsYes - impliedProbBttsYes;
+      
+      // Check BTTS No for value  
+      const impliedProbBttsNo = 1 / match.odds_btts_no;
+      const fairProbBttsNo = match.p_btts_no_fair || 0.5;
+      const valueBttsNo = fairProbBttsNo - impliedProbBttsNo;
+      
+      // Add the one with positive value (if any)
+      if (valueBttsYes > 0.02) { // 2% minimum value
+        candidates.push({
+          type: 'BTTS',
+          prediction: 'Oui',
+          odds: match.odds_btts_yes,
+          confidence: 'high',
+          vigorish: match.vig_btts,
+          probability: fairProbBttsYes
+        });
+      }
+      
+      if (valueBttsNo > 0.02) { // 2% minimum value
+        candidates.push({
+          type: 'BTTS',
+          prediction: 'Non',
+          odds: match.odds_btts_no,
+          confidence: 'high',
+          vigorish: match.vig_btts,
+          probability: fairProbBttsNo
+        });
       }
     }
     
