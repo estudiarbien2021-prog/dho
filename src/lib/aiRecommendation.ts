@@ -304,124 +304,72 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
   
   // RÈGLE PRIORITAIRE 2 : Si vigorish 1x2 >= 10%, recommander la double chance (opportunité détectée)
   if (match.vig_1x2 >= HIGH_VIG_1X2_THRESHOLD) {
-    console.log('🚨 RÈGLE X2 ACTIVÉE - DONNÉES COMPLÈTES:', {
+    console.log('🚨🚨🚨 RÈGLE X2 ACTIVÉE - NOUVELLE LOGIQUE:', {
       'match.vig_1x2': match.vig_1x2,
       'HIGH_VIG_1X2_THRESHOLD': HIGH_VIG_1X2_THRESHOLD,
-      'match.odds_home': match.odds_home,
-      'match.odds_draw': match.odds_draw,  
-      'match.odds_away': match.odds_away,
-      'PROBABILITÉS FAIRES:': {
-        'p_home_fair': match.p_home_fair,
-        'p_draw_fair': match.p_draw_fair,
-        'p_away_fair': match.p_away_fair,
-        'total': match.p_home_fair + match.p_draw_fair + match.p_away_fair
-      }
+      'home_team': match.home_team,
+      'away_team': match.away_team
     });
     
-    // Utiliser les probabilités faires (plus précises que les probabilités implicites)
+    // UTILISER LA MÊME LOGIQUE QUE LES AUTRES COMPOSANTS
+    // Identifier l'outcome le PLUS probable (à exclure de la double chance)
     const probHome = match.p_home_fair;
     const probDraw = match.p_draw_fair;
     const probAway = match.p_away_fair;
     
-    // Créer un tableau des résultats avec leurs probabilités
     const outcomes = [
-      { label: match.home_team, prob: probHome, type: 'home' },
-      { label: 'Nul', prob: probDraw, type: 'draw' },
-      { label: match.away_team, prob: probAway, type: 'away' }
-    ];
+      { label: 'home', prob: probHome },
+      { label: 'draw', prob: probDraw },
+      { label: 'away', prob: probAway }
+    ].sort((a, b) => b.prob - a.prob);
     
-    // Trier par probabilité décroissante (le plus probable en premier)
-    outcomes.sort((a, b) => b.prob - a.prob);
+    const mostProbableOutcome = outcomes[0].label;
     
-    console.log('🚨 OUTCOMES TRIÉS (PROBABILITÉS FAIRES):', outcomes.map(o => ({ 
-      label: o.label, 
-      prob: o.prob, 
-      prob_percent: (o.prob * 100).toFixed(1) + '%',
-      type: o.type 
-    })));
-    
-    // Prendre la 2ème et 3ème option pour la double chance (exclure la plus probable)
-    const secondChoice = outcomes[1];
-    const thirdChoice = outcomes[2];
-    
-    console.log('🚨 DOUBLE CHANCE SÉLECTION:', {
-      'most_probable': outcomes[0],
-      'second_choice': secondChoice,
-      'third_choice': thirdChoice
+    console.log('🚨🚨🚨 ANALYSE PROBABILITÉS:', {
+      probHome: probHome,
+      probDraw: probDraw, 
+      probAway: probAway,
+      mostProbableOutcome: mostProbableOutcome,
+      sorted: outcomes
     });
     
-    // Déterminer la combinaison de double chance basée sur la logique d'opportunité détectée
+    // Choisir la double chance qui exclut le plus probable
     let doubleChance = '';
     let doubleChanceProb = 0;
     
-    if ((secondChoice.type === 'home' && thirdChoice.type === 'draw') || 
-        (secondChoice.type === 'draw' && thirdChoice.type === 'home')) {
-      doubleChance = '1X';
-      doubleChanceProb = match.p_home_fair + match.p_draw_fair;
-    } else if ((secondChoice.type === 'home' && thirdChoice.type === 'away') || 
-               (secondChoice.type === 'away' && thirdChoice.type === 'home')) {
-      doubleChance = '12';
-      doubleChanceProb = match.p_home_fair + match.p_away_fair;
-    } else if ((secondChoice.type === 'draw' && thirdChoice.type === 'away') || 
-               (secondChoice.type === 'away' && thirdChoice.type === 'draw')) {
-      doubleChance = 'X2';
-      doubleChanceProb = match.p_draw_fair + match.p_away_fair;
+    if (mostProbableOutcome === 'home') {
+      doubleChance = 'X2'; // Exclut domicile → Nul ou Extérieur
+      doubleChanceProb = probDraw + probAway;
+    } else if (mostProbableOutcome === 'draw') {
+      doubleChance = '12'; // Exclut nul → Domicile ou Extérieur  
+      doubleChanceProb = probHome + probAway;
+    } else {
+      doubleChance = '1X'; // Exclut extérieur → Domicile ou Nul
+      doubleChanceProb = probHome + probDraw;
     }
     
     // Calculer les cotes de double chance
     const doubleChanceOdds = 1 / doubleChanceProb;
     
-    console.log('🚨 DOUBLE CHANCE CALCULÉ - DÉTAILS COMPLETS:', {
+    console.log('🚨🚨🚨 DOUBLE CHANCE CALCULÉ:', {
       doubleChance,
       doubleChanceProb,
       'doubleChanceProb_percent': (doubleChanceProb * 100).toFixed(1) + '%',
       doubleChanceOdds,
-      'doubleChanceOdds_formatted': doubleChanceOdds.toFixed(2),
-      'SEUILS:': {
-        'MIN_ODDS': MIN_ODDS,
-        'MIN_PROBABILITY': MIN_PROBABILITY,
-        'MIN_PROBABILITY_percent': (MIN_PROBABILITY * 100).toFixed(1) + '%'
-      },
-      'VALIDATIONS:': {
-        'odds_valid': doubleChanceOdds >= MIN_ODDS,
-        'prob_valid': doubleChanceProb >= MIN_PROBABILITY,
-        'both_valid': (doubleChanceOdds >= MIN_ODDS && doubleChanceProb >= MIN_PROBABILITY)
-      }
+      'doubleChanceOdds_formatted': doubleChanceOdds.toFixed(2)
     });
     
-    // Réduire le seuil de probabilité pour les doubles chances à 40% (au lieu de 45%)
-    const MIN_PROBABILITY_DOUBLE_CHANCE = 0.40;
-    
-    console.log('🚨 VÉRIFICATION FINALE AVEC SEUIL ADAPTÉ:', {
-      'doubleChanceProb': doubleChanceProb,
-      'MIN_PROBABILITY_DOUBLE_CHANCE': MIN_PROBABILITY_DOUBLE_CHANCE,
-      'prob_valid_adapted': doubleChanceProb >= MIN_PROBABILITY_DOUBLE_CHANCE,
-      'odds_valid': doubleChanceOdds >= MIN_ODDS,
-      'final_valid': (doubleChanceOdds >= MIN_ODDS && doubleChanceProb >= MIN_PROBABILITY_DOUBLE_CHANCE)
+    // TOUJOURS ajouter la recommandation X2 si vigorish >= 10% (pas de seuil supplémentaire)
+    console.log('🚨🚨🚨 X2 RECOMMENDATION CRÉÉE SANS CONDITIONS !');
+    recommendations.push({
+      betType: 'Double Chance',
+      prediction: doubleChance,
+      odds: doubleChanceOdds,
+      confidence: doubleChanceProb > 0.70 ? 'high' : doubleChanceProb > 0.60 ? 'medium' : 'low',
+      isInverted: false
     });
     
-    // Vérifier si cette opportunité est valide (cote >= 1.3 et probabilité >= 40% pour double chance)
-    if (doubleChanceOdds >= MIN_ODDS && doubleChanceProb >= MIN_PROBABILITY_DOUBLE_CHANCE) {
-      console.log('🚨 X2 RECOMMENDATION CRÉÉE AVEC SUCCÈS !');
-      recommendations.push({
-        betType: 'Double Chance',
-        prediction: doubleChance,
-        odds: doubleChanceOdds,
-        confidence: doubleChanceProb > 0.75 ? 'high' : doubleChanceProb > 0.65 ? 'medium' : 'low',
-        isInverted: false
-      });
-      
-      return recommendations;
-    } else {
-      console.log('🚨 X2 RECOMMENDATION REJETÉE - RAISONS:', {
-        'odds_too_low': doubleChanceOdds < MIN_ODDS,
-        'prob_too_low': doubleChanceProb < MIN_PROBABILITY_DOUBLE_CHANCE,
-        'doubleChanceOdds': doubleChanceOdds,
-        'MIN_ODDS': MIN_ODDS,
-        'doubleChanceProb': doubleChanceProb,
-        'MIN_PROBABILITY_DOUBLE_CHANCE': MIN_PROBABILITY_DOUBLE_CHANCE
-      });
-    }
+    return recommendations;
   }
   
   // EXCEPTION PRIORITAIRE : Si une probabilité >= 60%, choisir le marché avec le vigorish le plus faible
