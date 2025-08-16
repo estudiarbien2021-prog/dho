@@ -319,6 +319,30 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     
     // 4. NE PLUS ajouter de recommandations probabilistes de fallback
     
+    // 4. CORRECTION FINALE : Remplacer les recommandations probabilistes par X2 si nécessaire
+    const hasHighVig1x2 = match.vig_1x2 >= 0.1;
+    if (hasHighVig1x2) {
+      // Supprimer toute recommandation 1X2 probabiliste et la remplacer par X2
+      const filteredOpportunities = opportunities.filter(opp => 
+        !(opp.source === 'probabilistic' && opp.type === '1X2')
+      );
+      
+      filteredOpportunities.push({
+        source: 'market_x2',
+        type: '1X2',
+        prediction: 'X2',
+        multiplier: 3.0
+      });
+      
+      console.log('🚨 X2 REMPLACE LA RECOMMANDATION PROBABILISTE:', {
+        'Original opportunities': opportunities.length,
+        'Après remplacement': filteredOpportunities.length,
+        'match.vig_1x2': match.vig_1x2
+      });
+      
+      return filteredOpportunities;
+    }
+    
     console.log('🔍 RECOMMANDATIONS FINALES POUR MATRICE:', opportunities);
     return opportunities;
   };
