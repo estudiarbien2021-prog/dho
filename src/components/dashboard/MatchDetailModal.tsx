@@ -103,6 +103,86 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
   const aiRecommendation = generateAIRecommendation(match, marketFilters);
   const recommendation = normalizeRecommendation(aiRecommendation);
   
+  // Generate second recommendation based on low vigorish criteria (<6%)
+  const generateSecondRecommendation = () => {
+    const lowVigThreshold = 0.06; // 6%
+    const candidates = [];
+    
+    // Check 1X2 market (most probable outcome)
+    if (match.vig_1x2 < lowVigThreshold) {
+      const most1x2Prob = Math.max(match.p_home_fair, match.p_draw_fair, match.p_away_fair);
+      let prediction1x2 = '';
+      let odds1x2 = 0;
+      
+      if (most1x2Prob === match.p_home_fair) {
+        prediction1x2 = match.home_team;
+        odds1x2 = match.odds_home;
+      } else if (most1x2Prob === match.p_away_fair) {
+        prediction1x2 = match.away_team;
+        odds1x2 = match.odds_away;
+      } else {
+        prediction1x2 = 'Nul';
+        odds1x2 = match.odds_draw;
+      }
+      
+      candidates.push({
+        type: '1X2',
+        prediction: prediction1x2,
+        odds: odds1x2,
+        confidence: 'high',
+        vigorish: match.vig_1x2,
+        probability: most1x2Prob
+      });
+    }
+    
+    // Check BTTS market (most probable outcome)
+    if (match.vig_btts < lowVigThreshold) {
+      const mostBttsProb = Math.max(match.p_btts_yes_fair, match.p_btts_no_fair);
+      const predictionBtts = mostBttsProb === match.p_btts_yes_fair ? 'Oui' : 'Non';
+      const oddsBtts = mostBttsProb === match.p_btts_yes_fair ? match.odds_btts_yes : match.odds_btts_no;
+      
+      candidates.push({
+        type: 'BTTS',
+        prediction: predictionBtts,
+        odds: oddsBtts || 0,
+        confidence: 'high',
+        vigorish: match.vig_btts,
+        probability: mostBttsProb
+      });
+    }
+    
+    // Check O/U 2.5 market (most probable outcome)
+    if (match.vig_ou_2_5 < lowVigThreshold) {
+      const mostOuProb = Math.max(match.p_over_2_5_fair, match.p_under_2_5_fair);
+      const predictionOu = mostOuProb === match.p_over_2_5_fair ? '+2,5 buts' : '-2,5 buts';
+      const oddsOu = mostOuProb === match.p_over_2_5_fair ? match.odds_over_2_5 : match.odds_under_2_5;
+      
+      candidates.push({
+        type: 'O/U 2.5',
+        prediction: predictionOu,
+        odds: oddsOu || 0,
+        confidence: 'high',
+        vigorish: match.vig_ou_2_5,
+        probability: mostOuProb
+      });
+    }
+    
+    // Filter out candidates that match the primary recommendation
+    const filteredCandidates = candidates.filter(candidate => {
+      if (!recommendation || recommendation.type === 'Aucune') return true;
+      return !(candidate.type === recommendation.type && candidate.prediction === recommendation.prediction);
+    });
+    
+    // Return the candidate with lowest vigorish (best opportunity)
+    if (filteredCandidates.length > 0) {
+      return filteredCandidates.sort((a, b) => a.vigorish - b.vigorish)[0];
+    }
+    
+    return null;
+  };
+  
+  const secondRecommendation = generateSecondRecommendation();
+  
   // Check for market distortions first
   const marketDistortion = (() => {
     // Create vigorish data and sort
@@ -967,6 +1047,38 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                             }} />
                           </div>
                         </div>
+                        
+                        {/* Second Recommendation - Low Vigorish Analysis */}
+                        {secondRecommendation && (
+                          <div className="mt-6 pt-6 border-t border-brand/20">
+                            <div className="space-y-4">
+                              <div className="flex items-center gap-2 mb-3">
+                                <Brain className="w-4 h-4 text-brand-400" />
+                                <span className="text-sm font-semibold text-brand-400">Analyse complète avec facteurs d'influence</span>
+                              </div>
+                              
+                              <div className="flex items-center justify-between">
+                                <Badge className="bg-brand-400/20 text-brand-400 px-3 py-1 text-sm font-medium border border-brand-400/30">
+                                  {secondRecommendation.type} {secondRecommendation.prediction}
+                                  <span className="ml-2 text-xs bg-emerald-500/20 text-emerald-700 px-2 py-1 rounded">
+                                    Vigorish {(secondRecommendation.vigorish * 100).toFixed(1)}%
+                                  </span>
+                                </Badge>
+                                <div className="text-lg font-bold text-brand-400">
+                                  {secondRecommendation.odds.toFixed(2)}
+                                </div>
+                              </div>
+                              
+                              <div className="bg-brand-400/10 rounded-lg p-3 border border-brand-400/20">
+                                <div className="text-xs text-brand-400 leading-relaxed">
+                                  <strong>Opportunité Détectée:</strong> Vigorish exceptionnellement bas de {(secondRecommendation.vigorish * 100).toFixed(1)}% sur ce marché. 
+                                  Probabilité réelle estimée à {(secondRecommendation.probability * 100).toFixed(1)}% avec une marge bookmaker réduite, 
+                                  indiquant une efficience de marché optimale pour cette prédiction.
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div className="h-full flex items-center justify-center">
