@@ -187,28 +187,32 @@ export function AIRecommendationDisplay({
     });
 
     return (
-      <div className="bg-green-50 p-2 rounded border border-green-200 text-xs">
-        <div className="flex items-center gap-1 mb-1">
+      <div className="bg-green-100 p-3 rounded-lg border border-green-200 min-w-[200px]">
+        <div className="flex items-center justify-center gap-2 mb-2">
           <span className="text-green-600">🎯</span>
-          <span className="font-medium text-green-800">Recommandation IA</span>
+          <span className="text-sm font-semibold text-green-800">
+            Recommandation IA
+          </span>
         </div>
-        <div className="space-y-1">
+        
+        <div className="grid grid-cols-3 gap-2 text-xs text-center">
           <div>
-            <span className="text-green-600">Type de pari:</span>
-            <span className="ml-1 text-green-800">{formatBetType(aiRec.betType)}</span>
+            <div className="text-green-600 font-medium">Type de pari</div>
+            <div className="text-green-800">{formatBetType(aiRec.betType)}</div>
           </div>
           <div>
-            <span className="text-green-600">Prédiction:</span>
-            <span className="ml-1 text-green-800 font-medium">{formatPrediction(aiRec.betType, aiRec.prediction)}</span>
+            <div className="text-green-600 font-medium">Prédiction</div>
+            <div className="text-green-800">{aiRec.prediction}</div>
           </div>
           <div>
-            <span className="text-green-600">Cote:</span>
-            <span className="ml-1 text-green-800 font-medium">{aiRec.odds.toFixed(2)}</span>
+            <div className="text-green-600 font-medium">Cote</div>
+            <div className="text-green-800 font-bold">{aiRec.odds.toFixed(2)}</div>
           </div>
-          <div>
-            <span className="text-green-600">Confiance:</span>
-            <span className="ml-1 text-green-800 font-medium">{confidence}%</span>
-          </div>
+        </div>
+        
+        <div className="pt-2 text-center">
+          <div className="text-green-600 text-xs font-medium">Confiance</div>
+          <div className="text-green-800 font-bold">{confidence}%</div>
         </div>
       </div>
     );
