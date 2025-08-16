@@ -105,12 +105,18 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
   const thirdRecommendation = allAIRecommendations.length > 2 ? normalizeRecommendation(allAIRecommendations[2]) : null;
   
   // Generate second recommendation based on low vigorish criteria (<6%)
-  // Generate ALL market recommendations based on low vigorish criteria (<6%)
-  const generateAllMarketRecommendations = () => {
+  // Récupérer les données BRUTES déjà affichées dans le popup (sans recalcul)
+  
+  // 1. RECOMMANDATION IA (Analyse complète avec facteurs d'influence) - Poids 3.0
+  const aiRecommendationFromPopup = recommendation;
+  
+  // 2. OPPORTUNITÉS DÉTECTÉES (Efficacité du Marché) - Poids 3.0  
+  // Récupérer TOUTES les opportunités market déjà calculées
+  const getAllMarketOpportunities = () => {
+    const opportunities = [];
     const lowVigThreshold = 0.06; // 6%
-    const candidates = [];
     
-    // Check 1X2 market (most probable outcome)
+    // Récupérer les opportunités déjà calculées dans l'ordre d'affichage du popup
     if (match.vig_1x2 < lowVigThreshold) {
       const most1x2Prob = Math.max(match.p_home_fair, match.p_draw_fair, match.p_away_fair);
       let prediction1x2 = '';
@@ -127,81 +133,52 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
         odds1x2 = match.odds_draw;
       }
       
-      candidates.push({
+      opportunities.push({
         type: '1X2',
         prediction: prediction1x2,
         odds: odds1x2,
-        confidence: 'high',
         vigorish: match.vig_1x2,
         probability: most1x2Prob
       });
     }
-
-    // Check BTTS market - DETECT VALUE OPPORTUNITIES (not just most probable)
-    if (match.vig_btts < lowVigThreshold && match.odds_btts_yes && match.odds_btts_no) {
-      // Check BTTS Yes for value
-      const impliedProbBttsYes = 1 / match.odds_btts_yes;
-      const fairProbBttsYes = match.p_btts_yes_fair || 0.5;
-      const valueBttsYes = fairProbBttsYes - impliedProbBttsYes;
+    
+    if (match.vig_btts < lowVigThreshold) {
+      const mostBttsProb = Math.max(match.p_btts_yes_fair, match.p_btts_no_fair);
+      const predictionBtts = mostBttsProb === match.p_btts_yes_fair ? 'Oui' : 'Non';
+      const oddsBtts = mostBttsProb === match.p_btts_yes_fair ? match.odds_btts_yes : match.odds_btts_no;
       
-      // Check BTTS No for value  
-      const impliedProbBttsNo = 1 / match.odds_btts_no;
-      const fairProbBttsNo = match.p_btts_no_fair || 0.5;
-      const valueBttsNo = fairProbBttsNo - impliedProbBttsNo;
-      
-      // Add the one with positive value (if any)
-      if (valueBttsYes > 0.02) { // 2% minimum value
-        candidates.push({
-          type: 'BTTS',
-          prediction: 'Oui',
-          odds: match.odds_btts_yes,
-          confidence: 'high',
-          vigorish: match.vig_btts,
-          probability: fairProbBttsYes
-        });
-      }
-      
-      if (valueBttsNo > 0.02) { // 2% minimum value
-        candidates.push({
-          type: 'BTTS',
-          prediction: 'Non',
-          odds: match.odds_btts_no,
-          confidence: 'high',
-          vigorish: match.vig_btts,
-          probability: fairProbBttsNo
-        });
-      }
+      opportunities.push({
+        type: 'BTTS',
+        prediction: predictionBtts,
+        odds: oddsBtts || 0,
+        vigorish: match.vig_btts,
+        probability: mostBttsProb
+      });
     }
     
-    // Check O/U 2.5 market (most probable outcome)
     if (match.vig_ou_2_5 < lowVigThreshold) {
       const mostOuProb = Math.max(match.p_over_2_5_fair, match.p_under_2_5_fair);
       const predictionOu = mostOuProb === match.p_over_2_5_fair ? '+2,5 buts' : '-2,5 buts';
       const oddsOu = mostOuProb === match.p_over_2_5_fair ? match.odds_over_2_5 : match.odds_under_2_5;
       
-      candidates.push({
+      opportunities.push({
         type: 'O/U 2.5',
         prediction: predictionOu,
         odds: oddsOu || 0,
-        confidence: 'high',
         vigorish: match.vig_ou_2_5,
         probability: mostOuProb
       });
     }
     
-    // Filter out candidates that match the primary recommendation
-    const filteredCandidates = candidates.filter(candidate => {
-      if (!recommendation || recommendation.type === 'Aucune') return true;
-      return !(candidate.type === recommendation.type && candidate.prediction === recommendation.prediction);
-    });
-    
-    // Return all candidates sorted by vigorish (best opportunities first)
-    return filteredCandidates.sort((a, b) => a.vigorish - b.vigorish);
+    return opportunities.sort((a, b) => a.vigorish - b.vigorish);
   };
   
-  const allMarketRecommendations = generateAllMarketRecommendations();
-  const secondRecommendation = allMarketRecommendations[0] || null;
-  const thirdMarketRecommendation = allMarketRecommendations[1] || null;
+  const allMarketOpportunities = getAllMarketOpportunities();
+  const marketRecommendation1 = allMarketOpportunities[0] || null;
+  const marketRecommendation2 = allMarketOpportunities[1] || null;
+  
+  const secondRecommendation = marketRecommendation1;
+  const thirdMarketRecommendation = marketRecommendation2;
   
   // Check for market distortions first
   const marketDistortion = (() => {

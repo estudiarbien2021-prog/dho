@@ -120,7 +120,9 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
       return null;
     };
 
-    // 1. RECOMMANDATIONS IA (x3.0) - TOUTES LES RECOMMANDATIONS
+    // ===== RÉCUPÉRATION DES DONNÉES BRUTES DU POPUP (SANS RECALCUL) =====
+    
+    // 1. RECOMMANDATION IA (x3.0) - "Analyse complète avec facteurs d'influence"
     if (allRecommendations && allRecommendations.length > 0) {
       allRecommendations.forEach((aiRec, index) => {
         console.log(`🔍 DEBUG recommendation ${index + 1}:`, aiRec);
@@ -142,34 +144,28 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
       });
     }
     
-    // FALLBACK: Si pas d'allRecommendations, utiliser les anciennes props
-    if (recommendations.filter(r => r.source === 'ai').length === 0) {
-      // 1. IA PRINCIPALE (x3.0)
-      if (aiRecommendation && aiRecommendation.betType !== 'Aucune') {
+    // FALLBACK pour la recommandation IA principale si allRecommendations est vide
+    if (recommendations.filter(r => r.source === 'ai').length === 0 && aiRecommendation && aiRecommendation.betType !== 'Aucune') {
       console.log('🔍 DEBUG aiRecommendation structure:', {
         aiRecommendation,
         betType: aiRecommendation.betType,
-        type: aiRecommendation.type, // Nouvelle propriété détectée
-        betTypeType: typeof aiRecommendation.betType,
+        type: aiRecommendation.type,
         prediction: aiRecommendation.prediction
       });
 
-      // Handle different betType structures - try both betType and type
       let betTypeString = '';
       if (typeof aiRecommendation.betType === 'string') {
         betTypeString = aiRecommendation.betType;
       } else if (aiRecommendation.type && typeof aiRecommendation.type === 'string') {
-        betTypeString = aiRecommendation.type; // Utiliser la propriété 'type'
+        betTypeString = aiRecommendation.type;
       } else if (aiRecommendation.betType && aiRecommendation.betType.value) {
         betTypeString = aiRecommendation.betType.value;
       } else if (aiRecommendation.betType && aiRecommendation.betType._type) {
         betTypeString = aiRecommendation.betType._type;
       }
 
-      // Extract prediction information to deduce bet type
       const predictionText = aiRecommendation.prediction || '';
       
-      // Try to deduce bet type from prediction if betType is undefined
       if (!betTypeString || betTypeString === 'undefined') {
         if (predictionText.includes('2,5') || predictionText.includes('2.5') || 
             predictionText.includes('SOUS') || predictionText.includes('SUR') ||
@@ -180,7 +176,7 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
           betTypeString = 'BTTS';
         } else if (predictionText.includes('1X') || predictionText.includes('X2') || predictionText.includes('12')) {
           betTypeString = 'Double Chance';
-        } else if (predictionText.includes('Botafogo') || predictionText.includes('LDU') || predictionText.includes('Inter Miami') || predictionText.includes('Huntsville')) {
+        } else {
           betTypeString = '1X2';
         }
         console.log('🔍 DEDUCED betType from prediction:', betTypeString, 'from:', predictionText);
@@ -199,18 +195,10 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
           mappedType,
           prediction: aiRecommendation.prediction
         });
-      } else {
-        console.warn('⚠️ TYPE IA NON RECONNU:', {
-          betTypeString,
-          originalBetType: aiRecommendation.betType,
-          originalType: aiRecommendation.type,
-          prediction: aiRecommendation.prediction
-        });
       }
     }
-    }
 
-    // 2. EFFICACITÉ MARCHÉ (x3.0) - TOUTES LES RECOMMANDATIONS MARKET
+    // 2. OPPORTUNITÉS DÉTECTÉES MARCHÉ (x3.0) - "Efficacité du Marché"
     if (secondRecommendation) {
       const mappedType = mapBetType(secondRecommendation.type);
       if (mappedType) {
@@ -223,12 +211,14 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
         console.log('📊 MARCHÉ 1 AJOUTÉ:', {
           originalType: secondRecommendation.type,
           mappedType,
-          prediction: secondRecommendation.prediction
+          prediction: secondRecommendation.prediction,
+          odds: secondRecommendation.odds,
+          vigorish: secondRecommendation.vigorish
         });
       }
     }
 
-    // 3. EFFICACITÉ MARCHÉ 2 (x3.0) - SECONDE RECOMMANDATION MARKET
+    // 3. OPPORTUNITÉS DÉTECTÉES MARCHÉ 2 (x3.0) - "Efficacité du Marché"
     if (thirdRecommendation) {
       const mappedType = mapBetType(thirdRecommendation.type);
       if (mappedType) {
@@ -241,7 +231,9 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
         console.log('📊 MARCHÉ 2 AJOUTÉ:', {
           originalType: thirdRecommendation.type,
           mappedType,
-          prediction: thirdRecommendation.prediction
+          prediction: thirdRecommendation.prediction,
+          odds: thirdRecommendation.odds,
+          vigorish: thirdRecommendation.vigorish
         });
       }
     }
