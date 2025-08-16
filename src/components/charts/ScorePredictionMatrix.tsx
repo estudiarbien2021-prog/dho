@@ -21,17 +21,17 @@ interface ScoreCell {
   highlightReason?: string;
 }
 
+// Interface pour les recommandations
+interface Recommendation {
+  source: 'ai' | 'market' | 'probabilistic';
+  type: 'O/U 2.5' | 'BTTS' | '1X2';
+  prediction: string;
+  multiplier: number;
+}
+
 export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, match, aiRecommendation, secondRecommendation }: ScorePredictionMatrixProps) {
   const [matrix, setMatrix] = useState<ScoreCell[][]>([]);
   const [animationStep, setAnimationStep] = useState(0);
-
-  // Interface pour les recommandations
-  interface Recommendation {
-    source: 'ai' | 'market' | 'probabilistic';
-    type: 'O/U 2.5' | 'BTTS' | '1X2';
-    prediction: string;
-    multiplier: number;
-  }
 
   // Collecte TOUTES les recommandations disponibles
   const getAllRecommendations = (): Recommendation[] => {
