@@ -136,26 +136,30 @@ export function RulesManagement() {
   const renderRuleControl = (rule: Rule) => {
     if (rule.type === 'boolean') {
       return (
-        <Switch
-          checked={rule.value === 1}
-          onCheckedChange={(checked) => updateRuleValue(rule.id, checked ? 1 : 0)}
-        />
+        <div className="flex items-center justify-center">
+          <Switch
+            checked={rule.value === 1}
+            onCheckedChange={(checked) => updateRuleValue(rule.id, checked ? 1 : 0)}
+          />
+        </div>
       );
     }
 
     if (rule.type === 'percentage') {
       return (
-        <div className="space-y-2">
-          <Slider
-            value={[rule.value]}
-            onValueChange={([value]) => updateRuleValue(rule.id, value)}
-            max={100}
-            min={0}
-            step={0.1}
-            className="w-full"
-          />
-          <div className="text-sm text-text-weak text-center">
-            {rule.value}%
+        <div className="w-48 space-y-1">
+          <div className="flex items-center space-x-3">
+            <Slider
+              value={[rule.value]}
+              onValueChange={([value]) => updateRuleValue(rule.id, value)}
+              max={100}
+              min={0}
+              step={0.1}
+              className="flex-1"
+            />
+            <div className="text-sm font-medium text-primary w-12 text-right">
+              {rule.value}%
+            </div>
           </div>
         </div>
       );
@@ -168,7 +172,7 @@ export function RulesManagement() {
         onChange={(e) => updateRuleValue(rule.id, parseFloat(e.target.value) || 0)}
         step={rule.rule_name.includes('odds') ? 0.1 : 1}
         min={0}
-        className="w-24"
+        className="w-32 text-center"
       />
     );
   };
@@ -200,21 +204,21 @@ export function RulesManagement() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Settings className="h-6 w-6 text-primary" />
+          <Settings className="h-5 w-5 text-primary" />
           <div>
-            <h2 className="text-2xl font-bold">Configuration des Règles IA</h2>
-            <p className="text-text-weak">
+            <h2 className="text-xl font-bold">Configuration des Règles IA</h2>
+            <p className="text-sm text-text-weak">
               Gérez les paramètres des algorithmes de recommandation
             </p>
           </div>
         </div>
         <div className="flex gap-2">
           {hasChanges && (
-            <Button variant="outline" onClick={resetRules}>
+            <Button variant="outline" size="sm" onClick={resetRules}>
               <RotateCcw className="h-4 w-4 mr-2" />
               Annuler
             </Button>
@@ -222,6 +226,7 @@ export function RulesManagement() {
           <Button 
             onClick={saveRules} 
             disabled={!hasChanges || isSaving}
+            size="sm"
             className="flex items-center gap-2"
           >
             <Save className="h-4 w-4" />
@@ -231,7 +236,7 @@ export function RulesManagement() {
       </div>
 
       {hasChanges && (
-        <div className="bg-warning/10 border border-warning rounded-lg p-4">
+        <div className="bg-warning/10 border border-warning rounded-lg p-3">
           <p className="text-sm text-warning-foreground">
             ⚠️ Vous avez des modifications non sauvegardées. N'oubliez pas de cliquer sur "Sauvegarder".
           </p>
@@ -241,32 +246,34 @@ export function RulesManagement() {
       {/* Rules Categories */}
       {Object.entries(groupedRules).map(([category, categoryRules]) => (
         <Card key={category}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg flex items-center gap-2">
               {categoryTitles[category as keyof typeof categoryTitles]}
-              <Badge variant="outline">{categoryRules.length}</Badge>
+              <Badge variant="outline" className="text-xs">{categoryRules.length}</Badge>
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-sm">
               {categoryDescriptions[category as keyof typeof categoryDescriptions]}
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {categoryRules.map((rule, index) => (
-              <div key={rule.id}>
-                <div className="flex items-center justify-between py-4">
-                  <div className="flex-1">
-                    <Label className="font-medium">{rule.description}</Label>
-                    <p className="text-sm text-text-weak mt-1">
-                      {rule.rule_name}
-                    </p>
+          <CardContent className="pt-0">
+            <div className="space-y-3">
+              {categoryRules.map((rule, index) => (
+                <div key={rule.id}>
+                  <div className="flex items-center justify-between py-2">
+                    <div className="flex-1 pr-4">
+                      <Label className="text-sm font-medium leading-tight">{rule.description}</Label>
+                      <p className="text-xs text-text-weak mt-0.5">
+                        {rule.rule_name}
+                      </p>
+                    </div>
+                    <div className="flex items-center">
+                      {renderRuleControl(rule)}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    {renderRuleControl(rule)}
-                  </div>
+                  {index < categoryRules.length - 1 && <Separator className="my-1" />}
                 </div>
-                {index < categoryRules.length - 1 && <Separator />}
-              </div>
-            ))}
+              ))}
+            </div>
           </CardContent>
         </Card>
       ))}
