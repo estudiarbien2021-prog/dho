@@ -37,24 +37,53 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
   const getAllRecommendations = (): Recommendation[] => {
     const recommendations: Recommendation[] = [];
 
+    // Fonction utilitaire pour mapper les types de paris
+    const mapBetType = (betType: string): 'O/U 2.5' | 'BTTS' | '1X2' | null => {
+      if (betType === 'O/U 2.5') return 'O/U 2.5';
+      if (betType === 'BTTS') return 'BTTS';
+      if (betType === '1X2' || betType === 'Double Chance') return '1X2';
+      // Autres mappings possibles
+      if (betType === 'Over/Under 2.5' || betType === 'Over/Under') return 'O/U 2.5';
+      if (betType === 'Both Teams To Score') return 'BTTS';
+      return null;
+    };
+
     // 1. IA PRINCIPALE (x3.0)
     if (aiRecommendation && aiRecommendation.betType !== 'Aucune') {
-      recommendations.push({
-        source: 'ai',
-        type: aiRecommendation.betType as any,
-        prediction: aiRecommendation.prediction,
-        multiplier: 3.0
-      });
+      const mappedType = mapBetType(aiRecommendation.betType);
+      if (mappedType) {
+        recommendations.push({
+          source: 'ai',
+          type: mappedType,
+          prediction: aiRecommendation.prediction,
+          multiplier: 3.0
+        });
+        console.log('🎯 IA PRINCIPALE AJOUTÉE:', {
+          originalType: aiRecommendation.betType,
+          mappedType,
+          prediction: aiRecommendation.prediction
+        });
+      } else {
+        console.warn('⚠️ TYPE IA NON RECONNU:', aiRecommendation.betType);
+      }
     }
 
     // 2. EFFICACITÉ MARCHÉ (x3.0)
     if (secondRecommendation) {
-      recommendations.push({
-        source: 'market', 
-        type: secondRecommendation.type as any,
-        prediction: secondRecommendation.prediction,
-        multiplier: 3.0
-      });
+      const mappedType = mapBetType(secondRecommendation.type);
+      if (mappedType) {
+        recommendations.push({
+          source: 'market', 
+          type: mappedType,
+          prediction: secondRecommendation.prediction,
+          multiplier: 3.0
+        });
+        console.log('📊 MARCHÉ AJOUTÉ:', {
+          originalType: secondRecommendation.type,
+          mappedType,
+          prediction: secondRecommendation.prediction
+        });
+      }
     }
 
     // 3. ANALYSES PROBABILISTES (x0.25) - seulement si un marché manque
