@@ -20,63 +20,31 @@ export function AIRecommendationDisplay({
 }: AIRecommendationDisplayProps) {
   console.log('🟢 AIRecommendationDisplay APPELÉ pour:', match.home_team, 'vs', match.away_team);
   
-  // ===== UTILISER LA MÊME LOGIQUE EXACTE QUE MatchDetailModal =====
+  // ===== UTILISER L'ORDRE ORIGINAL DE detectOpportunities (PAS DE RE-PRIORISATION) =====
   
-  // 1. Détecter les opportunités comme dans le modal
+  // 1. Détecter les opportunités dans leur ordre original de priorité
   const opportunities = detectOpportunities(match);
-  console.log('🎯 OPPORTUNITIES DÉTECTÉES (AIRecommendationDisplay):', opportunities.length, opportunities.map(o => `${o.type}:${o.prediction}(inverted:${o.isInverted})`));
+  console.log('🎯 OPPORTUNITIES DÉTECTÉES (ORDRE ORIGINAL):', opportunities.length, opportunities.map(o => `${o.type}:${o.prediction}(priority:${o.priority})(inverted:${o.isInverted})`));
   
-  // 2. Prioriser EXACTEMENT comme dans le modal
-  const prioritizedOpportunities = prioritizeOpportunitiesByRealProbability(opportunities, match);
+  // 2. GARDER L'ORDRE ORIGINAL - PAS de prioritizeOpportunitiesByRealProbability
+  // Les opportunités sont déjà triées par priority dans detectOpportunities
   
-  // 3. Convertir en recommandations EXACTEMENT comme dans le modal
-  const prioritizedRecommendations = prioritizedOpportunities.map(opp => ({
-    rec: convertOpportunityToAIRecommendation(opp),
-    opp: opp
-  }));
+  // 3. Prendre la PREMIÈRE opportunité de l'ordre original
+  const mainOpportunity = opportunities.length > 0 ? opportunities[0] : null;
+  const aiRecs = mainOpportunity ? [convertOpportunityToAIRecommendation(mainOpportunity)] : [];
 
-  const finalRecommendations = prioritizedRecommendations;
-  
-  // Helper function to normalize recommendation object (MÊME que modal)
-  const normalizeRecommendation = (rec: any) => {
-    if (!rec) return null;
-    
-    return {
-      type: rec.betType || rec.type || 'Aucune',
-      prediction: rec.prediction || 'Aucune',
-      odds: rec.odds || 0,
-      confidence: rec.confidence || 'low'
-    };
-  };
-
-  // 4. Créer la recommandation principale EXACTEMENT comme dans le modal
-  const recommendation = finalRecommendations.length > 0 ? {
-    ...normalizeRecommendation(finalRecommendations[0].rec),
-    isInverted: finalRecommendations[0].opp?.isInverted || false,
-    reason: finalRecommendations[0].opp?.reason || []
-  } : null;
-
-  console.log('🚨 DEBUG AIRecommendationDisplay - MÊME LOGIQUE QUE MODAL:', {
+  console.log('🚨 DEBUG AIRecommendationDisplay - ORDRE ORIGINAL (SANS RE-PRIORISATION):', {
     matchName: `${match.home_team} vs ${match.away_team}`,
     totalOpportunities: opportunities.length,
-    finalRecommendationsCount: finalRecommendations.length,
-    mainRecommendation: recommendation ? {
-      type: recommendation.type,
-      prediction: recommendation.prediction,
-      odds: recommendation.odds,
-      isInverted: recommendation.isInverted
-    } : null
+    mainOpportunity: mainOpportunity ? {
+      type: mainOpportunity.type,
+      prediction: mainOpportunity.prediction,
+      priority: mainOpportunity.priority,
+      odds: mainOpportunity.odds,
+      isInverted: mainOpportunity.isInverted
+    } : null,
+    finalAIRec: aiRecs[0]
   });
-
-  // Convertir en format aiRecs pour compatibilité avec le reste du code
-  const aiRecs = recommendation ? [{
-    betType: recommendation.type,
-    prediction: recommendation.prediction,
-    odds: recommendation.odds,
-    confidence: recommendation.confidence,
-    isInverted: recommendation.isInverted,
-    reason: recommendation.reason
-  }] : [];
   
   if (aiRecs.length === 0) {
     return (
