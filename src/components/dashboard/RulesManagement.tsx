@@ -7,9 +7,12 @@ import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Settings, Save, RotateCcw } from 'lucide-react';
+import { Settings, Save, RotateCcw, History, Download, Upload } from 'lucide-react';
 
 interface Rule {
   id: string;
@@ -28,15 +31,31 @@ interface RulesByCategory {
   fallbacks: Rule[];
 }
 
+interface RuleConfiguration {
+  id: string;
+  name: string;
+  description: string | null;
+  configuration: any; // JSON type from Supabase
+  created_at: string;
+  created_by: string | null;
+  is_active: boolean;
+}
+
 export function RulesManagement() {
   const [rules, setRules] = useState<Rule[]>([]);
   const [originalRules, setOriginalRules] = useState<Rule[]>([]);
+  const [configurations, setConfigurations] = useState<RuleConfiguration[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [configName, setConfigName] = useState('');
+  const [configDescription, setConfigDescription] = useState('');
+  const [selectedConfigId, setSelectedConfigId] = useState<string>('');
 
   useEffect(() => {
     loadRules();
+    loadConfigurations();
   }, []);
 
   useEffect(() => {
@@ -121,9 +140,108 @@ export function RulesManagement() {
     }
   };
 
+  const loadConfigurations = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('rule_configurations')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setConfigurations(data || []);
+    } catch (error) {
+      console.error('Error loading configurations:', error);
+    }
+  };
+
+  const saveConfiguration = async () => {
+    if (!configName.trim()) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez saisir un nom pour la configuration",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      
+      // Create configuration object from current rules
+      const configuration = rules.reduce((acc, rule) => {
+        acc[rule.rule_name] = rule.value;
+        return acc;
+      }, {} as Record<string, number>);
+
+      const { error } = await supabase
+        .from('rule_configurations')
+        .insert({
+          name: configName,
+          description: configDescription || null,
+          configuration,
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Succès !",
+        description: "Configuration sauvegardée avec succès",
+      });
+
+      setShowSaveDialog(false);
+      setConfigName('');
+      setConfigDescription('');
+      loadConfigurations();
+    } catch (error) {
+      console.error('Error saving configuration:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de sauvegarder la configuration",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const loadConfiguration = async (configId: string) => {
+    try {
+      const config = configurations.find(c => c.id === configId);
+      if (!config) return;
+
+      // Update rules with configuration values
+      const updatedRules = rules.map(rule => ({
+        ...rule,
+        value: config.configuration[rule.rule_name] ?? rule.value
+      }));
+
+      setRules(updatedRules);
+      setSelectedConfigId('');
+      
+      toast({
+        title: "Configuration chargée",
+        description: `Configuration "${config.name}" appliquée avec succès`,
+      });
+    } catch (error) {
+      console.error('Error loading configuration:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger la configuration",
+        variant: "destructive",
+      });
+    }
+  };
+
   const resetRules = () => {
     setRules([...originalRules]);
     setHasChanges(false);
+  };
+
+  const generateConfigName = () => {
+    const now = new Date();
+    const date = now.toLocaleDateString('fr-FR');
+    const time = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    return `Configuration ${date} ${time}`;
   };
 
   const groupedRules: RulesByCategory = {
@@ -217,6 +335,81 @@ export function RulesManagement() {
           </div>
         </div>
         <div className="flex gap-2">
+          <Select value={selectedConfigId} onValueChange={setSelectedConfigId}>
+            <SelectTrigger className="w-64">
+              <SelectValue placeholder="Charger une configuration..." />
+            </SelectTrigger>
+            <SelectContent className="bg-background border shadow-lg z-50">
+              {configurations.map((config) => (
+                <SelectItem key={config.id} value={config.id}>
+                  <div className="flex flex-col">
+                    <span className="font-medium">{config.name}</span>
+                    <span className="text-xs text-text-weak">
+                      {new Date(config.created_at).toLocaleDateString('fr-FR')}
+                    </span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          {selectedConfigId && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => loadConfiguration(selectedConfigId)}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Charger
+            </Button>
+          )}
+
+          <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" onClick={() => setConfigName(generateConfigName())}>
+                <History className="h-4 w-4 mr-2" />
+                Sauvegarder
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-background border shadow-lg">
+              <DialogHeader>
+                <DialogTitle>Sauvegarder la configuration</DialogTitle>
+                <DialogDescription>
+                  Donnez un nom à cette configuration pour pouvoir la réutiliser plus tard.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="config-name">Nom de la configuration</Label>
+                  <Input
+                    id="config-name"
+                    value={configName}
+                    onChange={(e) => setConfigName(e.target.value)}
+                    placeholder="Configuration du 16/08/2025 14:30"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="config-description">Description (optionnel)</Label>
+                  <Textarea
+                    id="config-description"
+                    value={configDescription}
+                    onChange={(e) => setConfigDescription(e.target.value)}
+                    placeholder="Description des modifications apportées..."
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowSaveDialog(false)}>
+                  Annuler
+                </Button>
+                <Button onClick={saveConfiguration} disabled={isSaving}>
+                  <Upload className="h-4 w-4 mr-2" />
+                  {isSaving ? 'Sauvegarde...' : 'Sauvegarder'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
           {hasChanges && (
             <Button variant="outline" size="sm" onClick={resetRules}>
               <RotateCcw className="h-4 w-4 mr-2" />
