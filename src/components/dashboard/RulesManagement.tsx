@@ -266,6 +266,23 @@ export function RulesManagement() {
   };
 
   const renderRuleControl = (rule: Rule) => {
+    // Règles de priorité : input numérique de 1 à 5
+    if (rule.category === 'priority_rules') {
+      return (
+        <div className="flex items-center gap-2">
+          <Input
+            type="number"
+            value={rule.value}
+            onChange={(e) => updateRuleValue(rule.id, Math.max(1, Math.min(5, parseInt(e.target.value) || 1)))}
+            min={1}
+            max={5}
+            className="w-16 text-center"
+          />
+          <span className="text-sm text-text-weak">priorité</span>
+        </div>
+      );
+    }
+
     if (rule.type === 'boolean') {
       return (
         <div className="flex items-center justify-center">
