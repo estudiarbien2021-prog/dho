@@ -516,34 +516,57 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
     };
   };
 
-  // Générer la matrice avec nouvelle logique de recommandations
+  // Générer la matrice en respectant les recommandations IA
   const generateMatrix = () => {
-    console.log('🔍 GÉNÉRATION MATRICE - VÉRIFICATION DONNÉES:', {
-      'p_btts_yes_fair': match.p_btts_yes_fair,
-      'p_btts_no_fair': match.p_btts_no_fair,
-      'p_over_2_5_fair': match.p_over_2_5_fair,
-      'p_under_2_5_fair': match.p_under_2_5_fair
+    console.log('🎯 GÉNÉRATION MATRICE - Récupération recommandations...');
+    const recommendations = getAllRecommendations();
+    
+    console.log('📊 RECOMMANDATIONS AGRÉGÉES:', recommendations);
+
+    // NOUVEAU: Ajuster les probabilités Poisson selon les recommandations IA
+    let adjustedBttsYes = match.p_btts_yes_fair;
+    let adjustedOver25 = match.p_over_2_5_fair;
+    
+    // Analyser les recommandations IA pour ajuster les probabilités
+    const aiRecommendations = recommendations.filter(r => r.source === 'ai' || r.source === 'market');
+    
+    aiRecommendations.forEach(rec => {
+      if (rec.type === 'BTTS') {
+        if (rec.prediction === 'Non' || rec.prediction === 'No') {
+          // Si IA recommande BTTS Non, forcer les probabilités pour favoriser les scores sans BTTS
+          adjustedBttsYes = 0.30;
+          console.log('🔧 AJUSTEMENT IA: BTTS Non détecté, p_btts_yes ajusté à 0.30');
+        } else if (rec.prediction === 'Oui' || rec.prediction === 'Yes') {
+          adjustedBttsYes = 0.70;
+          console.log('🔧 AJUSTEMENT IA: BTTS Oui détecté, p_btts_yes ajusté à 0.70');
+        }
+      } else if (rec.type === 'O/U 2.5') {
+        if (rec.prediction.includes('-2,5') || rec.prediction.toLowerCase().includes('under')) {
+          // Si IA recommande Under 2.5, forcer les probabilités pour favoriser les scores bas
+          adjustedOver25 = 0.25;
+          console.log('🔧 AJUSTEMENT IA: Under 2.5 détecté, p_over_2_5 ajusté à 0.25');
+        } else if (rec.prediction.includes('+2,5') || rec.prediction.toLowerCase().includes('over')) {
+          adjustedOver25 = 0.75;
+          console.log('🔧 AJUSTEMENT IA: Over 2.5 détecté, p_over_2_5 ajusté à 0.75');
+        }
+      }
     });
 
-    // NOUVELLE RÈGLE : Vérifier les données essentielles AVANT de générer la matrice
-    const hasValidBTTS = match.p_btts_yes_fair > 0 || match.p_btts_no_fair > 0;
-    const hasValidOU = match.p_over_2_5_fair > 0 && match.p_under_2_5_fair > 0;
-    
-    if (!hasValidBTTS || !hasValidOU) {
-      console.log('🚫 ARRÊT GÉNÉRATION MATRICE - DONNÉES INSUFFISANTES');
-      return []; // Retourner matrice vide
-    }
-
-    const recommendations = getAllRecommendations();
-
-    // Use the real match probabilities with Poisson model
+    // Calcul Poisson avec les probabilités ajustées selon l'IA
     const poissonInputs = {
       p_home_fair: match.p_home_fair,
       p_draw_fair: match.p_draw_fair,
       p_away_fair: match.p_away_fair,
-      p_btts_yes_fair: match.p_btts_yes_fair,
-      p_over_2_5_fair: match.p_over_2_5_fair
+      p_btts_yes_fair: adjustedBttsYes,
+      p_over_2_5_fair: adjustedOver25
     };
+    
+    console.log('🎯 PROBABILITÉS POISSON AJUSTÉES:', {
+      original_btts: match.p_btts_yes_fair,
+      adjusted_btts: adjustedBttsYes,
+      original_over25: match.p_over_2_5_fair,
+      adjusted_over25: adjustedOver25
+    });
 
     const poissonResult = calculatePoisson(poissonInputs);
     
@@ -626,21 +649,21 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
         });
         
         if (hasImportantIncoherence) {
-          // PÉNALITÉ SÉVÈRE pour incohérence avec IA ou Market
-          coherenceScore = 0.1;
+          // PÉNALITÉ DRASTIQUE pour incohérence avec IA ou Market
+          coherenceScore = 0.01; // Pénalité encore plus sévère
         } else if (coherenceResult.coherenceLevel >= 3) {
-          coherenceScore = 1000; // Score maximum pour 3+ cohérences
+          coherenceScore = 10000; // Score maximum pour 3+ cohérences (augmenté)
         } else if (coherenceResult.coherenceLevel === 2) {
-          coherenceScore = 100; // Score élevé pour 2 cohérences
+          coherenceScore = 1000; // Score élevé pour 2 cohérences (augmenté)
         } else if (coherenceResult.coherenceLevel === 1) {
           // Score variable selon la source de la cohérence
           const hasAI = coherenceResult.coherentRecommendations.some(r => r.startsWith('ai:'));
           const hasMarket = coherenceResult.coherentRecommendations.some(r => r.startsWith('market:'));
-          if (hasAI) coherenceScore = 30; // IA principale
-          else if (hasMarket) coherenceScore = 30; // Marché
+          if (hasAI) coherenceScore = 500; // IA principale (augmenté drastiquement)
+          else if (hasMarket) coherenceScore = 500; // Marché (augmenté drastiquement)
           else coherenceScore = 10; // Probabiliste seul
         } else {
-          coherenceScore = 1; // Score minimal pour aucune cohérence
+          coherenceScore = 0.1; // Score minimal pour aucune cohérence (réduit)
         }
         
         // Ajouter un bonus basé sur la probabilité Poisson pour départager
