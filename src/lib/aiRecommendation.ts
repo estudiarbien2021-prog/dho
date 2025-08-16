@@ -193,6 +193,14 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
   
   // RÈGLE PRIORITAIRE 2 : Si vigorish 1x2 >= 10%, recommander la double chance (opportunité détectée)
   if (match.vig_1x2 >= HIGH_VIG_1X2_THRESHOLD) {
+    console.log('🚨 RÈGLE X2 ACTIVÉE:', {
+      'match.vig_1x2': match.vig_1x2,
+      'HIGH_VIG_1X2_THRESHOLD': HIGH_VIG_1X2_THRESHOLD,
+      'match.odds_home': match.odds_home,
+      'match.odds_draw': match.odds_draw,  
+      'match.odds_away': match.odds_away
+    });
+    
     // Calculer les probabilités implicites des cotes 1x2
     const probHome = 1 / match.odds_home;
     const probDraw = 1 / match.odds_draw;
@@ -207,6 +215,8 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
     
     // Trier par probabilité décroissante (le plus probable en premier)
     outcomes.sort((a, b) => b.prob - a.prob);
+    
+    console.log('🚨 OUTCOMES TRIÉS:', outcomes);
     
     // Prendre la 2ème et 3ème option pour la double chance (exclure la plus probable)
     const secondChoice = outcomes[1];
@@ -233,8 +243,19 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
     // Calculer les cotes de double chance
     const doubleChanceOdds = 1 / doubleChanceProb;
     
+    console.log('🚨 DOUBLE CHANCE CALCULÉ:', {
+      doubleChance,
+      doubleChanceProb,
+      doubleChanceOdds,
+      'MIN_ODDS': MIN_ODDS,
+      'MIN_PROBABILITY': MIN_PROBABILITY,
+      'isValid_odds': doubleChanceOdds >= MIN_ODDS,
+      'isValid_prob': doubleChanceProb >= MIN_PROBABILITY
+    });
+    
     // Vérifier si cette opportunité est valide (cote >= 1.3 et probabilité >= 45%)
     if (doubleChanceOdds >= MIN_ODDS && doubleChanceProb >= MIN_PROBABILITY) {
+      console.log('🚨 X2 RECOMMENDATION CRÉÉE !');
       recommendations.push({
         betType: 'Double Chance',
         prediction: doubleChance,
@@ -244,6 +265,8 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
       });
       
       return recommendations;
+    } else {
+      console.log('🚨 X2 RECOMMENDATION REJETÉE - conditions non remplies');
     }
   }
   
