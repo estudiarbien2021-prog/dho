@@ -44,6 +44,10 @@ export function AIRecommendationDisplay({
     }
   };
 
+  const formatBetType = (betType: string) => {
+    return betType === '1X2' ? 'chance double' : betType;
+  };
+
   if (variant === 'compact') {
     return (
       <div className="flex flex-col gap-1 items-center">
@@ -60,7 +64,7 @@ export function AIRecommendationDisplay({
                 variant={getConfidenceColor(aiRec.confidence)}
                 className="text-xs"
               >
-                {showIcon && '🎯'} {aiRec.betType} {aiRec.prediction}
+                {showIcon && '🎯'} {formatBetType(aiRec.betType)} {aiRec.prediction}
                 {aiRec.isInverted && <span className="ml-1 text-amber-600">(Opportunité détectée)</span>}
               </Badge>
               <div className="text-xs text-muted-foreground">
@@ -97,7 +101,7 @@ export function AIRecommendationDisplay({
                 <div className="grid grid-cols-3 gap-2 text-xs">
                   <div>
                     <div className="text-green-600 font-medium">Type de pari</div>
-                    <div className="text-green-800">{aiRec.betType}</div>
+                    <div className="text-green-800">{formatBetType(aiRec.betType)}</div>
                   </div>
                   <div>
                     <div className="text-green-600 font-medium">Prédiction</div>
@@ -146,7 +150,7 @@ export function AIRecommendationDisplay({
                     variant={getConfidenceColor(aiRec.confidence)}
                     className="text-sm px-3 py-1"
                   >
-                    {aiRec.betType} {aiRec.prediction}
+                    {formatBetType(aiRec.betType)} {aiRec.prediction}
                   </Badge>
                   <div className="text-xl font-bold text-green-700">
                     {aiRec.odds.toFixed(2)}
