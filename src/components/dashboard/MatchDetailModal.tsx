@@ -1055,12 +1055,21 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                               </div>
                               
                               <div className="flex items-center justify-between">
-                                <Badge className="bg-brand-400/20 text-brand-400 px-3 py-1 text-sm font-medium border border-brand-400/30">
-                                  {secondRecommendation.type} {secondRecommendation.prediction}
-                                  <span className="ml-2 text-xs bg-emerald-500/20 text-emerald-700 px-2 py-1 rounded">
+                                {/* Only show prediction type if different from main recommendation */}
+                                {!(recommendation && 
+                                   recommendation.type === secondRecommendation.type && 
+                                   recommendation.prediction === secondRecommendation.prediction) ? (
+                                  <Badge className="bg-brand-400/20 text-brand-400 px-3 py-1 text-sm font-medium border border-brand-400/30">
+                                    {secondRecommendation.type} {secondRecommendation.prediction}
+                                    <span className="ml-2 text-xs bg-emerald-500/20 text-emerald-700 px-2 py-1 rounded">
+                                      Vigorish {(secondRecommendation.vigorish * 100).toFixed(1)}%
+                                    </span>
+                                  </Badge>
+                                ) : (
+                                  <Badge className="bg-emerald-500/20 text-emerald-700 px-3 py-1 text-sm font-medium border border-emerald-500/30">
                                     Vigorish {(secondRecommendation.vigorish * 100).toFixed(1)}%
-                                  </span>
-                                </Badge>
+                                  </Badge>
+                                )}
                                 <div className="text-lg font-bold text-brand-400">
                                   {secondRecommendation.odds.toFixed(2)}
                                 </div>
