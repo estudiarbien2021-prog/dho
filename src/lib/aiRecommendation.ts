@@ -282,32 +282,62 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
     const markets = [];
     
     if (bttsAvailable) {
-      // Choisir la prédiction BTTS la plus probable directement
+      // Vérifier si BTTS doit être inversé (vigorish >= 8.1% ET probabilité max < 60%)
       const bttsYesProb = match.p_btts_yes_fair;
       const bttsNoProb = match.p_btts_no_fair;
       const isBttsYesBetter = bttsYesProb > bttsNoProb;
+      const shouldInvertBTTS = match.vig_btts >= HIGH_VIG_THRESHOLD && bttsMaxProb < 0.6;
+      
+      // Appliquer l'inversion si nécessaire
+      const finalBttsPrediction = shouldInvertBTTS ? 
+        (isBttsYesBetter ? 'Non' : 'Oui') : 
+        (isBttsYesBetter ? 'Oui' : 'Non');
+      
+      const finalBttsOdds = shouldInvertBTTS ?
+        (isBttsYesBetter ? match.odds_btts_no! : match.odds_btts_yes!) :
+        (isBttsYesBetter ? match.odds_btts_yes! : match.odds_btts_no!);
+      
+      const finalBttsProb = shouldInvertBTTS ?
+        (isBttsYesBetter ? bttsNoProb : bttsYesProb) :
+        Math.max(bttsYesProb, bttsNoProb);
       
       markets.push({
         type: 'BTTS',
-        prediction: isBttsYesBetter ? 'Oui' : 'Non',
-        odds: isBttsYesBetter ? match.odds_btts_yes! : match.odds_btts_no!,
-        probability: Math.max(bttsYesProb, bttsNoProb),
-        vigorish: match.vig_btts
+        prediction: finalBttsPrediction,
+        odds: finalBttsOdds,
+        probability: finalBttsProb,
+        vigorish: match.vig_btts,
+        isInverted: shouldInvertBTTS
       });
     }
     
     if (ouAvailable) {
-      // Choisir la prédiction O/U la plus probable directement
+      // Vérifier si O/U doit être inversé (vigorish >= 8.1% ET probabilité max < 60%)
       const overProb = match.p_over_2_5_fair;
       const underProb = match.p_under_2_5_fair;
       const isOverBetter = overProb > underProb;
+      const shouldInvertOU = match.vig_ou_2_5 >= HIGH_VIG_THRESHOLD && ouMaxProb < 0.6;
+      
+      // Appliquer l'inversion si nécessaire
+      const finalOuPrediction = shouldInvertOU ?
+        (isOverBetter ? '-2,5 buts' : '+2,5 buts') :
+        (isOverBetter ? '+2,5 buts' : '-2,5 buts');
+      
+      const finalOuOdds = shouldInvertOU ?
+        (isOverBetter ? match.odds_under_2_5! : match.odds_over_2_5!) :
+        (isOverBetter ? match.odds_over_2_5! : match.odds_under_2_5!);
+      
+      const finalOuProb = shouldInvertOU ?
+        (isOverBetter ? underProb : overProb) :
+        Math.max(overProb, underProb);
       
       markets.push({
         type: 'O/U 2.5',
-        prediction: isOverBetter ? '+2,5 buts' : '-2,5 buts',
-        odds: isOverBetter ? match.odds_over_2_5! : match.odds_under_2_5!,
-        probability: Math.max(overProb, underProb),
-        vigorish: match.vig_ou_2_5
+        prediction: finalOuPrediction,
+        odds: finalOuOdds,
+        probability: finalOuProb,
+        vigorish: match.vig_ou_2_5,
+        isInverted: shouldInvertOU
       });
     }
     
@@ -326,7 +356,7 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
         prediction: market.prediction,
         odds: market.odds,
         confidence: market.probability > 0.6 ? 'high' : market.probability > 0.5 ? 'medium' : 'low',
-        isInverted: false
+        isInverted: market.isInverted || false
       });
     });
     
