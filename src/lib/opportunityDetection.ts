@@ -453,12 +453,27 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
     return probability;
   };
   
-  // Trier TOUTES les opportunités par probabilité réelle décroissante
-  const sortedByProbability = [...opportunities].sort((a, b) => {
+  // Trier par priorité (croissant: 1, 2, 3, 4, 5), puis par probabilité réelle décroissante, puis par vigorish décroissant
+  const sortedByPriority = [...opportunities].sort((a, b) => {
+    // D'abord, trier par priorité (croissant: chiffre plus bas = priorité plus élevée)
+    if (a.priority !== b.priority) {
+      console.log('🎯 TRI PAR PRIORITÉ:', {
+        'a.type': a.type,
+        'a.prediction': a.prediction,
+        'a.priority': a.priority,
+        'b.type': b.type,
+        'b.prediction': b.prediction,
+        'b.priority': b.priority,
+        'choix': a.priority < b.priority ? 'a (priorité plus élevée)' : 'b'
+      });
+      return a.priority - b.priority;
+    }
+    
+    // Si les priorités sont égales, trier par probabilité réelle décroissante
     const aProbability = calculateRealProbability(a);
     const bProbability = calculateRealProbability(b);
     
-    console.log('🔄 COMPARAISON PROBABILITÉS RÉELLES:', {
+    console.log('🔄 MÊME PRIORITÉ - COMPARAISON PROBABILITÉS RÉELLES:', {
       'a.type': a.type,
       'a.prediction': a.prediction,
       'a.realProbability': (aProbability * 100).toFixed(1) + '%',
@@ -487,14 +502,14 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
     return bProbability - aProbability;
   });
   
-  console.log('🎯 PRIORISATION CENTRALISÉE - ORDRE FINAL:', sortedByProbability.map((o, i) => {
+  console.log('🎯 PRIORISATION CENTRALISÉE - ORDRE FINAL:', sortedByPriority.map((o, i) => {
     const realProb = calculateRealProbability(o);
     const vig = o.type === '1X2' || o.type === 'Double Chance' ? match.vig_1x2 : 
                 o.type === 'BTTS' ? match.vig_btts : match.vig_ou_2_5;
     return `${i+1}. ${o.type}:${o.prediction} (prob:${(realProb*100).toFixed(1)}%, vig:${(vig*100).toFixed(1)}%, inv:${o.isInverted})`;
   }));
   
-  return sortedByProbability;
+  return sortedByPriority;
 }
 
 export function convertOpportunityToAIRecommendation(opportunity: DetectedOpportunity) {
