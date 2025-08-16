@@ -205,16 +205,27 @@ export function detectOpportunities(match: ProcessedMatch): OpportunityRecommend
   }
   
   // 4. O/U 2.5 : nouvelle logique avec conditions vigorish < 6% ou >= 8%
+  console.log(`🎯 DEBUG O/U 2.5 - ${match.home_team} vs ${match.away_team}`);
+  console.log(`📊 Cotes disponibles: Over=${match.odds_over_2_5}, Under=${match.odds_under_2_5}`);
+  
   if (match.odds_over_2_5 && match.odds_under_2_5) {
+    console.log(`✅ Cotes O/U disponibles - Entrée dans le bloc O/U 2.5`);
+    
     const overProb = match.p_over_2_5_fair;
     const underProb = match.p_under_2_5_fair;
     const highestOUProb = Math.max(overProb, underProb);
     
+    console.log(`📈 Probabilités: Over=${(overProb * 100).toFixed(1)}%, Under=${(underProb * 100).toFixed(1)}%`);
+    console.log(`🎯 Plus haute probabilité: ${(highestOUProb * 100).toFixed(1)}%`);
+    console.log(`📊 Vigorish O/U 2.5: ${(match.vig_ou_2_5 * 100).toFixed(1)}%`);
+    
     // Si vigorish < 6%, proposer directement (plus haute probabilité)
     if (match.vig_ou_2_5 < 0.06) {
+      console.log(`🟢 Condition vigorish < 6% remplie`);
       const prediction = overProb > underProb ? '+2,5 buts' : '-2,5 buts';
       const odds = overProb > underProb ? match.odds_over_2_5 : match.odds_under_2_5;
       
+      console.log(`➡️ Ajout opportunité directe: ${prediction} @${odds?.toFixed(2)}`);
       opportunities.push({
         type: 'O/U 2.5',
         prediction,
@@ -226,12 +237,16 @@ export function detectOpportunities(match: ProcessedMatch): OpportunityRecommend
     }
     // Si vigorish >= 8%, proposer l'inverse (sauf si probabilité >= 58%)
     else if (match.vig_ou_2_5 >= 0.08 && highestOUProb < 0.58) {
+      console.log(`🔄 Condition inverse remplie: vigorish >= 8% (${(match.vig_ou_2_5 * 100).toFixed(1)}%) ET highestProb < 58% (${(highestOUProb * 100).toFixed(1)}%)`);
+      
       // Utiliser la prédiction d'analyse (basée sur les probabilités)
       const analysisOriginalPrediction = overProb > underProb ? '+2,5 buts' : '-2,5 buts';
       
       // Proposer l'inverse de la prédiction d'analyse
       const inversePrediction = analysisOriginalPrediction === '+2,5 buts' ? '-2,5 buts' : '+2,5 buts';
       const inverseOdds = analysisOriginalPrediction === '+2,5 buts' ? match.odds_under_2_5 : match.odds_over_2_5;
+      
+      console.log(`🔄 Original: ${analysisOriginalPrediction} → Inverse: ${inversePrediction} @${inverseOdds?.toFixed(2)}`);
       
       opportunities.push({
         type: 'O/U 2.5',
@@ -244,7 +259,14 @@ export function detectOpportunities(match: ProcessedMatch): OpportunityRecommend
         shouldMaskAI: true,
         isInverted: true
       });
+      console.log(`✅ Opportunité inverse ajoutée`);
+    } else {
+      console.log(`❌ Conditions inverse non remplies:`);
+      console.log(`   - Vigorish >= 8%: ${match.vig_ou_2_5 >= 0.08} (${(match.vig_ou_2_5 * 100).toFixed(1)}%)`);
+      console.log(`   - HighestProb < 58%: ${highestOUProb < 0.58} (${(highestOUProb * 100).toFixed(1)}%)`);
     }
+  } else {
+    console.log(`❌ Cotes O/U manquantes - Pas d'analyse O/U 2.5`);
   }
   
   return opportunities;
