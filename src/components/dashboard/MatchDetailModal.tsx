@@ -260,6 +260,25 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
   });
   const thirdMarketRecommendation = marketRecommendation2;
   
+  // NOUVEAU : Forcer la transmission des opportunités X2 vers la matrice
+  let forcedX2Recommendation = null;
+  if (!secondRecommendation && !thirdMarketRecommendation) {
+    // Vérifier si on a un vigorish 1x2 élevé qui indiquerait une opportunité X2
+    if (match.vig_1x2 >= 0.1) {
+      // Créer manuellement une recommandation X2 pour la matrice
+      forcedX2Recommendation = {
+        type: '1X2',
+        prediction: 'X2',
+        odds: 1.5, // Valeur approximative
+        vigorish: match.vig_1x2,
+        probability: match.p_draw_fair + match.p_away_fair
+      };
+      console.log('🚨 OPPORTUNITÉ X2 FORCÉE POUR LA MATRICE:', forcedX2Recommendation);
+    }
+  }
+  
+  const finalSecondRecommendation = secondRecommendation || forcedX2Recommendation;
+  
   // Check for market distortions first
   const marketDistortion = (() => {
     // Create vigorish data and sort
@@ -1267,7 +1286,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                 isActive={showAIGraphics}
                 match={match}
                 aiRecommendation={recommendation}
-                secondRecommendation={secondRecommendation}
+                secondRecommendation={finalSecondRecommendation}
                 thirdRecommendation={thirdMarketRecommendation}
                 allRecommendations={allAIRecommendations}
               />
