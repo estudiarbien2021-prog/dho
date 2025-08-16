@@ -210,7 +210,7 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
     }
     }
 
-    // 2. EFFICACITÉ MARCHÉ (x3.0)
+    // 2. EFFICACITÉ MARCHÉ (x3.0) - TOUTES LES RECOMMANDATIONS MARKET
     if (secondRecommendation) {
       const mappedType = mapBetType(secondRecommendation.type);
       if (mappedType) {
@@ -220,10 +220,28 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
           prediction: secondRecommendation.prediction,
           multiplier: 3.0
         });
-        console.log('📊 MARCHÉ AJOUTÉ:', {
+        console.log('📊 MARCHÉ 1 AJOUTÉ:', {
           originalType: secondRecommendation.type,
           mappedType,
           prediction: secondRecommendation.prediction
+        });
+      }
+    }
+
+    // 3. EFFICACITÉ MARCHÉ 2 (x3.0) - SECONDE RECOMMANDATION MARKET
+    if (thirdRecommendation) {
+      const mappedType = mapBetType(thirdRecommendation.type);
+      if (mappedType) {
+        recommendations.push({
+          source: 'market', 
+          type: mappedType,
+          prediction: thirdRecommendation.prediction,
+          multiplier: 3.0
+        });
+        console.log('📊 MARCHÉ 2 AJOUTÉ:', {
+          originalType: thirdRecommendation.type,
+          mappedType,
+          prediction: thirdRecommendation.prediction
         });
       }
     }

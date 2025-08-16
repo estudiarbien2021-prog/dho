@@ -105,7 +105,8 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
   const thirdRecommendation = allAIRecommendations.length > 2 ? normalizeRecommendation(allAIRecommendations[2]) : null;
   
   // Generate second recommendation based on low vigorish criteria (<6%)
-  const generateSecondRecommendation = () => {
+  // Generate ALL market recommendations based on low vigorish criteria (<6%)
+  const generateAllMarketRecommendations = () => {
     const lowVigThreshold = 0.06; // 6%
     const candidates = [];
     
@@ -174,15 +175,13 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
       return !(candidate.type === recommendation.type && candidate.prediction === recommendation.prediction);
     });
     
-    // Return the candidate with lowest vigorish (best opportunity)
-    if (filteredCandidates.length > 0) {
-      return filteredCandidates.sort((a, b) => a.vigorish - b.vigorish)[0];
-    }
-    
-    return null;
+    // Return all candidates sorted by vigorish (best opportunities first)
+    return filteredCandidates.sort((a, b) => a.vigorish - b.vigorish);
   };
   
-  const secondRecommendation = generateSecondRecommendation();
+  const allMarketRecommendations = generateAllMarketRecommendations();
+  const secondRecommendation = allMarketRecommendations[0] || null;
+  const thirdMarketRecommendation = allMarketRecommendations[1] || null;
   
   // Check for market distortions first
   const marketDistortion = (() => {
@@ -1080,6 +1079,38 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                             </div>
                           </div>
                         )}
+
+                        {/* Third Market Recommendation - Additional Market Opportunity */}
+                        {thirdMarketRecommendation && (
+                          <div className="mt-6 pt-6 border-t border-brand/20">
+                            <div className="space-y-4">
+                              <div className="flex items-center gap-2 mb-3">
+                                <Brain className="w-4 h-4 text-brand-400" />
+                                <span className="text-sm font-semibold text-brand-400">Opportunité Détectée</span>
+                              </div>
+                              
+                              <div className="flex items-center justify-between">
+                                <Badge className="bg-brand-400/20 text-brand-400 px-3 py-1 text-sm font-medium border border-brand-400/30">
+                                  {thirdMarketRecommendation.type} {thirdMarketRecommendation.prediction}
+                                  <span className="ml-2 text-xs bg-emerald-500/20 text-emerald-700 px-2 py-1 rounded">
+                                    Vigorish {(thirdMarketRecommendation.vigorish * 100).toFixed(1)}%
+                                  </span>
+                                </Badge>
+                                <div className="text-lg font-bold text-brand-400">
+                                  {thirdMarketRecommendation.odds.toFixed(2)}
+                                </div>
+                              </div>
+                              
+                              <div className="bg-brand-400/10 rounded-lg p-3 border border-brand-400/20">
+                                <div className="text-xs text-brand-400 leading-relaxed">
+                                  <strong>Opportunité Détectée:</strong> Vigorish exceptionnellement bas de {(thirdMarketRecommendation.vigorish * 100).toFixed(1)}% sur ce marché. 
+                                  Probabilité réelle estimée à {(thirdMarketRecommendation.probability * 100).toFixed(1)}% avec une marge bookmaker réduite, 
+                                  indiquant une efficience de marché optimale pour cette prédiction.
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div className="h-full flex items-center justify-center">
@@ -1142,7 +1173,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                 match={match}
                 aiRecommendation={recommendation}
                 secondRecommendation={secondRecommendation}
-                thirdRecommendation={thirdRecommendation}
+                thirdRecommendation={thirdMarketRecommendation}
                 allRecommendations={allAIRecommendations}
               />
             </div>
