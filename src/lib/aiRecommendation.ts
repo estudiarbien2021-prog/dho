@@ -755,6 +755,8 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
 
 // Fonction de compatibilité pour les composants existants
 export function generateAIRecommendation(match: ProcessedMatch, marketFilters: string[] = []): AIRecommendation | null {
+  console.log(`🚀🚀🚀 APPEL generateAIRecommendation pour ${match.home_team} vs ${match.away_team} - vig_1x2: ${match.vig_1x2}`);
+  
   // UTILISE LA MÊME VALIDATION STRICTE QUE generateAIRecommendations
   const recommendations = generateAIRecommendations(match, marketFilters);
   
