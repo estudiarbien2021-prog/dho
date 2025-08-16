@@ -304,18 +304,24 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
   
   // RÈGLE PRIORITAIRE 2 : Si vigorish 1x2 >= 10%, recommander la double chance (opportunité détectée)
   if (match.vig_1x2 >= HIGH_VIG_1X2_THRESHOLD) {
-    console.log('🚨 RÈGLE X2 ACTIVÉE:', {
+    console.log('🚨 RÈGLE X2 ACTIVÉE - DONNÉES COMPLÈTES:', {
       'match.vig_1x2': match.vig_1x2,
       'HIGH_VIG_1X2_THRESHOLD': HIGH_VIG_1X2_THRESHOLD,
       'match.odds_home': match.odds_home,
       'match.odds_draw': match.odds_draw,  
-      'match.odds_away': match.odds_away
+      'match.odds_away': match.odds_away,
+      'PROBABILITÉS FAIRES:': {
+        'p_home_fair': match.p_home_fair,
+        'p_draw_fair': match.p_draw_fair,
+        'p_away_fair': match.p_away_fair,
+        'total': match.p_home_fair + match.p_draw_fair + match.p_away_fair
+      }
     });
     
-    // Calculer les probabilités implicites des cotes 1x2
-    const probHome = 1 / match.odds_home;
-    const probDraw = 1 / match.odds_draw;
-    const probAway = 1 / match.odds_away;
+    // Utiliser les probabilités faires (plus précises que les probabilités implicites)
+    const probHome = match.p_home_fair;
+    const probDraw = match.p_draw_fair;
+    const probAway = match.p_away_fair;
     
     // Créer un tableau des résultats avec leurs probabilités
     const outcomes = [
@@ -327,11 +333,22 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
     // Trier par probabilité décroissante (le plus probable en premier)
     outcomes.sort((a, b) => b.prob - a.prob);
     
-    console.log('🚨 OUTCOMES TRIÉS:', outcomes);
+    console.log('🚨 OUTCOMES TRIÉS (PROBABILITÉS FAIRES):', outcomes.map(o => ({ 
+      label: o.label, 
+      prob: o.prob, 
+      prob_percent: (o.prob * 100).toFixed(1) + '%',
+      type: o.type 
+    })));
     
     // Prendre la 2ème et 3ème option pour la double chance (exclure la plus probable)
     const secondChoice = outcomes[1];
     const thirdChoice = outcomes[2];
+    
+    console.log('🚨 DOUBLE CHANCE SÉLECTION:', {
+      'most_probable': outcomes[0],
+      'second_choice': secondChoice,
+      'third_choice': thirdChoice
+    });
     
     // Déterminer la combinaison de double chance basée sur la logique d'opportunité détectée
     let doubleChance = '';
@@ -354,19 +371,38 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
     // Calculer les cotes de double chance
     const doubleChanceOdds = 1 / doubleChanceProb;
     
-    console.log('🚨 DOUBLE CHANCE CALCULÉ:', {
+    console.log('🚨 DOUBLE CHANCE CALCULÉ - DÉTAILS COMPLETS:', {
       doubleChance,
       doubleChanceProb,
+      'doubleChanceProb_percent': (doubleChanceProb * 100).toFixed(1) + '%',
       doubleChanceOdds,
-      'MIN_ODDS': MIN_ODDS,
-      'MIN_PROBABILITY': MIN_PROBABILITY,
-      'isValid_odds': doubleChanceOdds >= MIN_ODDS,
-      'isValid_prob': doubleChanceProb >= MIN_PROBABILITY
+      'doubleChanceOdds_formatted': doubleChanceOdds.toFixed(2),
+      'SEUILS:': {
+        'MIN_ODDS': MIN_ODDS,
+        'MIN_PROBABILITY': MIN_PROBABILITY,
+        'MIN_PROBABILITY_percent': (MIN_PROBABILITY * 100).toFixed(1) + '%'
+      },
+      'VALIDATIONS:': {
+        'odds_valid': doubleChanceOdds >= MIN_ODDS,
+        'prob_valid': doubleChanceProb >= MIN_PROBABILITY,
+        'both_valid': (doubleChanceOdds >= MIN_ODDS && doubleChanceProb >= MIN_PROBABILITY)
+      }
     });
     
-    // Vérifier si cette opportunité est valide (cote >= 1.3 et probabilité >= 45%)
-    if (doubleChanceOdds >= MIN_ODDS && doubleChanceProb >= MIN_PROBABILITY) {
-      console.log('🚨 X2 RECOMMENDATION CRÉÉE !');
+    // Réduire le seuil de probabilité pour les doubles chances à 40% (au lieu de 45%)
+    const MIN_PROBABILITY_DOUBLE_CHANCE = 0.40;
+    
+    console.log('🚨 VÉRIFICATION FINALE AVEC SEUIL ADAPTÉ:', {
+      'doubleChanceProb': doubleChanceProb,
+      'MIN_PROBABILITY_DOUBLE_CHANCE': MIN_PROBABILITY_DOUBLE_CHANCE,
+      'prob_valid_adapted': doubleChanceProb >= MIN_PROBABILITY_DOUBLE_CHANCE,
+      'odds_valid': doubleChanceOdds >= MIN_ODDS,
+      'final_valid': (doubleChanceOdds >= MIN_ODDS && doubleChanceProb >= MIN_PROBABILITY_DOUBLE_CHANCE)
+    });
+    
+    // Vérifier si cette opportunité est valide (cote >= 1.3 et probabilité >= 40% pour double chance)
+    if (doubleChanceOdds >= MIN_ODDS && doubleChanceProb >= MIN_PROBABILITY_DOUBLE_CHANCE) {
+      console.log('🚨 X2 RECOMMENDATION CRÉÉE AVEC SUCCÈS !');
       recommendations.push({
         betType: 'Double Chance',
         prediction: doubleChance,
@@ -377,7 +413,14 @@ export function generateAIRecommendations(match: ProcessedMatch, marketFilters: 
       
       return recommendations;
     } else {
-      console.log('🚨 X2 RECOMMENDATION REJETÉE - conditions non remplies');
+      console.log('🚨 X2 RECOMMENDATION REJETÉE - RAISONS:', {
+        'odds_too_low': doubleChanceOdds < MIN_ODDS,
+        'prob_too_low': doubleChanceProb < MIN_PROBABILITY_DOUBLE_CHANCE,
+        'doubleChanceOdds': doubleChanceOdds,
+        'MIN_ODDS': MIN_ODDS,
+        'doubleChanceProb': doubleChanceProb,
+        'MIN_PROBABILITY_DOUBLE_CHANCE': MIN_PROBABILITY_DOUBLE_CHANCE
+      });
     }
   }
   
