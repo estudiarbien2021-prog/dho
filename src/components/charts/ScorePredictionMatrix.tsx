@@ -169,24 +169,8 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
       }
     }
 
-    if (!hasBTTS) {
-      // Ajouter recommandation BTTS basée sur probabilités
-      if (match.p_btts_yes_fair > 0.55) {
-        recommendations.push({
-          source: 'probabilistic',
-          type: 'BTTS',
-          prediction: 'Oui',
-          multiplier: 0.25
-        });
-      } else if (match.p_btts_yes_fair < 0.45) {
-        recommendations.push({
-          source: 'probabilistic',
-          type: 'BTTS',
-          prediction: 'Non',
-          multiplier: 0.25
-        });
-      }
-    }
+    // BTTS automatique désactivé pour éviter les conflits
+    // L'utilisateur doit fournir explicitement la recommandation BTTS
 
     if (!has1X2) {
       // Ajouter recommandation 1X2 basée sur probabilités
