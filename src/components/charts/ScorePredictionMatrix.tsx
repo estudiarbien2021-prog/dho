@@ -595,6 +595,22 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
     .sort((a, b) => b.probability - a.probability)
     .slice(0, 3);
 
+  // CRITICAL DEBUG: Vérifier les scores aberrants
+  console.log('🔍 TOP SCORES DEBUG:', {
+    matchId,
+    homeTeam: match.home_team,
+    awayTeam: match.away_team,
+    allScores: allScores.map(s => ({
+      homeScore: s.homeScore,
+      awayScore: s.awayScore,
+      probability: s.probability.toFixed(2),
+      formatted: `${s.homeScore}-${s.awayScore}`
+    })),
+    matrixSize: matrix.length,
+    totalCells: matrix.flat().length,
+    nonZeroCells: matrix.flat().filter(c => c.probability > 0).length
+  });
+
   return (
     <Card className="p-8 bg-gradient-to-br from-surface to-surface-soft border-border shadow-lg">
       <div className="flex items-center gap-3 mb-6">
