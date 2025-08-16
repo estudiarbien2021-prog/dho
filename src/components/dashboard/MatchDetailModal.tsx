@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ProcessedMatch } from '@/types/match';
+import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -136,17 +137,99 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
   const opportunities = detectOpportunities(match);
   const allAIRecommendations = opportunities.map(convertOpportunityToAIRecommendation);
   
-  // Prioritize recommendations: BTTS > O/U 2.5 > 1X2
+  // Helper function to get probability from recommendation
+  const getProbabilityFromRecommendation = (opp: any) => {
+    if (!opp) return 0;
+    
+    switch (opp.type) {
+      case 'BTTS':
+        return opp.prediction === 'Oui' ? match.p_btts_yes_fair : match.p_btts_no_fair;
+      case 'O/U 2.5':
+        return opp.prediction === '+2,5 buts' ? match.p_over_2_5_fair : match.p_under_2_5_fair;
+      case '1X2':
+        if (opp.prediction === 'Victoire domicile') return match.p_home_fair;
+        if (opp.prediction === 'Match nul') return match.p_draw_fair;
+        return match.p_away_fair;
+      default:
+        return 0;
+    }
+  };
+
+  // Helper function to get odds from recommendation
+  const getOddsFromRecommendation = (opp: any) => {
+    if (!opp || !opp.odds) return 0;
+    return opp.odds;
+  };
+
+  // Save main prediction to database
+  const saveMainPrediction = async (mainPrediction: string, confidence: number) => {
+    try {
+      const { error } = await supabase
+        .from('matches')
+        .update({ 
+          ai_prediction: mainPrediction,
+          ai_confidence: confidence 
+        })
+        .eq('id', match.id);
+      
+      if (error) {
+        console.error('Error saving AI prediction:', error);
+      } else {
+        console.log('AI prediction saved successfully:', mainPrediction);
+      }
+    } catch (error) {
+      console.error('Error saving AI prediction:', error);
+    }
+  };
+
+  // Prioritize recommendations: Highest probability first, then highest odds
   const prioritizeRecommendations = (recs: any[], opps: any[]) => {
     const combined = recs.map((rec, index) => ({ rec, opp: opps[index] }));
-    return combined.sort((a, b) => {
-      const getPriority = (type: string) => {
-        if (type === 'BTTS') return 1;
-        if (type === 'O/U 2.5') return 2;
-        return 3; // 1X2
-      };
-      return getPriority(a.opp?.type || '') - getPriority(b.opp?.type || '');
+    
+    // Sort by probability (descending), then by odds (descending)
+    const sorted = combined.sort((a, b) => {
+      const probA = getProbabilityFromRecommendation(a.opp);
+      const probB = getProbabilityFromRecommendation(b.opp);
+      
+      // Primary criterion: highest probability
+      if (probA !== probB) {
+        return probB - probA; // Descending order
+      }
+      
+      // Secondary criterion: highest odds (in case of equal probability)
+      const oddsA = getOddsFromRecommendation(a.opp);
+      const oddsB = getOddsFromRecommendation(b.opp);
+      return oddsB - oddsA; // Descending order
     });
+
+    // Save the main prediction if we have recommendations
+    if (sorted.length > 0) {
+      const mainRec = sorted[0];
+      const formatPrediction = (betType: string, prediction: string) => {
+        switch (betType) {
+          case 'BTTS':
+            return prediction === 'Oui' ? 'BTTS Oui' : 'BTTS Non';
+          case 'O/U 2.5':
+            return prediction === '+2,5 buts' ? 'OU 2.5 +2,5 buts' : 'OU 2.5 -2,5 buts';
+          case '1X2':
+            if (prediction === 'Victoire domicile') return '1';
+            if (prediction === 'Match nul') return 'X';
+            return '2';
+          default:
+            return `${betType} ${prediction}`;
+        }
+      };
+
+      const mainPrediction = formatPrediction(mainRec.opp?.type || '', mainRec.opp?.prediction || '');
+      const confidence = getProbabilityFromRecommendation(mainRec.opp) * 100;
+      
+      // Only save if we don't have a prediction yet or if it's different
+      if (!match.ai_prediction || match.ai_prediction !== mainPrediction) {
+        saveMainPrediction(mainPrediction, confidence);
+      }
+    }
+
+    return sorted;
   };
 
   const prioritizedRecommendations = prioritizeRecommendations(allAIRecommendations, opportunities);
