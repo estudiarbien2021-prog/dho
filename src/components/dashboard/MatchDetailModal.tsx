@@ -231,7 +231,13 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
   const marketRecommendation1 = allMarketOpportunities[0] || null;
   const marketRecommendation2 = allMarketOpportunities[1] || null;
   
-  const secondRecommendation = marketRecommendation1;
+  // Récupérer TOUTES les recommandations IA (y compris les doubles chances)
+  const allAIRecs = generateAIRecommendations(match, marketFilters);
+  
+  // Chercher les opportunités de double chance dans les recommandations IA
+  const doubleChanceRec = allAIRecs.find(rec => rec.betType === 'Double Chance');
+  
+  const secondRecommendation = doubleChanceRec || marketRecommendation1;
   const thirdMarketRecommendation = marketRecommendation2;
   
   // Check for market distortions first
