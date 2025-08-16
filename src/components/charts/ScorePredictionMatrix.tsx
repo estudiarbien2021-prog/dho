@@ -494,7 +494,25 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
         
         // Créer un score de cohérence basé sur le niveau et les multiplicateurs
         let coherenceScore = 0;
-        if (coherenceResult.coherenceLevel >= 3) {
+        
+        // NOUVEAU SYSTÈME : Pénaliser les incohérences avec recommandations importantes
+        const totalRecommendations = recommendations.length;
+        const coherentCount = coherenceResult.coherenceLevel;
+        const incoherentCount = totalRecommendations - coherentCount;
+        
+        // Vérifier si incohérent avec des recommandations IA ou Market (x3.0)
+        const hasImportantIncoherence = recommendations.some(rec => {
+          if (rec.source === 'ai' || rec.source === 'market') {
+            // Vérifier si cette recommandation est incohérente avec ce score
+            return !coherenceResult.coherentRecommendations.some(cohRec => cohRec.includes(rec.type));
+          }
+          return false;
+        });
+        
+        if (hasImportantIncoherence) {
+          // PÉNALITÉ SÉVÈRE pour incohérence avec IA ou Market
+          coherenceScore = 0.1;
+        } else if (coherenceResult.coherenceLevel >= 3) {
           coherenceScore = 1000; // Score maximum pour 3+ cohérences
         } else if (coherenceResult.coherenceLevel === 2) {
           coherenceScore = 100; // Score élevé pour 2 cohérences
@@ -506,7 +524,7 @@ export function ScorePredictionMatrix({ homeTeam, awayTeam, matchId, isActive, m
           else if (hasMarket) coherenceScore = 30; // Marché
           else coherenceScore = 10; // Probabiliste seul
         } else {
-          coherenceScore = 1; // Score minimal pour incohérent
+          coherenceScore = 1; // Score minimal pour aucune cohérence
         }
         
         // Ajouter un bonus basé sur la probabilité Poisson pour départager
