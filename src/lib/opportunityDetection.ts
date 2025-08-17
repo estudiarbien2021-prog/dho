@@ -449,8 +449,8 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
   
   console.log('🏆 RECOMMANDATIONS PRIORITÉ MAX:', highestPriorityRecommendations.length, 'avec priorité', highestPriority);
   
-  // Si plusieurs règles ont la même priorité, garder la première (ordre de définition)
-  const finalRecommendations = highestPriorityRecommendations.slice(0, 1);
+  // CORRECTION: Garder TOUTES les recommandations de priorité maximale au lieu d'une seule
+  const finalRecommendations = highestPriorityRecommendations;
   
   console.log('✅ RECOMMANDATION FINALE:', finalRecommendations.map(r => `${r.type}:${r.prediction}`));
   
