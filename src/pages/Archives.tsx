@@ -15,6 +15,70 @@ import { ProcessedMatch } from '@/types/match';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
+import { leagueToFlag } from '@/lib/leagueCountry';
+
+// Helper function to convert country codes to readable names
+const getCountryName = (countryCode?: string): string | null => {
+  if (!countryCode) return null;
+  
+  const countryNames: { [key: string]: string } = {
+    'BR': 'Brésil',
+    'AR': 'Argentine',
+    'UY': 'Uruguay',
+    'CL': 'Chili',
+    'CO': 'Colombie',
+    'PE': 'Pérou',
+    'EC': 'Équateur',
+    'PY': 'Paraguay',
+    'BO': 'Bolivie',
+    'VE': 'Venezuela',
+    'MX': 'Mexique',
+    'US': 'États-Unis',
+    'CA': 'Canada',
+    'CR': 'Costa Rica',
+    'ES': 'Espagne',
+    'IT': 'Italie',
+    'GB': 'Angleterre',
+    'DE': 'Allemagne',
+    'FR': 'France',
+    'PT': 'Portugal',
+    'NL': 'Pays-Bas',
+    'BE': 'Belgique',
+    'TR': 'Turquie',
+    'GR': 'Grèce',
+    'CZ': 'République tchèque',
+    'NO': 'Norvège',
+    'SE': 'Suède',
+    'PL': 'Pologne',
+    'UA': 'Ukraine',
+    'BG': 'Bulgarie',
+    'AT': 'Autriche',
+    'RO': 'Roumanie',
+    'CY': 'Chypre',
+    'IL': 'Israël',
+    'RS': 'Serbie',
+    'AZ': 'Azerbaïdjan',
+    'SI': 'Slovénie',
+    'AM': 'Arménie',
+    'HU': 'Hongrie',
+    'LV': 'Lettonie',
+    'CH': 'Suisse',
+    'DK': 'Danemark',
+    'EG': 'Égypte',
+    'MA': 'Maroc',
+    'DZ': 'Algérie',
+    'JP': 'Japon',
+    'KR': 'Corée du Sud',
+    'SA': 'Arabie saoudite',
+    'BT': 'Bhoutan',
+    'AU': 'Australie',
+    'RU': 'Russie',
+    'SK': 'Slovaquie',
+    'EE': 'Estonie'
+  };
+  
+  return countryNames[countryCode] || null;
+};
 
 interface ArchiveDate {
   date: string;
@@ -218,27 +282,37 @@ export function Archives() {
               </Select>
             </div>
 
-            {/* League Quick Filters */}
+            {/* Pays - Compétitions */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Ligues populaires</Label>
-              <div className="flex flex-wrap gap-2">
-                {availableLeagues.slice(0, 3).map(league => (
-                  <Button
-                    key={league}
-                    variant={filters.leagues.includes(league) ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => {
-                      const newLeagues = filters.leagues.includes(league)
-                        ? filters.leagues.filter(l => l !== league)
-                        : [...filters.leagues, league];
-                      updateFilters({ leagues: newLeagues });
-                    }}
-                    className="text-xs h-8"
-                  >
-                    {league}
-                  </Button>
-                ))}
-              </div>
+              <Label className="text-sm font-medium">Pays - Compétitions</Label>
+              <Select 
+                value={filters.leagues.length > 0 ? filters.leagues[0] : ""} 
+                onValueChange={(value) => {
+                  if (value) {
+                    updateFilters({ leagues: [value] });
+                  } else {
+                    updateFilters({ leagues: [] });
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner un pays - compétition" />
+                </SelectTrigger>
+                <SelectContent className="bg-background border z-50">
+                  <SelectItem value="">Toutes les compétitions</SelectItem>
+                  {availableLeagues.map(league => {
+                    const { code: countryCode } = leagueToFlag(league);
+                    const countryName = getCountryName(countryCode);
+                    const displayText = countryName ? `${countryName} - ${league}` : league;
+                    
+                    return (
+                      <SelectItem key={league} value={league}>
+                        {displayText}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </Card>
