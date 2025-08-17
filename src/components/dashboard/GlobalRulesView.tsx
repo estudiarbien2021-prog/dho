@@ -10,8 +10,7 @@ import { Globe, Search, Filter, Trash2, RefreshCw, ArrowUpDown, GripVertical } f
 import {
   DndContext,
   closestCenter,
-  KeyboardSensor,
-  MouseSensor,
+  PointerSensor,
   useSensor,
   useSensors,
   DragEndEvent,
@@ -19,7 +18,6 @@ import {
 import {
   arrayMove,
   SortableContext,
-  sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import {
@@ -78,22 +76,17 @@ function SortableRow({
     <div 
       ref={setNodeRef} 
       style={style} 
-      className={`grid grid-cols-7 gap-4 p-4 border-b border-border hover:bg-muted/30 transition-colors ${
+      className={`flex items-center gap-4 p-4 border-b border-border hover:bg-muted/30 transition-colors ${
         isDragging ? 'bg-muted/50 shadow-lg z-10' : ''
       }`}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 w-20">
         <div
-          className="cursor-grab hover:bg-muted p-2 rounded touch-none select-none transition-colors bg-blue-100"
-          style={{ touchAction: 'none' }}
+          className="cursor-grab hover:bg-muted p-2 rounded touch-none select-none transition-colors bg-blue-100 flex-shrink-0"
           {...attributes}
           {...listeners}
           onMouseDown={(e) => {
             console.log('Mouse down on drag handle for rule:', rule.id);
-            e.stopPropagation();
-          }}
-          onDragStart={(e) => {
-            console.log('Drag start for rule:', rule.id);
           }}
         >
           <GripVertical className="h-4 w-4 text-muted-foreground" />
@@ -104,15 +97,15 @@ function SortableRow({
         />
       </div>
       
-      <div className="flex items-center font-medium">{rule.name}</div>
+      <div className="flex-1 font-medium">{rule.name}</div>
       
-      <div className="flex items-center">
+      <div className="w-20">
         <Badge className={getMarketBadgeColor(rule.market)}>
           {MARKET_LABELS[rule.market]}
         </Badge>
       </div>
       
-      <div className="flex items-center">
+      <div className="w-24">
         <Button
           variant="ghost"
           size="sm"
@@ -123,17 +116,17 @@ function SortableRow({
         </Button>
       </div>
       
-      <div className="flex items-center">
+      <div className="w-16 text-center">
         <span className="text-sm font-medium">{rule.priority}</span>
       </div>
       
-      <div className="flex items-center max-w-md">
-        <span className="text-sm text-muted-foreground truncate">
+      <div className="flex-1 max-w-md">
+        <span className="text-sm text-muted-foreground truncate block">
           {onGenerateRuleSummary(rule)}
         </span>
       </div>
       
-      <div className="flex items-center justify-end">
+      <div className="w-16 flex justify-end">
         <Button
           variant="ghost"
           size="sm"
@@ -157,14 +150,10 @@ export function GlobalRulesView({}: GlobalRulesViewProps) {
   const [saving, setSaving] = useState(false);
 
   const sensors = useSensors(
-    useSensor(MouseSensor, {
+    useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 5,
-        delay: 100,
+        distance: 3,
       },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
     })
   );
 
@@ -540,20 +529,20 @@ export function GlobalRulesView({}: GlobalRulesViewProps) {
                   strategy={verticalListSortingStrategy}
                 >
                   {/* Table Header */}
-                  <div className="grid grid-cols-7 gap-4 p-4 border-b-2 border-border bg-muted/30 font-medium text-sm">
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-4 p-4 border-b-2 border-border bg-muted/30 font-medium text-sm">
+                    <div className="flex items-center gap-2 w-20">
                       <div className="w-8"></div>
                       <Checkbox
                         checked={selectedRules.length === filteredRules.length && filteredRules.length > 0}
                         onCheckedChange={handleSelectAll}
                       />
                     </div>
-                    <div>Nom</div>
-                    <div>Marché</div>
-                    <div>Statut</div>
-                    <div>Priorité</div>
-                    <div>Résumé</div>
-                    <div className="text-right">Actions</div>
+                    <div className="flex-1">Nom</div>
+                    <div className="w-20">Marché</div>
+                    <div className="w-24">Statut</div>
+                    <div className="w-16 text-center">Priorité</div>
+                    <div className="flex-1">Résumé</div>
+                    <div className="w-16 text-right">Actions</div>
                   </div>
                   
                   {/* Table Body */}
