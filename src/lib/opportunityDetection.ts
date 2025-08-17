@@ -44,8 +44,19 @@ export async function detectOpportunities(match: ProcessedMatch): Promise<Detect
   const matchedRules = ruleResults.filter(result => result.conditionsMet);
   console.log('✅ RÈGLES CORRESPONDANTES:', matchedRules.length, matchedRules.map(r => r.ruleName));
   
-  // Convert matched rule results to opportunities
-  const opportunities: DetectedOpportunity[] = matchedRules.map(result => {
+  // ÉTAPE 1: Filtrer les règles no_recommendation avant de créer les opportunités
+  const validRules = matchedRules.filter(result => {
+    if (result.action === 'no_recommendation') {
+      console.log(`🚫 OPPORTUNITÉ BLOQUÉE par no_recommendation: ${result.ruleName} (${result.market})`);
+      return false;
+    }
+    return true;
+  });
+  
+  console.log('✅ RÈGLES VALIDES APRÈS FILTRAGE no_recommendation:', validRules.length, validRules.map(r => r.ruleName));
+
+  // Convert valid rule results to opportunities
+  const opportunities: DetectedOpportunity[] = validRules.map(result => {
     console.log(`🔄 Conversion règle -> opportunité:`, {
       ruleName: result.ruleName,
       market: result.market,

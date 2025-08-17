@@ -122,11 +122,14 @@ class ConditionalRulesService {
       vig_ou25: (context.vigorish_ou25 * 100).toFixed(2) + '%',
       prob_home: (context.probability_home * 100).toFixed(1) + '%',
       prob_draw: (context.probability_draw * 100).toFixed(1) + '%',
-      prob_away: (context.probability_away * 100).toFixed(1) + '%'
+      prob_away: (context.probability_away * 100).toFixed(1) + '%',
+      prob_btts_yes: (context.probability_btts_yes * 100).toFixed(1) + '%'
     });
     
     const results: RuleEvaluationResult[] = [];
+    const noRecommendationMarkets = new Set<string>();
 
+    // ÉTAPE 1: Évaluer toutes les règles et identifier les no_recommendation prioritaires
     for (const rule of enabledRules) {
       const conditionsMet = this.evaluateConditions(rule.conditions, rule.logicalConnectors, context, rule.market);
       
@@ -141,14 +144,36 @@ class ConditionalRulesService {
         conditionsMet,
         evaluationDetails: this.getEvaluationDetails(rule, context, conditionsMet)
       });
+
+      // Si c'est une règle no_recommendation qui correspond, marquer le marché
+      if (conditionsMet && rule.action === 'no_recommendation') {
+        noRecommendationMarkets.add(rule.market);
+        console.log(`🚫 NO_RECOMMENDATION ACTIVÉ pour marché: ${rule.market}`);
+      }
     }
 
-    const matchedResults = results.filter(r => r.conditionsMet);
-    console.log('🎯 RÉSULTAT FINAL:', matchedResults.length, 'règle(s) correspondent aux conditions:', 
-      matchedResults.map(r => `${r.ruleName} (${r.action})`));
+    // ÉTAPE 2: Filtrer les résultats - garder seulement les no_recommendation ou les autres marchés
+    let filteredResults = results.filter(result => {
+      if (result.action === 'no_recommendation') {
+        return result.conditionsMet; // Garder toutes les no_recommendation qui correspondent
+      }
+      
+      // Pour les autres actions, ne garder que celles des marchés sans no_recommendation
+      if (noRecommendationMarkets.has(result.market)) {
+        if (result.conditionsMet) {
+          console.log(`🚫 IGNORÉ: ${result.ruleName} (marché ${result.market} a une règle no_recommendation active)`);
+        }
+        return false;
+      }
+      
+      return result.conditionsMet;
+    });
+
+    console.log('🎯 RÉSULTAT FINAL:', filteredResults.length, 'règle(s) correspondent après filtrage:', 
+      filteredResults.map(r => `${r.ruleName} (${r.action})`));
 
     // Sort by priority
-    return results.sort((a, b) => a.priority - b.priority);
+    return filteredResults.sort((a, b) => a.priority - b.priority);
   }
 
   private evaluateConditions(
@@ -287,6 +312,23 @@ class ConditionalRulesService {
 
   private getDefaultRules(): ConditionalRule[] {
     return [
+      // PRIORITÉ 1: Règle anti-50/50 pour BTTS (empêche toute recommandation sur les marchés équilibrés)
+      {
+        id: 'anti-btts-5050',
+        name: 'Anti-BTTS 50/50',
+        market: 'btts',
+        conditions: [{
+          id: 'cond-1',
+          type: 'probability_btts_yes',
+          operator: 'between',
+          value: 0.48,
+          valueMax: 0.52 // Entre 48% et 52% = quasi 50/50
+        }],
+        logicalConnectors: [],
+        action: 'no_recommendation',
+        priority: 1,
+        enabled: true
+      },
       {
         id: 'default-1x2-low-vig',
         name: 'Vigorish faible 1X2',
@@ -299,7 +341,7 @@ class ConditionalRulesService {
         }],
         logicalConnectors: [],
         action: 'recommend_most_probable',
-        priority: 1,
+        priority: 2,
         enabled: true
       },
       {
@@ -322,7 +364,7 @@ class ConditionalRulesService {
         ],
         logicalConnectors: ['AND'],
         action: 'recommend_btts_yes',
-        priority: 2,
+        priority: 3,
         enabled: true
       },
       {
@@ -345,7 +387,7 @@ class ConditionalRulesService {
         ],
         logicalConnectors: ['AND'],
         action: 'recommend_over25',
-        priority: 3,
+        priority: 4,
         enabled: true
       }
     ];
