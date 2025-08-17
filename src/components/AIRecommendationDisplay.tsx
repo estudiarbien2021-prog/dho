@@ -133,7 +133,13 @@ export function AIRecommendationDisplay({
   };
 
   const formatBetType = (betType: string) => {
-    return betType === '1X2' ? 'chance double' : betType;
+    switch (betType) {
+      case '1X2': return '1X2';
+      case 'O/U 2.5': return 'O/U 2.5';
+      case 'OU25': return 'O/U 2.5';
+      case 'BTTS': return 'BTTS';
+      default: return betType;
+    }
   };
 
   if (variant === 'compact') {

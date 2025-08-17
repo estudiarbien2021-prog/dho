@@ -54,7 +54,19 @@ export async function detectOpportunities(match: ProcessedMatch): Promise<Detect
     });
 
     let prediction = '';
-    let type = result.market; // Utiliser le marché directement comme type
+    let type = result.market;
+    
+    // Change type to string for user display, not type system constraint
+    let userDisplayType: string = result.market;
+    
+    // Améliorer l'affichage du type de marché pour l'utilisateur
+    if (result.market === 'ou25') {
+      userDisplayType = 'O/U 2.5';
+    } else if (result.market === 'btts') {
+      userDisplayType = 'BTTS';
+    } else if (result.market === '1x2') {
+      userDisplayType = '1X2';
+    }
     
     // Déterminer la prédiction selon l'action et le marché
     if (result.action === 'recommend_most_probable') {
@@ -75,11 +87,17 @@ export async function detectOpportunities(match: ProcessedMatch): Promise<Detect
       market: result.market
     });
 
+    // Améliorer la raison avec une explication plus claire
+    let reason = [`Règle: ${result.ruleName}`];
+    if (result.action === 'recommend_least_probable' && (result.market === 'ou25' || result.market === 'btts')) {
+      reason.push('Stratégie contrarian: parier contre le favori quand le vigorish est élevé');
+    }
+
     return {
-      type,
+      type: userDisplayType,
       prediction,
       odds,
-      reason: [`Règle: ${result.ruleName}`],
+      reason,
       isInverted: result.action.includes('invert'),
       priority: result.priority
     };
@@ -98,21 +116,21 @@ function getMostProbablePrediction(market: string, context: RuleEvaluationContex
     context_btts_no: context.probability_btts_no
   });
 
-  if (market === '1X2') {
+  if (market === '1x2') {
     const highest = Math.max(context.probability_home, context.probability_draw, context.probability_away);
     if (highest === context.probability_home) return 'Victoire domicile';
     if (highest === context.probability_away) return 'Victoire extérieur';
     return 'Match nul';
   }
   
-  if (market === 'BTTS') {
+  if (market === 'btts') {
     const probYes = context.probability_btts_yes || 0;
     const probNo = context.probability_btts_no || 0;
     console.log(`🎯 BTTS probabilities: Yes=${probYes}, No=${probNo}`);
     return probYes > probNo ? 'Oui' : 'Non';
   }
   
-  if (market === 'OU25') {
+  if (market === 'ou25') {
     const probOver = context.probability_over25 || 0;
     const probUnder = context.probability_under25 || 0;
     console.log(`🎯 OU25 probabilities: Over=${probOver}, Under=${probUnder}`);
@@ -140,28 +158,38 @@ function getLeastProbablePrediction(market: string, context: RuleEvaluationConte
     context_btts_no: context.probability_btts_no
   });
 
-  if (market === '1X2') {
+  if (market === '1x2') {
     const lowest = Math.min(context.probability_home, context.probability_draw, context.probability_away);
     if (lowest === context.probability_home) return 'Victoire domicile';
     if (lowest === context.probability_away) return 'Victoire extérieur';
     return 'Match nul';
   }
   
-  if (market === 'BTTS') {
+  if (market === 'btts') {
     const probYes = context.probability_btts_yes || 0;
     const probNo = context.probability_btts_no || 0;
     console.log(`🎯 BTTS probabilities: Yes=${probYes}, No=${probNo}`);
     return probYes < probNo ? 'Oui' : 'Non';
   }
   
-  if (market === 'OU25') {
+  if (market === 'ou25') {
     const probOver = context.probability_over25 || 0;
     const probUnder = context.probability_under25 || 0;
     console.log(`🎯 OU25 probabilities: Over=${probOver}, Under=${probUnder}`);
     
+    // Vérification améliorée avec fallback plus robuste
     if (probOver === 0 && probUnder === 0) {
-      console.log('❌ Both over/under probabilities are 0 for OU25 market');
-      return 'Unknown';
+      console.log('❌ Both over/under probabilities are 0 for OU25 market, using fallback');
+      // Fallback: si pas de probabilités, supposer que Under est plus probable (conservateur)
+      return '+2,5 buts';
+    }
+    
+    // Si une seule probabilité est disponible, utiliser l'autre
+    if (probOver === 0 && probUnder > 0) {
+      return '+2,5 buts'; // Under est plus probable, donc Over est moins probable
+    }
+    if (probUnder === 0 && probOver > 0) {
+      return '-2,5 buts'; // Over est plus probable, donc Under est moins probable
     }
     
     const result = probOver < probUnder ? '+2,5 buts' : '-2,5 buts';
@@ -182,7 +210,7 @@ function getOddsForPrediction(market: string, prediction: string, context: RuleE
     odds_btts_no: context.odds_btts_no
   });
 
-  if (market === '1X2') {
+  if (market === '1x2') {
     if (prediction.includes('domicile')) {
       const odds = context.odds_home || 0;
       console.log(`🎯 1X2 odds for domicile: ${odds}`);
@@ -200,7 +228,7 @@ function getOddsForPrediction(market: string, prediction: string, context: RuleE
     }
   }
   
-  if (market === 'BTTS') {
+  if (market === 'btts') {
     if (prediction === 'Oui') {
       const odds = context.odds_btts_yes || 0;
       console.log(`🎯 BTTS odds for Oui: ${odds}`);
@@ -213,16 +241,28 @@ function getOddsForPrediction(market: string, prediction: string, context: RuleE
     }
   }
   
-  if (market === 'OU25') {
+  if (market === 'ou25') {
     if (prediction === '+2,5 buts') {
-      const odds = context.odds_over25 || 0;
+      const odds = context.odds_over25;
       console.log(`🎯 OU25 odds for +2,5 buts: ${odds}`);
-      return odds;
+      // Vérification plus stricte pour éviter les valeurs null/undefined
+      if (odds && odds > 0) {
+        return odds;
+      } else {
+        console.log('❌ Invalid or missing odds for +2,5 buts, odds value:', odds);
+        return 0;
+      }
     }
     if (prediction === '-2,5 buts') {
-      const odds = context.odds_under25 || 0;
+      const odds = context.odds_under25;
       console.log(`🎯 OU25 odds for -2,5 buts: ${odds}`);
-      return odds;
+      // Vérification plus stricte pour éviter les valeurs null/undefined
+      if (odds && odds > 0) {
+        return odds;
+      } else {
+        console.log('❌ Invalid or missing odds for -2,5 buts, odds value:', odds);
+        return 0;
+      }
     }
   }
   
@@ -256,7 +296,7 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
       else if (opp.prediction === 'Non') probability = match.p_btts_no_fair;
       else probability = Math.max(match.p_btts_yes_fair, match.p_btts_no_fair); // Fallback
       
-    } else if (opp.type === 'O/U 2.5') {
+    } else if (opp.type === 'O/U 2.5' || opp.type === 'OU25') {
       if (opp.prediction === '+2,5 buts') probability = match.p_over_2_5_fair;
       else if (opp.prediction === '-2,5 buts') probability = match.p_under_2_5_fair;
       else probability = Math.max(match.p_over_2_5_fair, match.p_under_2_5_fair); // Fallback
@@ -297,9 +337,11 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
     // Si les probabilités sont très proches (différence < 0.01), trier par vigorish décroissant
     if (Math.abs(aProbability - bProbability) < 0.01) {
       const aVigorish = a.type === '1X2' || a.type === 'Double Chance' ? match.vig_1x2 : 
-                       a.type === 'BTTS' ? match.vig_btts : match.vig_ou_2_5;
+                       a.type === 'BTTS' ? match.vig_btts : 
+                       (a.type === 'O/U 2.5' || a.type === 'OU25') ? match.vig_ou_2_5 : match.vig_ou_2_5;
       const bVigorish = b.type === '1X2' || b.type === 'Double Chance' ? match.vig_1x2 : 
-                       b.type === 'BTTS' ? match.vig_btts : match.vig_ou_2_5;
+                       b.type === 'BTTS' ? match.vig_btts : 
+                       (b.type === 'O/U 2.5' || b.type === 'OU25') ? match.vig_ou_2_5 : match.vig_ou_2_5;
       
       console.log('🔄 ÉGALITÉ PROBABILITÉ - TRI PAR VIGORISH:', {
         'a.vigorish': (aVigorish * 100).toFixed(1) + '%',
@@ -317,7 +359,8 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
   console.log('🎯 PRIORISATION CENTRALISÉE - ORDRE FINAL:', sortedByPriority.map((o, i) => {
     const realProb = calculateRealProbability(o);
     const vig = o.type === '1X2' || o.type === 'Double Chance' ? match.vig_1x2 : 
-                o.type === 'BTTS' ? match.vig_btts : match.vig_ou_2_5;
+                o.type === 'BTTS' ? match.vig_btts : 
+                (o.type === 'O/U 2.5' || o.type === 'OU25') ? match.vig_ou_2_5 : match.vig_ou_2_5;
     return `${i+1}. ${o.type}:${o.prediction} (prob:${(realProb*100).toFixed(1)}%, vig:${(vig*100).toFixed(1)}%, inv:${o.isInverted})`;
   }));
   
