@@ -182,6 +182,9 @@ export default function SimplifiedRulesBuilder() {
 
       const success = await conditionalRulesService.saveRule(rule);
       if (success) {
+        // Reload rules from database to sync local state
+        await loadRules();
+        
         setEditingRules(prev => {
           const newSet = new Set(prev);
           newSet.delete(ruleId);
@@ -198,6 +201,7 @@ export default function SimplifiedRulesBuilder() {
         });
       }
     } catch (error) {
+      console.error('Validation error:', error);
       toast({
         title: "Erreur",
         description: "Erreur lors de la validation",
