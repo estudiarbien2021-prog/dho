@@ -415,9 +415,9 @@ function getOddsForPrediction(market: string, prediction: string, context: RuleE
   return 0;
 }
 
-// Fonction centralisée pour prioriser les opportunités par priorité la plus BASSE (1 = plus prioritaire)
+// NOUVELLE FONCTION: Sélectionner intelligemment jusqu'à 2 opportunités de marchés différents
 export function prioritizeOpportunitiesByRealProbability(opportunities: DetectedOpportunity[], match: ProcessedMatch): DetectedOpportunity[] {
-  console.log('🎯 PRIORISATION CENTRALISÉE - INPUT:', opportunities.map(o => `${o.type}:${o.prediction}(priorité:${o.priority})`));
+  console.log('🎯 PRIORISATION INTELLIGENTE - INPUT:', opportunities.map(o => `${o.type}:${o.prediction}(priorité:${o.priority})`));
   
   // ÉTAPE 1: Séparer les vraies recommandations des "no_recommendation"
   const realRecommendations = opportunities.filter(opp => 
@@ -426,35 +426,55 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
     !opp.prediction.toLowerCase().includes('no recommendation')
   );
   
-  const noRecommendations = opportunities.filter(opp => 
-    opp.prediction === 'no_recommendation' || 
-    opp.prediction === 'No recommendation' ||
-    opp.prediction.toLowerCase().includes('no recommendation')
-  );
+  console.log('🔄 RECOMMANDATIONS VALIDES:', realRecommendations.length, realRecommendations.map(r => `${r.type}:${r.prediction}(priorité:${r.priority})`));
   
-  console.log('🔄 SÉPARATION RECOMMANDATIONS:', {
-    'vraies_recommandations': realRecommendations.length,
-    'no_recommendations': noRecommendations.length,
-    'vraies_détail': realRecommendations.map(r => `${r.type}:${r.prediction}(priorité:${r.priority})`),
-    'no_rec_détail': noRecommendations.map(r => `${r.type}:${r.prediction}`)
-  });
+  if (realRecommendations.length === 0) {
+    console.log('🚫 AUCUNE RECOMMANDATION VALIDE');
+    return [];
+  }
   
-  // CORRECTION MAJEURE: Prioriser par priorité la plus BASSE (1 = plus prioritaire)
-  console.log('🎯 PRIORISATION PAR PRIORITÉ LA PLUS BASSE (1 = plus prioritaire)');
-  
-  // Grouper par priorité et garder seulement la plus BASSE priorité (plus importante)
+  // ÉTAPE 2: Trouver la priorité la plus BASSE (1 = plus prioritaire)
   const lowestPriority = Math.min(...realRecommendations.map(r => r.priority));
+  console.log('🏆 PRIORITÉ LA PLUS ÉLEVÉE (plus basse numériquement):', lowestPriority);
+  
+  // ÉTAPE 3: Filtrer les opportunités avec la meilleure priorité
   const highestPriorityRecommendations = realRecommendations.filter(r => r.priority === lowestPriority);
+  console.log('🎯 OPPORTUNITÉS PRIORITÉ MAX:', highestPriorityRecommendations.length, highestPriorityRecommendations.map(r => `${r.type}:${r.prediction}`));
   
-  console.log('🏆 RECOMMANDATIONS PRIORITÉ MAX:', highestPriorityRecommendations.length, 'avec priorité', lowestPriority);
-  console.log('🏆 DÉTAIL:', highestPriorityRecommendations.map(r => `${r.type}:${r.prediction}(priorité:${r.priority})`));
+  // ÉTAPE 4: Sélectionner intelligemment jusqu'à 2 opportunités de marchés différents
+  const selectedRecommendations: DetectedOpportunity[] = [];
+  const usedMarkets = new Set<string>();
   
-  // Garder TOUTES les recommandations de priorité maximale (priorité la plus basse numériquement)
-  const finalRecommendations = highestPriorityRecommendations;
+  // Normaliser les types de marchés pour la comparaison
+  const normalizeMarketType = (type: string): string => {
+    if (type === 'O/U 2.5' || type === 'OU25') return 'ou25';
+    if (type === 'BTTS') return 'btts';
+    if (type === '1X2') return '1x2';
+    if (type === 'Double Chance') return 'double_chance';
+    if (type === 'Remboursé si nul') return 'refund_if_draw';
+    return type.toLowerCase();
+  };
   
-  console.log('✅ RECOMMANDATIONS FINALES:', finalRecommendations.map(r => `${r.type}:${r.prediction}(priorité:${r.priority})`));
+  // Parcourir les opportunités et sélectionner jusqu'à 2 de marchés différents
+  for (const recommendation of highestPriorityRecommendations) {
+    const normalizedMarket = normalizeMarketType(recommendation.type);
+    
+    if (!usedMarkets.has(normalizedMarket) && selectedRecommendations.length < 2) {
+      selectedRecommendations.push(recommendation);
+      usedMarkets.add(normalizedMarket);
+      console.log(`✅ SÉLECTION: ${recommendation.type}:${recommendation.prediction} (marché: ${normalizedMarket})`);
+    } else if (usedMarkets.has(normalizedMarket)) {
+      console.log(`🚫 REJETÉ - Marché déjà utilisé: ${recommendation.type}:${recommendation.prediction} (marché: ${normalizedMarket})`);
+    } else if (selectedRecommendations.length >= 2) {
+      console.log(`🚫 REJETÉ - Limite de 2 opportunités atteinte: ${recommendation.type}:${recommendation.prediction}`);
+    }
+  }
   
-  return finalRecommendations;
+  console.log('✅ SÉLECTION FINALE:', selectedRecommendations.length, 'opportunités');
+  console.log('📋 DÉTAIL FINAL:', selectedRecommendations.map(r => `${r.type}:${r.prediction}(priorité:${r.priority})`));
+  console.log('🎯 MARCHÉS UTILISÉS:', Array.from(usedMarkets));
+  
+  return selectedRecommendations;
 }
 
 // Helper function to get real probability for an opportunity
