@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { NewFilterState, NewSortState } from '@/types/filters';
 import { FilterAnalyzer } from '@/services/filterAnalyzer';
+import { SearchableCountryCompetitionSelect } from '@/components/SearchableCountryCompetitionSelect';
 
 interface NewFiltersPanelProps {
   filters: NewFilterState;
@@ -275,48 +276,18 @@ export const NewFiltersPanel: React.FC<NewFiltersPanelProps> = ({
             </AccordionTrigger>
             <AccordionContent className="space-y-4">
               
-              {/* Pays */}
+              {/* Recherche combinée pays et compétitions */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Pays</Label>
-                <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto">
-                  {availableOptions.countries.map(country => (
-                    <Badge
-                      key={country}
-                      variant={filters.countries.includes(country) ? "default" : "outline"}
-                      className="cursor-pointer text-xs"
-                      onClick={() => {
-                        const newCountries = filters.countries.includes(country)
-                          ? filters.countries.filter(c => c !== country)
-                          : [...filters.countries, country];
-                        updateFilters({ countries: newCountries });
-                      }}
-                    >
-                      {country}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              {/* Compétitions */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Compétitions</Label>
-                <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto">
-                  {availableOptions.competitions.slice(0, 20).map(comp => (
-                    <Badge
-                      key={comp}
-                      variant={filters.competitions.includes(comp) ? "default" : "outline"}
-                      className="cursor-pointer text-xs"
-                      onClick={() => {
-                        const newCompetitions = filters.competitions.includes(comp)
-                          ? filters.competitions.filter(c => c !== comp)
-                          : [...filters.competitions, comp];
-                        updateFilters({ competitions: newCompetitions });
-                      }}
-                    >
-                      {comp}
-                    </Badge>
-                  ))}
-                </div>
+                <Label className="text-sm font-medium">Pays et Compétitions</Label>
+                <SearchableCountryCompetitionSelect
+                  countries={availableOptions.countries}
+                  competitions={availableOptions.competitions}
+                  selectedCountries={filters.countries}
+                  selectedCompetitions={filters.competitions}
+                  onCountriesChange={(countries) => updateFilters({ countries })}
+                  onCompetitionsChange={(competitions) => updateFilters({ competitions })}
+                  placeholder="Rechercher pays ou compétition..."
+                />
               </div>
 
             </AccordionContent>
