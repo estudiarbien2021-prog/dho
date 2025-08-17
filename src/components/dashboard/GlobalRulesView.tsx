@@ -7,11 +7,123 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { Globe, Search, Filter, Edit, Trash2, Save, X, RefreshCw, ArrowUpDown } from 'lucide-react';
+import { Globe, Search, Filter, Trash2, RefreshCw, ArrowUpDown, GripVertical } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import {
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { ConditionalRule, Market, MARKET_LABELS, ACTION_LABELS, CONDITION_LABELS } from '@/types/conditionalRules';
 import { conditionalRulesService } from '@/services/conditionalRulesService';
 
 interface GlobalRulesViewProps {}
+
+interface SortableRowProps {
+  rule: ConditionalRule;
+  selectedRules: string[];
+  onSelectRule: (ruleId: string, checked: boolean) => void;
+  onToggleEnabled: (rule: ConditionalRule) => void;
+  onDeleteRule: (ruleId: string) => void;
+  onGenerateRuleSummary: (rule: ConditionalRule) => string;
+  getMarketBadgeColor: (market: Market) => string;
+}
+
+function SortableRow({ 
+  rule, 
+  selectedRules, 
+  onSelectRule, 
+  onToggleEnabled, 
+  onDeleteRule, 
+  onGenerateRuleSummary,
+  getMarketBadgeColor 
+}: SortableRowProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: rule.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <TableRow 
+      ref={setNodeRef} 
+      style={style} 
+      className={isDragging ? 'bg-muted/50' : ''}
+    >
+      <TableCell>
+        <div className="flex items-center gap-2">
+          <button
+            className="cursor-grab hover:bg-muted p-1 rounded"
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="h-4 w-4 text-muted-foreground" />
+          </button>
+          <Checkbox
+            checked={selectedRules.includes(rule.id)}
+            onCheckedChange={(checked) => onSelectRule(rule.id, checked as boolean)}
+          />
+        </div>
+      </TableCell>
+      <TableCell className="font-medium">{rule.name}</TableCell>
+      <TableCell>
+        <Badge className={getMarketBadgeColor(rule.market)}>
+          {MARKET_LABELS[rule.market]}
+        </Badge>
+      </TableCell>
+      <TableCell>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onToggleEnabled(rule)}
+          className={rule.enabled ? 'text-green-600' : 'text-red-600'}
+        >
+          {rule.enabled ? 'Activée' : 'Désactivée'}
+        </Button>
+      </TableCell>
+      <TableCell>
+        <span className="text-sm font-medium">{rule.priority}</span>
+      </TableCell>
+      <TableCell className="max-w-md">
+        <span className="text-sm text-text-weak truncate block">
+          {onGenerateRuleSummary(rule)}
+        </span>
+      </TableCell>
+      <TableCell>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onDeleteRule(rule.id)}
+          className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </TableCell>
+    </TableRow>
+  );
+}
 
 export function GlobalRulesView({}: GlobalRulesViewProps) {
   const [rules, setRules] = useState<ConditionalRule[]>([]);
@@ -20,7 +132,14 @@ export function GlobalRulesView({}: GlobalRulesViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMarket, setSelectedMarket] = useState<Market | 'all'>('all');
   const [selectedRules, setSelectedRules] = useState<string[]>([]);
-  const [editingPriority, setEditingPriority] = useState<{[key: string]: number}>({});
+  const [saving, setSaving] = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   useEffect(() => {
     loadRules();
@@ -94,59 +213,55 @@ export function GlobalRulesView({}: GlobalRulesViewProps) {
     return `Si ${conditions} → ${action}`;
   };
 
-  const handlePriorityEdit = (ruleId: string, newPriority: number) => {
-    setEditingPriority(prev => ({
-      ...prev,
-      [ruleId]: newPriority
-    }));
-  };
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
 
-  const savePriority = async (ruleId: string) => {
-    const newPriority = editingPriority[ruleId];
-    if (newPriority === undefined || newPriority < 1) {
-      toast({
-        title: "Erreur",
-        description: "La priorité doit être un nombre positif",
-        variant: "destructive",
-      });
+    if (!over || active.id === over.id) {
       return;
     }
 
-    try {
-      const rule = rules.find(r => r.id === ruleId);
-      if (!rule) return;
+    setSaving(true);
+    
+    const oldIndex = filteredRules.findIndex(rule => rule.id === active.id);
+    const newIndex = filteredRules.findIndex(rule => rule.id === over.id);
 
-      const updatedRule = { ...rule, priority: newPriority };
-      const success = await conditionalRulesService.saveRule(updatedRule);
+    const reorderedRules = arrayMove(filteredRules, oldIndex, newIndex);
+    
+    // Update local state immediately for better UX
+    const newFilteredRules = reorderedRules.map((rule, index) => ({
+      ...rule,
+      priority: index + 1
+    }));
+    
+    setFilteredRules(newFilteredRules);
+
+    try {
+      // Update priorities in batch
+      const updatePromises = newFilteredRules.map(rule => 
+        conditionalRulesService.saveRule(rule)
+      );
+
+      await Promise.all(updatePromises);
       
-      if (success) {
-        await loadRules();
-        setEditingPriority(prev => {
-          const newState = { ...prev };
-          delete newState[ruleId];
-          return newState;
-        });
-        toast({
-          title: "Succès",
-          description: "Priorité mise à jour",
-        });
-      }
+      // Reload rules to ensure consistency
+      await loadRules();
+      
+      toast({
+        title: "Succès",
+        description: "Ordre des priorités mis à jour",
+      });
     } catch (error) {
-      console.error('Error saving priority:', error);
+      console.error('Error updating priorities:', error);
+      // Revert changes on error
+      await loadRules();
       toast({
         title: "Erreur",
-        description: "Impossible de sauvegarder la priorité",
+        description: "Impossible de mettre à jour l'ordre des priorités",
         variant: "destructive",
       });
+    } finally {
+      setSaving(false);
     }
-  };
-
-  const cancelPriorityEdit = (ruleId: string) => {
-    setEditingPriority(prev => {
-      const newState = { ...prev };
-      delete newState[ruleId];
-      return newState;
-    });
   };
 
   const deleteRule = async (ruleId: string) => {
@@ -292,13 +407,13 @@ export function GlobalRulesView({}: GlobalRulesViewProps) {
           <div>
             <h3 className="text-lg font-semibold">Vue Globale des Règles</h3>
             <p className="text-sm text-text-weak">
-              Gérez toutes vos règles et leurs priorités en un seul endroit
+              Glissez-déposez pour réorganiser les priorités des règles
             </p>
           </div>
         </div>
-        <Button onClick={loadRules} variant="outline" size="sm">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Actualiser
+        <Button onClick={loadRules} variant="outline" size="sm" disabled={saving}>
+          <RefreshCw className={`h-4 w-4 mr-2 ${saving ? 'animate-spin' : ''}`} />
+          {saving ? 'Sauvegarde...' : 'Actualiser'}
         </Button>
       </div>
 
@@ -374,105 +489,52 @@ export function GlobalRulesView({}: GlobalRulesViewProps) {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12">
-                      <Checkbox
-                        checked={selectedRules.length === filteredRules.length && filteredRules.length > 0}
-                        onCheckedChange={handleSelectAll}
-                      />
-                    </TableHead>
-                    <TableHead>Nom</TableHead>
-                    <TableHead>Marché</TableHead>
-                    <TableHead>Statut</TableHead>
-                    <TableHead>Priorité</TableHead>
-                    <TableHead>Logique</TableHead>
-                    <TableHead className="w-24">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredRules.map((rule) => (
-                    <TableRow key={rule.id}>
-                      <TableCell>
-                        <Checkbox
-                          checked={selectedRules.includes(rule.id)}
-                          onCheckedChange={(checked) => handleSelectRule(rule.id, checked as boolean)}
-                        />
-                      </TableCell>
-                      <TableCell className="font-medium">{rule.name}</TableCell>
-                      <TableCell>
-                        <Badge className={getMarketBadgeColor(rule.market)}>
-                          {MARKET_LABELS[rule.market]}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => toggleRuleEnabled(rule)}
-                          className={rule.enabled ? 'text-green-600' : 'text-red-600'}
-                        >
-                          {rule.enabled ? 'Activée' : 'Désactivée'}
-                        </Button>
-                      </TableCell>
-                      <TableCell>
-                        {editingPriority[rule.id] !== undefined ? (
-                          <div className="flex items-center gap-2">
-                            <Input
-                              type="number"
-                              min="1"
-                              value={editingPriority[rule.id]}
-                              onChange={(e) => handlePriorityEdit(rule.id, parseInt(e.target.value) || 1)}
-                              className="w-20"
-                            />
-                            <Button
-                              size="sm"
-                              onClick={() => savePriority(rule.id)}
-                              className="h-8 w-8 p-0"
-                            >
-                              <Save className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => cancelPriorityEdit(rule.id)}
-                              className="h-8 w-8 p-0"
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setEditingPriority({ [rule.id]: rule.priority })}
-                            className="text-left justify-start"
-                          >
-                            {rule.priority}
-                            <Edit className="h-3 w-3 ml-2" />
-                          </Button>
-                        )}
-                      </TableCell>
-                      <TableCell className="max-w-md">
-                        <span className="text-sm text-text-weak truncate block">
-                          {generateRuleSummary(rule)}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => deleteRule(rule.id)}
-                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-20">
+                        <div className="flex items-center gap-2">
+                          <GripVertical className="h-4 w-4 text-muted-foreground" />
+                          <Checkbox
+                            checked={selectedRules.length === filteredRules.length && filteredRules.length > 0}
+                            onCheckedChange={handleSelectAll}
+                          />
+                        </div>
+                      </TableHead>
+                      <TableHead>Nom</TableHead>
+                      <TableHead>Marché</TableHead>
+                      <TableHead>Statut</TableHead>
+                      <TableHead>Priorité</TableHead>
+                      <TableHead>Logique</TableHead>
+                      <TableHead className="w-24">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    <SortableContext 
+                      items={filteredRules.map(rule => rule.id)} 
+                      strategy={verticalListSortingStrategy}
+                    >
+                      {filteredRules.map((rule) => (
+                        <SortableRow
+                          key={rule.id}
+                          rule={rule}
+                          selectedRules={selectedRules}
+                          onSelectRule={handleSelectRule}
+                          onToggleEnabled={toggleRuleEnabled}
+                          onDeleteRule={deleteRule}
+                          onGenerateRuleSummary={generateRuleSummary}
+                          getMarketBadgeColor={getMarketBadgeColor}
+                        />
+                      ))}
+                    </SortableContext>
+                  </TableBody>
+                </Table>
+              </DndContext>
             </div>
           )}
         </CardContent>
