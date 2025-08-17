@@ -133,7 +133,16 @@ export function useDatabaseMatches(specificDate?: string) {
     loadMatches();
   }, [specificDate]);
 
-  // Function to check if match has complete basic data (STRICT VALIDATION)
+  // Function to check if match has minimum required data (RELAXED VALIDATION)
+  const hasMinimumData = (match: ProcessedMatch) => {
+    // Only require 1X2 data as minimum - this is the core market
+    const has1X2Data = match.odds_home > 0 && match.odds_draw > 0 && match.odds_away > 0 &&
+                       match.p_home_fair > 0 && match.p_draw_fair > 0 && match.p_away_fair > 0;
+    
+    return has1X2Data;
+  };
+
+  // Function to check if match has complete data for all markets  
   const hasCompleteData = (match: ProcessedMatch) => {
     // Check 1X2 data completeness
     const has1X2Data = match.odds_home > 0 && match.odds_draw > 0 && match.odds_away > 0 &&
@@ -157,38 +166,31 @@ export function useDatabaseMatches(specificDate?: string) {
     console.log('🔍 Filtering matches, total rawMatches:', rawMatches.length);
     
     let matches = rawMatches.filter(match => {
-      // ÉTAPE 1: VALIDATION STRICTE DES DONNÉES DE BASE (PRIORITÉ ABSOLUE)
-      const isDataComplete = hasCompleteData(match);
+      // ÉTAPE 1: VALIDATION MINIMALE DES DONNÉES (1X2 REQUIS SEULEMENT)
+      const hasMinData = hasMinimumData(match);
       
-      if (!isDataComplete) {
-        console.log(`🚫 EXCLU (DONNÉES INCOMPLÈTES): ${match.home_team} vs ${match.away_team}`, {
+      if (!hasMinData) {
+        console.log(`🚫 EXCLU (DONNÉES 1X2 MANQUANTES): ${match.home_team} vs ${match.away_team}`, {
           odds_home: match.odds_home,
           odds_draw: match.odds_draw, 
           odds_away: match.odds_away,
-          odds_btts_yes: match.odds_btts_yes,
-          odds_btts_no: match.odds_btts_no,
-          odds_over_2_5: match.odds_over_2_5,
-          odds_under_2_5: match.odds_under_2_5,
           p_home_fair: match.p_home_fair,
           p_draw_fair: match.p_draw_fair,
-          p_away_fair: match.p_away_fair,
-          p_btts_yes_fair: match.p_btts_yes_fair,
-          p_btts_no_fair: match.p_btts_no_fair,
-          p_over_2_5_fair: match.p_over_2_5_fair,
-          p_under_2_5_fair: match.p_under_2_5_fair
+          p_away_fair: match.p_away_fair
         });
         return false;
       }
 
-      // ÉTAPE 2: Vérification des opportunités IA (après validation des données)
+      // ÉTAPE 2: Vérification des opportunités IA
       const opportunities = matchOpportunities.get(match.id) || [];
       
       if (opportunities.length === 0) {
-        console.log(`❌ EXCLU (PAS D'OPPORTUNITÉ IA): ${match.home_team} vs ${match.away_team} - Données complètes mais pas d'opportunité IA`);
+        console.log(`❌ EXCLU (PAS D'OPPORTUNITÉ IA): ${match.home_team} vs ${match.away_team} - Données minimum OK mais pas d'opportunité IA`);
         return false;
       }
       
-      console.log(`✅ MATCH VALIDÉ: ${match.home_team} vs ${match.away_team} - Données complètes + ${opportunities.length} opportunité(s) IA disponible(s)`);
+      const isDataComplete = hasCompleteData(match);
+      console.log(`✅ MATCH VALIDÉ: ${match.home_team} vs ${match.away_team} - ${isDataComplete ? 'Données complètes' : 'Données partielles'} + ${opportunities.length} opportunité(s) IA`);
 
       // Search filter
       if (filters.search) {
@@ -258,23 +260,29 @@ export function useDatabaseMatches(specificDate?: string) {
 
   // Stats
   const stats = useMemo(() => {
-    // Compter les matchs exclus pour données incomplètes
-    const excludedForIncompleteData = rawMatches.filter(match => !hasCompleteData(match)).length;
+    // Compter les matchs exclus pour données 1X2 manquantes
+    const excludedForMissingMinData = rawMatches.filter(match => !hasMinimumData(match)).length;
     
     // Compter les matchs exclus pour pas d'opportunité IA
-    const matchesWithCompleteData = rawMatches.filter(match => hasCompleteData(match));
-    const excludedForNoAI = matchesWithCompleteData.filter(match => {
+    const matchesWithMinData = rawMatches.filter(match => hasMinimumData(match));
+    const excludedForNoAI = matchesWithMinData.filter(match => {
       const opportunities = matchOpportunities.get(match.id) || [];
       return opportunities.length === 0;
     }).length;
     
-    console.log(`📊 STATS FILTRAGE: ${rawMatches.length} total → ${excludedForIncompleteData} exclus (données incomplètes) → ${excludedForNoAI} exclus (pas d'IA) → ${filteredMatches.length} final`);
+    // Compter les matchs avec données complètes vs partielles
+    const matchesCompleteData = filteredMatches.filter(match => hasCompleteData(match)).length;
+    const matchesPartialData = filteredMatches.length - matchesCompleteData;
+    
+    console.log(`📊 STATS FILTRAGE: ${rawMatches.length} total → ${excludedForMissingMinData} exclus (pas de 1X2) → ${excludedForNoAI} exclus (pas d'IA) → ${filteredMatches.length} final (${matchesCompleteData} complets, ${matchesPartialData} partiels)`);
     
     return {
       total: filteredMatches.length,
       totalRaw: rawMatches.length,
-      excludedIncompleteData: excludedForIncompleteData,
+      excludedIncompleteData: excludedForMissingMinData,
       excludedNoAI: excludedForNoAI,
+      completeData: matchesCompleteData,
+      partialData: matchesPartialData,
       lowVig: filteredMatches.filter(m => m.is_low_vig_1x2).length,
       watchBtts: filteredMatches.filter(m => {
         const opportunities = matchOpportunities.get(m.id) || [];
