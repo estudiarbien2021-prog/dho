@@ -163,8 +163,29 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     );
   }
   
-  // Process all opportunities and limit display to maximum 2
-  const allDetectedRecommendations = opportunities.map(convertOpportunityToAIRecommendation);
+  // Use prioritization logic to filter out "no_recommendation" and get best opportunities
+  const prioritizedOpportunities = prioritizeOpportunitiesByRealProbability(opportunities, match);
+  console.log('🔴 MODAL - PRIORITIZED OPPORTUNITIES:', prioritizedOpportunities.length, prioritizedOpportunities.map(o => `${o.type}:${o.prediction}(inverted:${o.isInverted})`));
+  
+  // Convert to AI recommendations and apply additional safety filter
+  const allDetectedRecommendations = prioritizedOpportunities
+    .map(convertOpportunityToAIRecommendation)
+    .filter(rec => {
+      // Safety check: completely ignore any "no_recommendation" entries
+      const isNoRecommendation = rec.prediction && (
+        rec.prediction.toLowerCase().includes('no_recommendation') ||
+        rec.prediction.toLowerCase().includes('aucune recommandation') ||
+        rec.prediction === 'Aucune'
+      );
+      if (isNoRecommendation) {
+        console.log('🚫 FILTERED OUT no_recommendation:', rec);
+      }
+      return !isNoRecommendation;
+    });
+  
+  console.log('🔴 MODAL - FILTERED RECOMMENDATIONS:', allDetectedRecommendations.length, allDetectedRecommendations.map(r => `${r.betType}:${r.prediction}`));
+  
+  // Limit display to maximum 2 real recommendations
   const allRecommendations = allDetectedRecommendations.slice(0, 2);
   
   console.log('🔴 MODAL - TOUTES LES RECOMMANDATIONS:', allRecommendations.length, allRecommendations.map(r => `${r.betType}:${r.prediction}`));
