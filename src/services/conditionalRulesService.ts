@@ -329,7 +329,11 @@ class ConditionalRulesService {
   clearCache(): void {
     this.rules = [];
     this.lastFetch = 0;
+    console.log('🔄 Cache des règles conditionnelles vidé');
   }
 }
 
 export const conditionalRulesService = new ConditionalRulesService();
+
+// Force cache refresh on page load to pick up new rules
+conditionalRulesService.clearCache();
