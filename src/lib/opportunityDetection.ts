@@ -337,6 +337,26 @@ function getOddsForPrediction(market: string, prediction: string, context: RuleE
 export function prioritizeOpportunitiesByRealProbability(opportunities: DetectedOpportunity[], match: ProcessedMatch): DetectedOpportunity[] {
   console.log('🎯 PRIORISATION CENTRALISÉE - INPUT:', opportunities.map(o => `${o.type}:${o.prediction}(inv:${o.isInverted})`));
   
+  // ÉTAPE 1: Séparer les vraies recommandations des "no_recommendation"
+  const realRecommendations = opportunities.filter(opp => 
+    opp.prediction !== 'no_recommendation' && 
+    opp.prediction !== 'No recommendation' &&
+    !opp.prediction.toLowerCase().includes('no recommendation')
+  );
+  
+  const noRecommendations = opportunities.filter(opp => 
+    opp.prediction === 'no_recommendation' || 
+    opp.prediction === 'No recommendation' ||
+    opp.prediction.toLowerCase().includes('no recommendation')
+  );
+  
+  console.log('🔄 SÉPARATION RECOMMANDATIONS:', {
+    'vraies_recommandations': realRecommendations.length,
+    'no_recommendations': noRecommendations.length,
+    'vraies_détail': realRecommendations.map(r => `${r.type}:${r.prediction}`),
+    'no_rec_détail': noRecommendations.map(r => `${r.type}:${r.prediction}`)
+  });
+  
   // Calculer la probabilité réelle pour chaque recommandation
   const calculateRealProbability = (opp: DetectedOpportunity) => {
     let probability = 0;
@@ -368,58 +388,82 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
     return probability;
   };
   
-  // Trier par priorité (croissant: 1, 2, 3, 4, 5), puis par probabilité réelle décroissante, puis par vigorish décroissant
-  const sortedByPriority = [...opportunities].sort((a, b) => {
-    // D'abord, trier par priorité (croissant: chiffre plus bas = priorité plus élevée)
-    if (a.priority !== b.priority) {
-      console.log('🎯 TRI PAR PRIORITÉ:', {
+  // ÉTAPE 2: Trier les vraies recommandations par priorité puis probabilité réelle
+  const sortRealRecommendations = (recommendations: DetectedOpportunity[]) => {
+    return [...recommendations].sort((a, b) => {
+      // D'abord, trier par priorité (croissant: chiffre plus bas = priorité plus élevée)
+      if (a.priority !== b.priority) {
+        console.log('🎯 TRI VRAIES REC PAR PRIORITÉ:', {
+          'a.type': a.type,
+          'a.prediction': a.prediction,
+          'a.priority': a.priority,
+          'b.type': b.type,
+          'b.prediction': b.prediction,
+          'b.priority': b.priority,
+          'choix': a.priority < b.priority ? 'a (priorité plus élevée)' : 'b'
+        });
+        return a.priority - b.priority;
+      }
+      
+      // Si les priorités sont égales, trier par probabilité réelle décroissante
+      const aProbability = calculateRealProbability(a);
+      const bProbability = calculateRealProbability(b);
+      
+      console.log('🔄 MÊME PRIORITÉ - COMPARAISON PROBABILITÉS RÉELLES:', {
         'a.type': a.type,
         'a.prediction': a.prediction,
-        'a.priority': a.priority,
+        'a.realProbability': (aProbability * 100).toFixed(1) + '%',
         'b.type': b.type,
         'b.prediction': b.prediction,
-        'b.priority': b.priority,
-        'choix': a.priority < b.priority ? 'a (priorité plus élevée)' : 'b'
+        'b.realProbability': (bProbability * 100).toFixed(1) + '%'
       });
-      return a.priority - b.priority;
-    }
-    
-    // Si les priorités sont égales, trier par probabilité réelle décroissante
-    const aProbability = calculateRealProbability(a);
-    const bProbability = calculateRealProbability(b);
-    
-    console.log('🔄 MÊME PRIORITÉ - COMPARAISON PROBABILITÉS RÉELLES:', {
-      'a.type': a.type,
-      'a.prediction': a.prediction,
-      'a.realProbability': (aProbability * 100).toFixed(1) + '%',
-      'b.type': b.type,
-      'b.prediction': b.prediction,
-      'b.realProbability': (bProbability * 100).toFixed(1) + '%'
+      
+      // Si les probabilités sont très proches (différence < 0.01), trier par vigorish décroissant
+      if (Math.abs(aProbability - bProbability) < 0.01) {
+        const aVigorish = a.type === '1X2' || a.type === 'Double Chance' ? match.vig_1x2 : 
+                         a.type === 'BTTS' ? match.vig_btts : 
+                         (a.type === 'O/U 2.5' || a.type === 'OU25') ? match.vig_ou_2_5 : match.vig_ou_2_5;
+        const bVigorish = b.type === '1X2' || b.type === 'Double Chance' ? match.vig_1x2 : 
+                         b.type === 'BTTS' ? match.vig_btts : 
+                         (b.type === 'O/U 2.5' || b.type === 'OU25') ? match.vig_ou_2_5 : match.vig_ou_2_5;
+        
+        console.log('🔄 ÉGALITÉ PROBABILITÉ - TRI PAR VIGORISH:', {
+          'a.vigorish': (aVigorish * 100).toFixed(1) + '%',
+          'b.vigorish': (bVigorish * 100).toFixed(1) + '%',
+          'choix': bVigorish > aVigorish ? 'b (vigorish plus élevé)' : 'a'
+        });
+        
+        return bVigorish - aVigorish; // Vigorish décroissant en cas d'égalité
+      }
+      
+      // Sinon, trier par probabilité RÉELLE décroissante
+      return bProbability - aProbability;
     });
-    
-    // Si les probabilités sont très proches (différence < 0.01), trier par vigorish décroissant
-    if (Math.abs(aProbability - bProbability) < 0.01) {
-      const aVigorish = a.type === '1X2' || a.type === 'Double Chance' ? match.vig_1x2 : 
-                       a.type === 'BTTS' ? match.vig_btts : 
-                       (a.type === 'O/U 2.5' || a.type === 'OU25') ? match.vig_ou_2_5 : match.vig_ou_2_5;
-      const bVigorish = b.type === '1X2' || b.type === 'Double Chance' ? match.vig_1x2 : 
-                       b.type === 'BTTS' ? match.vig_btts : 
-                       (b.type === 'O/U 2.5' || b.type === 'OU25') ? match.vig_ou_2_5 : match.vig_ou_2_5;
-      
-      console.log('🔄 ÉGALITÉ PROBABILITÉ - TRI PAR VIGORISH:', {
-        'a.vigorish': (aVigorish * 100).toFixed(1) + '%',
-        'b.vigorish': (bVigorish * 100).toFixed(1) + '%',
-        'choix': bVigorish > aVigorish ? 'b (vigorish plus élevé)' : 'a'
-      });
-      
-      return bVigorish - aVigorish; // Vigorish décroissant en cas d'égalité
-    }
-    
-    // Sinon, trier par probabilité RÉELLE décroissante
-    return bProbability - aProbability;
-  });
+  };
   
-  console.log('🎯 PRIORISATION CENTRALISÉE - ORDRE FINAL:', sortedByPriority.map((o, i) => {
+  // ÉTAPE 3: Prioriser les vraies recommandations, puis les no_recommendation seulement si nécessaire
+  let finalRecommendations: DetectedOpportunity[] = [];
+  
+  if (realRecommendations.length > 0) {
+    // Il y a des vraies recommandations : les prioriser
+    const sortedRealRecommendations = sortRealRecommendations(realRecommendations);
+    finalRecommendations = sortedRealRecommendations;
+    
+    console.log('✅ VRAIES RECOMMANDATIONS TROUVÉES - IGNORANT LES NO_RECOMMENDATION:', {
+      'vraies_recommandations': sortedRealRecommendations.length,
+      'no_recommendations_ignorées': noRecommendations.length
+    });
+  } else {
+    // Aucune vraie recommandation : utiliser les no_recommendation
+    const sortedNoRecommendations = [...noRecommendations].sort((a, b) => a.priority - b.priority);
+    finalRecommendations = sortedNoRecommendations;
+    
+    console.log('⚠️ AUCUNE VRAIE RECOMMANDATION - UTILISANT NO_RECOMMENDATION:', {
+      'no_recommendations': sortedNoRecommendations.length
+    });
+  }
+  
+  console.log('🎯 PRIORISATION CENTRALISÉE - ORDRE FINAL:', finalRecommendations.map((o, i) => {
     const realProb = calculateRealProbability(o);
     const vig = o.type === '1X2' || o.type === 'Double Chance' ? match.vig_1x2 : 
                 o.type === 'BTTS' ? match.vig_btts : 
@@ -427,7 +471,7 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
     return `${i+1}. ${o.type}:${o.prediction} (prob:${(realProb*100).toFixed(1)}%, vig:${(vig*100).toFixed(1)}%, inv:${o.isInverted})`;
   }));
   
-  return sortedByPriority;
+  return finalRecommendations;
 }
 
 export function convertOpportunityToAIRecommendation(opportunity: DetectedOpportunity) {
