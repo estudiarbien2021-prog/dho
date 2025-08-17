@@ -204,7 +204,7 @@ export const OPERATOR_LABELS: Record<Operator, string> = {
 };
 
 export const MARKET_LABELS: Record<Market, string> = {
-  '1x2': '1X2 (Résultat)',
-  'btts': 'BTTS (Les deux équipes marquent)',
-  'ou25': 'Over/Under 2.5 buts'
+  '1x2': '1X2',
+  'btts': 'BTTS',
+  'ou25': '2,5 buts'
 };
