@@ -1,5 +1,5 @@
-import { rulesService } from '@/services/rulesService';
 import { ProcessedMatch } from '@/types/match';
+import { detectOpportunities, convertOpportunityToAIRecommendation } from '@/lib/opportunityDetection';
 
 export interface AIRecommendation {
   prediction: string;
@@ -178,23 +178,21 @@ function getMarketRecommendation(match: ProcessedMatch, marketType: string, inve
 }
 
 export async function generateAIRecommendationsAsync(matches: ProcessedMatch[]): Promise<ProcessedMatch[]> {
-  // Load rules from database
-  const rules = await rulesService.getRules();
+  // Use default values instead of loading from database
+  const minOdds = MIN_ODDS;
+  const minProbability = MIN_PROBABILITY;
+  const highVigorishThreshold = HIGH_VIGORISH_THRESHOLD;
+  const lowVigorishThreshold = LOW_VIGORISH_THRESHOLD;
+  const highProbabilityThreshold = HIGH_PROBABILITY_THRESHOLD;
+  const doubleChanceVigorishThreshold = DOUBLE_CHANCE_VIGORISH_THRESHOLD;
+  const doubleChanceMaxProbability = DOUBLE_CHANCE_MAX_PROBABILITY;
+  const equalityTolerance = EQUALITY_TOLERANCE;
+  const maxRecommendations = MAX_RECOMMENDATIONS;
   
-  const minOdds = rules.get('min_odds') ?? MIN_ODDS;
-  const minProbability = rules.get('min_probability') ?? MIN_PROBABILITY;
-  const highVigorishThreshold = rules.get('high_vigorish_threshold') ?? HIGH_VIGORISH_THRESHOLD;
-  const lowVigorishThreshold = rules.get('low_vigorish_threshold') ?? LOW_VIGORISH_THRESHOLD;
-  const highProbabilityThreshold = rules.get('high_probability_threshold') ?? HIGH_PROBABILITY_THRESHOLD;
-  const doubleChanceVigorishThreshold = rules.get('double_chance_vigorish_threshold') ?? DOUBLE_CHANCE_VIGORISH_THRESHOLD;
-  const doubleChanceMaxProbability = rules.get('double_chance_max_probability') ?? DOUBLE_CHANCE_MAX_PROBABILITY;
-  const equalityTolerance = rules.get('equality_tolerance') ?? EQUALITY_TOLERANCE;
-  const maxRecommendations = rules.get('max_recommendations') ?? MAX_RECOMMENDATIONS;
-  
-  const doubleChanceEnabled = (rules.get('double_chance_enabled') ?? 1) === 1;
-  const invertedOpportunitiesEnabled = (rules.get('inverted_opportunities_enabled') ?? 1) === 1;
-  const directRecommendationsEnabled = (rules.get('direct_recommendations_enabled') ?? 1) === 1;
-  const highProbabilityExceptionEnabled = (rules.get('high_probability_exception_enabled') ?? 1) === 1;
+  const doubleChanceEnabled = true;
+  const invertedOpportunitiesEnabled = true;
+  const directRecommendationsEnabled = true;
+  const highProbabilityExceptionEnabled = true;
 
   const matchesWithRecommendations = matches.map(match => {
     // Validate complete 1X2 data
