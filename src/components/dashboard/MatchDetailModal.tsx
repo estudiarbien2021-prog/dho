@@ -76,7 +76,8 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
         setLoading(true);
         const opps = await detectOpportunities(match);
         setOpportunities(opps);
-        console.log('🔴 MODAL OPPORTUNITIES:', opps.length, opps.map(o => `${o.type}:${o.prediction}(inverted:${o.isInverted})`));
+        console.log('🔴 MODAL OPPORTUNITIES - RAW:', opps.length, opps.map(o => `${o.type}:${o.prediction}(inverted:${o.isInverted})`));
+        console.log('🔴 MODAL OPPORTUNITIES - DÉTAILS COMPLETS:', opps);
       } catch (error) {
         console.error('Error loading opportunities:', error);
         setOpportunities([]);
@@ -162,48 +163,18 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     );
   }
   
-  // Use prioritization logic to filter out "no_recommendation" and get best opportunities
+  console.log('🔴 MODAL - OPPORTUNITIES BRUTES AVANT PRIORISATION:', opportunities.length, opportunities.map(o => `${o.type}:${o.prediction}(inv:${o.isInverted})`));
+  
   const prioritizedOpportunities = prioritizeOpportunitiesByRealProbability(opportunities, match);
-  console.log('🔴 MODAL - PRIORITIZED OPPORTUNITIES:', prioritizedOpportunities.length, prioritizedOpportunities.map(o => `${o.type}:${o.prediction}(inverted:${o.isInverted})`));
+  console.log('🔴 MODAL - AFTER PRIORITIZATION:', prioritizedOpportunities.length, prioritizedOpportunities.map(o => `${o.type}:${o.prediction}(inv:${o.isInverted})`));
   
-  // Convert to AI recommendations and apply additional safety filter
-  const allDetectedRecommendations = prioritizedOpportunities
-    .map(convertOpportunityToAIRecommendation)
-    .filter(rec => {
-      // Safety check: completely ignore any "no_recommendation" entries
-      const isNoRecommendation = rec.prediction && (
-        rec.prediction.toLowerCase().includes('no_recommendation') ||
-        rec.prediction.toLowerCase().includes('aucune recommandation') ||
-        rec.prediction === 'Aucune'
-      );
-      
-      // Filter out recommendations with odds equal to 0
-      const hasInvalidOdds = !rec.odds || rec.odds === 0;
-      
-      if (isNoRecommendation) {
-        console.log('🚫 FILTERED OUT no_recommendation:', rec);
-      }
-      if (hasInvalidOdds) {
-        console.log('🚫 FILTERED OUT invalid odds:', rec);
-      }
-      
-      return !isNoRecommendation && !hasInvalidOdds;
-    });
+  const allDetectedRecommendations = prioritizedOpportunities.map(convertOpportunityToAIRecommendation);
   
-  console.log('🔴 MODAL - FILTERED RECOMMENDATIONS:', allDetectedRecommendations.length, allDetectedRecommendations.map(r => `${r.betType}:${r.prediction}`));
+  console.log('🔴 MODAL - APRÈS CONVERSION:', allDetectedRecommendations.length, allDetectedRecommendations.map(r => `${r.betType}:${r.prediction}`));
   
-  // Remove duplicates based on betType + prediction combination
-  const uniqueRecommendations = allDetectedRecommendations.filter((rec, index, array) => {
-    const key = `${rec.betType}-${rec.prediction}`;
-    return array.findIndex(r => `${r.betType}-${r.prediction}` === key) === index;
-  });
+  const allRecommendations = allDetectedRecommendations;
   
-  console.log('🔴 MODAL - UNIQUE RECOMMENDATIONS (no duplicates):', uniqueRecommendations.length, uniqueRecommendations.map(r => `${r.betType}:${r.prediction}`));
-  
-  // Limit display to maximum 2 real recommendations
-  const allRecommendations = uniqueRecommendations.slice(0, 2);
-  
-  console.log('🔴 MODAL - TOUTES LES RECOMMANDATIONS:', allRecommendations.length, allRecommendations.map(r => `${r.betType}:${r.prediction}`));
+  console.log('🔴 MODAL - RECOMMANDATIONS FINALES AFFICHÉES:', allRecommendations.length, allRecommendations.map(r => `${r.betType}:${r.prediction}`));
 
   console.log('🚨 DEBUG MatchDetailModal:', {
     matchName: `${match.home_team} vs ${match.away_team}`,
@@ -216,13 +187,11 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     } : null
   });
 
-  // Helper function to get odds from recommendation
   const getOddsFromRecommendation = (opp: any) => {
     if (!opp || !opp.odds) return 0;
     return opp.odds;
   };
 
-  // Save main prediction to database
   const saveMainPrediction = async (mainPrediction: string, confidence: number) => {
     try {
       const { error } = await supabase
@@ -243,7 +212,6 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     }
   };
 
-  // Use first recommendation for main display, show all in detail section
   const mainRecommendation = allRecommendations.length > 0 ? {
     ...normalizeRecommendation(allRecommendations[0]),
     isInverted: opportunities[0]?.isInverted || false,
@@ -252,7 +220,6 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
   
   console.log('🚨 DEBUG MatchDetailModal - Final recommendation after normalize:', mainRecommendation);
   
-  // Get secondary recommendation only if it's different from main
   const secondAIRecommendation = allRecommendations.length > 1 ? {
     ...normalizeRecommendation(allRecommendations[1]),
     isInverted: opportunities[1]?.isInverted || false,
@@ -264,8 +231,6 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                  Math.max(match.p_over_2_5_fair, match.p_under_2_5_fair)
   } : null;
   
-  // No third recommendation needed since we limit to 2 unique ones
-
   console.log('🚨 VRAIES PROBABILITÉS O/U 2.5:', {
     'p_over_2_5_fair': match.p_over_2_5_fair,
     'p_under_2_5_fair': match.p_under_2_5_fair,
@@ -319,7 +284,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                 <Brain className="h-5 w-5 text-primary" />
                 <h3 className="text-lg font-semibold">Analyse IA Complète</h3>
                 <Badge variant="secondary" className="bg-primary/20 text-primary">
-                  {allRecommendations.length} affichée{allRecommendations.length > 1 ? 's' : ''} / {uniqueRecommendations.length} détectée{uniqueRecommendations.length > 1 ? 's' : ''}
+                  {allRecommendations.length} recommandation{allRecommendations.length > 1 ? 's' : ''} détectée{allRecommendations.length > 1 ? 's' : ''}
                 </Badge>
               </div>
               
@@ -328,53 +293,57 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                 <div className="grid gap-3">
                   <h4 className="font-semibold text-primary mb-2 flex items-center gap-2">
                     <Target className="h-4 w-4" />
-                    Opportunités sélectionnées:
+                    Toutes les opportunités détectées:
                   </h4>
-                  {allRecommendations.map((rec, index) => (
-                    <div key={index} className={`p-4 rounded-lg border-l-4 ${
-                      index === 0 ? 'bg-primary/15 border-primary' :
-                      index === 1 ? 'bg-secondary/15 border-secondary' :
-                      'bg-accent/10 border-accent'
-                    }`}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Badge variant={index === 0 ? "default" : "outline"} className="text-xs">
-                              #{index + 1} {index === 0 ? 'PRINCIPALE' : 'SECONDAIRE'}
-                            </Badge>
-                            <span className="font-semibold text-sm">{rec.betType}</span>
-                          </div>
-                          <p className="text-base font-medium text-foreground">
-                            → {rec.prediction}
-                          </p>
-                          <div className="flex items-center gap-3 mt-2">
-                            <Badge variant="outline" className="font-mono">
-                              Cote: {rec.odds.toFixed(2)}
-                            </Badge>
-                            <Badge className={`${getConfidenceColor(rec.confidence)} text-white text-xs`}>
-                              Confiance: {rec.confidence.toUpperCase()}
-                            </Badge>
-                            {rec.isInverted && (
-                              <Badge variant="destructive" className="text-xs">STRATÉGIE INVERSÉE</Badge>
-                            )}
+                  {allRecommendations.map((rec, index) => {
+                    const opportunity = prioritizedOpportunities[index];
+                    return (
+                      <div key={index} className={`p-4 rounded-lg border-l-4 ${
+                        index === 0 ? 'bg-primary/15 border-primary' :
+                        index === 1 ? 'bg-secondary/15 border-secondary' :
+                        index === 2 ? 'bg-accent/15 border-accent' :
+                        'bg-muted/15 border-muted'
+                      }`}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Badge variant={index === 0 ? "default" : "outline"} className="text-xs">
+                                #{index + 1} {index === 0 ? 'PRIORITÉ MAX' : `PRIORITÉ ${opportunity?.priority || 'N/A'}`}
+                              </Badge>
+                              <span className="font-semibold text-sm">{rec.betType}</span>
+                            </div>
+                            <p className="text-base font-medium text-foreground">
+                              → {rec.prediction}
+                            </p>
+                            <div className="flex items-center gap-3 mt-2">
+                              <Badge variant="outline" className="font-mono">
+                                Cote: {rec.odds.toFixed(2)}
+                              </Badge>
+                              <Badge className={`${getConfidenceColor(rec.confidence)} text-white text-xs`}>
+                                Confiance: {rec.confidence.toUpperCase()}
+                              </Badge>
+                              {rec.isInverted && (
+                                <Badge variant="destructive" className="text-xs">STRATÉGIE INVERSÉE</Badge>
+                              )}
+                            </div>
                           </div>
                         </div>
+                        
+                        {/* Reasoning for this recommendation */}
+                        {rec.reason && rec.reason.length > 0 && (
+                          <div className="mt-3 p-2 bg-white/50 rounded text-xs text-muted-foreground">
+                            <strong>Justification:</strong> {rec.reason.join(' • ')}
+                          </div>
+                        )}
                       </div>
-                      
-                      {/* Reasoning for this recommendation */}
-                      {rec.reason && rec.reason.length > 0 && (
-                        <div className="mt-3 p-2 bg-white/50 rounded text-xs text-muted-foreground">
-                          <strong>Justification:</strong> {rec.reason.join(' • ')}
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* Summary Stats */}
                 <div className="mt-4 p-3 bg-muted/30 rounded-lg">
                   <div className="text-sm text-muted-foreground">
-                    <strong>Résumé:</strong> {allRecommendations.length} opportunité{allRecommendations.length > 1 ? 's' : ''} unique{allRecommendations.length > 1 ? 's' : ''} affichée{allRecommendations.length > 1 ? 's' : ''} sur {uniqueRecommendations.length} détectée{uniqueRecommendations.length > 1 ? 's' : ''} • {['1X2', 'BTTS', 'O/U 2.5'].length} marchés analysés
+                    <strong>Résumé:</strong> {allRecommendations.length} recommandation{allRecommendations.length > 1 ? 's' : ''} détectée{allRecommendations.length > 1 ? 's' : ''} et affichée{allRecommendations.length > 1 ? 's' : ''} • {opportunities.length} opportunité{opportunities.length > 1 ? 's' : ''} brute{opportunities.length > 1 ? 's' : ''} analysée{opportunities.length > 1 ? 's' : ''}
                     {allRecommendations.some(r => r.isInverted) && (
                       <span className="ml-2 text-orange-600">• Inclut des stratégies contrariennes</span>
                     )}
@@ -383,6 +352,25 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
               </div>
             </Card>
           )}
+
+          {/* Debug Information */}
+          <Card className="p-4 bg-blue-50">
+            <h3 className="font-semibold mb-2 text-blue-800">🔍 Debug - Traçabilité des recommandations</h3>
+            <div className="space-y-2 text-xs text-blue-700">
+              <div><strong>Opportunités brutes détectées:</strong> {opportunities.length}</div>
+              <div><strong>Après priorisation:</strong> {prioritizedOpportunities.length}</div>
+              <div><strong>Après conversion:</strong> {allDetectedRecommendations.length}</div>
+              <div><strong>Affichées finalement:</strong> {allRecommendations.length}</div>
+              <div className="mt-2">
+                <strong>Détail des opportunités:</strong>
+                <ul className="list-disc list-inside ml-2">
+                  {opportunities.map((opp, i) => (
+                    <li key={i}>{opp.type}: {opp.prediction} (priorité: {opp.priority})</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </Card>
 
           {/* Match Statistics */}
           <div className="grid md:grid-cols-3 gap-4">
