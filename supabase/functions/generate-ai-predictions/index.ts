@@ -44,406 +44,165 @@ interface ProcessedMatch {
   odds_under_2_5?: number;
 }
 
-interface RuleEvaluationContext {
-  vigorish_1x2: number;
-  vigorish_btts: number;
-  vigorish_ou25: number;
-  probability_home: number;
-  probability_draw: number;
-  probability_away: number;
-  probability_btts_yes: number;
-  probability_btts_no: number;
-  probability_over25: number;
-  probability_under25: number;
-  odds_home: number;
-  odds_draw: number;
-  odds_away: number;
-  odds_btts_yes: number | null;
-  odds_btts_no: number | null;
-  odds_over25: number | null;
-  odds_under25: number | null;
+interface AIRecommendation {
+  betType: string;
+  prediction: string;
+  odds: number;
+  confidence: 'high' | 'medium' | 'low';
 }
 
-interface ConditionalRule {
-  id: string;
-  name: string;
-  market: string;
-  conditions: Array<{
-    type: string;
-    operator: string;
-    value: number;
-    value2?: number;
-  }>;
-  logical_connectors: string[];
-  action: string;
-  priority: number;
-  enabled: boolean;
-}
-
-interface RuleEvaluationResult {
-  ruleName: string;
-  market: string;
-  action: string;
-  priority: number;
-  conditionsMet: boolean;
-  evaluationDetails: string;
-}
-
-// Utilise UNIQUEMENT les règles conditionnelles configurées par l'utilisateur
-async function generateAIRecommendationFromRules(match: ProcessedMatch): Promise<{ prediction: string; confidence: number } | null> {
-  console.log('🎯 GÉNÉRATION IA AVEC RÈGLES STRICTES pour:', match.home_team, 'vs', match.away_team);
-  
-  try {
-    // Appel au service de règles conditionnelles via API
-    const context: RuleEvaluationContext = {
-      vigorish_1x2: match.vig_1x2,
-      vigorish_btts: match.vig_btts || 0,
-      vigorish_ou25: match.vig_ou_2_5,
-      probability_home: match.p_home_fair,
-      probability_draw: match.p_draw_fair,
-      probability_away: match.p_away_fair,
-      probability_btts_yes: match.p_btts_yes_fair,
-      probability_btts_no: match.p_btts_no_fair,
-      probability_over25: match.p_over_2_5_fair,
-      probability_under25: match.p_under_2_5_fair,
-      odds_home: match.odds_home,
-      odds_draw: match.odds_draw,
-      odds_away: match.odds_away,
-      odds_btts_yes: match.odds_btts_yes || null,
-      odds_btts_no: match.odds_btts_no || null,
-      odds_over25: match.odds_over_2_5 || null,
-      odds_under25: match.odds_under_2_5 || null
-    };
-
-    // Récupérer et évaluer les règles conditionnelles
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
-    const { data: rules, error: rulesError } = await supabaseClient
-      .from('conditional_rules')
-      .select('*')
-      .eq('enabled', true)
-      .order('priority', { ascending: false });
-
-    if (rulesError) {
-      console.error('❌ Erreur récupération règles:', rulesError);
-      return null;
-    }
-
-    if (!rules || rules.length === 0) {
-      console.log('⚠️ AUCUNE RÈGLE CONFIGURÉE - Aucune recommandation');
-      return null;
-    }
-
-    console.log('📋 RÈGLES DISPONIBLES:', rules.length);
-
-    // Évaluer chaque règle
-    const matchingRules: RuleEvaluationResult[] = [];
-
-    for (const rule of rules) {
-      const ruleResult = evaluateRule(rule, context);
-      console.log(`📋 Règle "${rule.name}": ${ruleResult.conditionsMet ? '✅ MATCH' : '❌ NO MATCH'}`);
-      
-      if (ruleResult.conditionsMet) {
-        matchingRules.push(ruleResult);
-      }
-    }
-
-    // Filtrer les règles "no_recommendation" AVANT tout autre traitement
-    const noRecommendationRules = matchingRules.filter(r => r.action === 'no_recommendation');
-    if (noRecommendationRules.length > 0) {
-      console.log('🚫 RÈGLE no_recommendation ACTIVE - Aucune recommandation:', noRecommendationRules[0].ruleName);
-      return null;
-    }
-
-    // Garder seulement les vraies recommandations
-    const validRules = matchingRules.filter(r => r.action !== 'no_recommendation');
-
-    if (validRules.length === 0) {
-      console.log('⚠️ AUCUNE RÈGLE NE CORRESPOND - Aucune recommandation');
-      return null;
-    }
-
-    // Prendre la règle avec la plus haute priorité
-    const bestRule = validRules.reduce((prev, current) => 
-      current.priority > prev.priority ? current : prev
-    );
-
-    console.log('🎯 RÈGLE SÉLECTIONNÉE:', bestRule.ruleName, '- Action:', bestRule.action);
-
-    // Convertir l'action en prédiction
-    const prediction = convertActionToPrediction(bestRule, context);
-    if (!prediction) {
-      console.log('❌ Impossible de convertir l\'action en prédiction:', bestRule.action);
-      return null;
-    }
-
-    // Calculer la confiance basée sur les probabilités
-    const confidence = calculateConfidence(bestRule, context);
-
-    console.log('✅ PRÉDICTION GÉNÉRÉE:', prediction, '- Confiance:', confidence);
-
-    return {
-      prediction,
-      confidence
-    };
-
-  } catch (error) {
-    console.error('❌ Erreur dans generateAIRecommendationFromRules:', error);
-    return null;
-  }
-}
-
-// Évalue une règle conditionnelle
-function evaluateRule(rule: ConditionalRule, context: RuleEvaluationContext): RuleEvaluationResult {
-  const conditions = rule.conditions || [];
-  const connectors = rule.logical_connectors || [];
-  
-  if (conditions.length === 0) {
-    return {
-      ruleName: rule.name,
-      market: rule.market,
-      action: rule.action,
-      priority: rule.priority,
-      conditionsMet: false,
-      evaluationDetails: 'Aucune condition définie'
-    };
-  }
-
-  // Évaluer chaque condition
-  const conditionResults = conditions.map(condition => {
-    const value = getContextValue(condition.type, rule.market, context);
-    return evaluateCondition(condition, value);
+function generateAIRecommendation(match: ProcessedMatch, marketFilters: string[] = []): { prediction: string; confidence: number } | null {
+  console.log('=== Génération prédiction IA pour ===', {
+    league: match.league,
+    home_team: match.home_team,
+    away_team: match.away_team,
+    odds_btts_yes: match.odds_btts_yes,
+    odds_btts_no: match.odds_btts_no,
+    p_btts_yes_fair: match.p_btts_yes_fair,
+    p_btts_no_fair: match.p_btts_no_fair,
+    p_over_2_5_fair: match.p_over_2_5_fair,
+    p_under_2_5_fair: match.p_under_2_5_fair,
+    vig_btts: match.vig_btts,
+    vig_ou_2_5: match.vig_ou_2_5
   });
 
-  // Appliquer les connecteurs logiques
-  let result = conditionResults[0];
-  for (let i = 0; i < connectors.length && i + 1 < conditionResults.length; i++) {
-    const connector = connectors[i];
-    const nextResult = conditionResults[i + 1];
+  // Détection des égalités 50/50
+  const isOUEqual = Math.abs((match.p_over_2_5_fair || 0) - (match.p_under_2_5_fair || 0)) <= 0.01;
+  const isBTTSEqual = Math.abs((match.p_btts_yes_fair || 0) - (match.p_btts_no_fair || 0)) <= 0.01;
+  
+  if (isOUEqual) {
+    console.log('🔄 O/U égalité détectée (50%/50%) → Exclusion O/U, fallback sur BTTS uniquement');
+  }
+  if (isBTTSEqual) {
+    console.log('🔄 BTTS égalité détectée (50%/50%) → Exclusion BTTS, fallback sur O/U uniquement');
+  }
+
+  // Analyser uniquement les marchés BTTS et Over/Under selon les filtres
+  const markets = [];
+
+  // Vérifier si les filtres de marchés permettent les marchés BTTS
+  const allowBttsYes = marketFilters.length === 0 || marketFilters.includes('btts_yes');
+  const allowBttsNo = marketFilters.length === 0 || marketFilters.includes('btts_no');
+  const allowOver25 = marketFilters.length === 0 || marketFilters.includes('over25');
+  const allowUnder25 = marketFilters.length === 0 || marketFilters.includes('under25');
+
+  // Marché BTTS - évaluer seulement si pas d'égalité 50/50
+  if (!isBTTSEqual) {
+    const bttsSuggestions = [];
     
-    if (connector === 'AND') {
-      result = result && nextResult;
-    } else if (connector === 'OR') {
-      result = result || nextResult;
+    if (allowBttsYes && match.odds_btts_yes && match.odds_btts_yes >= 1.3 && match.p_btts_yes_fair && match.p_btts_yes_fair > 0.45) {
+      const score = match.p_btts_yes_fair * match.odds_btts_yes * (1 + match.vig_btts);
+      console.log('BTTS YES passed all conditions, score:', score);
+      bttsSuggestions.push({
+        betType: 'BTTS',
+        prediction: 'Oui',
+        odds: match.odds_btts_yes,
+        probability: match.p_btts_yes_fair,
+        vigorish: match.vig_btts,
+        score,
+        confidence: match.p_btts_yes_fair > 0.65 && match.vig_btts > 0.08 ? 'high' : 'medium'
+      });
+    }
+    
+    if (allowBttsNo && match.odds_btts_no && match.odds_btts_no >= 1.3 && match.p_btts_no_fair && match.p_btts_no_fair > 0.45) {
+      const score = match.p_btts_no_fair * match.odds_btts_no * (1 + match.vig_btts);
+      console.log('BTTS NO passed all conditions, score:', score);
+      bttsSuggestions.push({
+        betType: 'BTTS',
+        prediction: 'Non',
+        odds: match.odds_btts_no,
+        probability: match.p_btts_no_fair,
+        vigorish: match.vig_btts,
+        score,
+        confidence: match.p_btts_no_fair > 0.65 && match.vig_btts > 0.08 ? 'high' : 'medium'
+      });
+    }
+
+    console.log('BTTS suggestions count:', bttsSuggestions.length);
+
+    // Garder seulement la meilleure option BTTS
+    if (bttsSuggestions.length > 0) {
+      const bestBtts = bttsSuggestions.reduce((prev, current) => {
+        const scoreDifference = Math.abs(current.score - prev.score);
+        console.log('Comparing BTTS scores:', prev.prediction, prev.score, 'vs', current.prediction, current.score);
+        
+        // Si les scores sont très proches (différence < 0.001), choisir celui avec la plus haute probabilité
+        if (scoreDifference < 0.001) {
+          console.log('Scores égaux, choisir par probabilité:', prev.probability, 'vs', current.probability);
+          return current.probability > prev.probability ? current : prev;
+        }
+        
+        return current.score > prev.score ? current : prev;
+      });
+      console.log('Best BTTS chosen:', bestBtts.prediction, 'with score:', bestBtts.score, 'and probability:', bestBtts.probability);
+      
+      // Ajouter le préfixe BTTS à la prédiction
+      bestBtts.prediction = `BTTS ${bestBtts.prediction}`;
+      
+      markets.push(bestBtts);
     }
   }
 
+  // Marché Over/Under 2.5 - évaluer seulement si pas d'égalité 50/50
+  if (!isOUEqual) {
+    const ouSuggestions = [];
+    if (allowOver25 && match.odds_over_2_5 && match.odds_over_2_5 >= 1.3 && match.p_over_2_5_fair > 0.45) {
+      const score = match.p_over_2_5_fair * match.odds_over_2_5 * (1 + match.vig_ou_2_5);
+      ouSuggestions.push({
+        betType: 'O/U 2.5',
+        prediction: '+2,5 buts',
+        odds: match.odds_over_2_5,
+        probability: match.p_over_2_5_fair,
+        vigorish: match.vig_ou_2_5,
+        score,
+        confidence: match.p_over_2_5_fair > 0.65 && match.vig_ou_2_5 > 0.08 ? 'high' : 'medium'
+      });
+    }
+    
+    if (allowUnder25 && match.odds_under_2_5 && match.odds_under_2_5 >= 1.3 && match.p_under_2_5_fair > 0.45) {
+      const score = match.p_under_2_5_fair * match.odds_under_2_5 * (1 + match.vig_ou_2_5);
+      ouSuggestions.push({
+        betType: 'O/U 2.5',
+        prediction: '-2,5 buts',
+        odds: match.odds_under_2_5,
+        probability: match.p_under_2_5_fair,
+        vigorish: match.vig_ou_2_5,
+        score,
+        confidence: match.p_under_2_5_fair > 0.65 && match.vig_ou_2_5 > 0.08 ? 'high' : 'medium'
+      });
+    }
+
+    // Garder seulement la meilleure option Over/Under
+    if (ouSuggestions.length > 0) {
+      const bestOU = ouSuggestions.reduce((prev, current) => 
+        current.score > prev.score ? current : prev
+      );
+      markets.push(bestOU);
+    }
+  }
+
+  console.log('Total markets found:', markets.length);
+
+  // Retourner le marché avec le meilleur score global (priorisant vigorish élevé)
+  if (markets.length === 0) {
+    console.log('No markets found - both markets may be at 50/50 equality or insufficient data');
+    return null;
+  }
+  
+  const bestMarket = markets.reduce((prev, current) => 
+    current.score > prev.score ? current : prev
+  );
+  
+  console.log('Final best market:', bestMarket.betType, '-', bestMarket.prediction);
+  
+  // Convertir la confiance en score numérique
+  const confidenceScore = bestMarket.confidence === 'high' ? 0.8 : 
+                         bestMarket.confidence === 'medium' ? 0.6 : 0.4;
+  
   return {
-    ruleName: rule.name,
-    market: rule.market,
-    action: rule.action,
-    priority: rule.priority,
-    conditionsMet: result,
-    evaluationDetails: `Conditions: ${conditionResults.map((r, i) => `${conditions[i].type}=${r}`).join(' ')}`
+    prediction: bestMarket.prediction,
+    confidence: confidenceScore
   };
-}
-
-// Évalue une condition individuelle
-function evaluateCondition(condition: any, value: number): boolean {
-  const { operator, value: conditionValue, value2 } = condition;
-  
-  switch (operator) {
-    case '>':
-      return value > conditionValue;
-    case '<':
-      return value < conditionValue;
-    case '>=':
-      return value >= conditionValue;
-    case '<=':
-      return value <= conditionValue;
-    case '=':
-      return Math.abs(value - conditionValue) < 0.001;
-    case '!=':
-      return Math.abs(value - conditionValue) >= 0.001;
-    case 'between':
-      return value >= conditionValue && value <= (value2 || conditionValue);
-    case 'not_between':
-      return !(value >= conditionValue && value <= (value2 || conditionValue));
-    default:
-      return false;
-  }
-}
-
-// Récupère la valeur du contexte pour une condition
-function getContextValue(conditionType: string, market: string, context: RuleEvaluationContext): number {
-  // Convertir les vigorish en pourcentage si nécessaire
-  const vigMultiplier = conditionType.includes('vigorish') ? 100 : 1;
-  // Convertir les probabilités en pourcentage si nécessaire  
-  const probMultiplier = conditionType.includes('probability') ? 100 : 1;
-
-  switch (conditionType) {
-    case 'vigorish':
-      if (market === '1x2') return context.vigorish_1x2 * vigMultiplier;
-      if (market === 'btts') return context.vigorish_btts * vigMultiplier;
-      if (market === 'ou25') return context.vigorish_ou25 * vigMultiplier;
-      return 0;
-    
-    case 'probability_home':
-      return context.probability_home * probMultiplier;
-    case 'probability_draw':
-      return context.probability_draw * probMultiplier;
-    case 'probability_away':
-      return context.probability_away * probMultiplier;
-    case 'probability_btts_yes':
-      return context.probability_btts_yes * probMultiplier;
-    case 'probability_btts_no':
-      return context.probability_btts_no * probMultiplier;
-    case 'probability_over25':
-      return context.probability_over25 * probMultiplier;
-    case 'probability_under25':
-      return context.probability_under25 * probMultiplier;
-    
-    case 'odds_home':
-      return context.odds_home;
-    case 'odds_draw':
-      return context.odds_draw;
-    case 'odds_away':
-      return context.odds_away;
-    case 'odds_btts_yes':
-      return context.odds_btts_yes || 0;
-    case 'odds_btts_no':
-      return context.odds_btts_no || 0;
-    case 'odds_over25':
-      return context.odds_over25 || 0;
-    case 'odds_under25':
-      return context.odds_under25 || 0;
-    
-    default:
-      return 0;
-  }
-}
-
-// Convertit une action de règle en prédiction lisible
-function convertActionToPrediction(rule: RuleEvaluationResult, context: RuleEvaluationContext): string | null {
-  const { action, market } = rule;
-
-  switch (action) {
-    case 'recommend_home':
-      return '1X2 Victoire domicile';
-    case 'recommend_draw':
-      return '1X2 Match nul';
-    case 'recommend_away':
-      return '1X2 Victoire extérieur';
-    case 'recommend_yes':
-      return 'BTTS Oui';
-    case 'recommend_no':
-      return 'BTTS Non';
-    case 'recommend_over':
-      return 'OU 2.5 +2,5 buts';
-    case 'recommend_under':
-      return 'OU 2.5 -2,5 buts';
-    case 'recommend_most_probable':
-      return getMostProbablePrediction(market, context);
-    case 'recommend_least_probable':
-      return getLeastProbablePrediction(market, context);
-    case 'recommend_double_chance_least_probable':
-      return getDoubleChanceLeastProbable(context);
-    case 'recommend_refund_if_draw':
-      const mostProbableTeam = getMostProbableTeamExcludingDraw(context);
-      return mostProbableTeam === 'home' ? '1X2 Victoire domicile (Remboursé si nul)' : '1X2 Victoire extérieur (Remboursé si nul)';
-    default:
-      return null;
-  }
-}
-
-// Fonctions helper identiques à celles d'opportunityDetection.ts
-function getMostProbablePrediction(market: string, context: RuleEvaluationContext): string {
-  if (market === '1x2') {
-    const highest = Math.max(context.probability_home, context.probability_draw, context.probability_away);
-    if (highest === context.probability_home) return '1X2 Victoire domicile';
-    if (highest === context.probability_away) return '1X2 Victoire extérieur';
-    return '1X2 Match nul';
-  }
-  
-  if (market === 'btts') {
-    const probYes = context.probability_btts_yes || 0;
-    const probNo = context.probability_btts_no || 0;
-    return probYes > probNo ? 'BTTS Oui' : 'BTTS Non';
-  }
-  
-  if (market === 'ou25') {
-    const probOver = context.probability_over25 || 0;
-    const probUnder = context.probability_under25 || 0;
-    return probOver > probUnder ? 'OU 2.5 +2,5 buts' : 'OU 2.5 -2,5 buts';
-  }
-  
-  return 'Unknown';
-}
-
-function getLeastProbablePrediction(market: string, context: RuleEvaluationContext): string {
-  if (market === '1x2') {
-    const lowest = Math.min(context.probability_home, context.probability_draw, context.probability_away);
-    if (lowest === context.probability_home) return '1X2 Victoire domicile';
-    if (lowest === context.probability_away) return '1X2 Victoire extérieur';
-    return '1X2 Match nul';
-  }
-  
-  if (market === 'btts') {
-    const probYes = context.probability_btts_yes || 0;
-    const probNo = context.probability_btts_no || 0;
-    return probYes < probNo ? 'BTTS Oui' : 'BTTS Non';
-  }
-  
-  if (market === 'ou25') {
-    const probOver = context.probability_over25 || 0;
-    const probUnder = context.probability_under25 || 0;
-    return probOver < probUnder ? 'OU 2.5 +2,5 buts' : 'OU 2.5 -2,5 buts';
-  }
-  
-  return 'Unknown';
-}
-
-function getDoubleChanceLeastProbable(context: RuleEvaluationContext): string {
-  const outcomes = [
-    { name: 'home', probability: context.probability_home },
-    { name: 'draw', probability: context.probability_draw },
-    { name: 'away', probability: context.probability_away }
-  ];
-  
-  outcomes.sort((a, b) => a.probability - b.probability);
-  
-  const leastProbable1 = outcomes[0].name;
-  const leastProbable2 = outcomes[1].name;
-  const combination = `${leastProbable1}_${leastProbable2}`;
-  
-  switch (combination) {
-    case 'home_draw':
-    case 'draw_home':
-      return '1X2 1X';
-    case 'home_away':
-    case 'away_home':
-      return '1X2 12';
-    case 'draw_away':
-    case 'away_draw':
-      return '1X2 X2';
-    default:
-      return '1X2 1X';
-  }
-}
-
-function getMostProbableTeamExcludingDraw(context: RuleEvaluationContext): 'home' | 'away' {
-  return context.probability_home > context.probability_away ? 'home' : 'away';
-}
-
-function calculateConfidence(rule: RuleEvaluationResult, context: RuleEvaluationContext): number {
-  // Confiance basée sur la probabilité la plus élevée du marché
-  let maxProbability = 0;
-  
-  if (rule.market === '1x2') {
-    maxProbability = Math.max(context.probability_home, context.probability_draw, context.probability_away);
-  } else if (rule.market === 'btts') {
-    maxProbability = Math.max(context.probability_btts_yes, context.probability_btts_no);
-  } else if (rule.market === 'ou25') {
-    maxProbability = Math.max(context.probability_over25, context.probability_under25);
-  }
-  
-  // Ajuster la confiance selon la priorité de la règle
-  const priorityBonus = Math.min(rule.priority / 10, 0.2); // Max 20% bonus
-  
-  return Math.min(maxProbability + priorityBonus, 1.0);
 }
 
 Deno.serve(async (req) => {
@@ -531,8 +290,8 @@ Deno.serve(async (req) => {
           odds_under_2_5: match.odds_under_2_5 ? Number(match.odds_under_2_5) : undefined,
         };
 
-        // Générer la prédiction IA UNIQUEMENT via les règles configurées
-        const aiRecommendation = await generateAIRecommendationFromRules(processedMatch);
+        // Générer la prédiction IA
+        const aiRecommendation = generateAIRecommendation(processedMatch);
         
         if (aiRecommendation) {
           updates.push({

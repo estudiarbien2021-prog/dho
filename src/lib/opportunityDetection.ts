@@ -399,45 +399,208 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
     'no_rec_détail': noRecommendations.map(r => `${r.type}:${r.prediction}`)
   });
   
-  // CORRECTION: Supprimer TOUTE résolution de conflit automatique
-  // Les règles configurées par l'utilisateur sont PRIORITAIRES
-  console.log('🎯 PRIORISATION STRICTE - Garder toutes les recommandations des règles configurées');
+  // ÉTAPE 1.5: Résoudre les conflits en gardant la cote la plus élevée
+  const resolveConflictsByHighestOdds = (recommendations: DetectedOpportunity[]): DetectedOpportunity[] => {
+    const groupedByMarket = new Map<string, DetectedOpportunity[]>();
+    
+    // Grouper par marché
+    recommendations.forEach(rec => {
+      if (!groupedByMarket.has(rec.type)) {
+        groupedByMarket.set(rec.type, []);
+      }
+      groupedByMarket.get(rec.type)!.push(rec);
+    });
+    
+    const resolvedRecommendations: DetectedOpportunity[] = [];
+    
+    // Pour chaque marché, résoudre les conflits
+    groupedByMarket.forEach((recs, market) => {
+      if (recs.length <= 1) {
+        // Pas de conflit
+        resolvedRecommendations.push(...recs);
+        return;
+      }
+      
+      // Détecter les conflits selon le type de marché
+      const conflicts: DetectedOpportunity[][] = [];
+      
+      if (market === 'BTTS') {
+        const yesRecs = recs.filter(r => r.prediction === 'Oui');
+        const noRecs = recs.filter(r => r.prediction === 'Non');
+        if (yesRecs.length > 0 && noRecs.length > 0) {
+          conflicts.push([...yesRecs, ...noRecs]);
+        } else {
+          resolvedRecommendations.push(...recs);
+        }
+      } else if (market === 'O/U 2.5' || market === 'OU25') {
+        const overRecs = recs.filter(r => r.prediction === '+2,5 buts');
+        const underRecs = recs.filter(r => r.prediction === '-2,5 buts');
+        if (overRecs.length > 0 && underRecs.length > 0) {
+          conflicts.push([...overRecs, ...underRecs]);
+        } else {
+          resolvedRecommendations.push(...recs);
+        }
+      } else if (market === '1X2' || market === 'Double Chance') {
+        // Pour 1X2, on peut avoir des conflits entre victoires opposées
+        const homeRecs = recs.filter(r => r.prediction === 'Victoire domicile' || r.prediction === match.home_team);
+        const awayRecs = recs.filter(r => r.prediction === 'Victoire extérieur' || r.prediction === match.away_team);
+        const drawRecs = recs.filter(r => r.prediction === 'Match nul' || r.prediction === 'Nul');
+        
+        if (homeRecs.length > 0 && awayRecs.length > 0) {
+          conflicts.push([...homeRecs, ...awayRecs]);
+        }
+        // Ajouter les autres sans conflit
+        resolvedRecommendations.push(...drawRecs);
+        if (conflicts.length === 0) {
+          resolvedRecommendations.push(...homeRecs, ...awayRecs);
+        }
+      } else {
+        // Marché inconnu, pas de résolution de conflit
+        resolvedRecommendations.push(...recs);
+      }
+      
+      // Résoudre chaque conflit en gardant la cote la plus élevée
+      conflicts.forEach(conflictGroup => {
+        const highestOddsRec = conflictGroup.reduce((max, current) => 
+          current.odds > max.odds ? current : max
+        );
+        
+        console.log('🎯 CONFLIT RÉSOLU PAR COTE LA PLUS ÉLEVÉE:', {
+          'marché': market,
+          'conflit': conflictGroup.map(r => `${r.prediction}(${r.odds})`),
+          'choisi': `${highestOddsRec.prediction}(${highestOddsRec.odds})`
+        });
+        
+        resolvedRecommendations.push(highestOddsRec);
+      });
+    });
+    
+    return resolvedRecommendations;
+  };
   
-  // Grouper par priorité et garder seulement la plus haute priorité
-  const highestPriority = Math.max(...realRecommendations.map(r => r.priority));
-  const highestPriorityRecommendations = realRecommendations.filter(r => r.priority === highestPriority);
+  const deduplicatedRecommendations = resolveConflictsByHighestOdds(realRecommendations);
   
-  console.log('🏆 RECOMMANDATIONS PRIORITÉ MAX:', highestPriorityRecommendations.length, 'avec priorité', highestPriority);
+  console.log('🔧 DÉDUPLICATION PAR COTES:', {
+    'avant': realRecommendations.length,
+    'après': deduplicatedRecommendations.length,
+    'supprimés': realRecommendations.length - deduplicatedRecommendations.length
+  });
   
-  // Si plusieurs règles ont la même priorité, garder la première (ordre de définition)
-  const finalRecommendations = highestPriorityRecommendations.slice(0, 1);
+  // Calculer la probabilité réelle pour chaque recommandation
+  const calculateRealProbability = (opp: DetectedOpportunity) => {
+    let probability = 0;
+    
+    if (opp.type === '1X2' || opp.type === 'Double Chance') {
+      const probHome = match.p_home_fair;
+      const probDraw = match.p_draw_fair;
+      const probAway = match.p_away_fair;
+      
+      if (opp.prediction === 'Victoire domicile' || opp.prediction === match.home_team) probability = probHome;
+      else if (opp.prediction === 'Victoire extérieur' || opp.prediction === match.away_team) probability = probAway;
+      else if (opp.prediction === 'Match nul' || opp.prediction === 'Nul') probability = probDraw;
+      else if (opp.prediction === '1X') probability = probHome + probDraw; // Double chance
+      else if (opp.prediction === 'X2') probability = probDraw + probAway; // Double chance
+      else if (opp.prediction === '12') probability = probHome + probAway; // Double chance
+      else probability = Math.max(probHome, probDraw, probAway); // Fallback
+      
+    } else if (opp.type === 'BTTS') {
+      if (opp.prediction === 'Oui') probability = match.p_btts_yes_fair;
+      else if (opp.prediction === 'Non') probability = match.p_btts_no_fair;
+      else probability = Math.max(match.p_btts_yes_fair, match.p_btts_no_fair); // Fallback
+      
+    } else if (opp.type === 'O/U 2.5' || opp.type === 'OU25') {
+      if (opp.prediction === '+2,5 buts') probability = match.p_over_2_5_fair;
+      else if (opp.prediction === '-2,5 buts') probability = match.p_under_2_5_fair;
+      else probability = Math.max(match.p_over_2_5_fair, match.p_under_2_5_fair); // Fallback
+    }
+    
+    return probability;
+  };
   
-  console.log('✅ RECOMMANDATION FINALE:', finalRecommendations.map(r => `${r.type}:${r.prediction}`));
+  // ÉTAPE 2: Trier les vraies recommandations par priorité puis probabilité réelle
+  const sortRealRecommendations = (recommendations: DetectedOpportunity[]) => {
+    return [...recommendations].sort((a, b) => {
+      // D'abord, trier par priorité (croissant: chiffre plus bas = priorité plus élevée)
+      if (a.priority !== b.priority) {
+        console.log('🎯 TRI VRAIES REC PAR PRIORITÉ:', {
+          'a.type': a.type,
+          'a.prediction': a.prediction,
+          'a.priority': a.priority,
+          'b.type': b.type,
+          'b.prediction': b.prediction,
+          'b.priority': b.priority,
+          'choix': a.priority < b.priority ? 'a (priorité plus élevée)' : 'b'
+        });
+        return a.priority - b.priority;
+      }
+      
+      // Si les priorités sont égales, trier par probabilité réelle décroissante
+      const aProbability = calculateRealProbability(a);
+      const bProbability = calculateRealProbability(b);
+      
+      console.log('🔄 MÊME PRIORITÉ - COMPARAISON PROBABILITÉS RÉELLES:', {
+        'a.type': a.type,
+        'a.prediction': a.prediction,
+        'a.realProbability': (aProbability * 100).toFixed(1) + '%',
+        'b.type': b.type,
+        'b.prediction': b.prediction,
+        'b.realProbability': (bProbability * 100).toFixed(1) + '%'
+      });
+      
+      // Si les probabilités sont très proches (différence < 0.01), trier par vigorish décroissant
+      if (Math.abs(aProbability - bProbability) < 0.01) {
+        const aVigorish = a.type === '1X2' || a.type === 'Double Chance' ? match.vig_1x2 : 
+                         a.type === 'BTTS' ? match.vig_btts : 
+                         (a.type === 'O/U 2.5' || a.type === 'OU25') ? match.vig_ou_2_5 : match.vig_ou_2_5;
+        const bVigorish = b.type === '1X2' || b.type === 'Double Chance' ? match.vig_1x2 : 
+                         b.type === 'BTTS' ? match.vig_btts : 
+                         (b.type === 'O/U 2.5' || b.type === 'OU25') ? match.vig_ou_2_5 : match.vig_ou_2_5;
+        
+        console.log('🔄 ÉGALITÉ PROBABILITÉ - TRI PAR VIGORISH:', {
+          'a.vigorish': (aVigorish * 100).toFixed(1) + '%',
+          'b.vigorish': (bVigorish * 100).toFixed(1) + '%',
+          'choix': bVigorish > aVigorish ? 'b (vigorish plus élevé)' : 'a'
+        });
+        
+        return bVigorish - aVigorish; // Vigorish décroissant en cas d'égalité
+      }
+      
+      // Sinon, trier par probabilité RÉELLE décroissante
+      return bProbability - aProbability;
+    });
+  };
+  
+  // ÉTAPE 3: Prioriser les vraies recommandations, puis les no_recommendation seulement si nécessaire
+  let finalRecommendations: DetectedOpportunity[] = [];
+  
+  if (deduplicatedRecommendations.length > 0) {
+    // Il y a des vraies recommandations : les prioriser
+    const sortedRealRecommendations = sortRealRecommendations(deduplicatedRecommendations);
+    finalRecommendations = sortedRealRecommendations;
+    
+    console.log('✅ VRAIES RECOMMANDATIONS TROUVÉES - IGNORANT LES NO_RECOMMENDATION:', {
+      'vraies_recommandations': sortedRealRecommendations.length,
+      'no_recommendations_ignorées': noRecommendations.length
+    });
+  } else {
+    // Aucune vraie recommandation : utiliser les no_recommendation
+    const sortedNoRecommendations = [...noRecommendations].sort((a, b) => a.priority - b.priority);
+    finalRecommendations = sortedNoRecommendations;
+    
+    console.log('⚠️ AUCUNE VRAIE RECOMMANDATION - UTILISANT NO_RECOMMENDATION:', {
+      'no_recommendations': sortedNoRecommendations.length
+    });
+  }
+  
+  console.log('🎯 PRIORISATION CENTRALISÉE - ORDRE FINAL:', finalRecommendations.map((o, i) => {
+    const realProb = calculateRealProbability(o);
+    const vig = o.type === '1X2' || o.type === 'Double Chance' ? match.vig_1x2 : 
+                o.type === 'BTTS' ? match.vig_btts : 
+                (o.type === 'O/U 2.5' || o.type === 'OU25') ? match.vig_ou_2_5 : match.vig_ou_2_5;
+    return `${i+1}. ${o.type}:${o.prediction} (prob:${(realProb*100).toFixed(1)}%, vig:${(vig*100).toFixed(1)}%, inv:${o.isInverted})`;
+  }));
   
   return finalRecommendations;
-}
-
-// Helper function to get real probability for an opportunity
-function getRealProbabilityForOpportunity(opp: DetectedOpportunity, match: ProcessedMatch): number {
-  if (opp.type === 'BTTS') {
-    return opp.prediction === 'Oui' ? match.p_btts_yes_fair : match.p_btts_no_fair;
-  }
-  if (opp.type === 'O/U 2.5' || opp.type === 'OU25') {
-    return opp.prediction === '+2,5 buts' ? match.p_over_2_5_fair : match.p_under_2_5_fair;
-  }
-  if (opp.type === '1X2') {
-    if (opp.prediction === 'Victoire domicile') return match.p_home_fair;
-    if (opp.prediction === 'Victoire extérieur') return match.p_away_fair;
-    return match.p_draw_fair;
-  }
-  return 0;
-}
-
-// Helper function to get vigorish for an opportunity
-function getVigorishForOpportunity(opp: DetectedOpportunity, match: ProcessedMatch): number {
-  if (opp.type === 'BTTS') return match.vig_btts;
-  if (opp.type === 'O/U 2.5' || opp.type === 'OU25') return match.vig_ou_2_5;
-  return match.vig_1x2;
 }
 
 export function convertOpportunityToAIRecommendation(opportunity: DetectedOpportunity) {
