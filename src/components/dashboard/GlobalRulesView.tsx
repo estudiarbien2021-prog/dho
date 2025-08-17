@@ -57,12 +57,21 @@ function SortableRow({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: rule.id });
+  } = useSortable({ 
+    id: rule.id,
+    data: {
+      type: 'rule',
+      rule,
+    },
+  });
+
+  console.log('SortableRow rendered for rule:', rule.id, 'isDragging:', isDragging);
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 1000 : 1,
   };
 
   return (
@@ -74,14 +83,21 @@ function SortableRow({
       }`}
     >
       <div className="flex items-center gap-2">
-        <button
-          className="cursor-grab hover:bg-muted p-2 rounded touch-none select-none transition-colors"
+        <div
+          className="cursor-grab hover:bg-muted p-2 rounded touch-none select-none transition-colors bg-blue-100"
           style={{ touchAction: 'none' }}
           {...attributes}
           {...listeners}
+          onMouseDown={(e) => {
+            console.log('Mouse down on drag handle for rule:', rule.id);
+            e.stopPropagation();
+          }}
+          onDragStart={(e) => {
+            console.log('Drag start for rule:', rule.id);
+          }}
         >
           <GripVertical className="h-4 w-4 text-muted-foreground" />
-        </button>
+        </div>
         <Checkbox
           checked={selectedRules.includes(rule.id)}
           onCheckedChange={(checked) => onSelectRule(rule.id, checked as boolean)}
@@ -143,13 +159,16 @@ export function GlobalRulesView({}: GlobalRulesViewProps) {
   const sensors = useSensors(
     useSensor(MouseSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 5,
+        delay: 100,
       },
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  console.log('GlobalRulesView rendered with', filteredRules.length, 'rules');
 
   useEffect(() => {
     loadRules();
@@ -223,14 +242,20 @@ export function GlobalRulesView({}: GlobalRulesViewProps) {
     return `Si ${conditions} → ${action}`;
   };
 
+  const handleDragStart = (event: any) => {
+    console.log('🚀 Drag start:', event.active.id);
+  };
+
   const handleDragEnd = async (event: DragEndEvent) => {
+    console.log('🏁 Drag end event:', event);
     const { active, over } = event;
 
     if (!over || active.id === over.id) {
+      console.log('❌ No drop target or same position');
       return;
     }
 
-    console.log('Drag end event:', { activeId: active.id, overId: over.id });
+    console.log('✅ Valid drag end:', { activeId: active.id, overId: over.id });
 
     setSaving(true);
     
@@ -506,7 +531,9 @@ export function GlobalRulesView({}: GlobalRulesViewProps) {
               <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}
+                onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
+                onDragOver={(event) => console.log('Drag over:', event)}
               >
                 <SortableContext
                   items={filteredRules.map(rule => rule.id)}
