@@ -193,21 +193,20 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     );
   }
   
-  // Utiliser la fonction centralisée de priorisation
-  const prioritizedOpportunities = prioritizeOpportunitiesByRealProbability(opportunities, match);
-  const allAIRecommendations = prioritizedOpportunities.map(convertOpportunityToAIRecommendation);
+  // Process all opportunities and show them in the modal
+  const allRecommendations = opportunities.map(convertOpportunityToAIRecommendation);
+  
+  console.log('🔴 MODAL - TOUTES LES RECOMMANDATIONS:', allRecommendations.length, allRecommendations.map(r => `${r.betType}:${r.prediction}`));
 
   console.log('🚨 DEBUG MatchDetailModal:', {
     matchName: `${match.home_team} vs ${match.away_team}`,
     totalOpportunities: opportunities.length,
-    prioritizedCount: prioritizedOpportunities.length,
-    firstOpportunity: prioritizedOpportunities[0] ? {
-      type: prioritizedOpportunities[0].type,
-      prediction: prioritizedOpportunities[0].prediction,
-      odds: prioritizedOpportunities[0].odds,
-      isInverted: prioritizedOpportunities[0].isInverted
-    } : null,
-    firstAIRec: allAIRecommendations[0]
+    allRecommendations: allRecommendations.length,
+    firstRecommendation: allRecommendations[0] ? {
+      betType: allRecommendations[0].betType,
+      prediction: allRecommendations[0].prediction,
+      odds: allRecommendations[0].odds
+    } : null
   });
 
   // Helper function to get odds from recommendation
@@ -237,62 +236,14 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     }
   };
 
-  // Les recommandations sont déjà triées par priorité dans prioritizeOpportunities
-  const prioritizeRecommendations = (recs: any[], opps: any[]) => {
-    const combined = recs.map((rec, index) => ({ rec, opp: opps[index] }));
-    
-    // Les opportunités sont déjà dans le bon ordre de priorité
-    console.log('🔴 RECOMMANDATIONS FINALES:', combined.map((c, i) => `${i+1}. ${c.opp.type}:${c.opp.prediction}(inverted:${c.opp.isInverted})`));
-    
-    return combined;
-
-    // Save the main prediction if we have recommendations
-    if (combined.length > 0) {
-      const mainRec = combined[0];
-      const formatPrediction = (betType: string, prediction: string) => {
-        switch (betType) {
-          case 'BTTS':
-            return prediction === 'Oui' ? 'BTTS Oui' : 'BTTS Non';
-          case 'O/U 2.5':
-            return prediction === '+2,5 buts' ? 'OU 2.5 +2,5 buts' : 'OU 2.5 -2,5 buts';
-          case '1X2':
-            if (prediction === 'Victoire domicile') return '1';
-            if (prediction === 'Match nul') return 'X';
-            return '2';
-          default:
-            return `${betType} ${prediction}`;
-        }
-      };
-
-      const mainPrediction = formatPrediction(mainRec.opp?.type || '', mainRec.opp?.prediction || '');
-      const confidence = (mainRec.opp?.odds || 0) * 100;
-      
-      // Only save if we don't have a prediction yet or if it's different
-      if (!match.ai_prediction || match.ai_prediction !== mainPrediction) {
-        saveMainPrediction(mainPrediction, confidence);
-      }
-    }
-
-    return combined;
-  };
-
-  // Convertir les opportunités priorisées en recommandations IA
-  const prioritizedRecommendations = prioritizedOpportunities.map(opp => ({
-    rec: convertOpportunityToAIRecommendation(opp),
-    opp: opp
-  }));
-
-  // Utiliser les recommandations déjà priorisées par la logique centralisée
-  const finalRecommendations = prioritizedRecommendations;
-  
-  // Map prioritized opportunities to the three recommendation slots
-  const recommendation = finalRecommendations.length > 0 ? {
-    ...normalizeRecommendation(finalRecommendations[0].rec),
-    isInverted: finalRecommendations[0].opp?.isInverted || false,
-    reason: finalRecommendations[0].opp?.reason || []
+  // Use first recommendation for main display, show all in detail section
+  const mainRecommendation = allRecommendations.length > 0 ? {
+    ...normalizeRecommendation(allRecommendations[0]),
+    isInverted: opportunities[0]?.isInverted || false,
+    reason: opportunities[0]?.reason || []
   } : null;
   
-  console.log('🚨 DEBUG MatchDetailModal - Final recommendation after normalize:', recommendation);
+  console.log('🚨 DEBUG MatchDetailModal - Final recommendation after normalize:', mainRecommendation);
   
   const secondAIRecommendation = finalRecommendations.length > 1 ? {
     ...normalizeRecommendation(finalRecommendations[1].rec), 
