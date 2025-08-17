@@ -55,11 +55,11 @@ export default function SimplifiedRulesBuilder() {
   };
 
   const createNewRule = (): ConditionalRule => ({
-    id: `rule-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    id: crypto.randomUUID(),
     name: `Nouvelle règle ${selectedMarket.toUpperCase()}`,
     market: selectedMarket,
     conditions: [{
-      id: `cond-${Date.now()}`,
+      id: crypto.randomUUID(),
       type: CONDITION_OPTIONS[selectedMarket][0],
       operator: '>',
       value: 0
@@ -118,7 +118,7 @@ export default function SimplifiedRulesBuilder() {
     if (!rule) return;
 
     const newCondition: Condition = {
-      id: `cond-${Date.now()}`,
+      id: crypto.randomUUID(),
       type: CONDITION_OPTIONS[rule.market][0],
       operator: '>',
       value: 0
@@ -199,12 +199,19 @@ export default function SimplifiedRulesBuilder() {
           title: "Succès",
           description: "Règle validée et sauvegardée",
         });
+      } else {
+        toast({
+          title: "Erreur",
+          description: "Échec de la sauvegarde en base de données",
+          variant: "destructive"
+        });
       }
     } catch (error) {
       console.error('Validation error:', error);
+      const errorMessage = error instanceof Error ? error.message : "Erreur lors de la validation";
       toast({
         title: "Erreur",
-        description: "Erreur lors de la validation",
+        description: errorMessage,
         variant: "destructive"
       });
     }
