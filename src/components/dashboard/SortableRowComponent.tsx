@@ -94,7 +94,7 @@ export function SortableRow({
         <span className="text-sm font-medium">{rule.priority}</span>
       </div>
       
-      <div className="flex-1 min-w-0 max-w-2xl pr-4">
+      <div className="flex-1 min-w-0 max-w-4xl pr-4">
         <span className="text-sm text-muted-foreground break-words">
           {onGenerateRuleSummary(rule)}
         </span>

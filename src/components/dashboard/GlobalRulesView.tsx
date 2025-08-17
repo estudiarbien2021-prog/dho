@@ -423,7 +423,7 @@ export function GlobalRulesView({}: GlobalRulesViewProps) {
                     <div className="w-20">Marché</div>
                     <div className="w-24">Statut</div>
                     <div className="w-16 text-center">Priorité</div>
-                    <div className="flex-1 min-w-0 max-w-2xl">Résumé</div>
+                    <div className="flex-1 min-w-0 max-w-4xl">Résumé</div>
                     <div className="w-16 text-right">Actions</div>
                   </div>
                   
