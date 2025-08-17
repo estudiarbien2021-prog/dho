@@ -30,6 +30,7 @@ export type ActionType =
   | 'recommend_double_chance_1x'
   | 'recommend_double_chance_12'
   | 'recommend_double_chance_x2'
+  | 'recommend_double_chance_least_probable'
   | 'recommend_btts_yes'
   | 'recommend_btts_no'
   | 'recommend_over25'
@@ -129,6 +130,7 @@ export const ACTION_OPTIONS: Record<Market, ActionType[]> = {
     'recommend_double_chance_1x',
     'recommend_double_chance_12',
     'recommend_double_chance_x2',
+    'recommend_double_chance_least_probable',
     'recommend_most_probable',
     'invert_recommendation',
     'no_recommendation'
@@ -177,6 +179,7 @@ export const ACTION_LABELS: Record<ActionType, string> = {
   recommend_double_chance_1x: 'Recommander Double Chance 1X',
   recommend_double_chance_12: 'Recommander Double Chance 12',
   recommend_double_chance_x2: 'Recommander Double Chance X2',
+  recommend_double_chance_least_probable: 'Recommander Double Chance (2 moins probables)',
   recommend_btts_yes: 'Recommander BTTS Oui',
   recommend_btts_no: 'Recommander BTTS Non',
   recommend_over25: 'Recommander Over 2.5',

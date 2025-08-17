@@ -73,6 +73,9 @@ export async function detectOpportunities(match: ProcessedMatch): Promise<Detect
       prediction = getMostProbablePrediction(result.market, context);
     } else if (result.action === 'recommend_least_probable') {
       prediction = getLeastProbablePrediction(result.market, context);
+    } else if (result.action === 'recommend_double_chance_least_probable') {
+      prediction = getDoubleChanceLeastProbable(context);
+      userDisplayType = 'Double Chance';
     } else {
       // Actions spécifiques comme 'recommend_over', 'recommend_yes', etc.
       prediction = result.action.replace('recommend_', '');
@@ -91,6 +94,8 @@ export async function detectOpportunities(match: ProcessedMatch): Promise<Detect
     let reason = [`Règle: ${result.ruleName}`];
     if (result.action === 'recommend_least_probable' && (result.market === 'ou25' || result.market === 'btts')) {
       reason.push('Stratégie contrarian: parier contre le favori quand le vigorish est élevé');
+    } else if (result.action === 'recommend_double_chance_least_probable') {
+      reason = [`Double chance des 2 moins probables (Vigorish élevé: ${(context.vigorish_1x2 * 100).toFixed(1)}%)`];
     }
 
     return {
@@ -105,6 +110,39 @@ export async function detectOpportunities(match: ProcessedMatch): Promise<Detect
 
   console.log('🎯 OPPORTUNITÉS DÉTECTÉES:', opportunities.length, opportunities.map(o => `${o.type}:${o.prediction}`));
   return opportunities;
+}
+
+// Helper function for double chance least probable
+function getDoubleChanceLeastProbable(context: RuleEvaluationContext): string {
+  const outcomes = [
+    { name: 'home', probability: context.probability_home },
+    { name: 'draw', probability: context.probability_draw },
+    { name: 'away', probability: context.probability_away }
+  ];
+  
+  // Sort by probability ascending (least probable first)
+  outcomes.sort((a, b) => a.probability - b.probability);
+  
+  // Get the two least probable outcomes
+  const leastProbable1 = outcomes[0].name;
+  const leastProbable2 = outcomes[1].name;
+  
+  // Map to double chance combinations
+  const combination = `${leastProbable1}_${leastProbable2}`;
+  
+  switch (combination) {
+    case 'home_draw':
+    case 'draw_home':
+      return '1X';
+    case 'home_away':
+    case 'away_home':
+      return '12';
+    case 'draw_away':
+    case 'away_draw':
+      return 'X2';
+    default:
+      return '1X'; // fallback
+  }
 }
 
 // Helper function to get most probable prediction for a market
@@ -225,6 +263,31 @@ function getOddsForPrediction(market: string, prediction: string, context: RuleE
       const odds = context.odds_draw || 0;
       console.log(`🎯 1X2 odds for nul: ${odds}`);
       return odds;
+    }
+    // Handle double chance predictions
+    if (prediction === '1X') {
+      // Double chance home/draw - calculate based on individual odds
+      const homeOdds = context.odds_home || 0;
+      const drawOdds = context.odds_draw || 0;
+      if (homeOdds > 0 && drawOdds > 0) {
+        return 1 / ((1/homeOdds) + (1/drawOdds));
+      }
+    }
+    if (prediction === '12') {
+      // Double chance home/away
+      const homeOdds = context.odds_home || 0;
+      const awayOdds = context.odds_away || 0;
+      if (homeOdds > 0 && awayOdds > 0) {
+        return 1 / ((1/homeOdds) + (1/awayOdds));
+      }
+    }
+    if (prediction === 'X2') {
+      // Double chance draw/away
+      const drawOdds = context.odds_draw || 0;
+      const awayOdds = context.odds_away || 0;
+      if (drawOdds > 0 && awayOdds > 0) {
+        return 1 / ((1/drawOdds) + (1/awayOdds));
+      }
     }
   }
   
