@@ -88,7 +88,8 @@ export async function detectOpportunities(match: ProcessedMatch): Promise<Detect
       prediction = getDoubleChanceLeastProbable(context);
       userDisplayType = 'Double Chance';
     } else if (result.action === 'recommend_refund_if_draw') {
-      prediction = 'Remboursé si match nul';
+      const mostProbableTeam = getMostProbableTeamExcludingDraw(context);
+      prediction = mostProbableTeam === 'home' ? 'Victoire domicile (Remboursé si nul)' : 'Victoire extérieur (Remboursé si nul)';
       userDisplayType = 'Remboursé si nul';
     } else {
       // Actions spécifiques comme 'recommend_over', 'recommend_yes', etc.
@@ -157,6 +158,11 @@ function getDoubleChanceLeastProbable(context: RuleEvaluationContext): string {
     default:
       return '1X'; // fallback
   }
+}
+
+// Helper function to get most probable team (excluding draw) for refund if draw bets
+function getMostProbableTeamExcludingDraw(context: RuleEvaluationContext): 'home' | 'away' {
+  return context.probability_home > context.probability_away ? 'home' : 'away';
 }
 
 // Helper function to get most probable prediction for a market
@@ -278,15 +284,18 @@ function getOddsForPrediction(market: string, prediction: string, context: RuleE
       console.log(`🎯 1X2 odds for nul: ${odds}`);
       return odds;
     }
-    // Handle "Remboursé si match nul" - use higher odds between home and away
-    if (prediction === 'Remboursé si match nul') {
-      const homeOdds = context.odds_home || 0;
-      const awayOdds = context.odds_away || 0;
-      // For refund if draw bets, we typically use the odds of the chosen outcome (home or away)
-      // Since it's a strategic bet, use the better of the two odds
-      const odds = Math.max(homeOdds, awayOdds);
-      console.log(`🎯 Remboursé si nul odds: ${odds} (max between home: ${homeOdds}, away: ${awayOdds})`);
-      return odds;
+    // Handle "Remboursé si match nul" - use odds of the most probable team
+    if (prediction.includes('(Remboursé si nul)')) {
+      if (prediction.includes('domicile')) {
+        const odds = context.odds_home || 0;
+        console.log(`🎯 Remboursé si nul odds for domicile: ${odds}`);
+        return odds;
+      }
+      if (prediction.includes('extérieur')) {
+        const odds = context.odds_away || 0;
+        console.log(`🎯 Remboursé si nul odds for extérieur: ${odds}`);
+        return odds;
+      }
     }
     // Handle double chance predictions
     if (prediction === '1X') {
