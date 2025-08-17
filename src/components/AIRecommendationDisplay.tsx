@@ -108,17 +108,27 @@ export function AIRecommendationDisplay({ match, marketFilters, variant = 'compa
     };
   });
 
-  console.log('🚨 DEBUG AIRecommendationDisplay - STRICT RULE ENFORCEMENT:', {
-    matchName: `${match.home_team} vs ${match.away_team}`,
-    totalOpportunities: opportunities.length,
-    finalRecommendationsCount: aiRecs.length,
-    mainRecommendation: aiRecs[0] ? {
-      type: aiRecs[0].betType,
-      prediction: aiRecs[0].prediction,
-      odds: aiRecs[0].odds,
-      reason: aiRecs[0].reason
-    } : null
+  console.log('🚨 DEBUG AIRecommendationDisplay - ENFORCEMENT STRICT DES RÈGLES:');
+  console.log('  🏟️ Match:', `${match.home_team} vs ${match.away_team}`);
+  console.log('  📊 Données BTTS du match:', {
+    vigorish: `${(match.vig_btts * 100).toFixed(1)}%`,
+    prob_yes: `${(match.p_btts_yes_fair * 100).toFixed(1)}%`,
+    prob_no: `${(match.p_btts_no_fair * 100).toFixed(1)}%`
   });
+  console.log('  🔢 Opportunités détectées:', opportunities.length);
+  console.log('  ✅ Recommandations finales:', aiRecs.length);
+  console.log('  🎯 Recommandation principale:', aiRecs[0] ? {
+    type: aiRecs[0].betType,
+    prediction: aiRecs[0].prediction,
+    odds: aiRecs[0].odds,
+    justification: aiRecs[0].reason ? aiRecs[0].reason[0] : 'Aucune'
+  } : 'AUCUNE RECOMMANDATION - RÈGLES NON RESPECTÉES');
+  
+  // VÉRIFICATION CRITIQUE: Si aiRecs est vide alors qu'on attendait une recommandation
+  if (aiRecs.length === 0 && opportunities.length > 0) {
+    console.log('⚠️ ANOMALIE DÉTECTÉE: Opportunités trouvées mais aucune recommandation finale!');
+    console.log('  Opportunités brutes:', opportunities.map(o => ({type: o.type, prediction: o.prediction})));
+  }
 
   const getConfidenceColor = (conf: string) => {
     switch (conf) {

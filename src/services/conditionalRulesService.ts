@@ -116,6 +116,7 @@ class ConditionalRulesService {
     console.log('🔍 RÈGLES CONDITIONNELLES - ÉVALUATION DÉMARRÉE:');
     console.log('  📋 Total des règles:', allRules.length);
     console.log('  ✅ Règles activées:', enabledRules.length);
+    console.log('  🎯 FOCUS RÈGLES BTTS:', enabledRules.filter(r => r.market === 'btts').length, 'règles BTTS configurées');
     console.log('  📊 Contexte d\'évaluation:', {
       vig_1x2: (context.vigorish_1x2 * 100).toFixed(2) + '%',
       vig_btts: (context.vigorish_btts * 100).toFixed(2) + '%',
@@ -123,7 +124,18 @@ class ConditionalRulesService {
       prob_home: (context.probability_home * 100).toFixed(1) + '%',
       prob_draw: (context.probability_draw * 100).toFixed(1) + '%',
       prob_away: (context.probability_away * 100).toFixed(1) + '%',
-      prob_btts_yes: (context.probability_btts_yes * 100).toFixed(1) + '%'
+      prob_btts_yes: (context.probability_btts_yes * 100).toFixed(1) + '%',
+      prob_btts_no: (context.probability_btts_no * 100).toFixed(1) + '%'
+    });
+    
+    // ÉTAPE DE VÉRIFICATION CRITIQUE: Examiner spécifiquement les règles BTTS
+    const bttsRules = enabledRules.filter(r => r.market === 'btts');
+    console.log('📋 ANALYSE DÉTAILLÉE RÈGLES BTTS:');
+    bttsRules.forEach(rule => {
+      console.log(`  🔍 Règle BTTS: "${rule.name}"`);
+      console.log(`    Conditions: ${JSON.stringify(rule.conditions)}`);
+      console.log(`    Action: ${rule.action}`);
+      console.log(`    Priorité: ${rule.priority}`);
     });
     
     const results: RuleEvaluationResult[] = [];
@@ -134,6 +146,18 @@ class ConditionalRulesService {
       const conditionsMet = this.evaluateConditions(rule.conditions, rule.logicalConnectors, context, rule.market);
       
       console.log(`  🔍 RÈGLE "${rule.name}" (marché: ${rule.market}):`, conditionsMet ? '✅ CORRESPONDANCE' : '❌ PAS DE CORRESPONDANCE');
+      
+      // ANALYSE SPÉCIFIQUE POUR BTTS
+      if (rule.market === 'btts') {
+        console.log(`    🎯 DÉTAIL BTTS - Règle "${rule.name}":`);
+        console.log(`      Vigorish actuel: ${(context.vigorish_btts * 100).toFixed(1)}%`);
+        console.log(`      Prob BTTS Oui: ${(context.probability_btts_yes * 100).toFixed(1)}%`);
+        console.log(`      Prob BTTS Non: ${(context.probability_btts_no * 100).toFixed(1)}%`);
+        console.log(`      Conditions respectées: ${conditionsMet ? 'OUI' : 'NON'}`);
+        if (!conditionsMet) {
+          console.log(`      ⚠️ Cette règle BTTS NE GÉNÈRERA PAS de recommandation`);
+        }
+      }
       
       results.push({
         ruleId: rule.id,

@@ -13,6 +13,12 @@ export interface DetectedOpportunity {
 
 export async function detectOpportunities(match: ProcessedMatch): Promise<DetectedOpportunity[]> {
   console.log('🔍 DÉTECTION OPPORTUNITÉS POUR:', match.home_team, 'vs', match.away_team);
+  console.log('📊 DONNÉES MATCH CRITIQUES:', {
+    btts_vigorish: `${(match.vig_btts * 100).toFixed(1)}%`,
+    btts_prob_yes: `${(match.p_btts_yes_fair * 100).toFixed(1)}%`,
+    btts_prob_no: `${(match.p_btts_no_fair * 100).toFixed(1)}%`,
+    match_id: match.id
+  });
   
   // Convert match data to rule evaluation context (keep decimals, don't convert to percentages)
   const context: RuleEvaluationContext = {
@@ -34,6 +40,14 @@ export async function detectOpportunities(match: ProcessedMatch): Promise<Detect
     odds_over25: match.odds_over_2_5 || null,
     odds_under25: match.odds_under_2_5 || null
   };
+  
+  console.log('🎯 CONTEXTE ÉVALUATION COMPLET:', {
+    btts_vigorish_decimal: context.vigorish_btts,
+    btts_prob_yes_decimal: context.probability_btts_yes,
+    btts_prob_no_decimal: context.probability_btts_no,
+    btts_odds_yes: context.odds_btts_yes,
+    btts_odds_no: context.odds_btts_no
+  });
 
   // Evaluate conditional rules
   const ruleResults = await conditionalRulesService.evaluateRules(context);
@@ -54,6 +68,8 @@ export async function detectOpportunities(match: ProcessedMatch): Promise<Detect
   // VÉRIFICATION CRITIQUE: Si aucune règle ne correspond, aucune recommandation ne sera générée
   if (matchedRules.length === 0) {
     console.log('🚫 AUCUNE RÈGLE RESPECTÉE - AUCUNE RECOMMANDATION GÉNÉRÉE');
+    console.log('🚫 EXPLICATION: Toutes les règles configurées ont été évaluées et aucune ne respecte ses conditions');
+    console.log('🚫 RÉSULTAT: Aucune recommandation automatique ne sera générée');
     return [];
   }
   
@@ -67,6 +83,12 @@ export async function detectOpportunities(match: ProcessedMatch): Promise<Detect
   });
   
   console.log('✅ RÈGLES VALIDES APRÈS FILTRAGE no_recommendation:', validRules.length, validRules.map(r => r.ruleName));
+  
+  // VÉRIFICATION FINALE: S'il n'y a pas de règles valides, ne pas créer d'opportunités
+  if (validRules.length === 0) {
+    console.log('🚫 AUCUNE RÈGLE VALIDE APRÈS FILTRAGE - AUCUNE OPPORTUNITÉ CRÉÉE');
+    return [];
+  }
 
   // Convert valid rule results to opportunities
   const opportunities: DetectedOpportunity[] = validRules.map(result => {
