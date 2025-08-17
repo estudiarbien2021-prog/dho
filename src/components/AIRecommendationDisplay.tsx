@@ -264,7 +264,7 @@ export function AIRecommendationDisplay({
         <div className="grid grid-cols-3 gap-2 text-xs text-center">
           <div>
             <div className="text-green-600 font-medium">Type de pari</div>
-            <div className="text-green-800">{formatBetType(aiRec.betType)}</div>
+            <div className="text-green-800">{formatBetTypeForTable(aiRec.betType)}</div>
           </div>
           <div>
             <div className="text-green-600 font-medium">Prédiction</div>
@@ -283,11 +283,12 @@ export function AIRecommendationDisplay({
       </div>
     );
 
-    function formatBetType(betType: string) {
+    function formatBetTypeForTable(betType: string) {
       switch (betType) {
-        case '1X2': return 'chance double';
+        case '1X2': return 'Résultat';
         case 'BTTS': return 'BTTS';
         case 'O/U 2.5': return 'O/U 2.5';
+        case 'Double Chance': return 'Double Chance';
         default: return betType;
       }
     }
