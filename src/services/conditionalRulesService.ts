@@ -117,18 +117,18 @@ class ConditionalRulesService {
     console.log('  📋 Total des règles:', allRules.length);
     console.log('  ✅ Règles activées:', enabledRules.length);
     console.log('  📊 Contexte d\'évaluation:', {
-      vig_1x2: context.vigorish_1x2.toFixed(2) + '%',
-      vig_btts: context.vigorish_btts.toFixed(2) + '%',
-      vig_ou25: context.vigorish_ou25.toFixed(2) + '%',
-      prob_home: context.probability_home.toFixed(1) + '%',
-      prob_draw: context.probability_draw.toFixed(1) + '%',
-      prob_away: context.probability_away.toFixed(1) + '%'
+      vig_1x2: (context.vigorish_1x2 * 100).toFixed(2) + '%',
+      vig_btts: (context.vigorish_btts * 100).toFixed(2) + '%',
+      vig_ou25: (context.vigorish_ou25 * 100).toFixed(2) + '%',
+      prob_home: (context.probability_home * 100).toFixed(1) + '%',
+      prob_draw: (context.probability_draw * 100).toFixed(1) + '%',
+      prob_away: (context.probability_away * 100).toFixed(1) + '%'
     });
     
     const results: RuleEvaluationResult[] = [];
 
     for (const rule of enabledRules) {
-      const conditionsMet = this.evaluateConditions(rule.conditions, rule.logicalConnectors, context);
+      const conditionsMet = this.evaluateConditions(rule.conditions, rule.logicalConnectors, context, rule.market);
       
       console.log(`  🔍 RÈGLE "${rule.name}" (marché: ${rule.market}):`, conditionsMet ? '✅ CORRESPONDANCE' : '❌ PAS DE CORRESPONDANCE');
       
@@ -154,15 +154,16 @@ class ConditionalRulesService {
   private evaluateConditions(
     conditions: Condition[], 
     connectors: LogicalConnector[], 
-    context: RuleEvaluationContext
+    context: RuleEvaluationContext,
+    ruleMarket: Market
   ): boolean {
     if (conditions.length === 0) return false;
-    if (conditions.length === 1) return this.evaluateCondition(conditions[0], context);
+    if (conditions.length === 1) return this.evaluateCondition(conditions[0], context, ruleMarket);
 
-    let result = this.evaluateCondition(conditions[0], context);
+    let result = this.evaluateCondition(conditions[0], context, ruleMarket);
 
     for (let i = 1; i < conditions.length; i++) {
-      const conditionResult = this.evaluateCondition(conditions[i], context);
+      const conditionResult = this.evaluateCondition(conditions[i], context, ruleMarket);
       const connector = connectors[i - 1];
 
       if (connector === 'AND') {
@@ -175,8 +176,8 @@ class ConditionalRulesService {
     return result;
   }
 
-  private evaluateCondition(condition: Condition, context: RuleEvaluationContext): boolean {
-    const contextValue = this.getContextValue(condition.type, context);
+  private evaluateCondition(condition: Condition, context: RuleEvaluationContext, ruleMarket?: Market): boolean {
+    const contextValue = this.getContextValue(condition.type, context, ruleMarket);
     if (contextValue === null || contextValue === undefined) return false;
 
     switch (condition.operator) {
@@ -199,26 +200,27 @@ class ConditionalRulesService {
     }
   }
 
-  private getContextValue(conditionType: string, context: RuleEvaluationContext): number | null {
+  private getContextValue(conditionType: string, context: RuleEvaluationContext, ruleMarket?: Market): number | null {
     switch (conditionType) {
       case 'vigorish':
-        // This is context-dependent based on the rule's market
-        // For now, we'll use 1x2 vigorish as default
-        return context.vigorish_1x2;
+        // Return appropriate vigorish based on the rule's market
+        if (ruleMarket === 'btts') return context.vigorish_btts;
+        if (ruleMarket === 'ou25') return context.vigorish_ou25;
+        return context.vigorish_1x2; // Default to 1x2
       case 'probability_home':
-        return context.probability_home * 100; // Convert to percentage
+        return context.probability_home; // Keep as decimal
       case 'probability_draw':
-        return context.probability_draw * 100;
+        return context.probability_draw;
       case 'probability_away':
-        return context.probability_away * 100;
+        return context.probability_away;
       case 'probability_btts_yes':
-        return context.probability_btts_yes * 100;
+        return context.probability_btts_yes;
       case 'probability_btts_no':
-        return context.probability_btts_no * 100;
+        return context.probability_btts_no;
       case 'probability_over25':
-        return context.probability_over25 * 100;
+        return context.probability_over25;
       case 'probability_under25':
-        return context.probability_under25 * 100;
+        return context.probability_under25;
       case 'odds_home':
         return context.odds_home;
       case 'odds_draw':
@@ -243,11 +245,11 @@ class ConditionalRulesService {
     
     for (let i = 0; i < rule.conditions.length; i++) {
       const condition = rule.conditions[i];
-      const contextValue = this.getContextValue(condition.type, context);
-      const conditionMet = contextValue !== null ? this.evaluateCondition(condition, context) : false;
+      const contextValue = this.getContextValue(condition.type, context, rule.market);
+      const conditionMet = contextValue !== null ? this.evaluateCondition(condition, context, rule.market) : false;
       
       details.push(
-        `${condition.type}: ${contextValue?.toFixed(2)} ${condition.operator} ${condition.value} = ${conditionMet ? '✓' : '✗'}`
+        `${condition.type}: ${contextValue?.toFixed(4)} ${condition.operator} ${condition.value} = ${conditionMet ? '✓' : '✗'}`
       );
       
       if (i < rule.logicalConnectors.length) {
@@ -261,14 +263,14 @@ class ConditionalRulesService {
   private getDefaultRules(): ConditionalRule[] {
     return [
       {
-        id: 'default-1x2-negative-vig',
-        name: 'Vigorish négatif 1X2',
+        id: 'default-1x2-low-vig',
+        name: 'Vigorish faible 1X2',
         market: '1x2',
         conditions: [{
           id: 'cond-1',
           type: 'vigorish',
           operator: '<',
-          value: 0
+          value: 0.06 // 6% as decimal
         }],
         logicalConnectors: [],
         action: 'recommend_most_probable',
@@ -284,7 +286,7 @@ class ConditionalRulesService {
             id: 'cond-1',
             type: 'probability_btts_yes',
             operator: '>',
-            value: 55
+            value: 0.55 // 55% as decimal
           },
           {
             id: 'cond-2',
@@ -307,7 +309,7 @@ class ConditionalRulesService {
             id: 'cond-1',
             type: 'probability_over25',
             operator: '>',
-            value: 60
+            value: 0.60 // 60% as decimal
           },
           {
             id: 'cond-2',

@@ -14,25 +14,25 @@ export interface DetectedOpportunity {
 export async function detectOpportunities(match: ProcessedMatch): Promise<DetectedOpportunity[]> {
   console.log('🔍 DÉTECTION OPPORTUNITÉS POUR:', match.home_team, 'vs', match.away_team);
   
-  // Convert match data to rule evaluation context
+  // Convert match data to rule evaluation context (keep decimals, don't convert to percentages)
   const context: RuleEvaluationContext = {
-    vigorish_1x2: match.vig_1x2 * 100, // Convert to percentage
-    vigorish_btts: match.vig_btts ? match.vig_btts * 100 : 0,
-    vigorish_ou25: match.vig_ou_2_5 * 100,
-    probability_home: match.p_home_fair * 100,
-    probability_draw: match.p_draw_fair * 100,
-    probability_away: match.p_away_fair * 100,
-    probability_btts_yes: match.p_btts_yes_fair * 100,
-    probability_btts_no: match.p_btts_no_fair * 100,
-    probability_over25: match.p_over_2_5_fair * 100,
-    probability_under25: match.p_under_2_5_fair * 100,
+    vigorish_1x2: match.vig_1x2, // Keep as decimal
+    vigorish_btts: match.vig_btts || 0,
+    vigorish_ou25: match.vig_ou_2_5,
+    probability_home: match.p_home_fair,
+    probability_draw: match.p_draw_fair,
+    probability_away: match.p_away_fair,
+    probability_btts_yes: match.p_btts_yes_fair,
+    probability_btts_no: match.p_btts_no_fair,
+    probability_over25: match.p_over_2_5_fair,
+    probability_under25: match.p_under_2_5_fair,
     odds_home: match.odds_home,
     odds_draw: match.odds_draw,
     odds_away: match.odds_away,
-    odds_btts_yes: match.odds_btts_yes || 0,
-    odds_btts_no: match.odds_btts_no || 0,
-    odds_over25: match.odds_over_2_5 || 0,
-    odds_under25: match.odds_under_2_5 || 0
+    odds_btts_yes: match.odds_btts_yes || null,
+    odds_btts_no: match.odds_btts_no || null,
+    odds_over25: match.odds_over_2_5 || null,
+    odds_under25: match.odds_under_2_5 || null
   };
 
   // Evaluate conditional rules
