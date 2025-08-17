@@ -351,9 +351,9 @@ export function GlobalRulesView({}: GlobalRulesViewProps) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Tous les marchés</SelectItem>
-                  <SelectItem value="1X2">1X2</SelectItem>
-                  <SelectItem value="BTTS">BTTS</SelectItem>
-                  <SelectItem value="OU25">OU25</SelectItem>
+                  <SelectItem value="1x2">1X2</SelectItem>
+                  <SelectItem value="btts">BTTS</SelectItem>
+                  <SelectItem value="ou25">2,5 buts</SelectItem>
                 </SelectContent>
               </Select>
             </div>
