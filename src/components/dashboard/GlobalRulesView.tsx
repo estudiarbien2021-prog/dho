@@ -12,7 +12,7 @@ import {
   DndContext,
   closestCenter,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
   useSensor,
   useSensors,
   DragEndEvent,
@@ -75,7 +75,8 @@ function SortableRow({
       <TableCell>
         <div className="flex items-center gap-2">
           <button
-            className="cursor-grab hover:bg-muted p-1 rounded"
+            className="cursor-grab hover:bg-muted p-1 rounded touch-none select-none"
+            style={{ touchAction: 'none' }}
             {...attributes}
             {...listeners}
           >
@@ -135,7 +136,11 @@ export function GlobalRulesView({}: GlobalRulesViewProps) {
   const [saving, setSaving] = useState(false);
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(MouseSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
