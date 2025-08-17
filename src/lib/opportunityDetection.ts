@@ -91,6 +91,13 @@ export async function detectOpportunities(match: ProcessedMatch): Promise<Detect
 
 // Helper function to get most probable prediction for a market
 function getMostProbablePrediction(market: string, context: RuleEvaluationContext): string {
+  console.log(`🎯 getMostProbablePrediction - market: ${market}`, {
+    context_over25: context.probability_over25,
+    context_under25: context.probability_under25,
+    context_btts_yes: context.probability_btts_yes,
+    context_btts_no: context.probability_btts_no
+  });
+
   if (market === '1X2') {
     const highest = Math.max(context.probability_home, context.probability_draw, context.probability_away);
     if (highest === context.probability_home) return 'Victoire domicile';
@@ -99,18 +106,40 @@ function getMostProbablePrediction(market: string, context: RuleEvaluationContex
   }
   
   if (market === 'BTTS') {
-    return context.probability_btts_yes > context.probability_btts_no ? 'Oui' : 'Non';
+    const probYes = context.probability_btts_yes || 0;
+    const probNo = context.probability_btts_no || 0;
+    console.log(`🎯 BTTS probabilities: Yes=${probYes}, No=${probNo}`);
+    return probYes > probNo ? 'Oui' : 'Non';
   }
   
   if (market === 'OU25') {
-    return context.probability_over25 > context.probability_under25 ? '+2,5 buts' : '-2,5 buts';
+    const probOver = context.probability_over25 || 0;
+    const probUnder = context.probability_under25 || 0;
+    console.log(`🎯 OU25 probabilities: Over=${probOver}, Under=${probUnder}`);
+    
+    if (probOver === 0 && probUnder === 0) {
+      console.log('❌ Both over/under probabilities are 0 for OU25 market');
+      return 'Unknown';
+    }
+    
+    const result = probOver > probUnder ? '+2,5 buts' : '-2,5 buts';
+    console.log(`🎯 OU25 most probable result: ${result}`);
+    return result;
   }
   
+  console.log(`❌ Unknown market: ${market}`);
   return 'Unknown';
 }
 
 // Helper function to get least probable prediction for a market
 function getLeastProbablePrediction(market: string, context: RuleEvaluationContext): string {
+  console.log(`🎯 getLeastProbablePrediction - market: ${market}`, {
+    context_over25: context.probability_over25,
+    context_under25: context.probability_under25,
+    context_btts_yes: context.probability_btts_yes,
+    context_btts_no: context.probability_btts_no
+  });
+
   if (market === '1X2') {
     const lowest = Math.min(context.probability_home, context.probability_draw, context.probability_away);
     if (lowest === context.probability_home) return 'Victoire domicile';
@@ -119,34 +148,85 @@ function getLeastProbablePrediction(market: string, context: RuleEvaluationConte
   }
   
   if (market === 'BTTS') {
-    return context.probability_btts_yes < context.probability_btts_no ? 'Oui' : 'Non';
+    const probYes = context.probability_btts_yes || 0;
+    const probNo = context.probability_btts_no || 0;
+    console.log(`🎯 BTTS probabilities: Yes=${probYes}, No=${probNo}`);
+    return probYes < probNo ? 'Oui' : 'Non';
   }
   
   if (market === 'OU25') {
-    return context.probability_over25 < context.probability_under25 ? '+2,5 buts' : '-2,5 buts';
+    const probOver = context.probability_over25 || 0;
+    const probUnder = context.probability_under25 || 0;
+    console.log(`🎯 OU25 probabilities: Over=${probOver}, Under=${probUnder}`);
+    
+    if (probOver === 0 && probUnder === 0) {
+      console.log('❌ Both over/under probabilities are 0 for OU25 market');
+      return 'Unknown';
+    }
+    
+    const result = probOver < probUnder ? '+2,5 buts' : '-2,5 buts';
+    console.log(`🎯 OU25 least probable result: ${result}`);
+    return result;
   }
   
+  console.log(`❌ Unknown market: ${market}`);
   return 'Unknown';
 }
 
 // Helper function to get odds for a prediction
 function getOddsForPrediction(market: string, prediction: string, context: RuleEvaluationContext): number {
+  console.log(`🎯 getOddsForPrediction - market: ${market}, prediction: ${prediction}`, {
+    odds_over25: context.odds_over25,
+    odds_under25: context.odds_under25,
+    odds_btts_yes: context.odds_btts_yes,
+    odds_btts_no: context.odds_btts_no
+  });
+
   if (market === '1X2') {
-    if (prediction.includes('domicile')) return context.odds_home || 0;
-    if (prediction.includes('extérieur')) return context.odds_away || 0;
-    if (prediction.includes('nul')) return context.odds_draw || 0;
+    if (prediction.includes('domicile')) {
+      const odds = context.odds_home || 0;
+      console.log(`🎯 1X2 odds for domicile: ${odds}`);
+      return odds;
+    }
+    if (prediction.includes('extérieur')) {
+      const odds = context.odds_away || 0;
+      console.log(`🎯 1X2 odds for extérieur: ${odds}`);
+      return odds;
+    }
+    if (prediction.includes('nul')) {
+      const odds = context.odds_draw || 0;
+      console.log(`🎯 1X2 odds for nul: ${odds}`);
+      return odds;
+    }
   }
   
   if (market === 'BTTS') {
-    if (prediction === 'Oui') return context.odds_btts_yes || 0;
-    if (prediction === 'Non') return context.odds_btts_no || 0;
+    if (prediction === 'Oui') {
+      const odds = context.odds_btts_yes || 0;
+      console.log(`🎯 BTTS odds for Oui: ${odds}`);
+      return odds;
+    }
+    if (prediction === 'Non') {
+      const odds = context.odds_btts_no || 0;
+      console.log(`🎯 BTTS odds for Non: ${odds}`);
+      return odds;
+    }
   }
   
   if (market === 'OU25') {
-    if (prediction === '+2,5 buts') return context.odds_over25 || 0;
-    if (prediction === '-2,5 buts') return context.odds_under25 || 0;
+    if (prediction === '+2,5 buts') {
+      const odds = context.odds_over25 || 0;
+      console.log(`🎯 OU25 odds for +2,5 buts: ${odds}`);
+      return odds;
+    }
+    if (prediction === '-2,5 buts') {
+      const odds = context.odds_under25 || 0;
+      console.log(`🎯 OU25 odds for -2,5 buts: ${odds}`);
+      return odds;
+    }
   }
   
+  console.log(`❌ No odds found for market: ${market}, prediction: ${prediction}`);
   return 0;
 }
 
