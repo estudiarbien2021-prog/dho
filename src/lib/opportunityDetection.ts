@@ -37,11 +37,18 @@ export async function detectOpportunities(match: ProcessedMatch): Promise<Detect
 
   // Evaluate conditional rules
   const ruleResults = await conditionalRulesService.evaluateRules(context);
+  console.log('📋 RÈGLES ÉVALUÉES:', ruleResults.length, 'règles totales');
+  console.log('📋 DÉTAIL ÉVALUATION:', ruleResults.map(r => `${r.ruleName}: ${r.conditionsMet ? '✅' : '❌'} (${r.evaluationDetails})`));
   
-  // Convert rule results to opportunities
-  const opportunities: DetectedOpportunity[] = ruleResults.map(result => ({
+  // CORRECTION: Filtrer seulement les règles qui correspondent aux conditions
+  const matchedRules = ruleResults.filter(result => result.conditionsMet);
+  console.log('✅ RÈGLES CORRESPONDANTES:', matchedRules.length, matchedRules.map(r => r.ruleName));
+  
+  // Convert matched rule results to opportunities
+  const opportunities: DetectedOpportunity[] = matchedRules.map(result => ({
     type: result.action.split('_')[1] || result.action, // Extract market from action
-    prediction: result.action.includes('most_probable') ? getMostProbablePrediction(result.action, context) : 
+    prediction: result.action.includes('most_probable') ? getMostProbablePrediction(result.action, context) :
+                result.action.includes('least_probable') ? getLeastProbablePrediction(result.action, context) :
                 result.action.split('_').slice(-1)[0], // Extract specific prediction
     odds: getOddsForPrediction(result.action, context),
     reason: [`Règle: ${result.ruleName}`],
@@ -73,6 +80,26 @@ function getMostProbablePrediction(action: string, context: RuleEvaluationContex
   return 'Unknown';
 }
 
+// Helper function to get least probable prediction for a market
+function getLeastProbablePrediction(action: string, context: RuleEvaluationContext): string {
+  if (action.includes('1x2')) {
+    const lowest = Math.min(context.probability_home, context.probability_draw, context.probability_away);
+    if (lowest === context.probability_home) return 'Victoire domicile';
+    if (lowest === context.probability_away) return 'Victoire extérieur';
+    return 'Match nul';
+  }
+  
+  if (action.includes('btts')) {
+    return context.probability_btts_yes < context.probability_btts_no ? 'Oui' : 'Non';
+  }
+  
+  if (action.includes('ou')) {
+    return context.probability_over25 < context.probability_under25 ? '+2,5 buts' : '-2,5 buts';
+  }
+  
+  return 'Unknown';
+}
+
 // Helper function to get odds for a prediction
 function getOddsForPrediction(action: string, context: RuleEvaluationContext): number {
   if (action.includes('1x2')) {
@@ -80,29 +107,46 @@ function getOddsForPrediction(action: string, context: RuleEvaluationContext): n
     if (action.includes('away')) return context.odds_away;
     if (action.includes('draw')) return context.odds_draw;
     
-    // Most probable case
-    const highest = Math.max(context.probability_home, context.probability_draw, context.probability_away);
-    if (highest === context.probability_home) return context.odds_home;
-    if (highest === context.probability_away) return context.odds_away;
-    return context.odds_draw;
+    // Most/least probable case
+    if (action.includes('most_probable')) {
+      const highest = Math.max(context.probability_home, context.probability_draw, context.probability_away);
+      if (highest === context.probability_home) return context.odds_home;
+      if (highest === context.probability_away) return context.odds_away;
+      return context.odds_draw;
+    } else if (action.includes('least_probable')) {
+      const lowest = Math.min(context.probability_home, context.probability_draw, context.probability_away);
+      if (lowest === context.probability_home) return context.odds_home;
+      if (lowest === context.probability_away) return context.odds_away;
+      return context.odds_draw;
+    }
   }
   
   if (action.includes('btts')) {
     if (action.includes('yes')) return context.odds_btts_yes;
     if (action.includes('no')) return context.odds_btts_no;
     
-    // Most probable case
-    return context.probability_btts_yes > context.probability_btts_no ? 
-           context.odds_btts_yes : context.odds_btts_no;
+    // Most/least probable case
+    if (action.includes('most_probable')) {
+      return context.probability_btts_yes > context.probability_btts_no ? 
+             context.odds_btts_yes : context.odds_btts_no;
+    } else if (action.includes('least_probable')) {
+      return context.probability_btts_yes < context.probability_btts_no ? 
+             context.odds_btts_yes : context.odds_btts_no;
+    }
   }
   
   if (action.includes('ou')) {
     if (action.includes('over')) return context.odds_over25;
     if (action.includes('under')) return context.odds_under25;
     
-    // Most probable case
-    return context.probability_over25 > context.probability_under25 ? 
-           context.odds_over25 : context.odds_under25;
+    // Most/least probable case
+    if (action.includes('most_probable')) {
+      return context.probability_over25 > context.probability_under25 ? 
+             context.odds_over25 : context.odds_under25;
+    } else if (action.includes('least_probable')) {
+      return context.probability_over25 < context.probability_under25 ? 
+             context.odds_over25 : context.odds_under25;
+    }
   }
   
   return 0;

@@ -113,10 +113,24 @@ class ConditionalRulesService {
     const allRules = await this.getRules();
     const enabledRules = allRules.filter(rule => rule.enabled);
     
+    console.log('🔍 RÈGLES CONDITIONNELLES - ÉVALUATION DÉMARRÉE:');
+    console.log('  📋 Total des règles:', allRules.length);
+    console.log('  ✅ Règles activées:', enabledRules.length);
+    console.log('  📊 Contexte d\'évaluation:', {
+      vig_1x2: context.vigorish_1x2.toFixed(2) + '%',
+      vig_btts: context.vigorish_btts.toFixed(2) + '%',
+      vig_ou25: context.vigorish_ou25.toFixed(2) + '%',
+      prob_home: context.probability_home.toFixed(1) + '%',
+      prob_draw: context.probability_draw.toFixed(1) + '%',
+      prob_away: context.probability_away.toFixed(1) + '%'
+    });
+    
     const results: RuleEvaluationResult[] = [];
 
     for (const rule of enabledRules) {
       const conditionsMet = this.evaluateConditions(rule.conditions, rule.logicalConnectors, context);
+      
+      console.log(`  🔍 RÈGLE "${rule.name}" (marché: ${rule.market}):`, conditionsMet ? '✅ CORRESPONDANCE' : '❌ PAS DE CORRESPONDANCE');
       
       results.push({
         ruleId: rule.id,
@@ -128,6 +142,10 @@ class ConditionalRulesService {
         evaluationDetails: this.getEvaluationDetails(rule, context, conditionsMet)
       });
     }
+
+    const matchedResults = results.filter(r => r.conditionsMet);
+    console.log('🎯 RÉSULTAT FINAL:', matchedResults.length, 'règle(s) correspondent aux conditions:', 
+      matchedResults.map(r => `${r.ruleName} (${r.action})`));
 
     // Sort by priority
     return results.sort((a, b) => a.priority - b.priority);
