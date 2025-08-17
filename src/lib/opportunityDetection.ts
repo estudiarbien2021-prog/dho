@@ -399,6 +399,93 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
     'no_rec_détail': noRecommendations.map(r => `${r.type}:${r.prediction}`)
   });
   
+  // ÉTAPE 1.5: Résoudre les conflits en gardant la cote la plus élevée
+  const resolveConflictsByHighestOdds = (recommendations: DetectedOpportunity[]): DetectedOpportunity[] => {
+    const groupedByMarket = new Map<string, DetectedOpportunity[]>();
+    
+    // Grouper par marché
+    recommendations.forEach(rec => {
+      if (!groupedByMarket.has(rec.type)) {
+        groupedByMarket.set(rec.type, []);
+      }
+      groupedByMarket.get(rec.type)!.push(rec);
+    });
+    
+    const resolvedRecommendations: DetectedOpportunity[] = [];
+    
+    // Pour chaque marché, résoudre les conflits
+    groupedByMarket.forEach((recs, market) => {
+      if (recs.length <= 1) {
+        // Pas de conflit
+        resolvedRecommendations.push(...recs);
+        return;
+      }
+      
+      // Détecter les conflits selon le type de marché
+      const conflicts: DetectedOpportunity[][] = [];
+      
+      if (market === 'BTTS') {
+        const yesRecs = recs.filter(r => r.prediction === 'Oui');
+        const noRecs = recs.filter(r => r.prediction === 'Non');
+        if (yesRecs.length > 0 && noRecs.length > 0) {
+          conflicts.push([...yesRecs, ...noRecs]);
+        } else {
+          resolvedRecommendations.push(...recs);
+        }
+      } else if (market === 'O/U 2.5' || market === 'OU25') {
+        const overRecs = recs.filter(r => r.prediction === '+2,5 buts');
+        const underRecs = recs.filter(r => r.prediction === '-2,5 buts');
+        if (overRecs.length > 0 && underRecs.length > 0) {
+          conflicts.push([...overRecs, ...underRecs]);
+        } else {
+          resolvedRecommendations.push(...recs);
+        }
+      } else if (market === '1X2' || market === 'Double Chance') {
+        // Pour 1X2, on peut avoir des conflits entre victoires opposées
+        const homeRecs = recs.filter(r => r.prediction === 'Victoire domicile' || r.prediction === match.home_team);
+        const awayRecs = recs.filter(r => r.prediction === 'Victoire extérieur' || r.prediction === match.away_team);
+        const drawRecs = recs.filter(r => r.prediction === 'Match nul' || r.prediction === 'Nul');
+        
+        if (homeRecs.length > 0 && awayRecs.length > 0) {
+          conflicts.push([...homeRecs, ...awayRecs]);
+        }
+        // Ajouter les autres sans conflit
+        resolvedRecommendations.push(...drawRecs);
+        if (conflicts.length === 0) {
+          resolvedRecommendations.push(...homeRecs, ...awayRecs);
+        }
+      } else {
+        // Marché inconnu, pas de résolution de conflit
+        resolvedRecommendations.push(...recs);
+      }
+      
+      // Résoudre chaque conflit en gardant la cote la plus élevée
+      conflicts.forEach(conflictGroup => {
+        const highestOddsRec = conflictGroup.reduce((max, current) => 
+          current.odds > max.odds ? current : max
+        );
+        
+        console.log('🎯 CONFLIT RÉSOLU PAR COTE LA PLUS ÉLEVÉE:', {
+          'marché': market,
+          'conflit': conflictGroup.map(r => `${r.prediction}(${r.odds})`),
+          'choisi': `${highestOddsRec.prediction}(${highestOddsRec.odds})`
+        });
+        
+        resolvedRecommendations.push(highestOddsRec);
+      });
+    });
+    
+    return resolvedRecommendations;
+  };
+  
+  const deduplicatedRecommendations = resolveConflictsByHighestOdds(realRecommendations);
+  
+  console.log('🔧 DÉDUPLICATION PAR COTES:', {
+    'avant': realRecommendations.length,
+    'après': deduplicatedRecommendations.length,
+    'supprimés': realRecommendations.length - deduplicatedRecommendations.length
+  });
+  
   // Calculer la probabilité réelle pour chaque recommandation
   const calculateRealProbability = (opp: DetectedOpportunity) => {
     let probability = 0;
@@ -486,9 +573,9 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
   // ÉTAPE 3: Prioriser les vraies recommandations, puis les no_recommendation seulement si nécessaire
   let finalRecommendations: DetectedOpportunity[] = [];
   
-  if (realRecommendations.length > 0) {
+  if (deduplicatedRecommendations.length > 0) {
     // Il y a des vraies recommandations : les prioriser
-    const sortedRealRecommendations = sortRealRecommendations(realRecommendations);
+    const sortedRealRecommendations = sortRealRecommendations(deduplicatedRecommendations);
     finalRecommendations = sortedRealRecommendations;
     
     console.log('✅ VRAIES RECOMMANDATIONS TROUVÉES - IGNORANT LES NO_RECOMMENDATION:', {
