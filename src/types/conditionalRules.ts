@@ -19,7 +19,7 @@ export type ConditionType =
   | 'odds_over25'
   | 'odds_under25';
 
-export type Operator = '>' | '<' | '=' | '>=' | '<=' | 'between';
+export type Operator = '>' | '<' | '=' | '>=' | '<=' | '!=' | 'between';
 
 export type LogicalConnector = 'AND' | 'OR';
 
@@ -193,6 +193,7 @@ export const OPERATOR_LABELS: Record<Operator, string> = {
   '=': 'égal à',
   '>=': 'supérieur ou égal à',
   '<=': 'inférieur ou égal à',
+  '!=': 'différent de',
   'between': 'entre'
 };
 

@@ -187,6 +187,8 @@ class ConditionalRulesService {
         return contextValue < condition.value;
       case '=':
         return Math.abs(contextValue - condition.value) < 0.01; // Float comparison
+      case '!=':
+        return Math.abs(contextValue - condition.value) >= 0.01; // Float comparison for "not equal"
       case '>=':
         return contextValue >= condition.value;
       case '<=':
