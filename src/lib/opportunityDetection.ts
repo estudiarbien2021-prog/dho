@@ -415,9 +415,9 @@ function getOddsForPrediction(market: string, prediction: string, context: RuleE
   return 0;
 }
 
-// Fonction centralisée pour prioriser les opportunités par probabilité réelle
+// Fonction centralisée pour prioriser les opportunités par priorité la plus BASSE (1 = plus prioritaire)
 export function prioritizeOpportunitiesByRealProbability(opportunities: DetectedOpportunity[], match: ProcessedMatch): DetectedOpportunity[] {
-  console.log('🎯 PRIORISATION CENTRALISÉE - INPUT:', opportunities.map(o => `${o.type}:${o.prediction}(inv:${o.isInverted})`));
+  console.log('🎯 PRIORISATION CENTRALISÉE - INPUT:', opportunities.map(o => `${o.type}:${o.prediction}(priorité:${o.priority})`));
   
   // ÉTAPE 1: Séparer les vraies recommandations des "no_recommendation"
   const realRecommendations = opportunities.filter(opp => 
@@ -435,24 +435,24 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
   console.log('🔄 SÉPARATION RECOMMANDATIONS:', {
     'vraies_recommandations': realRecommendations.length,
     'no_recommendations': noRecommendations.length,
-    'vraies_détail': realRecommendations.map(r => `${r.type}:${r.prediction}`),
+    'vraies_détail': realRecommendations.map(r => `${r.type}:${r.prediction}(priorité:${r.priority})`),
     'no_rec_détail': noRecommendations.map(r => `${r.type}:${r.prediction}`)
   });
   
-  // CORRECTION: Supprimer TOUTE résolution de conflit automatique
-  // Les règles configurées par l'utilisateur sont PRIORITAIRES
-  console.log('🎯 PRIORISATION STRICTE - Garder toutes les recommandations des règles configurées');
+  // CORRECTION MAJEURE: Prioriser par priorité la plus BASSE (1 = plus prioritaire)
+  console.log('🎯 PRIORISATION PAR PRIORITÉ LA PLUS BASSE (1 = plus prioritaire)');
   
-  // Grouper par priorité et garder seulement la plus haute priorité
-  const highestPriority = Math.max(...realRecommendations.map(r => r.priority));
-  const highestPriorityRecommendations = realRecommendations.filter(r => r.priority === highestPriority);
+  // Grouper par priorité et garder seulement la plus BASSE priorité (plus importante)
+  const lowestPriority = Math.min(...realRecommendations.map(r => r.priority));
+  const highestPriorityRecommendations = realRecommendations.filter(r => r.priority === lowestPriority);
   
-  console.log('🏆 RECOMMANDATIONS PRIORITÉ MAX:', highestPriorityRecommendations.length, 'avec priorité', highestPriority);
+  console.log('🏆 RECOMMANDATIONS PRIORITÉ MAX:', highestPriorityRecommendations.length, 'avec priorité', lowestPriority);
+  console.log('🏆 DÉTAIL:', highestPriorityRecommendations.map(r => `${r.type}:${r.prediction}(priorité:${r.priority})`));
   
-  // CORRECTION: Garder TOUTES les recommandations de priorité maximale au lieu d'une seule
+  // Garder TOUTES les recommandations de priorité maximale (priorité la plus basse numériquement)
   const finalRecommendations = highestPriorityRecommendations;
   
-  console.log('✅ RECOMMANDATION FINALE:', finalRecommendations.map(r => `${r.type}:${r.prediction}`));
+  console.log('✅ RECOMMANDATIONS FINALES:', finalRecommendations.map(r => `${r.type}:${r.prediction}(priorité:${r.priority})`));
   
   return finalRecommendations;
 }
