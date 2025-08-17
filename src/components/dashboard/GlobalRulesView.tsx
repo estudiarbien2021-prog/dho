@@ -97,8 +97,6 @@ function SortableRow({
         />
       </div>
       
-      <div className="flex-1 font-medium">{rule.name}</div>
-      
       <div className="w-20">
         <Badge className={getMarketBadgeColor(rule.market)}>
           {MARKET_LABELS[rule.market]}
@@ -537,7 +535,6 @@ export function GlobalRulesView({}: GlobalRulesViewProps) {
                         onCheckedChange={handleSelectAll}
                       />
                     </div>
-                    <div className="flex-1">Nom</div>
                     <div className="w-20">Marché</div>
                     <div className="w-24">Statut</div>
                     <div className="w-16 text-center">Priorité</div>
