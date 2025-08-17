@@ -178,26 +178,6 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     return match.p_over_2_5_fair > match.p_under_2_5_fair ? '+2,5 buts' : '-2,5 buts';
   };
 
-  // AI Opportunity Detection with hooks moved to top
-
-  useEffect(() => {
-    const loadOpportunities = async () => {
-      try {
-        setLoading(true);
-        const opps = await detectOpportunities(match);
-        setOpportunities(opps);
-        console.log('🔴 MODAL OPPORTUNITIES:', opps.length, opps.map(o => `${o.type}:${o.prediction}(inverted:${o.isInverted})`));
-      } catch (error) {
-        console.error('Error loading opportunities:', error);
-        setOpportunities([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadOpportunities();
-  }, [match]);
-
   if (loading) {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
