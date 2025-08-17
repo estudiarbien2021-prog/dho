@@ -87,6 +87,9 @@ export async function detectOpportunities(match: ProcessedMatch): Promise<Detect
     } else if (result.action === 'recommend_double_chance_least_probable') {
       prediction = getDoubleChanceLeastProbable(context);
       userDisplayType = 'Double Chance';
+    } else if (result.action === 'recommend_refund_if_draw') {
+      prediction = 'Remboursé si match nul';
+      userDisplayType = 'Remboursé si nul';
     } else {
       // Actions spécifiques comme 'recommend_over', 'recommend_yes', etc.
       prediction = result.action.replace('recommend_', '');
@@ -273,6 +276,16 @@ function getOddsForPrediction(market: string, prediction: string, context: RuleE
     if (prediction.includes('nul')) {
       const odds = context.odds_draw || 0;
       console.log(`🎯 1X2 odds for nul: ${odds}`);
+      return odds;
+    }
+    // Handle "Remboursé si match nul" - use higher odds between home and away
+    if (prediction === 'Remboursé si match nul') {
+      const homeOdds = context.odds_home || 0;
+      const awayOdds = context.odds_away || 0;
+      // For refund if draw bets, we typically use the odds of the chosen outcome (home or away)
+      // Since it's a strategic bet, use the better of the two odds
+      const odds = Math.max(homeOdds, awayOdds);
+      console.log(`🎯 Remboursé si nul odds: ${odds} (max between home: ${homeOdds}, away: ${awayOdds})`);
       return odds;
     }
     // Handle double chance predictions
