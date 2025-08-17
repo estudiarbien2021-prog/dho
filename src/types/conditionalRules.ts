@@ -35,6 +35,7 @@ export type ActionType =
   | 'recommend_over25'
   | 'recommend_under25'
   | 'recommend_most_probable'
+  | 'recommend_least_probable'
   | 'invert_recommendation'
   | 'no_recommendation';
 
@@ -136,6 +137,7 @@ export const ACTION_OPTIONS: Record<Market, ActionType[]> = {
     'recommend_btts_yes',
     'recommend_btts_no',
     'recommend_most_probable',
+    'recommend_least_probable',
     'invert_recommendation',
     'no_recommendation'
   ],
@@ -143,6 +145,7 @@ export const ACTION_OPTIONS: Record<Market, ActionType[]> = {
     'recommend_over25',
     'recommend_under25',
     'recommend_most_probable',
+    'recommend_least_probable',
     'invert_recommendation',
     'no_recommendation'
   ]
@@ -179,6 +182,7 @@ export const ACTION_LABELS: Record<ActionType, string> = {
   recommend_over25: 'Recommander Over 2.5',
   recommend_under25: 'Recommander Under 2.5',
   recommend_most_probable: 'Recommander le plus probable',
+  recommend_least_probable: 'Recommander le moins probable',
   invert_recommendation: 'Inverser la recommandation',
   no_recommendation: 'Aucune recommandation'
 };
