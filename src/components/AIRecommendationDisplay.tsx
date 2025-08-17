@@ -285,7 +285,7 @@ export function AIRecommendationDisplay({
 
     function formatBetType(betType: string) {
       switch (betType) {
-        case '1X2': return 'chance double';
+        case '1X2': return 'Résultat';
         case 'BTTS': return 'BTTS';
         case 'O/U 2.5': return 'O/U 2.5';
         default: return betType;
