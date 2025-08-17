@@ -71,10 +71,22 @@ export function GlobalRulesView({}: GlobalRulesViewProps) {
 
   const generateRuleSummary = (rule: ConditionalRule): string => {
     const conditions = rule.conditions.map((condition, index) => {
+      // Format values based on condition type
+      const formatValue = (value: number, type: string): string => {
+        // Vigorish and probability conditions are stored as decimals but displayed as percentages
+        if (type === 'vigorish' || type.includes('probability')) {
+          return `${(value * 100).toFixed(1)}%`;
+        }
+        // Odds conditions are displayed as-is (decimal format)
+        return value.toString();
+      };
+
       const label = CONDITION_LABELS[condition.type] || condition.type;
+      const formattedValue = formatValue(condition.value, condition.type);
       const connector = index < rule.logicalConnectors.length ? 
         ` ${rule.logicalConnectors[index] === 'AND' ? 'ET' : 'OU'} ` : '';
-      return `${label} ${condition.operator} ${condition.value}${connector}`;
+      
+      return `${label} ${condition.operator} ${formattedValue}${connector}`;
     }).join('');
 
     const action = ACTION_LABELS[rule.action] || rule.action;
