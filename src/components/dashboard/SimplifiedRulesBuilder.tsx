@@ -244,9 +244,22 @@ export default function SimplifiedRulesBuilder() {
 
   const generateRuleSummary = (rule: ConditionalRule): string => {
     const conditionStrings = rule.conditions.map((cond, index) => {
-      let conditionText = `${CONDITION_LABELS[cond.type]} ${OPERATOR_LABELS[cond.operator]} ${cond.value}`;
+      // Format values based on condition type
+      const formatValue = (value: number, type: ConditionType): string => {
+        // Vigorish and probability conditions are stored as decimals but displayed as percentages
+        if (type === 'vigorish' || type.includes('probability')) {
+          return `${(value * 100).toFixed(1)}%`;
+        }
+        // Odds conditions are displayed as-is (decimal format)
+        return value.toString();
+      };
+
+      const formattedValue = formatValue(cond.value, cond.type);
+      let conditionText = `${CONDITION_LABELS[cond.type]} ${OPERATOR_LABELS[cond.operator]} ${formattedValue}`;
+      
       if (cond.operator === 'between' && cond.valueMax !== undefined) {
-        conditionText = `${CONDITION_LABELS[cond.type]} entre ${cond.value} et ${cond.valueMax}`;
+        const formattedValueMax = formatValue(cond.valueMax, cond.type);
+        conditionText = `${CONDITION_LABELS[cond.type]} entre ${formattedValue} et ${formattedValueMax}`;
       }
       
       if (index < rule.conditions.length - 1) {
@@ -510,12 +523,21 @@ function RuleEditor({
 
                 <Input
                   type="number"
-                  value={condition.value}
-                  onChange={(e) => 
-                    onUpdateCondition(rule.id, condition.id, { value: parseFloat(e.target.value) || 0 })
+                  value={
+                    condition.type === 'vigorish' || condition.type.includes('probability')
+                      ? (condition.value * 100).toFixed(1)
+                      : condition.value
                   }
+                  onChange={(e) => {
+                    const inputValue = parseFloat(e.target.value) || 0;
+                    const actualValue = condition.type === 'vigorish' || condition.type.includes('probability')
+                      ? inputValue / 100  // Convert percentage to decimal for storage
+                      : inputValue;
+                    onUpdateCondition(rule.id, condition.id, { value: actualValue });
+                  }}
                   className="w-24"
-                  step="0.1"
+                  step={condition.type === 'vigorish' || condition.type.includes('probability') ? "0.1" : "0.01"}
+                  placeholder={condition.type === 'vigorish' || condition.type.includes('probability') ? "%" : ""}
                 />
 
                 {condition.operator === 'between' && (
@@ -523,12 +545,21 @@ function RuleEditor({
                     <span className="text-sm text-muted-foreground">et</span>
                     <Input
                       type="number"
-                      value={condition.valueMax || 0}
-                      onChange={(e) => 
-                        onUpdateCondition(rule.id, condition.id, { valueMax: parseFloat(e.target.value) || 0 })
+                      value={
+                        condition.type === 'vigorish' || condition.type.includes('probability')
+                          ? ((condition.valueMax || 0) * 100).toFixed(1)
+                          : (condition.valueMax || 0)
                       }
+                      onChange={(e) => {
+                        const inputValue = parseFloat(e.target.value) || 0;
+                        const actualValue = condition.type === 'vigorish' || condition.type.includes('probability')
+                          ? inputValue / 100  // Convert percentage to decimal for storage
+                          : inputValue;
+                        onUpdateCondition(rule.id, condition.id, { valueMax: actualValue });
+                      }}
                       className="w-24"
-                      step="0.1"
+                      step={condition.type === 'vigorish' || condition.type.includes('probability') ? "0.1" : "0.01"}
+                      placeholder={condition.type === 'vigorish' || condition.type.includes('probability') ? "%" : ""}
                     />
                   </>
                 )}
