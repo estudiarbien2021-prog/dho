@@ -65,8 +65,8 @@ export const leagueCountryRules: Rule[] = [
 ];
 
 export function leagueToFlag(league: string, country?: string, homeTeam?: string, awayTeam?: string): FlagInfo {
-  // 1. Priorité à la colonne country du CSV si elle existe (sauf pour les cas inconnus)
-  if (country && !country.includes("Unknown") && !country.includes("National Cup")) {
+  // 1. Priorité à la colonne country du CSV si elle existe
+  if (country) {
     // Convertir les noms de pays complets en codes ISO
     const countryCode = getCountryCodeFromName(country);
     if (countryCode) {
