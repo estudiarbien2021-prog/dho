@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { Globe, Search, Filter, Trash2, RefreshCw, ArrowUpDown, GripVertical } from 'lucide-react';
@@ -67,34 +66,37 @@ function SortableRow({
   };
 
   return (
-    <TableRow 
+    <div 
       ref={setNodeRef} 
       style={style} 
-      className={isDragging ? 'bg-muted/50' : ''}
+      className={`grid grid-cols-7 gap-4 p-4 border-b border-border hover:bg-muted/30 transition-colors ${
+        isDragging ? 'bg-muted/50 shadow-lg z-10' : ''
+      }`}
     >
-      <TableCell>
-        <div className="flex items-center gap-2">
-          <button
-            className="cursor-grab hover:bg-muted p-1 rounded touch-none select-none"
-            style={{ touchAction: 'none' }}
-            {...attributes}
-            {...listeners}
-          >
-            <GripVertical className="h-4 w-4 text-muted-foreground" />
-          </button>
-          <Checkbox
-            checked={selectedRules.includes(rule.id)}
-            onCheckedChange={(checked) => onSelectRule(rule.id, checked as boolean)}
-          />
-        </div>
-      </TableCell>
-      <TableCell className="font-medium">{rule.name}</TableCell>
-      <TableCell>
+      <div className="flex items-center gap-2">
+        <button
+          className="cursor-grab hover:bg-muted p-2 rounded touch-none select-none transition-colors"
+          style={{ touchAction: 'none' }}
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
+        </button>
+        <Checkbox
+          checked={selectedRules.includes(rule.id)}
+          onCheckedChange={(checked) => onSelectRule(rule.id, checked as boolean)}
+        />
+      </div>
+      
+      <div className="flex items-center font-medium">{rule.name}</div>
+      
+      <div className="flex items-center">
         <Badge className={getMarketBadgeColor(rule.market)}>
           {MARKET_LABELS[rule.market]}
         </Badge>
-      </TableCell>
-      <TableCell>
+      </div>
+      
+      <div className="flex items-center">
         <Button
           variant="ghost"
           size="sm"
@@ -103,16 +105,19 @@ function SortableRow({
         >
           {rule.enabled ? 'Activée' : 'Désactivée'}
         </Button>
-      </TableCell>
-      <TableCell>
+      </div>
+      
+      <div className="flex items-center">
         <span className="text-sm font-medium">{rule.priority}</span>
-      </TableCell>
-      <TableCell className="max-w-md">
-        <span className="text-sm text-text-weak truncate block">
+      </div>
+      
+      <div className="flex items-center max-w-md">
+        <span className="text-sm text-muted-foreground truncate">
           {onGenerateRuleSummary(rule)}
         </span>
-      </TableCell>
-      <TableCell>
+      </div>
+      
+      <div className="flex items-center justify-end">
         <Button
           variant="ghost"
           size="sm"
@@ -121,8 +126,8 @@ function SortableRow({
         >
           <Trash2 className="h-4 w-4" />
         </Button>
-      </TableCell>
-    </TableRow>
+      </div>
+    </div>
   );
 }
 
@@ -225,10 +230,14 @@ export function GlobalRulesView({}: GlobalRulesViewProps) {
       return;
     }
 
+    console.log('Drag end event:', { activeId: active.id, overId: over.id });
+
     setSaving(true);
     
     const oldIndex = filteredRules.findIndex(rule => rule.id === active.id);
     const newIndex = filteredRules.findIndex(rule => rule.id === over.id);
+
+    console.log('Moving rule from index', oldIndex, 'to index', newIndex);
 
     const reorderedRules = arrayMove(filteredRules, oldIndex, newIndex);
     
@@ -411,7 +420,7 @@ export function GlobalRulesView({}: GlobalRulesViewProps) {
           <Globe className="h-5 w-5 text-primary" />
           <div>
             <h3 className="text-lg font-semibold">Vue Globale des Règles</h3>
-            <p className="text-sm text-text-weak">
+            <p className="text-sm text-muted-foreground">
               Glissez-déposez pour réorganiser les priorités des règles
             </p>
           </div>
@@ -428,7 +437,7 @@ export function GlobalRulesView({}: GlobalRulesViewProps) {
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-text-weak" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Rechercher une règle..."
                   value={searchTerm}
@@ -460,7 +469,7 @@ export function GlobalRulesView({}: GlobalRulesViewProps) {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <span className="text-sm text-text-weak">
+              <span className="text-sm text-muted-foreground">
                 {selectedRules.length} règle(s) sélectionnée(s)
               </span>
               <Button onClick={() => bulkToggleEnabled(true)} size="sm" variant="outline">
@@ -487,58 +496,55 @@ export function GlobalRulesView({}: GlobalRulesViewProps) {
         </CardHeader>
         <CardContent>
           {filteredRules.length === 0 ? (
-            <div className="text-center py-8 text-text-weak">
+            <div className="text-center py-8 text-muted-foreground">
               {searchTerm || selectedMarket !== 'all' 
                 ? 'Aucune règle ne correspond aux filtres' 
                 : 'Aucune règle configurée'}
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="w-full">
               <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}
                 onDragEnd={handleDragEnd}
               >
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-20">
-                        <div className="flex items-center gap-2">
-                          <GripVertical className="h-4 w-4 text-muted-foreground" />
-                          <Checkbox
-                            checked={selectedRules.length === filteredRules.length && filteredRules.length > 0}
-                            onCheckedChange={handleSelectAll}
-                          />
-                        </div>
-                      </TableHead>
-                      <TableHead>Nom</TableHead>
-                      <TableHead>Marché</TableHead>
-                      <TableHead>Statut</TableHead>
-                      <TableHead>Priorité</TableHead>
-                      <TableHead>Logique</TableHead>
-                      <TableHead className="w-24">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <SortableContext 
-                      items={filteredRules.map(rule => rule.id)} 
-                      strategy={verticalListSortingStrategy}
-                    >
-                      {filteredRules.map((rule) => (
-                        <SortableRow
-                          key={rule.id}
-                          rule={rule}
-                          selectedRules={selectedRules}
-                          onSelectRule={handleSelectRule}
-                          onToggleEnabled={toggleRuleEnabled}
-                          onDeleteRule={deleteRule}
-                          onGenerateRuleSummary={generateRuleSummary}
-                          getMarketBadgeColor={getMarketBadgeColor}
-                        />
-                      ))}
-                    </SortableContext>
-                  </TableBody>
-                </Table>
+                <SortableContext
+                  items={filteredRules.map(rule => rule.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {/* Table Header */}
+                  <div className="grid grid-cols-7 gap-4 p-4 border-b-2 border-border bg-muted/30 font-medium text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8"></div>
+                      <Checkbox
+                        checked={selectedRules.length === filteredRules.length && filteredRules.length > 0}
+                        onCheckedChange={handleSelectAll}
+                      />
+                    </div>
+                    <div>Nom</div>
+                    <div>Marché</div>
+                    <div>Statut</div>
+                    <div>Priorité</div>
+                    <div>Résumé</div>
+                    <div className="text-right">Actions</div>
+                  </div>
+                  
+                  {/* Table Body */}
+                  <div className="bg-background">
+                    {filteredRules.map((rule) => (
+                      <SortableRow
+                        key={rule.id}
+                        rule={rule}
+                        selectedRules={selectedRules}
+                        onSelectRule={handleSelectRule}
+                        onToggleEnabled={toggleRuleEnabled}
+                        onDeleteRule={deleteRule}
+                        onGenerateRuleSummary={generateRuleSummary}
+                        getMarketBadgeColor={getMarketBadgeColor}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
               </DndContext>
             </div>
           )}
