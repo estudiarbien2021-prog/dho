@@ -415,7 +415,7 @@ function getOddsForPrediction(market: string, prediction: string, context: RuleE
   return 0;
 }
 
-// NOUVELLE FONCTION: Sélectionner intelligemment jusqu'à 2 opportunités de marchés différents
+// NOUVELLE FONCTION: Sélectionner intelligemment jusqu'à 2 opportunités avec les meilleures priorités de marchés différents
 export function prioritizeOpportunitiesByRealProbability(opportunities: DetectedOpportunity[], match: ProcessedMatch): DetectedOpportunity[] {
   console.log('🎯 PRIORISATION INTELLIGENTE - INPUT:', opportunities.map(o => `${o.type}:${o.prediction}(priorité:${o.priority})`));
   
@@ -433,15 +433,11 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
     return [];
   }
   
-  // ÉTAPE 2: Trouver la priorité la plus BASSE (1 = plus prioritaire)
-  const lowestPriority = Math.min(...realRecommendations.map(r => r.priority));
-  console.log('🏆 PRIORITÉ LA PLUS ÉLEVÉE (plus basse numériquement):', lowestPriority);
+  // ÉTAPE 2: Trier toutes les recommandations par priorité (1 = plus prioritaire, donc tri ascendant)
+  const sortedRecommendations = [...realRecommendations].sort((a, b) => a.priority - b.priority);
+  console.log('📊 RECOMMANDATIONS TRIÉES PAR PRIORITÉ:', sortedRecommendations.map(r => `${r.type}:${r.prediction}(priorité:${r.priority})`));
   
-  // ÉTAPE 3: Filtrer les opportunités avec la meilleure priorité
-  const highestPriorityRecommendations = realRecommendations.filter(r => r.priority === lowestPriority);
-  console.log('🎯 OPPORTUNITÉS PRIORITÉ MAX:', highestPriorityRecommendations.length, highestPriorityRecommendations.map(r => `${r.type}:${r.prediction}`));
-  
-  // ÉTAPE 4: Sélectionner intelligemment jusqu'à 2 opportunités de marchés différents
+  // ÉTAPE 3: Sélectionner jusqu'à 2 opportunités de marchés différents selon l'ordre de priorité
   const selectedRecommendations: DetectedOpportunity[] = [];
   const usedMarkets = new Set<string>();
   
@@ -456,7 +452,7 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
   };
   
   // Parcourir les opportunités et sélectionner jusqu'à 2 de marchés différents
-  for (const recommendation of highestPriorityRecommendations) {
+  for (const recommendation of sortedRecommendations) {
     const normalizedMarket = normalizeMarketType(recommendation.type);
     
     if (!usedMarkets.has(normalizedMarket) && selectedRecommendations.length < 2) {
