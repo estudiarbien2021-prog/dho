@@ -181,16 +181,17 @@ export function useDatabaseMatches(specificDate?: string) {
         return false;
       }
 
-      // ÉTAPE 2: Vérification des opportunités IA
+      // ÉTAPE 2: Vérification des opportunités IA (POUR DEBUGGING SEULEMENT)
       const opportunities = matchOpportunities.get(match.id) || [];
-      
-      if (opportunities.length === 0) {
-        console.log(`❌ EXCLU (PAS D'OPPORTUNITÉ IA): ${match.home_team} vs ${match.away_team} - Données minimum OK mais pas d'opportunité IA`);
-        return false;
-      }
-      
       const isDataComplete = hasCompleteData(match);
-      console.log(`✅ MATCH VALIDÉ: ${match.home_team} vs ${match.away_team} - ${isDataComplete ? 'Données complètes' : 'Données partielles'} + ${opportunities.length} opportunité(s) IA`);
+      
+      console.log(`✅ MATCH INCLUS: ${match.home_team} vs ${match.away_team} - ${isDataComplete ? 'Données complètes' : 'Données partielles'} + ${opportunities.length} opportunité(s) IA`, {
+        vig_1x2: match.vig_1x2,
+        vig_btts: match.vig_btts,
+        vig_ou_2_5: match.vig_ou_2_5,
+        p_over_2_5_fair: match.p_over_2_5_fair,
+        opportunities: opportunities.map(opp => opp.type)
+      });
 
       // Search filter
       if (filters.search) {

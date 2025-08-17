@@ -178,28 +178,51 @@ class ConditionalRulesService {
 
   private evaluateCondition(condition: Condition, context: RuleEvaluationContext, ruleMarket?: Market): boolean {
     const contextValue = this.getContextValue(condition.type, context, ruleMarket);
-    if (contextValue === null || contextValue === undefined) return false;
+    
+    console.log(`    🔍 Condition: ${condition.type} ${condition.operator} ${condition.value}`, {
+      contextValue,
+      conditionType: condition.type,
+      operator: condition.operator,
+      expectedValue: condition.value,
+      ruleMarket
+    });
+    
+    if (contextValue === null || contextValue === undefined) {
+      console.log(`    ❌ Valeur du contexte nulle/undefined pour ${condition.type}`);
+      return false;
+    }
 
+    let result = false;
     switch (condition.operator) {
       case '>':
-        return contextValue > condition.value;
+        result = contextValue > condition.value;
+        break;
       case '<':
-        return contextValue < condition.value;
+        result = contextValue < condition.value;
+        break;
       case '=':
-        return Math.abs(contextValue - condition.value) < 0.01; // Float comparison
+        result = Math.abs(contextValue - condition.value) < 0.01; // Float comparison
+        break;
       case '!=':
-        return Math.abs(contextValue - condition.value) >= 0.01; // Float comparison for "not equal"
+        result = Math.abs(contextValue - condition.value) >= 0.01; // Float comparison for "not equal"
+        break;
       case '>=':
-        return contextValue >= condition.value;
+        result = contextValue >= condition.value;
+        break;
       case '<=':
-        return contextValue <= condition.value;
+        result = contextValue <= condition.value;
+        break;
       case 'between':
-        return condition.valueMax !== undefined && 
+        result = condition.valueMax !== undefined && 
                contextValue >= condition.value && 
                contextValue <= condition.valueMax;
+        break;
       default:
-        return false;
+        result = false;
     }
+    
+    console.log(`    ${result ? '✅' : '❌'} ${contextValue} ${condition.operator} ${condition.value} = ${result}`);
+    return result;
   }
 
   private getContextValue(conditionType: string, context: RuleEvaluationContext, ruleMarket?: Market): number | null {
