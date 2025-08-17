@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { ProcessedMatch } from '@/types/match';
-import { Badge } from '@/components/ui/badge';
-import { Brain, Target } from 'lucide-react';
-import { detectOpportunities, convertOpportunityToAIRecommendation, prioritizeOpportunitiesByRealProbability } from '@/lib/opportunityDetection';
+import { detectOpportunities, prioritizeOpportunitiesByRealProbability, convertOpportunityToAIRecommendation } from '@/lib/opportunityDetection';
 import { generateConfidenceScore } from '@/lib/confidence';
+import { Badge } from '@/components/ui/badge';
+import { TrendingUp, TrendingDown, Target, AlertTriangle } from 'lucide-react';
 
 interface AIRecommendationDisplayProps {
   match: ProcessedMatch;
@@ -13,125 +13,112 @@ interface AIRecommendationDisplayProps {
   showIcon?: boolean;
 }
 
-export function AIRecommendationDisplay({ 
-  match, 
-  marketFilters = [], 
-  variant = 'compact',
-  showIcon = true 
-}: AIRecommendationDisplayProps) {
-  console.log('🟢 AIRecommendationDisplay APPELÉ pour:', match.home_team, 'vs', match.away_team);
-  
+export function AIRecommendationDisplay({ match, marketFilters, variant = 'compact', showIcon = true }: AIRecommendationDisplayProps) {
   const [opportunities, setOpportunities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadOpportunities = async () => {
+    const fetchOpportunities = async () => {
       try {
         setLoading(true);
-        const opps = await detectOpportunities(match);
-        setOpportunities(opps);
-        console.log('🎯 OPPORTUNITIES DÉTECTÉES (AIRecommendationDisplay):', opps.length, opps.map(o => `${o.type}:${o.prediction}(inverted:${o.isInverted})`));
+        console.log('🟢 AIRecommendationDisplay APPELÉ pour:', match.home_team, 'vs', match.away_team);
+        
+        const detectedOpportunities = await detectOpportunities(match);
+        console.log('🔍 OPPORTUNITÉS DÉTECTÉES:', detectedOpportunities.length);
+        
+        if (detectedOpportunities.length === 0) {
+          console.log('🚫 AUCUNE OPPORTUNITÉ - Les règles configurées ne sont pas respectées');
+          setOpportunities([]);
+          return;
+        }
+        
+        setOpportunities(detectedOpportunities);
       } catch (error) {
-        console.error('Error loading opportunities:', error);
+        console.error('❌ Erreur lors de la détection des opportunités:', error);
         setOpportunities([]);
       } finally {
         setLoading(false);
       }
     };
 
-    loadOpportunities();
+    fetchOpportunities();
   }, [match]);
 
   if (loading) {
     return (
       <div className="flex items-center gap-2">
-        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-        <span className="text-xs text-muted-foreground">Chargement...</span>
+        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary"></div>
+        <span className="text-xs text-muted-foreground">Analyse en cours...</span>
       </div>
     );
   }
-  
-  // ===== UTILISER LA MÊME LOGIQUE EXACTE QUE MatchDetailModal =====
-  
-  // 2. Prioriser EXACTEMENT comme dans le modal
+
+  // CORRECTION MAJEURE: Prioriser strictement selon les règles configurées
   const prioritizedOpportunities = prioritizeOpportunitiesByRealProbability(opportunities, match);
   
-  // 3. Convertir en recommandations EXACTEMENT comme dans le modal avec filtre pour cotes nulles
-  const prioritizedRecommendations = prioritizedOpportunities
-    .map(opp => ({
-      rec: convertOpportunityToAIRecommendation(opp),
-      opp: opp
-    }))
-    .filter(({ rec }) => {
-      // Filter out recommendations with odds equal to 0 or null
-      const hasInvalidOdds = !rec.odds || rec.odds === 0;
-      if (hasInvalidOdds) {
-        console.log('🚫 FILTERED OUT invalid odds in AIRecommendationDisplay:', rec);
-      }
-      return !hasInvalidOdds;
-    });
-
-  const finalRecommendations = prioritizedRecommendations;
-  
-  // Helper function to normalize recommendation object (EXACTEMENT comme modal)
-  const normalizeRecommendation = (rec: any) => {
-    console.log('🔍 NORMALIZE INPUT:', rec);
-    
-    if (!rec) return null;
-    
-    const normalized = {
-      type: rec.betType || rec.type || 'Aucune',
-      prediction: rec.prediction || 'Aucune',
-      odds: rec.odds || 0,
-      confidence: rec.confidence || 'low'
-    };
-    
-    console.log('🔍 NORMALIZE OUTPUT:', normalized);
-    
-    return normalized;
-  };
-
-  // 4. Créer la recommandation principale EXACTEMENT comme dans le modal
-  const recommendation = finalRecommendations.length > 0 ? {
-    ...normalizeRecommendation(finalRecommendations[0].rec),
-    isInverted: finalRecommendations[0].opp?.isInverted || false,
-    reason: finalRecommendations[0].opp?.reason || []
-  } : null;
-
-  console.log('🚨 DEBUG AIRecommendationDisplay - MÊME LOGIQUE QUE MODAL:', {
-    matchName: `${match.home_team} vs ${match.away_team}`,
-    totalOpportunities: opportunities.length,
-    finalRecommendationsCount: finalRecommendations.length,
-    mainRecommendation: recommendation ? {
-      type: recommendation.type,
-      prediction: recommendation.prediction,
-      odds: recommendation.odds,
-      isInverted: recommendation.isInverted
-    } : null
-  });
-
-  // Convertir en format aiRecs pour compatibilité avec le reste du code
-  const aiRecs = recommendation ? [{
-    betType: recommendation.type,
-    prediction: recommendation.prediction,
-    odds: recommendation.odds,
-    confidence: recommendation.confidence,
-    isInverted: recommendation.isInverted,
-    reason: recommendation.reason
-  }] : [];
-  
-  if (aiRecs.length === 0) {
+  // VÉRIFICATION CRITIQUE: Si aucune opportunité après priorisation
+  if (prioritizedOpportunities.length === 0) {
+    if (variant === 'table') {
+      return <span className="text-xs text-muted-foreground">Aucune règle respectée</span>;
+    }
     return (
-      <div className="flex flex-col gap-1 items-center">
-        <Badge variant="outline" className="text-xs">
-          {showIcon && '🎯'} Aucune opportunité
-        </Badge>
-        <div className="text-xs text-muted-foreground">
-          Pas d'occasion détectée
-        </div>
+      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+        <AlertTriangle className="h-3 w-3" />
+        <span>Aucune règle respectée</span>
       </div>
     );
   }
+
+  // Convertir la première (et normalement seule) opportunité prioritaire
+  const recommendations = prioritizedOpportunities.map(opp => {
+    const converted = convertOpportunityToAIRecommendation(opp);
+    
+    // CORRECTION: Validation stricte des odds
+    if (!converted.odds || converted.odds <= 0) {
+      console.log('❌ Odds invalides pour:', converted.betType, converted.prediction);
+      return null;
+    }
+    
+    return converted;
+  }).filter(Boolean);
+
+  if (recommendations.length === 0) {
+    if (variant === 'table') {
+      return <span className="text-xs text-muted-foreground">Odds invalides</span>;
+    }
+    return (
+      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+        <AlertTriangle className="h-3 w-3" />
+        <span>Données insuffisantes</span>
+      </div>
+    );
+  }
+
+  // Normaliser et créer les recommandations finales
+  const aiRecs = recommendations.map((rec, index) => {
+    const opportunity = prioritizedOpportunities[index];
+    
+    return {
+      betType: rec.betType,
+      prediction: rec.prediction,
+      odds: rec.odds,
+      confidence: rec.confidence,
+      isInverted: opportunity?.isInverted || false,
+      reason: opportunity?.reason || []
+    };
+  });
+
+  console.log('🚨 DEBUG AIRecommendationDisplay - STRICT RULE ENFORCEMENT:', {
+    matchName: `${match.home_team} vs ${match.away_team}`,
+    totalOpportunities: opportunities.length,
+    finalRecommendationsCount: aiRecs.length,
+    mainRecommendation: aiRecs[0] ? {
+      type: aiRecs[0].betType,
+      prediction: aiRecs[0].prediction,
+      odds: aiRecs[0].odds,
+      reason: aiRecs[0].reason
+    } : null
+  });
 
   const getConfidenceColor = (conf: string) => {
     switch (conf) {
@@ -148,6 +135,7 @@ export function AIRecommendationDisplay({
       case 'O/U 2.5': return 'O/U 2.5';
       case 'OU25': return 'O/U 2.5';
       case 'BTTS': return 'BTTS';
+      case 'Double Chance': return 'Double Chance';
       default: return betType;
     }
   };
@@ -169,15 +157,51 @@ export function AIRecommendationDisplay({
                 className="text-xs"
               >
                 {showIcon && '🎯'} {formatBetType(aiRec.betType)} {aiRec.prediction}
-                {aiRec.isInverted && <span className="ml-1 text-amber-600">(Opportunité détectée)</span>}
               </Badge>
               <div className="text-xs text-muted-foreground">
                 Cote: {aiRec.odds.toFixed(2)} | Confiance: {confidence}%
-                {aiRec.isInverted && <span className="text-amber-600 ml-1">- Vigorish élevé détecté</span>}
               </div>
+              {aiRec.reason && aiRec.reason.length > 0 && (
+                <div className="text-xs text-blue-600 mt-1">
+                  {aiRec.reason[0]}
+                </div>
+              )}
             </div>
           );
         })}
+      </div>
+    );
+  }
+
+  if (variant === 'table') {
+    if (aiRecs.length === 0) {
+      return (
+        <div className="text-xs text-muted-foreground text-center">
+          Aucune opportunité
+        </div>
+      );
+    }
+
+    const aiRec = aiRecs[0];
+    const confidence = generateConfidenceScore(match.id, {
+      type: aiRec.betType,
+      prediction: aiRec.prediction,
+      confidence: aiRec.confidence
+    });
+
+    return (
+      <div className="text-xs text-center">
+        <div className="font-medium text-green-700">
+          {formatBetType(aiRec.betType)} {aiRec.prediction}
+        </div>
+        <div className="text-muted-foreground">
+          {aiRec.odds.toFixed(2)} | {confidence}%
+        </div>
+        {aiRec.reason && aiRec.reason.length > 0 && (
+          <div className="text-blue-600 mt-1 text-xs">
+            {aiRec.reason[0]}
+          </div>
+        )}
       </div>
     );
   }
@@ -186,7 +210,7 @@ export function AIRecommendationDisplay({
     return (
       <div className="bg-green-100 p-3 rounded-lg border border-green-200 min-w-[200px]">
         <div className="flex items-center justify-center gap-2 mb-2">
-          {showIcon && <Brain className="h-4 w-4 text-green-600" />}
+          {showIcon && <Target className="h-4 w-4 text-green-600" />}
           <span className="text-sm font-semibold text-green-800">
             Recommandation{aiRecs.length > 1 ? 's' : ''} IA
           </span>
@@ -204,7 +228,7 @@ export function AIRecommendationDisplay({
               <div key={index} className={`${index > 0 ? 'pt-3 border-t border-green-300' : ''}`}>
                 <div className="grid grid-cols-3 gap-2 text-xs">
                   <div>
-                    <div className="text-green-600 font-medium">Type de pari</div>
+                    <div className="text-green-600 font-medium">Type</div>
                     <div className="text-green-800">{formatBetType(aiRec.betType)}</div>
                   </div>
                   <div>
@@ -221,86 +245,21 @@ export function AIRecommendationDisplay({
                   <div className="text-green-600 text-xs font-medium">Confiance</div>
                   <div className="text-green-800 font-bold">{confidence}%</div>
                 </div>
+                
+                {aiRec.reason && aiRec.reason.length > 0 && (
+                  <div className="pt-2 text-xs text-blue-700 border-t border-green-300 mt-2">
+                    <div className="font-medium">Justification:</div>
+                    {aiRec.reason.map((r, i) => (
+                      <div key={i} className="text-blue-600">{r}</div>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
       </div>
     );
-  }
-
-  if (variant === 'table') {
-    // Use same logic as popup detail modal for consistency
-    if (aiRecs.length === 0) {
-      return (
-        <div className="text-xs text-muted-foreground text-center">
-          Aucune opportunité
-        </div>
-      );
-    }
-
-    // Use the highest priority recommendation (same as popup)
-    const aiRec = aiRecs[0];
-    const formatPrediction = (betType: string, prediction: string) => {
-      switch (betType) {
-        case 'BTTS':
-          return prediction === 'Oui' ? 'BTTS Oui' : 'BTTS Non';
-        case 'O/U 2.5':
-          return prediction === '+2,5 buts' ? 'OU 2.5 +2,5 buts' : 'OU 2.5 -2,5 buts';
-        case '1X2':
-          if (prediction === 'Victoire domicile') return '1';
-          if (prediction === 'Match nul') return 'X';
-          return '2';
-        default:
-          return `${betType} ${prediction}`;
-      }
-    };
-
-    const confidence = generateConfidenceScore(match.id, {
-      type: aiRec.betType,
-      prediction: aiRec.prediction,
-      confidence: aiRec.confidence
-    });
-
-    return (
-      <div className="bg-green-100 p-3 rounded-lg border border-green-200 min-w-[200px]">
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <span className="text-green-600">🎯</span>
-          <span className="text-sm font-semibold text-green-800">
-            Recommandation IA
-          </span>
-        </div>
-        
-        <div className="grid grid-cols-3 gap-2 text-xs text-center">
-          <div>
-            <div className="text-green-600 font-medium">Type de pari</div>
-            <div className="text-green-800">{formatBetType(aiRec.betType)}</div>
-          </div>
-          <div>
-            <div className="text-green-600 font-medium">Prédiction</div>
-            <div className="text-green-800">{aiRec.prediction}</div>
-          </div>
-          <div>
-            <div className="text-green-600 font-medium">Cote</div>
-            <div className="text-green-800 font-bold">{aiRec.odds.toFixed(2)}</div>
-          </div>
-        </div>
-        
-        <div className="pt-2 text-center">
-          <div className="text-green-600 text-xs font-medium">Confiance</div>
-          <div className="text-green-800 font-bold">{confidence}%</div>
-        </div>
-      </div>
-    );
-
-    function formatBetType(betType: string) {
-      switch (betType) {
-        case '1X2': return 'Résultat';
-        case 'BTTS': return 'BTTS';
-        case 'O/U 2.5': return 'O/U 2.5';
-        default: return betType;
-      }
-    }
   }
 
   if (variant === 'card') {
@@ -336,7 +295,7 @@ export function AIRecommendationDisplay({
                 </div>
                 
                 <div className="flex items-center justify-between text-sm mb-2">
-                  <span className="text-green-600">Niveau de confiance:</span>
+                  <span className="text-green-600">Confiance:</span>
                   <span className="font-semibold text-green-800">{confidence}%</span>
                 </div>
                 
@@ -346,6 +305,15 @@ export function AIRecommendationDisplay({
                     style={{ width: `${confidence}%` }}
                   />
                 </div>
+                
+                {aiRec.reason && aiRec.reason.length > 0 && (
+                  <div className="mt-3 p-2 bg-blue-50 rounded border-l-4 border-blue-400">
+                    <div className="text-xs font-medium text-blue-800 mb-1">Justification:</div>
+                    {aiRec.reason.map((r, i) => (
+                      <div key={i} className="text-xs text-blue-700">{r}</div>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })}

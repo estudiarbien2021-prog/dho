@@ -38,11 +38,24 @@ export async function detectOpportunities(match: ProcessedMatch): Promise<Detect
   // Evaluate conditional rules
   const ruleResults = await conditionalRulesService.evaluateRules(context);
   console.log('📋 RÈGLES ÉVALUÉES:', ruleResults.length, 'règles totales');
-  console.log('📋 DÉTAIL ÉVALUATION:', ruleResults.map(r => `${r.ruleName}: ${r.conditionsMet ? '✅' : '❌'} (${r.evaluationDetails})`));
+  console.log('📋 DÉTAIL ÉVALUATION:');
+  ruleResults.forEach(r => {
+    console.log(`  🔍 ${r.ruleName} (${r.market}): ${r.conditionsMet ? '✅ RESPECTÉE' : '❌ NON RESPECTÉE'}`);
+    console.log(`     Détails: ${r.evaluationDetails}`);
+  });
   
-  // CORRECTION: Filtrer seulement les règles qui correspondent aux conditions
+  // ÉTAPE CRITIQUE: Filtrer STRICTEMENT les règles qui respectent TOUTES les conditions
   const matchedRules = ruleResults.filter(result => result.conditionsMet);
-  console.log('✅ RÈGLES CORRESPONDANTES:', matchedRules.length, matchedRules.map(r => r.ruleName));
+  console.log('✅ RÈGLES CORRESPONDANTES (conditions strictement respectées):', matchedRules.length);
+  matchedRules.forEach(r => {
+    console.log(`  ✅ ${r.ruleName}: action=${r.action}, priorité=${r.priority}`);
+  });
+  
+  // VÉRIFICATION CRITIQUE: Si aucune règle ne correspond, aucune recommandation ne sera générée
+  if (matchedRules.length === 0) {
+    console.log('🚫 AUCUNE RÈGLE RESPECTÉE - AUCUNE RECOMMANDATION GÉNÉRÉE');
+    return [];
+  }
   
   // ÉTAPE 1: Filtrer les règles no_recommendation avant de créer les opportunités
   const validRules = matchedRules.filter(result => {
@@ -105,21 +118,26 @@ export async function detectOpportunities(match: ProcessedMatch): Promise<Detect
       market: result.market
     });
 
-    // Améliorer la raison avec une explication plus claire
+    // CORRECTION: Afficher uniquement les détails exacts de la règle configurée
     let reason = [`Règle: ${result.ruleName}`];
-    if (result.action === 'recommend_least_probable' && (result.market === 'ou25' || result.market === 'btts')) {
-      reason.push('Stratégie contrarian: parier contre le favori quand le vigorish est élevé');
-    } else if (result.action === 'recommend_double_chance_least_probable') {
-      reason = [`Double chance des 2 moins probables (Vigorish élevé: ${(context.vigorish_1x2 * 100).toFixed(1)}%)`];
-    } else if (result.action === 'recommend_refund_if_draw') {
-      const mostProbableTeam = getMostProbableTeamExcludingDraw(context);
-      const teamProb = mostProbableTeam === 'home' ? context.probability_home : context.probability_away;
-      const drawProb = context.probability_draw;
-      reason = [
-        `Équipe la plus probable: ${mostProbableTeam === 'home' ? 'Domicile' : 'Extérieur'} (${(teamProb * 100).toFixed(1)}%)`,
-        `Probabilité de nul: ${(drawProb * 100).toFixed(1)}%`,
-        `Stratégie "Remboursé si nul": mise récupérée en cas de match nul`
-      ];
+    
+    // Ajouter les détails de l'évaluation de la règle
+    if (result.evaluationDetails) {
+      reason.push(`Conditions: ${result.evaluationDetails}`);
+    }
+    
+    // Ajouter les métriques actuelles du match pour transparence
+    let currentMetrics = '';
+    if (result.market === 'btts') {
+      currentMetrics = `Vigorish BTTS: ${(context.vigorish_btts * 100).toFixed(1)}%`;
+    } else if (result.market === 'ou25') {
+      currentMetrics = `Vigorish O/U 2.5: ${(context.vigorish_ou25 * 100).toFixed(1)}%`;
+    } else if (result.market === '1x2') {
+      currentMetrics = `Vigorish 1X2: ${(context.vigorish_1x2 * 100).toFixed(1)}%`;
+    }
+    
+    if (currentMetrics) {
+      reason.push(currentMetrics);
     }
 
     return {

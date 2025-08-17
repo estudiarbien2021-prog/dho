@@ -298,8 +298,26 @@ class ConditionalRulesService {
       const contextValue = this.getContextValue(condition.type, context, rule.market);
       const conditionMet = contextValue !== null ? this.evaluateCondition(condition, context, rule.market) : false;
       
+      // Format plus lisible pour l'affichage utilisateur
+      let conditionLabel = condition.type as string;
+      if (condition.type === 'vigorish') {
+        conditionLabel = `Vigorish ${rule.market.toUpperCase()}`;
+      } else if (condition.type.startsWith('probability_')) {
+        conditionLabel = condition.type.replace('probability_', 'Prob. ').replace('_', ' ');
+      }
+      
+      // Formatage plus lisible des valeurs
+      const displayValue = contextValue ? 
+        (condition.type === 'vigorish' || condition.type.startsWith('probability_') ? 
+          `${(contextValue * 100).toFixed(1)}%` : 
+          contextValue.toFixed(2)) : 'N/A';
+      
+      const expectedValue = condition.type === 'vigorish' || condition.type.startsWith('probability_') ? 
+        `${(condition.value * 100).toFixed(1)}%` : 
+        condition.value.toString();
+      
       details.push(
-        `${condition.type}: ${contextValue?.toFixed(4)} ${condition.operator} ${condition.value} = ${conditionMet ? '✓' : '✗'}`
+        `${conditionLabel}: ${displayValue} ${condition.operator} ${expectedValue} ${conditionMet ? '✓' : '✗'}`
       );
       
       if (i < rule.logicalConnectors.length) {
@@ -307,7 +325,7 @@ class ConditionalRulesService {
       }
     }
     
-    return `${details.join(' ')} → ${conditionsMet ? 'MATCHED' : 'NOT MATCHED'}`;
+    return `${details.join(' ')} → ${conditionsMet ? 'RESPECTÉE' : 'NON RESPECTÉE'}`;
   }
 
   private getDefaultRules(): ConditionalRule[] {
