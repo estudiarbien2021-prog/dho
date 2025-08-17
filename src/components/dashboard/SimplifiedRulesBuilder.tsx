@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Trash2, Plus, Save, RotateCcw } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Trash2, Plus, Save, RotateCcw, Check, X, Edit, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { 
   ConditionalRule, 
@@ -28,7 +29,8 @@ export default function SimplifiedRulesBuilder() {
   const [rules, setRules] = useState<ConditionalRule[]>([]);
   const [selectedMarket, setSelectedMarket] = useState<Market>('1x2');
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+  const [editingRules, setEditingRules] = useState<Set<string>>(new Set());
+  const [originalRules, setOriginalRules] = useState<Map<string, ConditionalRule>>(new Map());
   const { toast } = useToast();
 
   useEffect(() => {
@@ -71,6 +73,9 @@ export default function SimplifiedRulesBuilder() {
   const addRule = () => {
     const newRule = createNewRule();
     setRules([...rules, newRule]);
+    // New rules start in editing mode
+    setEditingRules(prev => new Set([...prev, newRule.id]));
+    setOriginalRules(prev => new Map([...prev, [newRule.id, { ...newRule }]]));
   };
 
   const updateRule = (ruleId: string, updates: Partial<ConditionalRule>) => {
@@ -84,6 +89,16 @@ export default function SimplifiedRulesBuilder() {
       const success = await conditionalRulesService.deleteRule(ruleId);
       if (success) {
         setRules(rules.filter(rule => rule.id !== ruleId));
+        setEditingRules(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(ruleId);
+          return newSet;
+        });
+        setOriginalRules(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(ruleId);
+          return newMap;
+        });
         toast({
           title: "Succès",
           description: "Règle supprimée",
@@ -160,29 +175,78 @@ export default function SimplifiedRulesBuilder() {
     updateRule(ruleId, { logicalConnectors: updatedConnectors });
   };
 
-  const saveAllRules = async () => {
+  const validateRule = async (ruleId: string) => {
     try {
-      setIsSaving(true);
-      let successCount = 0;
+      const rule = rules.find(r => r.id === ruleId);
+      if (!rule) return;
 
-      for (const rule of rules.filter(r => r.market === selectedMarket)) {
-        const success = await conditionalRulesService.saveRule(rule);
-        if (success) successCount++;
+      const success = await conditionalRulesService.saveRule(rule);
+      if (success) {
+        setEditingRules(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(ruleId);
+          return newSet;
+        });
+        setOriginalRules(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(ruleId);
+          return newMap;
+        });
+        toast({
+          title: "Succès",
+          description: "Règle validée et sauvegardée",
+        });
       }
-
-      toast({
-        title: "Succès",
-        description: `${successCount} règle(s) sauvegardée(s)`,
-      });
     } catch (error) {
       toast({
         title: "Erreur",
-        description: "Erreur lors de la sauvegarde",
+        description: "Erreur lors de la validation",
         variant: "destructive"
       });
-    } finally {
-      setIsSaving(false);
     }
+  };
+
+  const cancelRuleEdit = (ruleId: string) => {
+    const originalRule = originalRules.get(ruleId);
+    if (originalRule) {
+      setRules(rules.map(rule => rule.id === ruleId ? { ...originalRule } : rule));
+    }
+    setEditingRules(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(ruleId);
+      return newSet;
+    });
+    setOriginalRules(prev => {
+      const newMap = new Map(prev);
+      newMap.delete(ruleId);
+      return newMap;
+    });
+  };
+
+  const startEditingRule = (ruleId: string) => {
+    const rule = rules.find(r => r.id === ruleId);
+    if (rule) {
+      setEditingRules(prev => new Set([...prev, ruleId]));
+      setOriginalRules(prev => new Map([...prev, [ruleId, { ...rule }]]));
+    }
+  };
+
+  const generateRuleSummary = (rule: ConditionalRule): string => {
+    const conditionStrings = rule.conditions.map((cond, index) => {
+      let conditionText = `${CONDITION_LABELS[cond.type]} ${OPERATOR_LABELS[cond.operator]} ${cond.value}`;
+      if (cond.operator === 'between' && cond.valueMax !== undefined) {
+        conditionText = `${CONDITION_LABELS[cond.type]} entre ${cond.value} et ${cond.valueMax}`;
+      }
+      
+      if (index < rule.conditions.length - 1) {
+        const connector = rule.logicalConnectors[index] === 'AND' ? 'ET' : 'OU';
+        conditionText += ` ${connector} `;
+      }
+      
+      return conditionText;
+    }).join('');
+
+    return `Si ${conditionStrings} → ${ACTION_LABELS[rule.action]}`;
   };
 
   const marketRules = rules.filter(rule => rule.market === selectedMarket);
@@ -204,10 +268,6 @@ export default function SimplifiedRulesBuilder() {
           <Button onClick={loadRules} variant="outline" size="sm">
             <RotateCcw className="h-4 w-4 mr-2" />
             Actualiser
-          </Button>
-          <Button onClick={saveAllRules} disabled={isSaving} size="sm">
-            <Save className="h-4 w-4 mr-2" />
-            {isSaving ? 'Sauvegarde...' : 'Sauvegarder'}
           </Button>
         </div>
       </div>
@@ -259,21 +319,73 @@ export default function SimplifiedRulesBuilder() {
         ) : (
           marketRules
             .sort((a, b) => a.priority - b.priority)
-            .map((rule) => (
-              <RuleEditor
-                key={rule.id}
-                rule={rule}
-                onUpdate={(updates) => updateRule(rule.id, updates)}
-                onDelete={() => deleteRule(rule.id)}
-                onAddCondition={() => addCondition(rule.id)}
-                onUpdateCondition={updateCondition}
-                onRemoveCondition={removeCondition}
-                onUpdateLogicalConnector={updateLogicalConnector}
-              />
-            ))
+            .map((rule) => 
+              editingRules.has(rule.id) ? (
+                <RuleEditor
+                  key={rule.id}
+                  rule={rule}
+                  onUpdate={(updates) => updateRule(rule.id, updates)}
+                  onDelete={() => deleteRule(rule.id)}
+                  onAddCondition={() => addCondition(rule.id)}
+                  onUpdateCondition={updateCondition}
+                  onRemoveCondition={removeCondition}
+                  onUpdateLogicalConnector={updateLogicalConnector}
+                  onValidate={() => validateRule(rule.id)}
+                  onCancel={() => cancelRuleEdit(rule.id)}
+                />
+              ) : (
+                <CompactRuleDisplay
+                  key={rule.id}
+                  rule={rule}
+                  summary={generateRuleSummary(rule)}
+                  onEdit={() => startEditingRule(rule.id)}
+                  onDelete={() => deleteRule(rule.id)}
+                />
+              )
+            )
         )}
       </div>
     </div>
+  );
+}
+
+interface CompactRuleDisplayProps {
+  rule: ConditionalRule;
+  summary: string;
+  onEdit: () => void;
+  onDelete: () => void;
+}
+
+function CompactRuleDisplay({ rule, summary, onEdit, onDelete }: CompactRuleDisplayProps) {
+  return (
+    <Card className={`border-l-4 ${rule.enabled ? 'border-l-primary' : 'border-l-muted-foreground'}`}>
+      <CardContent className="pt-4">
+        <div className="flex items-center justify-between">
+          <div className="flex-1 space-y-2">
+            <div className="flex items-center gap-2">
+              <h4 className="font-semibold">{rule.name}</h4>
+              <Badge variant={rule.enabled ? 'default' : 'secondary'}>
+                {rule.enabled ? 'Activée' : 'Désactivée'}
+              </Badge>
+              <Badge variant="outline" className="text-xs">
+                Priorité {rule.priority}
+              </Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {summary}
+            </p>
+          </div>
+          <div className="flex items-center gap-1 ml-4">
+            <Button variant="ghost" size="sm" onClick={onEdit}>
+              <Edit className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="sm" onClick={onDelete}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -285,6 +397,8 @@ interface RuleEditorProps {
   onUpdateCondition: (ruleId: string, conditionId: string, updates: Partial<Condition>) => void;
   onRemoveCondition: (ruleId: string, conditionId: string) => void;
   onUpdateLogicalConnector: (ruleId: string, index: number, connector: LogicalConnector) => void;
+  onValidate: () => void;
+  onCancel: () => void;
 }
 
 function RuleEditor({
@@ -294,10 +408,12 @@ function RuleEditor({
   onAddCondition,
   onUpdateCondition,
   onRemoveCondition,
-  onUpdateLogicalConnector
+  onUpdateLogicalConnector,
+  onValidate,
+  onCancel
 }: RuleEditorProps) {
   return (
-    <Card className={`border-l-4 ${rule.enabled ? 'border-l-green-500' : 'border-l-gray-300'}`}>
+    <Card className={`border-l-4 border-l-warning`}>
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -324,6 +440,14 @@ function RuleEditor({
               className="w-20"
               min="1"
             />
+            <Button variant="outline" size="sm" onClick={onValidate}>
+              <Check className="h-4 w-4 mr-1" />
+              Valider
+            </Button>
+            <Button variant="ghost" size="sm" onClick={onCancel}>
+              <X className="h-4 w-4 mr-1" />
+              Annuler
+            </Button>
             <Button variant="destructive" size="sm" onClick={onDelete}>
               <Trash2 className="h-4 w-4" />
             </Button>
