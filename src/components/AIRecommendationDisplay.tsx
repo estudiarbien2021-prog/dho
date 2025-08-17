@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { ProcessedMatch } from '@/types/match';
 import { Badge } from '@/components/ui/badge';
@@ -55,11 +56,20 @@ export function AIRecommendationDisplay({
   // 2. Prioriser EXACTEMENT comme dans le modal
   const prioritizedOpportunities = prioritizeOpportunitiesByRealProbability(opportunities, match);
   
-  // 3. Convertir en recommandations EXACTEMENT comme dans le modal
-  const prioritizedRecommendations = prioritizedOpportunities.map(opp => ({
-    rec: convertOpportunityToAIRecommendation(opp),
-    opp: opp
-  }));
+  // 3. Convertir en recommandations EXACTEMENT comme dans le modal avec filtre pour cotes nulles
+  const prioritizedRecommendations = prioritizedOpportunities
+    .map(opp => ({
+      rec: convertOpportunityToAIRecommendation(opp),
+      opp: opp
+    }))
+    .filter(({ rec }) => {
+      // Filter out recommendations with odds equal to 0 or null
+      const hasInvalidOdds = !rec.odds || rec.odds === 0;
+      if (hasInvalidOdds) {
+        console.log('🚫 FILTERED OUT invalid odds in AIRecommendationDisplay:', rec);
+      }
+      return !hasInvalidOdds;
+    });
 
   const finalRecommendations = prioritizedRecommendations;
   

@@ -177,10 +177,18 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
         rec.prediction.toLowerCase().includes('aucune recommandation') ||
         rec.prediction === 'Aucune'
       );
+      
+      // Filter out recommendations with odds equal to 0
+      const hasInvalidOdds = !rec.odds || rec.odds === 0;
+      
       if (isNoRecommendation) {
         console.log('🚫 FILTERED OUT no_recommendation:', rec);
       }
-      return !isNoRecommendation;
+      if (hasInvalidOdds) {
+        console.log('🚫 FILTERED OUT invalid odds:', rec);
+      }
+      
+      return !isNoRecommendation && !hasInvalidOdds;
     });
   
   console.log('🔴 MODAL - FILTERED RECOMMENDATIONS:', allDetectedRecommendations.length, allDetectedRecommendations.map(r => `${r.betType}:${r.prediction}`));
