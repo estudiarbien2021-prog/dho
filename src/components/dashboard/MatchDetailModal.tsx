@@ -289,63 +289,68 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
             <Card className="p-6 bg-gradient-to-r from-primary/5 to-accent/5">
               <div className="flex items-center gap-2 mb-4">
                 <Brain className="h-5 w-5 text-primary" />
-                <h3 className="text-lg font-semibold">Recommandations IA</h3>
-                <Badge variant="secondary">{allRecommendations.length} recommandation{allRecommendations.length > 1 ? 's' : ''}</Badge>
+                <h3 className="text-lg font-semibold">Analyse IA Complète</h3>
+                <Badge variant="secondary" className="bg-primary/20 text-primary">
+                  {allRecommendations.length} recommandation{allRecommendations.length > 1 ? 's' : ''} détectée{allRecommendations.length > 1 ? 's' : ''}
+                </Badge>
               </div>
               
               <div className="space-y-4">
-                {/* Main Recommendation */}
-                {mainRecommendation && (
-                  <div className="p-4 bg-primary/10 rounded-lg border-l-4 border-primary">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-semibold text-primary">Recommandation Principale</h4>
-                        <p className="text-sm text-text-weak">
-                          {mainRecommendation.type} - {mainRecommendation.prediction}
-                        </p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge variant="outline">Cote: {mainRecommendation.odds.toFixed(2)}</Badge>
-                          <Badge className={getConfidenceColor(mainRecommendation.confidence)}>
-                            Confiance: {mainRecommendation.confidence}
-                          </Badge>
-                          {mainRecommendation.isInverted && (
-                            <Badge variant="destructive">Inversée</Badge>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    {mainRecommendation.reason && mainRecommendation.reason.length > 0 && (
-                      <div className="mt-2 text-sm text-text-weak">
-                        <strong>Raison:</strong> {mainRecommendation.reason.join(', ')}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* All Recommendations List */}
-                <div className="space-y-2">
-                  <h4 className="font-medium text-text">Toutes les recommandations:</h4>
+                {/* All Recommendations Grid */}
+                <div className="grid gap-3">
+                  <h4 className="font-semibold text-primary mb-2 flex items-center gap-2">
+                    <Target className="h-4 w-4" />
+                    Toutes les opportunités détectées:
+                  </h4>
                   {allRecommendations.map((rec, index) => (
-                    <div key={index} className="p-3 bg-white/50 rounded border">
+                    <div key={index} className={`p-4 rounded-lg border-l-4 ${
+                      index === 0 ? 'bg-primary/15 border-primary' :
+                      index === 1 ? 'bg-secondary/15 border-secondary' :
+                      'bg-accent/10 border-accent'
+                    }`}>
                       <div className="flex items-center justify-between">
-                        <div>
-                          <span className="font-medium">{rec.betType}</span>
-                          <span className="ml-2 text-text-weak">→ {rec.prediction}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-xs">
-                            {rec.odds.toFixed(2)}
-                          </Badge>
-                          <Badge className={`text-xs ${getConfidenceColor(rec.confidence)}`}>
-                            {rec.confidence}
-                          </Badge>
-                          {rec.isInverted && (
-                            <Badge variant="destructive" className="text-xs">INV</Badge>
-                          )}
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Badge variant={index === 0 ? "default" : "outline"} className="text-xs">
+                              #{index + 1} {index === 0 ? 'PRINCIPALE' : index === 1 ? 'SECONDAIRE' : 'ALTERNATIVE'}
+                            </Badge>
+                            <span className="font-semibold text-sm">{rec.betType}</span>
+                          </div>
+                          <p className="text-base font-medium text-foreground">
+                            → {rec.prediction}
+                          </p>
+                          <div className="flex items-center gap-3 mt-2">
+                            <Badge variant="outline" className="font-mono">
+                              Cote: {rec.odds.toFixed(2)}
+                            </Badge>
+                            <Badge className={`${getConfidenceColor(rec.confidence)} text-white text-xs`}>
+                              Confiance: {rec.confidence.toUpperCase()}
+                            </Badge>
+                            {rec.isInverted && (
+                              <Badge variant="destructive" className="text-xs">STRATÉGIE INVERSÉE</Badge>
+                            )}
+                          </div>
                         </div>
                       </div>
+                      
+                      {/* Reasoning for this recommendation */}
+                      {rec.reason && rec.reason.length > 0 && (
+                        <div className="mt-3 p-2 bg-white/50 rounded text-xs text-muted-foreground">
+                          <strong>Justification:</strong> {rec.reason.join(' • ')}
+                        </div>
+                      )}
                     </div>
                   ))}
+                </div>
+
+                {/* Summary Stats */}
+                <div className="mt-4 p-3 bg-muted/30 rounded-lg">
+                  <div className="text-sm text-muted-foreground">
+                    <strong>Résumé:</strong> {allRecommendations.length} opportunité{allRecommendations.length > 1 ? 's' : ''} sur {['1X2', 'BTTS', 'O/U 2.5'].length} marchés analysés
+                    {allRecommendations.some(r => r.isInverted) && (
+                      <span className="ml-2 text-orange-600">• Inclut des stratégies contrariennes</span>
+                    )}
+                  </div>
                 </div>
               </div>
             </Card>
