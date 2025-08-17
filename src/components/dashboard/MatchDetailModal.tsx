@@ -37,13 +37,12 @@ interface MatchDetailModalProps {
 }
 
 export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }: MatchDetailModalProps) {
-  // Early return BEFORE any hooks - TeamChemistryAnalyzer removed
-  if (!match) return null;
-
-  console.log('🔴 MODAL OUVERT POUR:', match.home_team, 'vs', match.away_team, '- ID:', match.id);
-
+  // Move ALL hooks BEFORE any conditional returns
   const [showAIGraphics, setShowAIGraphics] = useState(true);
-  
+  const [opportunities, setOpportunities] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [chartLoading, setChartLoading] = useState<{ [key: string]: number }>({});
+
   // Reset AI graphics when modal closes
   useEffect(() => {
     if (isOpen) {
@@ -52,6 +51,52 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
       setShowAIGraphics(false);
     }
   }, [isOpen]);
+
+  // Initialize loading states when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setChartLoading({
+        results1x2: 0,
+        btts: 0,
+        over25: 0
+      });
+
+      // Progressive loading animation
+      const charts = ['results1x2', 'btts', 'over25'];
+      charts.forEach((chart, index) => {
+        setTimeout(() => {
+          setChartLoading(prev => ({ ...prev, [chart]: 100 }));
+        }, (index + 1) * 800);
+      });
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    const loadOpportunities = async () => {
+      if (!match) return;
+      
+      try {
+        setLoading(true);
+        const opps = await detectOpportunities(match);
+        setOpportunities(opps);
+        console.log('🔴 MODAL OPPORTUNITIES:', opps.length, opps.map(o => `${o.type}:${o.prediction}(inverted:${o.isInverted})`));
+      } catch (error) {
+        console.error('Error loading opportunities:', error);
+        setOpportunities([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (isOpen && match) {
+      loadOpportunities();
+    }
+  }, [match, isOpen]);
+
+  // Early return AFTER all hooks are declared
+  if (!match) return null;
+
+  console.log('🔴 MODAL OUVERT POUR:', match.home_team, 'vs', match.away_team, '- ID:', match.id);
 
   const flagInfo = leagueToFlag(match.league, match.country, match.home_team, match.away_team);
 
@@ -133,9 +178,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     return match.p_over_2_5_fair > match.p_under_2_5_fair ? '+2,5 buts' : '-2,5 buts';
   };
 
-  // Generate ALL AI recommendations for the match
-  const [opportunities, setOpportunities] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  // AI Opportunity Detection with hooks moved to top
 
   useEffect(() => {
     const loadOpportunities = async () => {
@@ -1000,36 +1043,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     { name: 'Under 2.5', value: match.p_under_2_5_fair * 100, color: 'hsl(var(--brand-300))' },
   ] : [];
 
-  // Loading states for progressive chart animation
-  const [chartLoading, setChartLoading] = useState<{ [key: string]: number }>({});
-  
-  // Initialize loading states when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      setChartLoading({
-        results1x2: 0,
-        btts: 0,
-        over25: 0
-      });
-
-      // Progressive loading animation
-      const charts = ['results1x2', 'btts', 'over25'];
-      charts.forEach((chart, index) => {
-        setTimeout(() => {
-          const interval = setInterval(() => {
-            setChartLoading(prev => {
-              const current = prev[chart] || 0;
-              if (current >= 100) {
-                clearInterval(interval);
-                return prev;
-              }
-              return { ...prev, [chart]: Math.min(current + Math.random() * 8 + 2, 100) };
-            });
-          }, 50);
-        }, index * 800);
-      });
-    }
-  }, [isOpen]);
+  // Chart loading logic moved to top of component
 
   const DonutChart = ({ data, title, prediction, chartKey }: { 
     data: any[], 
