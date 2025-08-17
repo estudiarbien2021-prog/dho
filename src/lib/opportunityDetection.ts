@@ -111,6 +111,15 @@ export async function detectOpportunities(match: ProcessedMatch): Promise<Detect
       reason.push('Stratégie contrarian: parier contre le favori quand le vigorish est élevé');
     } else if (result.action === 'recommend_double_chance_least_probable') {
       reason = [`Double chance des 2 moins probables (Vigorish élevé: ${(context.vigorish_1x2 * 100).toFixed(1)}%)`];
+    } else if (result.action === 'recommend_refund_if_draw') {
+      const mostProbableTeam = getMostProbableTeamExcludingDraw(context);
+      const teamProb = mostProbableTeam === 'home' ? context.probability_home : context.probability_away;
+      const drawProb = context.probability_draw;
+      reason = [
+        `Équipe la plus probable: ${mostProbableTeam === 'home' ? 'Domicile' : 'Extérieur'} (${(teamProb * 100).toFixed(1)}%)`,
+        `Probabilité de nul: ${(drawProb * 100).toFixed(1)}%`,
+        `Stratégie "Remboursé si nul": mise récupérée en cas de match nul`
+      ];
     }
 
     return {
