@@ -9,10 +9,12 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Settings, Save, RotateCcw, History, Download, Upload } from 'lucide-react';
+import { Settings, Save, RotateCcw, History, Download, Upload, Zap, FileText } from 'lucide-react';
+import SimplifiedRulesBuilder from './SimplifiedRulesBuilder';
 
 interface Rule {
   id: string;
@@ -373,7 +375,7 @@ export function RulesManagement() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -385,99 +387,232 @@ export function RulesManagement() {
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Select value={selectedConfigId} onValueChange={setSelectedConfigId}>
-            <SelectTrigger className="w-64">
-              <SelectValue placeholder="Charger une configuration..." />
-            </SelectTrigger>
-            <SelectContent className="bg-background border shadow-lg z-50">
-              {configurations.map((config) => (
-                <SelectItem key={config.id} value={config.id}>
-                  <div className="flex flex-col">
-                    <span className="font-medium">{config.name}</span>
-                    <span className="text-xs text-text-weak">
-                      {new Date(config.created_at).toLocaleDateString('fr-FR')}
-                    </span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          
-          {selectedConfigId && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => loadConfiguration(selectedConfigId)}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Charger
-            </Button>
-          )}
+      </div>
 
-          <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" onClick={() => setConfigName(generateConfigName())}>
-                <History className="h-4 w-4 mr-2" />
-                Sauvegarder
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="bg-background border shadow-lg">
-              <DialogHeader>
-                <DialogTitle>Sauvegarder la configuration</DialogTitle>
-                <DialogDescription>
-                  Donnez un nom à cette configuration pour pouvoir la réutiliser plus tard.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="config-name">Nom de la configuration</Label>
-                  <Input
-                    id="config-name"
-                    value={configName}
-                    onChange={(e) => setConfigName(e.target.value)}
-                    placeholder="Configuration du 16/08/2025 14:30"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="config-description">Description (optionnel)</Label>
-                  <Textarea
-                    id="config-description"
-                    value={configDescription}
-                    onChange={(e) => setConfigDescription(e.target.value)}
-                    placeholder="Description des modifications apportées..."
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setShowSaveDialog(false)}>
+      <Tabs defaultValue="simplified" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="simplified" className="flex items-center gap-2">
+            <Zap className="h-4 w-4" />
+            Règles Simplifiées
+          </TabsTrigger>
+          <TabsTrigger value="advanced" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Règles Avancées
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="simplified">
+          <SimplifiedRulesBuilder />
+        </TabsContent>
+
+        <TabsContent value="advanced">
+          <AdvancedRulesSection 
+            isLoading={isLoading}
+            rules={rules}
+            originalRules={originalRules}
+            configurations={configurations}
+            hasChanges={hasChanges}
+            isSaving={isSaving}
+            showSaveDialog={showSaveDialog}
+            configName={configName}
+            configDescription={configDescription}
+            selectedConfigId={selectedConfigId}
+            groupedRules={groupedRules}
+            categoryTitles={categoryTitles}
+            categoryDescriptions={categoryDescriptions}
+            setShowSaveDialog={setShowSaveDialog}
+            setConfigName={setConfigName}
+            setConfigDescription={setConfigDescription}
+            setSelectedConfigId={setSelectedConfigId}
+            updateRuleValue={updateRuleValue}
+            loadRules={loadRules}
+            saveRules={saveRules}
+            resetRules={resetRules}
+            saveConfiguration={saveConfiguration}
+            loadConfiguration={loadConfiguration}
+            generateConfigName={generateConfigName}
+            renderRuleControl={renderRuleControl}
+          />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+interface AdvancedRulesSectionProps {
+  isLoading: boolean;
+  rules: Rule[];
+  originalRules: Rule[];
+  configurations: RuleConfiguration[];
+  hasChanges: boolean;
+  isSaving: boolean;
+  showSaveDialog: boolean;
+  configName: string;
+  configDescription: string;
+  selectedConfigId: string;
+  groupedRules: RulesByCategory;
+  categoryTitles: Record<string, string>;
+  categoryDescriptions: Record<string, string>;
+  setShowSaveDialog: (show: boolean) => void;
+  setConfigName: (name: string) => void;
+  setConfigDescription: (desc: string) => void;
+  setSelectedConfigId: (id: string) => void;
+  updateRuleValue: (ruleId: string, value: number) => void;
+  loadRules: () => void;
+  saveRules: () => void;
+  resetRules: () => void;
+  saveConfiguration: () => void;
+  loadConfiguration: (configId: string) => void;
+  generateConfigName: () => string;
+  renderRuleControl: (rule: Rule) => React.ReactNode;
+}
+
+function AdvancedRulesSection({
+  isLoading,
+  rules,
+  originalRules,
+  configurations,
+  hasChanges,
+  isSaving,
+  showSaveDialog,
+  configName,
+  configDescription,
+  selectedConfigId,
+  groupedRules,
+  categoryTitles,
+  categoryDescriptions,
+  setShowSaveDialog,
+  setConfigName,
+  setConfigDescription,
+  setSelectedConfigId,
+  updateRuleValue,
+  loadRules,
+  saveRules,
+  resetRules,
+  saveConfiguration,
+  loadConfiguration,
+  generateConfigName,
+  renderRuleControl
+}: AdvancedRulesSectionProps) {
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="p-8">
+          <div className="flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Advanced Rules Header & Controls */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Règles Avancées (Legacy)</CardTitle>
+              <CardDescription>
+                Interface technique détaillée - configuration avancée des paramètres
+              </CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Select value={selectedConfigId} onValueChange={setSelectedConfigId}>
+                <SelectTrigger className="w-64">
+                  <SelectValue placeholder="Charger une configuration..." />
+                </SelectTrigger>
+                <SelectContent className="bg-background border shadow-lg z-50">
+                  {configurations.map((config) => (
+                    <SelectItem key={config.id} value={config.id}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{config.name}</span>
+                        <span className="text-xs text-text-weak">
+                          {new Date(config.created_at).toLocaleDateString('fr-FR')}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              {selectedConfigId && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => loadConfiguration(selectedConfigId)}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Charger
+                </Button>
+              )}
+
+              <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" onClick={() => setConfigName(generateConfigName())}>
+                    <History className="h-4 w-4 mr-2" />
+                    Sauvegarder
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="bg-background border shadow-lg">
+                  <DialogHeader>
+                    <DialogTitle>Sauvegarder la configuration</DialogTitle>
+                    <DialogDescription>
+                      Donnez un nom à cette configuration pour pouvoir la réutiliser plus tard.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="config-name">Nom de la configuration</Label>
+                      <Input
+                        id="config-name"
+                        value={configName}
+                        onChange={(e) => setConfigName(e.target.value)}
+                        placeholder="Configuration du 16/08/2025 14:30"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="config-description">Description (optionnel)</Label>
+                      <Textarea
+                        id="config-description"
+                        value={configDescription}
+                        onChange={(e) => setConfigDescription(e.target.value)}
+                        placeholder="Description des modifications apportées..."
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setShowSaveDialog(false)}>
+                      Annuler
+                    </Button>
+                    <Button onClick={saveConfiguration} disabled={isSaving}>
+                      <Upload className="h-4 w-4 mr-2" />
+                      {isSaving ? 'Sauvegarde...' : 'Sauvegarder'}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
+              {hasChanges && (
+                <Button variant="outline" size="sm" onClick={resetRules}>
+                  <RotateCcw className="h-4 w-4 mr-2" />
                   Annuler
                 </Button>
-                <Button onClick={saveConfiguration} disabled={isSaving}>
-                  <Upload className="h-4 w-4 mr-2" />
-                  {isSaving ? 'Sauvegarde...' : 'Sauvegarder'}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-
-          {hasChanges && (
-            <Button variant="outline" size="sm" onClick={resetRules}>
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Annuler
-            </Button>
-          )}
-          <Button 
-            onClick={saveRules} 
-            disabled={!hasChanges || isSaving}
-            size="sm"
-            className="flex items-center gap-2"
-          >
-            <Save className="h-4 w-4" />
-            {isSaving ? 'Sauvegarde...' : 'Sauvegarder'}
-          </Button>
-        </div>
-      </div>
+              )}
+              <Button 
+                onClick={saveRules} 
+                disabled={!hasChanges || isSaving}
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <Save className="h-4 w-4" />
+                {isSaving ? 'Sauvegarde...' : 'Sauvegarder'}
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+      </Card>
 
       {hasChanges && (
         <div className="bg-warning/10 border border-warning rounded-lg p-3">

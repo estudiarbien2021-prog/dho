@@ -23,7 +23,7 @@ class ConditionalRulesService {
 
     try {
       const { data, error } = await supabase
-        .from('conditional_rules')
+        .from('conditional_rules' as any)
         .select('*')
         .order('priority', { ascending: true });
 
@@ -32,7 +32,18 @@ class ConditionalRulesService {
         return this.getDefaultRules();
       }
 
-      this.rules = data || [];
+      this.rules = (data as any[])?.map(row => ({
+        id: row.id,
+        name: row.name,
+        market: row.market,
+        conditions: row.conditions,
+        logicalConnectors: row.logical_connectors,
+        action: row.action,
+        priority: row.priority,
+        enabled: row.enabled,
+        created_at: row.created_at,
+        updated_at: row.updated_at
+      })) || [];
       this.lastFetch = now;
       return this.rules;
     } catch (error) {
@@ -49,7 +60,7 @@ class ConditionalRulesService {
   async saveRule(rule: ConditionalRule): Promise<boolean> {
     try {
       const { error } = await supabase
-        .from('conditional_rules')
+        .from('conditional_rules' as any)
         .upsert({
           id: rule.id,
           name: rule.name,
@@ -79,7 +90,7 @@ class ConditionalRulesService {
   async deleteRule(ruleId: string): Promise<boolean> {
     try {
       const { error } = await supabase
-        .from('conditional_rules')
+        .from('conditional_rules' as any)
         .delete()
         .eq('id', ruleId);
 

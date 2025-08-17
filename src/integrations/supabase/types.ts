@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      conditional_rules: {
+        Row: {
+          action: string
+          conditions: Json
+          created_at: string
+          enabled: boolean
+          id: string
+          logical_connectors: Json
+          market: string
+          name: string
+          priority: number
+          updated_at: string
+        }
+        Insert: {
+          action: string
+          conditions?: Json
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          logical_connectors?: Json
+          market: string
+          name: string
+          priority?: number
+          updated_at?: string
+        }
+        Update: {
+          action?: string
+          conditions?: Json
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          logical_connectors?: Json
+          market?: string
+          name?: string
+          priority?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       match_uploads: {
         Row: {
           created_at: string
