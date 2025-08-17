@@ -55,7 +55,7 @@ export function SortableRow({
     <div 
       ref={setNodeRef} 
       style={style} 
-      className={`flex items-center gap-4 p-4 border-b border-border hover:bg-muted/30 transition-colors ${
+      className={`flex items-center gap-3 p-2 border-b border-border hover:bg-muted/30 transition-colors ${
         isDragging ? 'bg-muted/50 shadow-lg z-10' : ''
       }`}
     >
