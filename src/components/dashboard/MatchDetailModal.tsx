@@ -163,8 +163,9 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     );
   }
   
-  // Process all opportunities and show them in the modal
-  const allRecommendations = opportunities.map(convertOpportunityToAIRecommendation);
+  // Process all opportunities and limit display to maximum 2
+  const allDetectedRecommendations = opportunities.map(convertOpportunityToAIRecommendation);
+  const allRecommendations = allDetectedRecommendations.slice(0, 2);
   
   console.log('🔴 MODAL - TOUTES LES RECOMMANDATIONS:', allRecommendations.length, allRecommendations.map(r => `${r.betType}:${r.prediction}`));
 
@@ -291,7 +292,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                 <Brain className="h-5 w-5 text-primary" />
                 <h3 className="text-lg font-semibold">Analyse IA Complète</h3>
                 <Badge variant="secondary" className="bg-primary/20 text-primary">
-                  {allRecommendations.length} recommandation{allRecommendations.length > 1 ? 's' : ''} détectée{allRecommendations.length > 1 ? 's' : ''}
+                  {allRecommendations.length} affichée{allRecommendations.length > 1 ? 's' : ''} / {allDetectedRecommendations.length} détectée{allDetectedRecommendations.length > 1 ? 's' : ''}
                 </Badge>
               </div>
               
@@ -300,7 +301,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                 <div className="grid gap-3">
                   <h4 className="font-semibold text-primary mb-2 flex items-center gap-2">
                     <Target className="h-4 w-4" />
-                    Toutes les opportunités détectées:
+                    Opportunités sélectionnées:
                   </h4>
                   {allRecommendations.map((rec, index) => (
                     <div key={index} className={`p-4 rounded-lg border-l-4 ${
@@ -346,7 +347,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                 {/* Summary Stats */}
                 <div className="mt-4 p-3 bg-muted/30 rounded-lg">
                   <div className="text-sm text-muted-foreground">
-                    <strong>Résumé:</strong> {allRecommendations.length} opportunité{allRecommendations.length > 1 ? 's' : ''} sur {['1X2', 'BTTS', 'O/U 2.5'].length} marchés analysés
+                    <strong>Résumé:</strong> {allRecommendations.length} opportunité{allRecommendations.length > 1 ? 's' : ''} affichée{allRecommendations.length > 1 ? 's' : ''} sur {allDetectedRecommendations.length} détectée{allDetectedRecommendations.length > 1 ? 's' : ''} • {['1X2', 'BTTS', 'O/U 2.5'].length} marchés analysés
                     {allRecommendations.some(r => r.isInverted) && (
                       <span className="ml-2 text-orange-600">• Inclut des stratégies contrariennes</span>
                     )}
