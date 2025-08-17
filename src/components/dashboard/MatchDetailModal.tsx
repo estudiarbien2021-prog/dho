@@ -28,7 +28,6 @@ import { AIConsensusGauge } from '@/components/charts/AIConsensusGauge';
 import { PredictionCertaintyBars } from '@/components/charts/PredictionCertaintyBars';
 import { AIProbabilitiesAnalysis } from '@/components/charts/AIProbabilitiesAnalysis';
 
-
 interface MatchDetailModalProps {
   match: ProcessedMatch | null;
   isOpen: boolean;
@@ -193,8 +192,16 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
   
   console.log('🔴 MODAL - FILTERED RECOMMENDATIONS:', allDetectedRecommendations.length, allDetectedRecommendations.map(r => `${r.betType}:${r.prediction}`));
   
+  // Remove duplicates based on betType + prediction combination
+  const uniqueRecommendations = allDetectedRecommendations.filter((rec, index, array) => {
+    const key = `${rec.betType}-${rec.prediction}`;
+    return array.findIndex(r => `${r.betType}-${r.prediction}` === key) === index;
+  });
+  
+  console.log('🔴 MODAL - UNIQUE RECOMMENDATIONS (no duplicates):', uniqueRecommendations.length, uniqueRecommendations.map(r => `${r.betType}:${r.prediction}`));
+  
   // Limit display to maximum 2 real recommendations
-  const allRecommendations = allDetectedRecommendations.slice(0, 2);
+  const allRecommendations = uniqueRecommendations.slice(0, 2);
   
   console.log('🔴 MODAL - TOUTES LES RECOMMANDATIONS:', allRecommendations.length, allRecommendations.map(r => `${r.betType}:${r.prediction}`));
 
@@ -245,7 +252,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
   
   console.log('🚨 DEBUG MatchDetailModal - Final recommendation after normalize:', mainRecommendation);
   
-  // Get secondary and tertiary recommendations if available
+  // Get secondary recommendation only if it's different from main
   const secondAIRecommendation = allRecommendations.length > 1 ? {
     ...normalizeRecommendation(allRecommendations[1]),
     isInverted: opportunities[1]?.isInverted || false,
@@ -257,16 +264,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                  Math.max(match.p_over_2_5_fair, match.p_under_2_5_fair)
   } : null;
   
-  const thirdAIRecommendation = allRecommendations.length > 2 ? {
-    ...normalizeRecommendation(allRecommendations[2]),
-    isInverted: opportunities[2]?.isInverted || false,
-    reason: opportunities[2]?.reason || [],
-    vigorish: opportunities[2]?.type === '1X2' ? match.vig_1x2 : 
-              opportunities[2]?.type === 'BTTS' ? match.vig_btts : match.vig_ou_2_5,
-    probability: opportunities[2]?.type === '1X2' ? Math.max(match.p_home_fair, match.p_draw_fair, match.p_away_fair) :
-                 opportunities[2]?.type === 'BTTS' ? Math.max(match.p_btts_yes_fair, match.p_btts_no_fair) :
-                 Math.max(match.p_over_2_5_fair, match.p_under_2_5_fair)
-  } : null;
+  // No third recommendation needed since we limit to 2 unique ones
 
   console.log('🚨 VRAIES PROBABILITÉS O/U 2.5:', {
     'p_over_2_5_fair': match.p_over_2_5_fair,
@@ -321,7 +319,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                 <Brain className="h-5 w-5 text-primary" />
                 <h3 className="text-lg font-semibold">Analyse IA Complète</h3>
                 <Badge variant="secondary" className="bg-primary/20 text-primary">
-                  {allRecommendations.length} affichée{allRecommendations.length > 1 ? 's' : ''} / {allDetectedRecommendations.length} détectée{allDetectedRecommendations.length > 1 ? 's' : ''}
+                  {allRecommendations.length} affichée{allRecommendations.length > 1 ? 's' : ''} / {uniqueRecommendations.length} détectée{uniqueRecommendations.length > 1 ? 's' : ''}
                 </Badge>
               </div>
               
@@ -342,7 +340,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <Badge variant={index === 0 ? "default" : "outline"} className="text-xs">
-                              #{index + 1} {index === 0 ? 'PRINCIPALE' : index === 1 ? 'SECONDAIRE' : 'ALTERNATIVE'}
+                              #{index + 1} {index === 0 ? 'PRINCIPALE' : 'SECONDAIRE'}
                             </Badge>
                             <span className="font-semibold text-sm">{rec.betType}</span>
                           </div>
@@ -376,7 +374,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                 {/* Summary Stats */}
                 <div className="mt-4 p-3 bg-muted/30 rounded-lg">
                   <div className="text-sm text-muted-foreground">
-                    <strong>Résumé:</strong> {allRecommendations.length} opportunité{allRecommendations.length > 1 ? 's' : ''} affichée{allRecommendations.length > 1 ? 's' : ''} sur {allDetectedRecommendations.length} détectée{allDetectedRecommendations.length > 1 ? 's' : ''} • {['1X2', 'BTTS', 'O/U 2.5'].length} marchés analysés
+                    <strong>Résumé:</strong> {allRecommendations.length} opportunité{allRecommendations.length > 1 ? 's' : ''} unique{allRecommendations.length > 1 ? 's' : ''} affichée{allRecommendations.length > 1 ? 's' : ''} sur {uniqueRecommendations.length} détectée{uniqueRecommendations.length > 1 ? 's' : ''} • {['1X2', 'BTTS', 'O/U 2.5'].length} marchés analysés
                     {allRecommendations.some(r => r.isInverted) && (
                       <span className="ml-2 text-orange-600">• Inclut des stratégies contrariennes</span>
                     )}
