@@ -546,10 +546,10 @@ export function Admin() {
         <div className="flex justify-center mt-4">
           <Button 
             variant="outline" 
-            onClick={() => window.open('/dashboard', '_blank')}
+            onClick={() => window.location.href = '/dashboard'}
             className="gap-2"
           >
-            <ExternalLink className="h-4 w-4" />
+            <Calendar className="h-4 w-4" />
             Dashboard Utilisateur
           </Button>
         </div>
