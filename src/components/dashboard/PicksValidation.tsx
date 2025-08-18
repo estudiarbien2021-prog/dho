@@ -114,11 +114,22 @@ export function PicksValidation() {
     }
   };
 
-  // Tri des picks potentiels
-  const sortedPotentialPicks = useMemo(() => {
-    if (!sortColumn) return potentialPicks;
+  // Filtrer et trier les picks potentiels (avec recherche)
+  const filteredAndSortedPotentialPicks = useMemo(() => {
+    // D'abord filtrer par terme de recherche
+    const filtered = potentialPicks.filter(pick => 
+      pick.match.home_team?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      pick.match.away_team?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      pick.match.league?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      pick.match.country?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      pick.prediction?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      pick.betType?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
-    return [...potentialPicks].sort((a, b) => {
+    // Puis trier si nécessaire
+    if (!sortColumn) return filtered;
+
+    return [...filtered].sort((a, b) => {
       const aValue = getSortValue(a, sortColumn);
       const bValue = getSortValue(b, sortColumn);
 
@@ -134,7 +145,7 @@ export function PicksValidation() {
 
       return 0;
     });
-  }, [potentialPicks, sortColumn, sortDirection]);
+  }, [potentialPicks, sortColumn, sortDirection, searchTerm]);
 
   // Composant pour les en-têtes triables
   const SortableHeader: React.FC<{ column: string; children: React.ReactNode; className?: string }> = ({ 
@@ -476,7 +487,7 @@ export function PicksValidation() {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedPicks(sortedPotentialPicks.map(pick => pick.id));
+      setSelectedPicks(filteredAndSortedPotentialPicks.map(pick => pick.id));
     } else {
       setSelectedPicks([]);
     }
@@ -585,9 +596,11 @@ export function PicksValidation() {
       {/* Potential Picks */}
       <Card className="p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">Picks Potentiels ({potentialPicks.length})</h3>
+          <h3 className="text-lg font-semibold">
+            Picks Potentiels ({filteredAndSortedPotentialPicks.length}{searchTerm ? ` sur ${potentialPicks.length}` : ''})
+          </h3>
           <Checkbox
-            checked={selectedPicks.length === sortedPotentialPicks.length && sortedPotentialPicks.length > 0}
+            checked={selectedPicks.length === filteredAndSortedPotentialPicks.length && filteredAndSortedPotentialPicks.length > 0}
             onCheckedChange={handleSelectAll}
             className="mr-2"
           />
@@ -614,7 +627,7 @@ export function PicksValidation() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedPotentialPicks.map((pick) => {
+                {filteredAndSortedPotentialPicks.map((pick) => {
                   const flagInfo = leagueToFlag(pick.match.league, pick.match.country, pick.match.home_team, pick.match.away_team);
                   
                   return (
