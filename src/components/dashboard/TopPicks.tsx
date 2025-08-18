@@ -37,7 +37,6 @@ export function TopPicks({ matches, onMatchClick, selectedDate }: TopPicksProps)
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    console.log('🎯 TopPicks: Loading validated picks...', selectedDate ? `for date ${selectedDate.toISOString().split('T')[0]}` : 'for all dates');
     loadValidatedPicks();
   }, [selectedDate]);
 

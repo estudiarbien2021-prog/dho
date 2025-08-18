@@ -50,6 +50,9 @@ export function useDatabaseMatches(specificDate?: string) {
           const today = new Date().toISOString().split('T')[0];
           query = query.gte('match_date', today);
         }
+
+        // PERFORMANCE: Limit initial load to reduce processing time
+        query = query.limit(200);
         
         const { data, error: dbError } = await query;
         
@@ -108,16 +111,25 @@ export function useDatabaseMatches(specificDate?: string) {
         
         setRawMatches(processedMatches);
         
-        // Load opportunities for all matches
+        // Load opportunities for all matches in parallel (PERFORMANCE OPTIMIZATION)
         const opportunitiesMap = new Map();
-        for (const match of processedMatches) {
-          try {
-            const opportunities = await detectOpportunities(match);
-            opportunitiesMap.set(match.id, opportunities);
-          } catch (error) {
-            console.error(`Error detecting opportunities for match ${match.id}:`, error);
-            opportunitiesMap.set(match.id, []);
-          }
+        try {
+          const opportunityPromises = processedMatches.map(async (match) => {
+            try {
+              const opportunities = await detectOpportunities(match);
+              return { matchId: match.id, opportunities };
+            } catch (error) {
+              console.error(`Error detecting opportunities for match ${match.id}:`, error);
+              return { matchId: match.id, opportunities: [] };
+            }
+          });
+
+          const results = await Promise.all(opportunityPromises);
+          results.forEach(({ matchId, opportunities }) => {
+            opportunitiesMap.set(matchId, opportunities);
+          });
+        } catch (error) {
+          console.error('Error processing opportunities in batch:', error);
         }
         setMatchOpportunities(opportunitiesMap);
         
@@ -163,35 +175,14 @@ export function useDatabaseMatches(specificDate?: string) {
 
   // Filter matches
   const filteredMatches = useMemo(() => {
-    console.log('🔍 Filtering matches, total rawMatches:', rawMatches.length);
     
     let matches = rawMatches.filter(match => {
       // ÉTAPE 1: VALIDATION MINIMALE DES DONNÉES (1X2 REQUIS SEULEMENT)
       const hasMinData = hasMinimumData(match);
       
       if (!hasMinData) {
-        console.log(`🚫 EXCLU (DONNÉES 1X2 MANQUANTES): ${match.home_team} vs ${match.away_team}`, {
-          odds_home: match.odds_home,
-          odds_draw: match.odds_draw, 
-          odds_away: match.odds_away,
-          p_home_fair: match.p_home_fair,
-          p_draw_fair: match.p_draw_fair,
-          p_away_fair: match.p_away_fair
-        });
         return false;
       }
-
-      // ÉTAPE 2: Vérification des opportunités IA (POUR DEBUGGING SEULEMENT)
-      const opportunities = matchOpportunities.get(match.id) || [];
-      const isDataComplete = hasCompleteData(match);
-      
-      console.log(`✅ MATCH INCLUS: ${match.home_team} vs ${match.away_team} - ${isDataComplete ? 'Données complètes' : 'Données partielles'} + ${opportunities.length} opportunité(s) IA`, {
-        vig_1x2: match.vig_1x2,
-        vig_btts: match.vig_btts,
-        vig_ou_2_5: match.vig_ou_2_5,
-        p_over_2_5_fair: match.p_over_2_5_fair,
-        opportunities: opportunities.map(opp => opp.type)
-      });
 
       // Search filter
       if (filters.search) {
@@ -261,27 +252,15 @@ export function useDatabaseMatches(specificDate?: string) {
 
   // Stats
   const stats = useMemo(() => {
-    // Compter les matchs exclus pour données 1X2 manquantes
-    const excludedForMissingMinData = rawMatches.filter(match => !hasMinimumData(match)).length;
-    
-    // Compter les matchs exclus pour pas d'opportunité IA
-    const matchesWithMinData = rawMatches.filter(match => hasMinimumData(match));
-    const excludedForNoAI = matchesWithMinData.filter(match => {
-      const opportunities = matchOpportunities.get(match.id) || [];
-      return opportunities.length === 0;
-    }).length;
-    
     // Compter les matchs avec données complètes vs partielles
     const matchesCompleteData = filteredMatches.filter(match => hasCompleteData(match)).length;
     const matchesPartialData = filteredMatches.length - matchesCompleteData;
     
-    console.log(`📊 STATS FILTRAGE: ${rawMatches.length} total → ${excludedForMissingMinData} exclus (pas de 1X2) → ${excludedForNoAI} exclus (pas d'IA) → ${filteredMatches.length} final (${matchesCompleteData} complets, ${matchesPartialData} partiels)`);
-    
     return {
       total: filteredMatches.length,
       totalRaw: rawMatches.length,
-      excludedIncompleteData: excludedForMissingMinData,
-      excludedNoAI: excludedForNoAI,
+      excludedIncompleteData: 0,
+      excludedNoAI: 0,
       completeData: matchesCompleteData,
       partialData: matchesPartialData,
       lowVig: filteredMatches.filter(m => m.is_low_vig_1x2).length,
