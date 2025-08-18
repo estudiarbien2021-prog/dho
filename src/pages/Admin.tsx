@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Upload, RefreshCw, Calendar, CheckCircle, XCircle, Clock, Trash2, Users, Database, Shield, Eye, UserX, Crown, Trophy, Target, Download } from 'lucide-react';
+import { Upload, RefreshCw, Calendar, CheckCircle, XCircle, Clock, Trash2, Users, Database, Shield, Eye, UserX, Crown, Trophy, Target, Download, ExternalLink } from 'lucide-react';
 import { MatchesManagement } from '@/components/dashboard/MatchesManagement';
 import { PicksValidation } from '@/components/dashboard/PicksValidation';
 import { RulesManagement } from '@/components/dashboard/RulesManagement';
@@ -541,6 +541,18 @@ export function Admin() {
         <p className="text-text-weak">
           Gérez les utilisateurs et les données de votre plateforme
         </p>
+        
+        {/* Quick Actions */}
+        <div className="flex justify-center mt-4">
+          <Button 
+            variant="outline" 
+            onClick={() => window.open('/dashboard', '_blank')}
+            className="gap-2"
+          >
+            <ExternalLink className="h-4 w-4" />
+            Dashboard Utilisateur
+          </Button>
+        </div>
       </div>
 
       {/* Admin Tabs */}
