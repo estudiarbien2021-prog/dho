@@ -25,6 +25,7 @@ const defaultFilters: MatchFilters = {
 };
 
 export function useDatabaseMatches(specificDate?: string) {
+  // Force rebuild - Performance optimized match data hook
   const [rawMatches, setRawMatches] = useState<ProcessedMatch[]>([]);
   const [filters, setFilters] = useState<MatchFilters>(defaultFilters);
   const [isLoading, setIsLoading] = useState(true);
@@ -323,6 +324,7 @@ export function useDatabaseMatches(specificDate?: string) {
     };
   }, [filteredMatches, rawMatches, matchOpportunities]);
 
+  // Cached match recommendations and opportunities 
   return {
     matches: filteredMatches,
     isLoading,
