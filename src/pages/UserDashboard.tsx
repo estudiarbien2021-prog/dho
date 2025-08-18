@@ -21,7 +21,16 @@ interface DashboardProps {
 
 export function UserDashboard({ currentLang }: DashboardProps) {
   const { signOut } = useAuth();
-  const { matches, isLoading, error, filters, setFilters, availableLeagues, stats } = useDatabaseMatches();
+  const { 
+    matches, 
+    isLoading, 
+    error, 
+    filters, 
+    setFilters, 
+    availableLeagues, 
+    stats,
+    matchRecommendations
+  } = useDatabaseMatches();
   const [selectedMatch, setSelectedMatch] = useState<ProcessedMatch | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -211,6 +220,7 @@ export function UserDashboard({ currentLang }: DashboardProps) {
             matches={matches} 
             onMatchClick={handleMatchClick}
             marketFilters={filters.marketFilters}
+            matchRecommendations={matchRecommendations}
             groupBy={filters.groupBy}
           />
         </div>

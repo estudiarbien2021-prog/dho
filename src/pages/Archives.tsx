@@ -91,7 +91,16 @@ export function Archives() {
   const [selectedMatch, setSelectedMatch] = useState<ProcessedMatch | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   
-  const { matches, isLoading, error, filters, setFilters, availableLeagues, stats } = useDatabaseMatches(selectedDate);
+  const { 
+    matches, 
+    isLoading, 
+    error, 
+    filters, 
+    setFilters, 
+    availableLeagues, 
+    stats,
+    matchRecommendations
+  } = useDatabaseMatches(selectedDate);
 
   // Load available archive dates
   useEffect(() => {
@@ -355,6 +364,7 @@ export function Archives() {
             matches={matches} 
             onMatchClick={handleMatchClick}
             marketFilters={filters.marketFilters}
+            matchRecommendations={matchRecommendations}
           />
         </div>
       )}

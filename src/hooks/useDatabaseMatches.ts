@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { ProcessedMatch } from '@/types/match';
 import { supabase } from '@/integrations/supabase/client';
-import { detectOpportunities } from '@/lib/opportunityDetection';
+import { detectOpportunities, prioritizeOpportunitiesByRealProbability, convertOpportunityToAIRecommendation } from '@/lib/opportunityDetection';
+import { generateConfidenceScore } from '@/lib/confidence';
 
 export interface MatchFilters {
   search: string;
@@ -29,6 +30,7 @@ export function useDatabaseMatches(specificDate?: string) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [matchOpportunities, setMatchOpportunities] = useState<Map<string, any[]>>(new Map());
+  const [matchRecommendations, setMatchRecommendations] = useState<Map<string, any[]>>(new Map());
 
   // Load matches from database
   useEffect(() => {
@@ -111,27 +113,70 @@ export function useDatabaseMatches(specificDate?: string) {
         
         setRawMatches(processedMatches);
         
-        // Load opportunities for all matches in parallel (PERFORMANCE OPTIMIZATION)
+        // Load opportunities and recommendations for all matches in parallel (PERFORMANCE OPTIMIZATION)
         const opportunitiesMap = new Map();
+        const recommendationsMap = new Map();
+        
         try {
           const opportunityPromises = processedMatches.map(async (match) => {
             try {
               const opportunities = await detectOpportunities(match);
-              return { matchId: match.id, opportunities };
+              
+              // Pre-calculate AI recommendations
+              let recommendations = [];
+              if (opportunities.length > 0) {
+                const prioritizedOpportunities = prioritizeOpportunitiesByRealProbability(opportunities, match);
+                
+                recommendations = prioritizedOpportunities.map(opp => {
+                  const converted = convertOpportunityToAIRecommendation(opp);
+                  
+                  // Validate odds
+                  if (!converted.odds || converted.odds <= 0) {
+                    return null;
+                  }
+                  
+                  return {
+                    betType: converted.betType,
+                    prediction: converted.prediction,
+                    odds: converted.odds,
+                    confidence: converted.confidence,
+                    isInverted: opp?.isInverted || false,
+                    reason: opp?.reason || [],
+                    confidenceScore: generateConfidenceScore(match.id, {
+                      type: converted.betType,
+                      prediction: converted.prediction,
+                      confidence: converted.confidence
+                    })
+                  };
+                }).filter(Boolean);
+              }
+              
+              return { 
+                matchId: match.id, 
+                opportunities,
+                recommendations 
+              };
             } catch (error) {
-              console.error(`Error detecting opportunities for match ${match.id}:`, error);
-              return { matchId: match.id, opportunities: [] };
+              console.error(`Error processing match ${match.id}:`, error);
+              return { 
+                matchId: match.id, 
+                opportunities: [],
+                recommendations: []
+              };
             }
           });
 
           const results = await Promise.all(opportunityPromises);
-          results.forEach(({ matchId, opportunities }) => {
+          results.forEach(({ matchId, opportunities, recommendations }) => {
             opportunitiesMap.set(matchId, opportunities);
+            recommendationsMap.set(matchId, recommendations);
           });
         } catch (error) {
-          console.error('Error processing opportunities in batch:', error);
+          console.error('Error processing opportunities and recommendations in batch:', error);
         }
+        
         setMatchOpportunities(opportunitiesMap);
+        setMatchRecommendations(recommendationsMap);
         
         setIsLoading(false);
         
@@ -285,6 +330,8 @@ export function useDatabaseMatches(specificDate?: string) {
     filters,
     setFilters,
     availableLeagues,
-    stats
+    stats,
+    matchOpportunities,
+    matchRecommendations
   };
 }

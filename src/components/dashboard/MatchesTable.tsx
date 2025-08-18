@@ -16,10 +16,11 @@ interface MatchesTableProps {
   matches: ProcessedMatch[];
   onMatchClick: (match: ProcessedMatch) => void;
   marketFilters?: string[];
+  matchRecommendations?: Map<string, any[]>;
   groupBy?: 'time' | 'competition';
 }
 
-export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupBy = 'time' }: MatchesTableProps) {
+export function MatchesTable({ matches, onMatchClick, marketFilters = [], matchRecommendations, groupBy = 'time' }: MatchesTableProps) {
   const [sortField, setSortField] = useState<keyof ProcessedMatch>('kickoff_utc');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
@@ -282,6 +283,7 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
                             marketFilters={marketFilters}
                             variant="table"
                             showIcon={false}
+                            preCalculatedRecommendations={matchRecommendations?.get(match.id)}
                           />
                         </TableCell>
                         
@@ -378,6 +380,7 @@ export function MatchesTable({ matches, onMatchClick, marketFilters = [], groupB
                         marketFilters={marketFilters}
                         variant="card"
                         showIcon={true}
+                        preCalculatedRecommendations={matchRecommendations?.get(match.id)}
                       />
                     </div>
                     

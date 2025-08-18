@@ -11,53 +11,14 @@ interface AIRecommendationDisplayProps {
   marketFilters?: string[];
   variant?: 'compact' | 'detailed' | 'card' | 'table';
   showIcon?: boolean;
+  preCalculatedRecommendations?: any[];
 }
 
-export function AIRecommendationDisplay({ match, marketFilters, variant = 'compact', showIcon = true }: AIRecommendationDisplayProps) {
-  const [opportunities, setOpportunities] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+export function AIRecommendationDisplay({ match, marketFilters, variant = 'compact', showIcon = true, preCalculatedRecommendations }: AIRecommendationDisplayProps) {
+  // Use pre-calculated recommendations if available, otherwise fallback to empty array
+  const aiRecs = preCalculatedRecommendations || [];
 
-  useEffect(() => {
-    const fetchOpportunities = async () => {
-      try {
-        setLoading(true);
-        console.log('🟢 AIRecommendationDisplay APPELÉ pour:', match.home_team, 'vs', match.away_team);
-        
-        const detectedOpportunities = await detectOpportunities(match);
-        console.log('🔍 OPPORTUNITÉS DÉTECTÉES:', detectedOpportunities.length);
-        
-        if (detectedOpportunities.length === 0) {
-          console.log('🚫 AUCUNE OPPORTUNITÉ - Les règles configurées ne sont pas respectées');
-          setOpportunities([]);
-          return;
-        }
-        
-        setOpportunities(detectedOpportunities);
-      } catch (error) {
-        console.error('❌ Erreur lors de la détection des opportunités:', error);
-        setOpportunities([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchOpportunities();
-  }, [match]);
-
-  if (loading) {
-    return (
-      <div className="flex items-center gap-2">
-        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary"></div>
-        <span className="text-xs text-muted-foreground">Analyse en cours...</span>
-      </div>
-    );
-  }
-
-  // CORRECTION MAJEURE: Prioriser strictement selon les règles configurées
-  const prioritizedOpportunities = prioritizeOpportunitiesByRealProbability(opportunities, match);
-  
-  // VÉRIFICATION CRITIQUE: Si aucune opportunité après priorisation
-  if (prioritizedOpportunities.length === 0) {
+  if (aiRecs.length === 0) {
     if (variant === 'table') {
       return <span className="text-xs text-muted-foreground">Aucune règle respectée</span>;
     }
@@ -67,67 +28,6 @@ export function AIRecommendationDisplay({ match, marketFilters, variant = 'compa
         <span>Aucune règle respectée</span>
       </div>
     );
-  }
-
-  // Convertir la première (et normalement seule) opportunité prioritaire
-  const recommendations = prioritizedOpportunities.map(opp => {
-    const converted = convertOpportunityToAIRecommendation(opp);
-    
-    // CORRECTION: Validation stricte des odds
-    if (!converted.odds || converted.odds <= 0) {
-      console.log('❌ Odds invalides pour:', converted.betType, converted.prediction);
-      return null;
-    }
-    
-    return converted;
-  }).filter(Boolean);
-
-  if (recommendations.length === 0) {
-    if (variant === 'table') {
-      return <span className="text-xs text-muted-foreground">Odds invalides</span>;
-    }
-    return (
-      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-        <AlertTriangle className="h-3 w-3" />
-        <span>Données insuffisantes</span>
-      </div>
-    );
-  }
-
-  // Normaliser et créer les recommandations finales
-  const aiRecs = recommendations.map((rec, index) => {
-    const opportunity = prioritizedOpportunities[index];
-    
-    return {
-      betType: rec.betType,
-      prediction: rec.prediction,
-      odds: rec.odds,
-      confidence: rec.confidence,
-      isInverted: opportunity?.isInverted || false,
-      reason: opportunity?.reason || []
-    };
-  });
-
-  console.log('🚨 DEBUG AIRecommendationDisplay - ENFORCEMENT STRICT DES RÈGLES:');
-  console.log('  🏟️ Match:', `${match.home_team} vs ${match.away_team}`);
-  console.log('  📊 Données BTTS du match:', {
-    vigorish: `${(match.vig_btts * 100).toFixed(1)}%`,
-    prob_yes: `${(match.p_btts_yes_fair * 100).toFixed(1)}%`,
-    prob_no: `${(match.p_btts_no_fair * 100).toFixed(1)}%`
-  });
-  console.log('  🔢 Opportunités détectées:', opportunities.length);
-  console.log('  ✅ Recommandations finales:', aiRecs.length);
-  console.log('  🎯 Recommandation principale:', aiRecs[0] ? {
-    type: aiRecs[0].betType,
-    prediction: aiRecs[0].prediction,
-    odds: aiRecs[0].odds,
-    justification: aiRecs[0].reason ? aiRecs[0].reason[0] : 'Aucune'
-  } : 'AUCUNE RECOMMANDATION - RÈGLES NON RESPECTÉES');
-  
-  // VÉRIFICATION CRITIQUE: Si aiRecs est vide alors qu'on attendait une recommandation
-  if (aiRecs.length === 0 && opportunities.length > 0) {
-    console.log('⚠️ ANOMALIE DÉTECTÉE: Opportunités trouvées mais aucune recommandation finale!');
-    console.log('  Opportunités brutes:', opportunities.map(o => ({type: o.type, prediction: o.prediction})));
   }
 
   const getConfidenceColor = (conf: string) => {
@@ -154,11 +54,7 @@ export function AIRecommendationDisplay({ match, marketFilters, variant = 'compa
     return (
       <div className="flex flex-col gap-1 items-center">
         {aiRecs.map((aiRec, index) => {
-          const confidence = generateConfidenceScore(match.id, {
-            type: aiRec.betType,
-            prediction: aiRec.prediction,
-            confidence: aiRec.confidence
-          });
+          const confidence = aiRec.confidenceScore || 75;
           
           return (
             <div key={index} className="w-full text-center">
@@ -193,11 +89,7 @@ export function AIRecommendationDisplay({ match, marketFilters, variant = 'compa
     }
 
     const aiRec = aiRecs[0];
-    const confidence = generateConfidenceScore(match.id, {
-      type: aiRec.betType,
-      prediction: aiRec.prediction,
-      confidence: aiRec.confidence
-    });
+    const confidence = aiRec.confidenceScore || 75;
 
     return (
       <div className="text-xs text-center">
@@ -228,11 +120,7 @@ export function AIRecommendationDisplay({ match, marketFilters, variant = 'compa
         
         <div className="space-y-3 text-center">
           {aiRecs.map((aiRec, index) => {
-            const confidence = generateConfidenceScore(match.id, {
-              type: aiRec.betType,
-              prediction: aiRec.prediction,
-              confidence: aiRec.confidence
-            });
+            const confidence = aiRec.confidenceScore || 75;
             
             return (
               <div key={index} className={`${index > 0 ? 'pt-3 border-t border-green-300' : ''}`}>
@@ -284,11 +172,7 @@ export function AIRecommendationDisplay({ match, marketFilters, variant = 'compa
         
         <div className="space-y-4">
           {aiRecs.map((aiRec, index) => {
-            const confidence = generateConfidenceScore(match.id, {
-              type: aiRec.betType,
-              prediction: aiRec.prediction,
-              confidence: aiRec.confidence
-            });
+            const confidence = aiRec.confidenceScore || 75;
             
             return (
               <div key={index} className={`${index > 0 ? 'pt-4 border-t border-green-300' : ''}`}>
