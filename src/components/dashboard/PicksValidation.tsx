@@ -11,7 +11,7 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { CheckCircle, RefreshCw, Target, Eye, Edit, Calendar, Search, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { ProcessedMatch } from '@/types/match';
-import { generateAllAIRecommendations } from '@/lib/aiRecommendation';
+import { detectOpportunities, prioritizeOpportunitiesByRealProbability, convertOpportunityToAIRecommendation } from '@/lib/opportunityDetection';
 import { FlagMini } from '@/components/Flag';
 import { leagueToFlag } from '@/lib/leagueCountry';
 import { format } from 'date-fns';
@@ -263,32 +263,94 @@ export function PicksValidation() {
 
       const validBets: PotentialPick[] = [];
       
-      filteredMatches.forEach(match => {
-        // Utiliser la nouvelle fonction pour obtenir TOUTES les recommandations
-        const allRecommendations = generateAllAIRecommendations(match, []);
+      // UNIFICATION: Utiliser le même système que le popup détail des matchs
+      for (let matchIndex = 0; matchIndex < filteredMatches.length; matchIndex++) {
+        const match = filteredMatches[matchIndex];
         
-        allRecommendations.forEach((aiRec, index) => {
-          const betType = aiRec.prediction.includes('Oui') || aiRec.prediction.includes('Non') ? 'BTTS' : 
-                        aiRec.prediction.includes('Plus') || aiRec.prediction.includes('Moins') ? 'O/U 2.5' :
-                        aiRec.prediction.includes('X2') || aiRec.prediction.includes('12') || aiRec.prediction.includes('1X') ? 'Double Chance' :
-                        'Autre';
+        console.log(`🔄 TRAITEMENT MATCH ${matchIndex + 1}/${filteredMatches.length}: ${match.home_team} vs ${match.away_team}`);
+        
+        try {
+          // ÉTAPE 1: Détecter les opportunités (même logique que le popup)
+          const opportunities = await detectOpportunities(match);
+          console.log(`  📋 Opportunités détectées: ${opportunities.length}`);
           
-          const probability = aiRec.probability / 100;
-          
-          // Appliquer les nouveaux critères : probabilité >= 51% ET odds >= 1.6
-          if (probability >= 0.51 && aiRec.odds >= 1.6) {
-            validBets.push({
-              match,
-              betType: betType,
-              prediction: aiRec.prediction,
-              odds: aiRec.odds,
-              probability,
-              vigorish: aiRec.vigorish,
-              id: `${match.id}-${index}-${aiRec.prediction.replace(/\s+/g, '-')}`
-            });
+          if (opportunities.length === 0) {
+            console.log(`  🚫 Aucune opportunité détectée pour ce match`);
+            continue;
           }
-        });
-      });
+          
+          // ÉTAPE 2: Prioriser les opportunités (même logique que le popup)
+          const prioritizedOpportunities = prioritizeOpportunitiesByRealProbability(opportunities, match);
+          console.log(`  ⭐ Opportunités prioritaires: ${prioritizedOpportunities.length}`);
+          
+          if (prioritizedOpportunities.length === 0) {
+            console.log(`  🚫 Aucune opportunité après priorisation`);
+            continue;
+          }
+          
+          // ÉTAPE 3: Convertir les opportunités (même logique que le popup)
+          prioritizedOpportunities.forEach((opportunity, oppIndex) => {
+            const aiRecommendation = convertOpportunityToAIRecommendation(opportunity);
+            
+            // ÉTAPE 4: Calculer la probabilité pour les critères de filtrage
+            let probability = 0;
+            
+            // Extraire la probabilité selon le type de marché et la prédiction
+            if (aiRecommendation.betType === 'BTTS') {
+              probability = aiRecommendation.prediction === 'Oui' ? match.p_btts_yes_fair : match.p_btts_no_fair;
+            } else if (aiRecommendation.betType === 'O/U 2.5') {
+              probability = aiRecommendation.prediction === '+2,5 buts' ? match.p_over_2_5_fair : match.p_under_2_5_fair;
+            } else if (aiRecommendation.betType === '1X2') {
+              if (aiRecommendation.prediction.includes('domicile')) {
+                probability = match.p_home_fair;
+              } else if (aiRecommendation.prediction.includes('extérieur')) {
+                probability = match.p_away_fair;
+              } else if (aiRecommendation.prediction.includes('nul')) {
+                probability = match.p_draw_fair;
+              }
+            } else if (aiRecommendation.betType === 'Double Chance') {
+              // Pour double chance, calculer la probabilité combinée
+              if (aiRecommendation.prediction === '1X') {
+                probability = match.p_home_fair + match.p_draw_fair;
+              } else if (aiRecommendation.prediction === 'X2') {
+                probability = match.p_draw_fair + match.p_away_fair;
+              } else if (aiRecommendation.prediction === '12') {
+                probability = match.p_home_fair + match.p_away_fair;
+              }
+            }
+            
+            // ÉTAPE 5: Calculer le vigorish selon le type de marché
+            let vigorish = 0;
+            if (aiRecommendation.betType === 'BTTS') {
+              vigorish = match.vig_btts || 0;
+            } else if (aiRecommendation.betType === 'O/U 2.5') {
+              vigorish = match.vig_ou_2_5 || 0;
+            } else {
+              vigorish = match.vig_1x2 || 0;
+            }
+            
+            console.log(`    💡 Recommandation ${oppIndex + 1}: ${aiRecommendation.betType} ${aiRecommendation.prediction} (odds: ${aiRecommendation.odds}, prob: ${(probability * 100).toFixed(1)}%)`);
+            
+            // ÉTAPE 6: Appliquer les critères de filtrage identiques au dashboard principal
+            if (probability >= 0.51 && aiRecommendation.odds >= 1.6) {
+              validBets.push({
+                match,
+                betType: aiRecommendation.betType,
+                prediction: aiRecommendation.prediction,
+                odds: aiRecommendation.odds,
+                probability,
+                vigorish,
+                id: `${match.id}-${oppIndex}-${aiRecommendation.prediction.replace(/\s+/g, '-')}`
+              });
+              console.log(`    ✅ Recommandation ajoutée aux picks potentiels`);
+            } else {
+              console.log(`    ❌ Recommandation filtrée (prob: ${(probability * 100).toFixed(1)}%, odds: ${aiRecommendation.odds})`);
+            }
+          });
+        } catch (error) {
+          console.error(`❌ Erreur lors du traitement du match ${match.home_team} vs ${match.away_team}:`, error);
+        }
+      }
 
       // Trier par vigorish décroissant puis par probabilité décroissante
       validBets.sort((a, b) => {
