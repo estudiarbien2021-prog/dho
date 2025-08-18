@@ -230,6 +230,12 @@ export function useDatabaseMatches(specificDate?: string) {
         return false;
       }
 
+      // ÉTAPE 2: MASQUER LES MATCHS SANS RECOMMANDATIONS IA
+      const recommendations = matchRecommendations.get(match.id) || [];
+      if (recommendations.length === 0) {
+        return false;
+      }
+
       // Search filter
       if (filters.search) {
         const searchTerm = filters.search.toLowerCase();
@@ -289,7 +295,7 @@ export function useDatabaseMatches(specificDate?: string) {
     }
 
     return matches;
-  }, [rawMatches, filters, matchOpportunities]);
+  }, [rawMatches, filters, matchOpportunities, matchRecommendations]);
 
   // Get unique values for filters
   const availableLeagues = useMemo(() => 
