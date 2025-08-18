@@ -247,17 +247,9 @@ export function PicksValidation() {
       const dates = [...new Set(matchData.map(m => m.match_date))];
       console.log('📅 Dates des matchs à analyser:', dates);
       
-      // Filtrer par catégorie comme dans TopPicks mais avec les nouveaux critères
-      const filteredMatches = matchData.filter(match => {
-        // Catégories autorisées élargies : first_div, continental_cup ET national_cup
-        const isValidCategory = ['first_div', 'continental_cup', 'national_cup'].includes(match.category);
-        
-        if (!isValidCategory) {
-          return false;
-        }
-        
-        return true;
-      });
+      // UNIFICATION: Utiliser TOUS les matchs comme dans le dashboard principal
+      // Supprimer le filtre de catégorie restrictif pour avoir le même ensemble de base
+      const filteredMatches = matchData; // Pas de filtrage par catégorie pour unifier avec le dashboard
 
       console.log(`📊 Matchs filtrés par critères: ${filteredMatches.length}/${matchData.length}`);
 
@@ -331,8 +323,9 @@ export function PicksValidation() {
             
             console.log(`    💡 Recommandation ${oppIndex + 1}: ${aiRecommendation.betType} ${aiRecommendation.prediction} (odds: ${aiRecommendation.odds}, prob: ${(probability * 100).toFixed(1)}%)`);
             
-            // ÉTAPE 6: Appliquer les critères de filtrage identiques au dashboard principal
-            if (probability >= 0.51 && aiRecommendation.odds >= 1.6) {
+            // ÉTAPE 6: Critères unifiés - accepter toutes les recommandations valides du système d'opportunités
+            // Les opportunités ont déjà été filtrées par detectOpportunities() et prioritizeOpportunitiesByRealProbability()
+            if (probability > 0 && aiRecommendation.odds > 0) {
               validBets.push({
                 match,
                 betType: aiRecommendation.betType,
