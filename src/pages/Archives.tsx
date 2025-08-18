@@ -303,7 +303,7 @@ export function Archives() {
                   {availableLeagues.map(league => {
                     const { code: countryCode } = leagueToFlag(league);
                     const countryName = getCountryName(countryCode);
-                    const displayText = countryName ? `${countryName} - ${league}` : league;
+                    const displayText = countryName || league;
                     
                     return (
                       <SelectItem key={league} value={league}>
