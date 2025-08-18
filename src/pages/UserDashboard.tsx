@@ -200,9 +200,9 @@ export function UserDashboard({ currentLang }: DashboardProps) {
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-semibold flex items-center gap-2">
-              📊 Matchs d'aujourd'hui
+              📊 Archives des matchs
               <span className="text-sm text-text-weak">
-                ({format(new Date(), 'dd MMMM yyyy', { locale: fr })})
+                (Données historiques)
               </span>
             </h2>
           </div>
