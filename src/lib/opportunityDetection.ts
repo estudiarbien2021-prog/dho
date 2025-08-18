@@ -417,7 +417,7 @@ function getOddsForPrediction(market: string, prediction: string, context: RuleE
 
 // NOUVELLE FONCTION: Sélectionner intelligemment jusqu'à 2 opportunités avec les meilleures priorités de marchés différents
 export function prioritizeOpportunitiesByRealProbability(opportunities: DetectedOpportunity[], match: ProcessedMatch): DetectedOpportunity[] {
-  console.log('🎯 PRIORISATION INTELLIGENTE - INPUT:', opportunities.map(o => `${o.type}:${o.prediction}(priorité:${o.priority})`));
+  console.log('🎯 PRIORISATION INTELLIGENTE - INPUT:', opportunities.map(o => `${o.type}:${o.prediction}(priorité:${o.priority})(cote:${o.odds})`));
   
   // ÉTAPE 1: Séparer les vraies recommandations des "no_recommendation"
   const realRecommendations = opportunities.filter(opp => 
@@ -426,22 +426,17 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
     !opp.prediction.toLowerCase().includes('no recommendation')
   );
   
-  console.log('🔄 RECOMMANDATIONS VALIDES:', realRecommendations.length, realRecommendations.map(r => `${r.type}:${r.prediction}(priorité:${r.priority})`));
+  console.log('🔄 RECOMMANDATIONS VALIDES:', realRecommendations.length, realRecommendations.map(r => `${r.type}:${r.prediction}(priorité:${r.priority})(cote:${r.odds})`));
   
   if (realRecommendations.length === 0) {
     console.log('🚫 AUCUNE RECOMMANDATION VALIDE');
     return [];
   }
   
-  // ÉTAPE 2: Trier toutes les recommandations par priorité (1 = plus prioritaire, donc tri ascendant)
-  const sortedRecommendations = [...realRecommendations].sort((a, b) => a.priority - b.priority);
-  console.log('📊 RECOMMANDATIONS TRIÉES PAR PRIORITÉ:', sortedRecommendations.map(r => `${r.type}:${r.prediction}(priorité:${r.priority})`));
+  // ÉTAPE 2: Détecter et résoudre les opportunités contradictoires sur le même marché
+  const marketGroups = new Map<string, DetectedOpportunity[]>();
   
-  // ÉTAPE 3: Sélectionner jusqu'à 2 opportunités de marchés différents selon l'ordre de priorité
-  const selectedRecommendations: DetectedOpportunity[] = [];
-  const usedMarkets = new Set<string>();
-  
-  // Normaliser les types de marchés pour la comparaison
+  // Normaliser les types de marchés et grouper les opportunités
   const normalizeMarketType = (type: string): string => {
     if (type === 'O/U 2.5' || type === 'OU25') return 'ou25';
     if (type === 'BTTS') return 'btts';
@@ -451,6 +446,55 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
     return type.toLowerCase();
   };
   
+  realRecommendations.forEach(recommendation => {
+    const normalizedMarket = normalizeMarketType(recommendation.type);
+    if (!marketGroups.has(normalizedMarket)) {
+      marketGroups.set(normalizedMarket, []);
+    }
+    marketGroups.get(normalizedMarket)!.push(recommendation);
+  });
+  
+  console.log('📊 GROUPEMENT PAR MARCHÉ:', Array.from(marketGroups.entries()).map(([market, opps]) => 
+    `${market}: ${opps.length} opportunité(s)`
+  ));
+  
+  // ÉTAPE 3: Résoudre les contradictions en gardant la meilleure cote par marché
+  const resolvedOpportunities: DetectedOpportunity[] = [];
+  
+  marketGroups.forEach((opportunities, market) => {
+    if (opportunities.length > 1) {
+      console.log(`⚠️ CONTRADICTION DÉTECTÉE sur marché ${market}:`, opportunities.map(o => `${o.prediction}(cote:${o.odds})`));
+      
+      // Détecter si les opportunités sont vraiment contradictoires
+      const isContradictory = checkIfContradictory(opportunities, market);
+      
+      if (isContradictory) {
+        // Garder celle avec la plus grosse cote
+        const bestOddsOpportunity = opportunities.reduce((best, current) => 
+          current.odds > best.odds ? current : best
+        );
+        console.log(`✅ RÉSOLUTION CONTRADICTION - Sélection de la meilleure cote:`, `${bestOddsOpportunity.prediction}(cote:${bestOddsOpportunity.odds})`);
+        resolvedOpportunities.push(bestOddsOpportunity);
+      } else {
+        // Si pas vraiment contradictoires, garder toutes (ex: différents types de 1X2)
+        resolvedOpportunities.push(...opportunities);
+      }
+    } else {
+      // Pas de contradiction, garder l'opportunité unique
+      resolvedOpportunities.push(opportunities[0]);
+    }
+  });
+  
+  console.log('🔄 APRÈS RÉSOLUTION DES CONTRADICTIONS:', resolvedOpportunities.length, resolvedOpportunities.map(r => `${r.type}:${r.prediction}(cote:${r.odds})`));
+  
+  // ÉTAPE 4: Trier toutes les recommandations par priorité (1 = plus prioritaire, donc tri ascendant)
+  const sortedRecommendations = [...resolvedOpportunities].sort((a, b) => a.priority - b.priority);
+  console.log('📊 RECOMMANDATIONS TRIÉES PAR PRIORITÉ:', sortedRecommendations.map(r => `${r.type}:${r.prediction}(priorité:${r.priority})(cote:${r.odds})`));
+  
+  // ÉTAPE 5: Sélectionner jusqu'à 2 opportunités de marchés différents selon l'ordre de priorité
+  const selectedRecommendations: DetectedOpportunity[] = [];
+  const usedMarkets = new Set<string>();
+  
   // Parcourir les opportunités et sélectionner jusqu'à 2 de marchés différents
   for (const recommendation of sortedRecommendations) {
     const normalizedMarket = normalizeMarketType(recommendation.type);
@@ -458,7 +502,7 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
     if (!usedMarkets.has(normalizedMarket) && selectedRecommendations.length < 2) {
       selectedRecommendations.push(recommendation);
       usedMarkets.add(normalizedMarket);
-      console.log(`✅ SÉLECTION: ${recommendation.type}:${recommendation.prediction} (marché: ${normalizedMarket})`);
+      console.log(`✅ SÉLECTION: ${recommendation.type}:${recommendation.prediction} (marché: ${normalizedMarket}) (cote: ${recommendation.odds})`);
     } else if (usedMarkets.has(normalizedMarket)) {
       console.log(`🚫 REJETÉ - Marché déjà utilisé: ${recommendation.type}:${recommendation.prediction} (marché: ${normalizedMarket})`);
     } else if (selectedRecommendations.length >= 2) {
@@ -469,7 +513,7 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
   console.log('✅ SÉLECTION INITIALE:', selectedRecommendations.length, 'opportunités');
   console.log('📋 AVANT TRI PAR COTES:', selectedRecommendations.map(r => `${r.type}:${r.prediction}(cote:${r.odds})`));
   
-  // ÉTAPE 4: TRI FINAL PAR COTES - Mettre en premier celle avec la cote la plus élevée
+  // ÉTAPE 6: TRI FINAL PAR COTES - Mettre en premier celle avec la cote la plus élevée
   if (selectedRecommendations.length === 2) {
     selectedRecommendations.sort((a, b) => b.odds - a.odds);
     console.log('🎯 TRI FINAL PAR COTES APPLIQUÉ - Principale (cote plus élevée) en premier');
@@ -483,6 +527,41 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
   console.log('🥈 RECOMMANDATION SECONDAIRE (2ème):', selectedRecommendations[1] ? `${selectedRecommendations[1].type}:${selectedRecommendations[1].prediction} (cote:${selectedRecommendations[1].odds})` : 'AUCUNE');
   
   return selectedRecommendations;
+}
+
+// NOUVELLE FONCTION: Vérifier si les opportunités sont vraiment contradictoires
+function checkIfContradictory(opportunities: DetectedOpportunity[], market: string): boolean {
+  if (opportunities.length <= 1) return false;
+  
+  // Pour BTTS: Oui vs Non = contradictoire
+  if (market === 'btts') {
+    const hasYes = opportunities.some(o => o.prediction.toLowerCase().includes('oui'));
+    const hasNo = opportunities.some(o => o.prediction.toLowerCase().includes('non'));
+    return hasYes && hasNo;
+  }
+  
+  // Pour O/U 2.5: Over vs Under = contradictoire
+  if (market === 'ou25') {
+    const hasOver = opportunities.some(o => o.prediction.includes('+2,5') || o.prediction.toLowerCase().includes('over'));
+    const hasUnder = opportunities.some(o => o.prediction.includes('-2,5') || o.prediction.toLowerCase().includes('under'));
+    return hasOver && hasUnder;
+  }
+  
+  // Pour 1X2: différentes prédictions directes = contradictoire
+  if (market === '1x2') {
+    const predictions = new Set(opportunities.map(o => o.prediction));
+    // Si on a plus d'une prédiction différente, c'est contradictoire
+    const hasHome = opportunities.some(o => o.prediction.toLowerCase().includes('domicile'));
+    const hasAway = opportunities.some(o => o.prediction.toLowerCase().includes('extérieur'));
+    const hasDraw = opportunities.some(o => o.prediction.toLowerCase().includes('nul'));
+    
+    // Compter les prédictions différentes
+    const differentPredictions = [hasHome, hasAway, hasDraw].filter(Boolean).length;
+    return differentPredictions > 1;
+  }
+  
+  // Par défaut, considérer comme non contradictoire
+  return false;
 }
 
 // Helper function to get real probability for an opportunity
