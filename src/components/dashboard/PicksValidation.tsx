@@ -11,7 +11,7 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { CheckCircle, RefreshCw, Target, Eye, Edit, Calendar, Search, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { ProcessedMatch } from '@/types/match';
-import { generateAIRecommendation } from '@/lib/aiRecommendation';
+import { generateAllAIRecommendations } from '@/lib/aiRecommendation';
 import { FlagMini } from '@/components/Flag';
 import { leagueToFlag } from '@/lib/leagueCountry';
 import { format } from 'date-fns';
@@ -264,10 +264,15 @@ export function PicksValidation() {
       const validBets: PotentialPick[] = [];
       
       filteredMatches.forEach(match => {
-        const aiRec = generateAIRecommendation(match, []);
+        // Utiliser la nouvelle fonction pour obtenir TOUTES les recommandations
+        const allRecommendations = generateAllAIRecommendations(match, []);
         
-        if (aiRec) {
-          const betType = aiRec.prediction.includes('Oui') || aiRec.prediction.includes('Non') ? 'BTTS' : 'O/U 2.5';
+        allRecommendations.forEach((aiRec, index) => {
+          const betType = aiRec.prediction.includes('Oui') || aiRec.prediction.includes('Non') ? 'BTTS' : 
+                        aiRec.prediction.includes('Plus') || aiRec.prediction.includes('Moins') ? 'O/U 2.5' :
+                        aiRec.prediction.includes('X2') || aiRec.prediction.includes('12') || aiRec.prediction.includes('1X') ? 'Double Chance' :
+                        'Autre';
+          
           const probability = aiRec.probability / 100;
           
           // Appliquer les nouveaux critères : probabilité >= 51% ET odds >= 1.6
@@ -278,11 +283,11 @@ export function PicksValidation() {
               prediction: aiRec.prediction,
               odds: aiRec.odds,
               probability,
-              vigorish: betType === 'BTTS' ? match.vig_btts : match.vig_ou_2_5,
-              id: `${match.id}-${betType}-${aiRec.prediction}`
+              vigorish: aiRec.vigorish,
+              id: `${match.id}-${index}-${aiRec.prediction.replace(/\s+/g, '-')}`
             });
           }
-        }
+        });
       });
 
       // Trier par vigorish décroissant puis par probabilité décroissante

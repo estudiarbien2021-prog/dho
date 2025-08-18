@@ -378,5 +378,125 @@ export function generateAIRecommendation(match: ProcessedMatch, marketFilters: s
   return null;
 }
 
+/**
+ * Generate all possible AI recommendations for a single match
+ * Returns an array of all valid recommendations instead of just the best one
+ */
+export function generateAllAIRecommendations(match: ProcessedMatch, marketFilters: string[] = []): AIRecommendation[] {
+  const recommendations: AIRecommendation[] = [];
+  
+  // Use default values
+  const minOdds = MIN_ODDS;
+  const minProbability = MIN_PROBABILITY;
+  const highVigorishThreshold = HIGH_VIGORISH_THRESHOLD;
+  const lowVigorishThreshold = LOW_VIGORISH_THRESHOLD;
+  const highProbabilityThreshold = HIGH_PROBABILITY_THRESHOLD;
+  const doubleChanceVigorishThreshold = DOUBLE_CHANCE_VIGORISH_THRESHOLD;
+  const doubleChanceMaxProbability = DOUBLE_CHANCE_MAX_PROBABILITY;
+  const equalityTolerance = EQUALITY_TOLERANCE;
+
+  // Validate complete 1X2 data for Double Chance
+  if (match.odds_home && match.odds_draw && match.odds_away && 
+      match.p_home_fair && match.p_draw_fair && match.p_away_fair) {
+
+    // RÈGLE PRIORITAIRE ABSOLUE : Double Chance (X2)
+    if (match.vig_1x2 >= doubleChanceVigorishThreshold) {
+      const probabilities = [match.p_home_fair, match.p_draw_fair, match.p_away_fair];
+      const maxProb = Math.max(...probabilities);
+      
+      // Exclusions : probabilité max > 65%
+      if (maxProb <= doubleChanceMaxProbability / 100) {
+        const maxIndex = probabilities.indexOf(maxProb);
+        
+        let recommendation: AIRecommendation;
+        if (maxIndex === 0) { // Home most probable
+          recommendation = createRecommendation('X2', 'Nul ou Extérieur', match.odds_draw || 0, match.odds_away);
+        } else if (maxIndex === 1) { // Draw most probable  
+          recommendation = createRecommendation('12', 'Domicile ou Extérieur', match.odds_home, match.odds_away);
+        } else { // Away most probable
+          recommendation = createRecommendation('1X', 'Domicile ou Nul', match.odds_home, match.odds_draw || 0);
+        }
+        
+        if (recommendation.odds >= minOdds) {
+          recommendations.push(recommendation);
+        }
+      }
+    }
+  }
+
+  // RÈGLE 1 : Opportunités Inversées (Haut Vigorish)
+  if (match.vig_btts >= highVigorishThreshold || match.vig_ou_2_5 >= highVigorishThreshold) {
+    const bttsRecommendation = getBTTSRecommendation(match, true, minOdds, minProbability, equalityTolerance);
+    const ouRecommendation = getOURecommendation(match, true, minOdds, minProbability, equalityTolerance);
+    
+    [bttsRecommendation, ouRecommendation].forEach(rec => {
+      if (rec) recommendations.push(rec);
+    });
+  }
+
+  // RÈGLE 2 : Recommandations Directes (Faible Vigorish)
+  if (match.vig_btts <= lowVigorishThreshold || match.vig_ou_2_5 <= lowVigorishThreshold) {
+    const bttsRecommendation = getBTTSRecommendation(match, false, minOdds, minProbability, equalityTolerance);
+    const ouRecommendation = getOURecommendation(match, false, minOdds, minProbability, equalityTolerance);
+    
+    [bttsRecommendation, ouRecommendation].forEach(rec => {
+      if (rec) recommendations.push(rec);
+    });
+  }
+
+  // RÈGLE EXCEPTION : Probabilité Élevée (≥ 58%)
+  const highProbMarkets = [
+    { type: 'BTTS_YES', prob: match.p_btts_yes_fair, vig: match.vig_btts },
+    { type: 'BTTS_NO', prob: match.p_btts_no_fair, vig: match.vig_btts },
+    { type: 'OVER_2_5', prob: match.p_over_2_5_fair, vig: match.vig_ou_2_5 },
+    { type: 'UNDER_2_5', prob: match.p_under_2_5_fair, vig: match.vig_ou_2_5 },
+    { type: 'HOME', prob: match.p_home_fair, vig: match.vig_1x2 },
+    { type: 'DRAW', prob: match.p_draw_fair, vig: match.vig_1x2 },
+    { type: 'AWAY', prob: match.p_away_fair, vig: match.vig_1x2 }
+  ].filter(market => market.prob >= highProbabilityThreshold / 100);
+
+  highProbMarkets.forEach(market => {
+    // Logique d'inversion : Si vigorish ≥ 8.1% ET probabilité < 58%, inverser
+    const shouldInvert = market.vig >= highVigorishThreshold && market.prob < highProbabilityThreshold / 100;
+    
+    const recommendation = getMarketRecommendation(match, market.type, shouldInvert);
+    if (recommendation && recommendation.odds >= minOdds && recommendation.probability >= minProbability) {
+      // Éviter les doublons
+      const isDuplicate = recommendations.some(rec => 
+        rec.prediction === recommendation.prediction && Math.abs(rec.odds - recommendation.odds) < 0.01
+      );
+      if (!isDuplicate) {
+        recommendations.push(recommendation);
+      }
+    }
+  });
+
+  // RÈGLE STANDARD : Logique par Défaut pour les marchés restants
+  const availableMarkets = [
+    { type: 'BTTS_YES', prob: match.p_btts_yes_fair, vig: match.vig_btts },
+    { type: 'BTTS_NO', prob: match.p_btts_no_fair, vig: match.vig_btts },
+    { type: 'OVER_2_5', prob: match.p_over_2_5_fair, vig: match.vig_ou_2_5 },
+    { type: 'UNDER_2_5', prob: match.p_under_2_5_fair, vig: match.vig_ou_2_5 }
+  ].filter(market => market.prob >= minProbability / 100);
+
+  availableMarkets.forEach(market => {
+    const shouldInvert = market.vig >= highVigorishThreshold;
+    const recommendation = getMarketRecommendation(match, market.type, shouldInvert);
+    
+    if (recommendation && recommendation.odds >= minOdds && recommendation.probability >= minProbability) {
+      // Éviter les doublons
+      const isDuplicate = recommendations.some(rec => 
+        rec.prediction === recommendation.prediction && Math.abs(rec.odds - recommendation.odds) < 0.01
+      );
+      if (!isDuplicate) {
+        recommendations.push(recommendation);
+      }
+    }
+  });
+
+  // Trier par vigorish décroissant
+  return recommendations.sort((a, b) => b.vigorish - a.vigorish);
+}
+
 // Legacy export for backward compatibility
 export const generateAIRecommendations = generateAIRecommendationsAsync;
