@@ -49,9 +49,9 @@ export function useDatabaseMatches(specificDate?: string) {
         if (specificDate) {
           query = query.eq('match_date', specificDate);
         } else {
-          // Default: show only past matches (archives)
+          // Default: show today's matches and future matches
           const today = new Date().toISOString().split('T')[0];
-          query = query.lt('match_date', today);
+          query = query.gte('match_date', today);
         }
 
         // PERFORMANCE: Limit initial load to reduce processing time
