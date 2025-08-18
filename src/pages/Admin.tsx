@@ -222,6 +222,12 @@ export function Admin() {
   const handleGenerateAIPredictions = async () => {
     setIsProcessing(true);
     try {
+      console.log('🗑️ Vidage du cache des règles conditionnelles...');
+      
+      // Import and clear cache first
+      const { clearRulesCache } = await import('@/services/conditionalRulesService');
+      clearRulesCache();
+      
       console.log('🤖 Génération des prédictions IA...');
       
       const { data, error } = await supabase.functions.invoke('generate-ai-predictions', {

@@ -446,3 +446,9 @@ export const conditionalRulesService = new ConditionalRulesService();
 
 // Force cache refresh on page load to pick up new rules
 conditionalRulesService.clearCache();
+
+// Export method to manually clear cache
+export const clearRulesCache = () => {
+  conditionalRulesService.clearCache();
+  console.log('🗑️ Cache des règles manuellement vidé - règles mises à jour disponibles');
+};
