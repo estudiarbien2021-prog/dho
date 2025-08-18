@@ -466,9 +466,21 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
     }
   }
   
-  console.log('✅ SÉLECTION FINALE:', selectedRecommendations.length, 'opportunités');
-  console.log('📋 DÉTAIL FINAL:', selectedRecommendations.map(r => `${r.type}:${r.prediction}(priorité:${r.priority})`));
+  console.log('✅ SÉLECTION INITIALE:', selectedRecommendations.length, 'opportunités');
+  console.log('📋 AVANT TRI PAR COTES:', selectedRecommendations.map(r => `${r.type}:${r.prediction}(cote:${r.odds})`));
+  
+  // ÉTAPE 4: TRI FINAL PAR COTES - Mettre en premier celle avec la cote la plus élevée
+  if (selectedRecommendations.length === 2) {
+    selectedRecommendations.sort((a, b) => b.odds - a.odds);
+    console.log('🎯 TRI FINAL PAR COTES APPLIQUÉ - Principale (cote plus élevée) en premier');
+    console.log('📊 APRÈS TRI PAR COTES:', selectedRecommendations.map(r => `${r.type}:${r.prediction}(cote:${r.odds})`));
+  } else {
+    console.log('🔍 UNE SEULE RECOMMANDATION - Pas de tri par cotes nécessaire');
+  }
+  
   console.log('🎯 MARCHÉS UTILISÉS:', Array.from(usedMarkets));
+  console.log('🏆 RECOMMANDATION PRINCIPALE (1ère):', selectedRecommendations[0] ? `${selectedRecommendations[0].type}:${selectedRecommendations[0].prediction} (cote:${selectedRecommendations[0].odds})` : 'AUCUNE');
+  console.log('🥈 RECOMMANDATION SECONDAIRE (2ème):', selectedRecommendations[1] ? `${selectedRecommendations[1].type}:${selectedRecommendations[1].prediction} (cote:${selectedRecommendations[1].odds})` : 'AUCUNE');
   
   return selectedRecommendations;
 }
