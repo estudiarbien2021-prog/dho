@@ -18,7 +18,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { DatePickerFilter } from './DatePickerFilter';
 import { TopPicks } from './TopPicks';
-// Supprimer useMatchesData pour utiliser directement Supabase
+import { useDatabaseMatches } from '@/hooks/useDatabaseMatches';
 
 interface PotentialPick {
   match: ProcessedMatch;
@@ -52,17 +52,26 @@ export function PicksValidation() {
   const [potentialPicks, setPotentialPicks] = useState<PotentialPick[]>([]);
   const [validatedPicks, setValidatedPicks] = useState<ValidatedPick[]>([]);
   const [selectedPicks, setSelectedPicks] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date()); // Date du jour par défaut
   const [searchTerm, setSearchTerm] = useState('');
   const [editingPick, setEditingPick] = useState<ValidatedPick | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [matches, setMatches] = useState<ProcessedMatch[]>([]);
   
   // États pour le tri
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+
+  // Utiliser le hook useDatabaseMatches avec la date sélectionnée
+  const formatDateForHook = (date: Date): string => {
+    return date.toISOString().split('T')[0];
+  };
+  
+  const { 
+    matches, 
+    isLoading, 
+    error 
+  } = useDatabaseMatches(selectedDate ? formatDateForHook(selectedDate) : undefined);
 
   // Handler pour les clics sur les matchs depuis TopPicks
   const handleMatchClick = (match: ProcessedMatch) => {
@@ -157,14 +166,6 @@ export function PicksValidation() {
     return `${year}-${month}-${day}`;
   };
 
-  // Fonction utilitaire pour filtrer les matchs par date
-  const filterMatchesByDate = (matches: ProcessedMatch[], date?: Date): ProcessedMatch[] => {
-    if (!date) return matches;
-    
-    const targetDate = formatDateForFilter(date);
-    return matches.filter(match => match.match_date === targetDate);
-  };
-
   // Debug: log tous les matchs affichés pour identifier le mélange
   useEffect(() => {
     if (potentialPicks.length > 0) {
@@ -178,7 +179,7 @@ export function PicksValidation() {
       });
       
       console.log(`🗓️ Dates trouvées dans les picks:`, Array.from(datesUniques));
-      console.log(`📅 Date sélectionnée dans le filtre: ${selectedDate ? formatDateForFilter(selectedDate) : 'aucune'}`);
+      console.log(`📅 Date sélectionnée dans le filtre: ${selectedDate ? formatDateForHook(selectedDate!) : 'aucune'}`);
       
       if (datesUniques.size > 1) {
         console.error('🚨 PROBLÈME DÉTECTÉ: Plus d\'une date dans les picks potentiels!');
@@ -188,88 +189,15 @@ export function PicksValidation() {
   }, [potentialPicks, selectedDate]);
   
   useEffect(() => {
-    // Charger tous les matchs puis les filtrer localement
-    loadAllMatches();
+    // Charger les picks validés et les picks potentiels quand les matchs changent
     loadValidatedPicks();
-  }, [selectedDate]); // Recharger quand la date change
-
-  const loadAllMatches = async () => {
-    try {
-      setIsLoading(true);
-      console.log(`🔄 Chargement de tous les matchs...`);
-      
-      // Charger TOUS les matchs de la base
-      const { data, error } = await supabase
-        .from('matches')
-        .select('*')
-        .order('match_date', { ascending: false });
-
-      if (error) {
-        console.error('❌ Erreur Supabase:', error);
-        throw error;
-      }
-      
-      console.log(`✅ Tous les matchs chargés: ${data?.length || 0}`);
-      
-      // Convertir au format ProcessedMatch
-      const processedMatches: ProcessedMatch[] = (data || []).map(match => ({
-        id: match.id,
-        league: match.league,
-        home_team: match.home_team,
-        away_team: match.away_team,
-        country: match.country,
-        match_date: match.match_date,
-        kickoff_utc: new Date(match.kickoff_utc),
-        kickoff_local: new Date(match.kickoff_local),
-        category: match.category as 'first_div' | 'second_div' | 'continental_cup' | 'national_cup',
-        p_home_fair: match.p_home_fair,
-        p_draw_fair: match.p_draw_fair,
-        p_away_fair: match.p_away_fair,
-        p_btts_yes_fair: match.p_btts_yes_fair,
-        p_btts_no_fair: match.p_btts_no_fair,
-        p_over_2_5_fair: match.p_over_2_5_fair,
-        p_under_2_5_fair: match.p_under_2_5_fair,
-        vig_1x2: match.vig_1x2,
-        vig_btts: match.vig_btts,
-        vig_ou_2_5: match.vig_ou_2_5,
-        is_low_vig_1x2: match.is_low_vig_1x2,
-        watch_btts: match.watch_btts,
-        watch_over25: match.watch_over25,
-        odds_home: match.odds_home,
-        odds_draw: match.odds_draw,
-        odds_away: match.odds_away,
-        odds_btts_yes: match.odds_btts_yes,
-        odds_btts_no: match.odds_btts_no,
-        odds_over_2_5: match.odds_over_2_5,
-        odds_under_2_5: match.odds_under_2_5,
-        over_under_markets: [],
-        ai_prediction: match.ai_prediction,
-        ai_confidence: match.ai_confidence
-      }));
-      
-      setMatches(processedMatches);
-      
-      // Filtrer par date et charger les picks potentiels
-      const filteredMatches = filterMatchesByDate(processedMatches, selectedDate);
-      console.log(`📅 Matchs après filtrage: ${filteredMatches.length}/${processedMatches.length}`);
-      
-      if (filteredMatches.length > 0) {
-        console.log('🔍 Dates des matchs filtrés:', [...new Set(filteredMatches.map(m => m.match_date))]);
-      }
-      
-      loadPotentialPicks(filteredMatches);
-      
-    } catch (error) {
-      console.error('❌ Erreur lors du chargement des matchs:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de charger les matchs depuis la base de données",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
+    if (matches.length > 0) {
+      loadPotentialPicks(matches);
+    } else {
+      setPotentialPicks([]);
     }
-  };
+  }, [selectedDate, matches]); // Recharger quand la date ou les matchs changent
+
 
   const loadValidatedPicks = async () => {
     try {
@@ -280,7 +208,7 @@ export function PicksValidation() {
 
       // Filtrer par date si spécifié (utilisation simple sans timezone)
       if (selectedDate) {
-        const targetDate = formatDateForFilter(selectedDate);
+        const targetDate = formatDateForHook(selectedDate);
         // Approximation : filtrer par jour sur kickoff_utc
         const startDate = new Date(targetDate + 'T00:00:00.000Z');
         const endDate = new Date(targetDate + 'T23:59:59.999Z');
@@ -554,8 +482,7 @@ export function PicksValidation() {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={() => {
-            const currentMatches = filterMatchesByDate(matches, selectedDate);
-            loadPotentialPicks(currentMatches);
+            loadPotentialPicks(matches);
           }} disabled={isLoading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
             Actualiser
