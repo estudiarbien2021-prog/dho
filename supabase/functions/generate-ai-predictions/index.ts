@@ -458,20 +458,48 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const { matchIds } = await req.json();
+    const { matchIds, dateStart, dateEnd, filterType } = await req.json();
     
-    console.log('🤖 Génération des prédictions IA pour', matchIds?.length || 'tous les', 'matchs');
+    console.log('🤖 Génération des prédictions IA pour', filterType || 'défaut', 'filtrage');
 
     // Récupérer les matchs à traiter
     let query = supabaseClient
       .from('matches')
       .select('*');
     
+    // Appliquer le filtrage selon le type
     if (matchIds && matchIds.length > 0) {
       query = query.in('id', matchIds);
     } else {
-      // Si pas d'IDs spécifiés, traiter tous les matchs sans prédiction IA
+      // Si pas d'IDs spécifiés, traiter les matchs selon le type de filtre
       query = query.is('ai_prediction', null);
+      
+      // Appliquer les filtres de date selon le type
+      if (filterType === 'today') {
+        const today = new Date();
+        const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+        
+        query = query
+          .gte('kickoff_utc', startOfDay.toISOString())
+          .lt('kickoff_utc', endOfDay.toISOString());
+        
+        console.log('📅 Filtrage pour aujourd\'hui:', startOfDay.toISOString(), 'à', endOfDay.toISOString());
+      } else if (filterType === 'range' && dateStart && dateEnd) {
+        const startDate = new Date(dateStart);
+        const endDate = new Date(dateEnd);
+        
+        // Ajuster les heures pour inclure toute la journée
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(23, 59, 59, 999);
+        
+        query = query
+          .gte('kickoff_utc', startDate.toISOString())
+          .lte('kickoff_utc', endDate.toISOString());
+        
+        console.log('📅 Filtrage par plage:', startDate.toISOString(), 'à', endDate.toISOString());
+      }
+      // Pour 'all', pas de filtre de date supplémentaire
     }
 
     const { data: matches, error: fetchError } = await query;

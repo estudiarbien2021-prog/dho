@@ -15,6 +15,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { AIPredictionDialog } from '@/components/dashboard/AIPredictionDialog';
 
 interface DashboardProps {
   currentLang: Language;
@@ -36,14 +37,21 @@ export function UserDashboard({ currentLang }: DashboardProps) {
   const [selectedMatch, setSelectedMatch] = useState<ProcessedMatch | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isRefreshingPredictions, setIsRefreshingPredictions] = useState(false);
+  const [isPredictionDialogOpen, setIsPredictionDialogOpen] = useState(false);
 
   const handleMatchClick = (match: ProcessedMatch) => {
     setSelectedMatch(match);
     setIsModalOpen(true);
   };
 
-  const handleRefreshAIPredictions = async () => {
+  const handleRefreshAIPredictions = async (options: {
+    type: 'today' | 'all' | 'range';
+    dateStart?: Date;
+    dateEnd?: Date;
+  }) => {
     setIsRefreshingPredictions(true);
+    setIsPredictionDialogOpen(false);
+    
     try {
       console.log('🗑️ Vidage du cache des règles conditionnelles...');
       
@@ -55,7 +63,10 @@ export function UserDashboard({ currentLang }: DashboardProps) {
       
       const { data, error } = await supabase.functions.invoke('generate-ai-predictions', {
         body: {
-          matchIds: [] // Traiter tous les matchs
+          matchIds: [], // Traiter les matchs selon les options
+          dateStart: options.dateStart?.toISOString(),
+          dateEnd: options.dateEnd?.toISOString(),
+          filterType: options.type
         }
       });
 
@@ -199,7 +210,7 @@ export function UserDashboard({ currentLang }: DashboardProps) {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleRefreshAIPredictions}
+                onClick={() => setIsPredictionDialogOpen(true)}
                 disabled={isRefreshingPredictions}
                 className="flex-1 sm:flex-none"
               >
@@ -290,6 +301,14 @@ export function UserDashboard({ currentLang }: DashboardProps) {
           setSelectedMatch(null);
         }}
         marketFilters={filters.marketFilters}
+      />
+
+      {/* AI Prediction Dialog */}
+      <AIPredictionDialog
+        open={isPredictionDialogOpen}
+        onOpenChange={setIsPredictionDialogOpen}
+        onConfirm={handleRefreshAIPredictions}
+        isLoading={isRefreshingPredictions}
       />
     </div>
   );
