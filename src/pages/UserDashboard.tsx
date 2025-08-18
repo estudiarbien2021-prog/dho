@@ -9,10 +9,12 @@ import { ProcessedMatch } from '@/types/match';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Download, LogOut, Settings, Archive, Calendar, RefreshCw } from 'lucide-react';
+import { Download, LogOut, Settings, Archive, Calendar, RefreshCw, Bot, Zap } from 'lucide-react';
 import { Language } from '@/lib/i18n';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface DashboardProps {
   currentLang: Language;
@@ -33,10 +35,47 @@ export function UserDashboard({ currentLang }: DashboardProps) {
   } = useDatabaseMatches();
   const [selectedMatch, setSelectedMatch] = useState<ProcessedMatch | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isRefreshingPredictions, setIsRefreshingPredictions] = useState(false);
 
   const handleMatchClick = (match: ProcessedMatch) => {
     setSelectedMatch(match);
     setIsModalOpen(true);
+  };
+
+  const handleRefreshAIPredictions = async () => {
+    setIsRefreshingPredictions(true);
+    try {
+      console.log('🗑️ Vidage du cache des règles conditionnelles...');
+      
+      // Import and clear cache first
+      const { clearRulesCache } = await import('@/services/conditionalRulesService');
+      clearRulesCache();
+      
+      console.log('🤖 Régénération des prédictions IA...');
+      
+      const { data, error } = await supabase.functions.invoke('generate-ai-predictions', {
+        body: {
+          matchIds: [] // Traiter tous les matchs
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast.success(`✅ Prédictions IA régénérées avec succès! ${data?.processed || 0} matchs traités.`);
+      
+      // Recharger la page pour afficher les nouvelles prédictions
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+      
+    } catch (error) {
+      console.error('❌ Erreur lors de la régénération des prédictions IA:', error);
+      toast.error('Erreur lors de la régénération des prédictions IA: ' + (error as Error).message);
+    } finally {
+      setIsRefreshingPredictions(false);
+    }
   };
 
   const exportToCSV = () => {
@@ -157,6 +196,22 @@ export function UserDashboard({ currentLang }: DashboardProps) {
             </div>
             
             <div className="flex items-center space-x-2 sm:space-x-3 w-full sm:w-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefreshAIPredictions}
+                disabled={isRefreshingPredictions}
+                className="flex-1 sm:flex-none"
+              >
+                {isRefreshingPredictions ? (
+                  <RefreshCw className="h-4 w-4 sm:mr-2 animate-spin" />
+                ) : (
+                  <Bot className="h-4 w-4 sm:mr-2" />
+                )}
+                <span className="hidden sm:inline">
+                  {isRefreshingPredictions ? 'Génération...' : 'Actualiser IA'}
+                </span>
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
