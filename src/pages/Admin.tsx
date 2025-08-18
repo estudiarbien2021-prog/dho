@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Upload, RefreshCw, Calendar, CheckCircle, XCircle, Clock, Trash2, Users, Database, Shield, Eye, UserX, Crown, Trophy, Target } from 'lucide-react';
+import { Upload, RefreshCw, Calendar, CheckCircle, XCircle, Clock, Trash2, Users, Database, Shield, Eye, UserX, Crown, Trophy, Target, Download } from 'lucide-react';
 import { MatchesManagement } from '@/components/dashboard/MatchesManagement';
 import { PicksValidation } from '@/components/dashboard/PicksValidation';
 import { RulesManagement } from '@/components/dashboard/RulesManagement';
@@ -332,6 +332,72 @@ export function Admin() {
       });
     } finally {
       setIsDeletingUploads(false);
+    }
+  };
+
+  const handleDownloadCSV = async (uploadDate: string, filename: string) => {
+    try {
+      // Utiliser une requête simplifiée pour éviter les problèmes de types TypeScript
+      const response = await (supabase as any)
+        .from('matches')
+        .select('*')
+        .eq('date', uploadDate)
+        .order('kickoff_utc');
+
+      const { data: matches, error } = response;
+
+      if (error) throw error;
+
+      if (!matches || matches.length === 0) {
+        toast({
+          title: "Aucune donnée",
+          description: "Aucun match trouvé pour cette date.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Créer le contenu CSV de manière simplifiée
+      const columns = [
+        'league', 'home_team', 'away_team', 'kickoff_utc', 'kickoff_paris',
+        'odds_1x2_home', 'odds_1x2_draw', 'odds_1x2_away', 'odds_btts_yes', 'odds_btts_no',
+        'odds_over_2_5', 'odds_under_2_5', 'p_home_fair', 'p_draw_fair', 'p_away_fair',
+        'p_btts_yes_fair', 'p_over_2_5_fair', 'vig_1x2', 'vig_btts', 'vig_ou25',
+        'is_low_vig_1x2', 'watch_btts', 'watch_over25', 'country'
+      ];
+
+      const headers = columns.join(',');
+      const rows = matches.map((match: any) => 
+        columns.map(col => {
+          const value = match[col];
+          const stringValue = value !== null && value !== undefined ? String(value) : '';
+          return stringValue.includes(',') ? `"${stringValue}"` : stringValue;
+        }).join(',')
+      ).join('\n');
+      
+      const csvContent = `${headers}\n${rows}`;
+      
+      // Créer et télécharger le fichier
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = filename || `matches_${uploadDate}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast({
+        title: "Téléchargement réussi",
+        description: "Le fichier CSV a été téléchargé.",
+      });
+
+    } catch (error: any) {
+      console.error('Error downloading CSV:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de télécharger le fichier CSV.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -898,6 +964,7 @@ export function Admin() {
                       <TableHead>Matchs</TableHead>
                       <TableHead>Traités</TableHead>
                       <TableHead>Créé le</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -939,6 +1006,17 @@ export function Admin() {
                         </TableCell>
                         <TableCell className="text-text-weak">
                           {format(new Date(upload.created_at), 'dd/MM HH:mm', { locale: fr })}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDownloadCSV(upload.upload_date, upload.filename)}
+                            className="gap-1"
+                          >
+                            <Download className="h-3 w-3" />
+                            Télécharger
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
