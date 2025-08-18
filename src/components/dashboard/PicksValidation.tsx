@@ -18,6 +18,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { DatePickerFilter } from './DatePickerFilter';
 import { TopPicks } from './TopPicks';
+import { MatchDetailModal } from './MatchDetailModal';
 import { useDatabaseMatches } from '@/hooks/useDatabaseMatches';
 
 interface PotentialPick {
@@ -57,6 +58,8 @@ export function PicksValidation() {
   const [searchTerm, setSearchTerm] = useState('');
   const [editingPick, setEditingPick] = useState<ValidatedPick | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedMatch, setSelectedMatch] = useState<ProcessedMatch | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   
   // États pour le tri
   const [sortColumn, setSortColumn] = useState<string | null>(null);
@@ -73,10 +76,10 @@ export function PicksValidation() {
     error 
   } = useDatabaseMatches(selectedDate ? formatDateForHook(selectedDate) : undefined);
 
-  // Handler pour les clics sur les matchs depuis TopPicks
+  // Handler pour les clics sur les matchs
   const handleMatchClick = (match: ProcessedMatch) => {
-    // Vous pouvez implémenter une logique personnalisée ici si nécessaire
-    console.log('Match clicked from TopPicks:', match);
+    setSelectedMatch(match);
+    setIsModalOpen(true);
   };
 
   // Fonction de tri
@@ -615,7 +618,15 @@ export function PicksValidation() {
                   const flagInfo = leagueToFlag(pick.match.league, pick.match.country, pick.match.home_team, pick.match.away_team);
                   
                   return (
-                    <TableRow key={pick.id}>
+                    <TableRow 
+                      key={pick.id}
+                      className="cursor-pointer hover:bg-surface-soft/50"
+                      onClick={(e) => {
+                        // Ne pas ouvrir le modal si on clique sur la checkbox
+                        if ((e.target as HTMLElement).closest('[role="checkbox"]')) return;
+                        handleMatchClick(pick.match);
+                      }}
+                    >
                       <TableCell>
                         <Checkbox
                           checked={selectedPicks.includes(pick.id)}
@@ -788,6 +799,16 @@ export function PicksValidation() {
           En attente: {filteredValidatedPicks.filter(p => !p.is_validated).length}
         </div>
       </Card>
+
+      {/* Match Detail Modal */}
+      <MatchDetailModal
+        match={selectedMatch}
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedMatch(null);
+        }}
+      />
     </div>
   );
 }
