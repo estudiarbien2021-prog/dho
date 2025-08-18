@@ -282,9 +282,9 @@ export function Archives() {
               </Select>
             </div>
 
-            {/* Pays - Compétitions */}
+            {/* Pays */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Pays - Compétitions</Label>
+              <Label className="text-sm font-medium">Pays</Label>
               <Select 
                 value={filters.leagues.length > 0 ? filters.leagues[0] : "all"} 
                 onValueChange={(value) => {
@@ -296,10 +296,10 @@ export function Archives() {
                 }}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner un pays - compétition" />
+                  <SelectValue placeholder="Sélectionner un pays" />
                 </SelectTrigger>
                 <SelectContent className="bg-background border z-50">
-                  <SelectItem value="all">Toutes les compétitions</SelectItem>
+                  <SelectItem value="all">Tous les pays</SelectItem>
                   {availableLeagues.map(league => {
                     const { code: countryCode } = leagueToFlag(league);
                     const countryName = getCountryName(countryCode);
