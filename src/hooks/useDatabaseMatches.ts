@@ -230,11 +230,8 @@ export function useDatabaseMatches(specificDate?: string) {
         return false;
       }
 
-      // ÉTAPE 2: MASQUER LES MATCHS SANS RECOMMANDATIONS IA
-      const recommendations = matchRecommendations.get(match.id) || [];
-      if (recommendations.length === 0) {
-        return false;
-      }
+      // ÉTAPE 2: AFFICHER TOUS LES MATCHS (MÊME SANS RECOMMANDATIONS IA)
+      // Les matches sans recommandations IA sont maintenant affichés
 
       // Search filter
       if (filters.search) {
