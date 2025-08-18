@@ -157,16 +157,6 @@ export function UserDashboard({ currentLang }: DashboardProps) {
             </div>
             
             <div className="flex items-center space-x-2 sm:space-x-3 w-full sm:w-auto">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={exportToCSV}
-                disabled={matches.length === 0}
-                className="flex-1 sm:flex-none"
-              >
-                <Download className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Export CSV</span>
-              </Button>
               <Button variant="ghost" size="sm" onClick={signOut} className="flex-1 sm:flex-none">
                 <LogOut className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Déconnexion</span>
