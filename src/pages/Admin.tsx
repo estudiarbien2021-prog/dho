@@ -58,7 +58,7 @@ export function Admin() {
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [selectedUploads, setSelectedUploads] = useState<string[]>([]);
   const [isDeletingUploads, setIsDeletingUploads] = useState(false);
-  const [clearDate, setClearDate] = useState(new Date().toISOString().split('T')[0]);
+  const [clearDate, setClearDate] = useState('');
   
   // User Management States
   const [users, setUsers] = useState<UserProfile[]>([]);
