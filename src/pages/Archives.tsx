@@ -109,9 +109,12 @@ export function Archives() {
 
   const loadAvailableDates = async () => {
     try {
+      const today = new Date().toISOString().split('T')[0]; // Date actuelle au format YYYY-MM-DD
+      
       const { data, error } = await supabase
         .from('matches')
         .select('match_date')
+        .lt('match_date', today) // Seulement les dates antérieures à aujourd'hui
         .order('match_date', { ascending: false });
 
       if (error) throw error;
@@ -190,6 +193,7 @@ export function Archives() {
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
+                max={new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]} // Hier au maximum
               />
             </div>
 
