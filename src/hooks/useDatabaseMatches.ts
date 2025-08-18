@@ -24,6 +24,15 @@ const defaultFilters: MatchFilters = {
   marketFilters: []
 };
 
+// Helper function to get today's date in local timezone
+function getTodayLocal(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export function useDatabaseMatches(specificDate?: string) {
   // Force rebuild - Performance optimized match data hook
   const [rawMatches, setRawMatches] = useState<ProcessedMatch[]>([]);
@@ -50,8 +59,17 @@ export function useDatabaseMatches(specificDate?: string) {
           query = query.eq('match_date', specificDate);
         } else {
           // Default: show today's matches and future matches
-          const today = new Date().toISOString().split('T')[0];
-          query = query.gte('match_date', today);
+          const todayUTC = new Date().toISOString().split('T')[0];
+          const todayLocal = getTodayLocal();
+          
+          // Debug logs to verify timezone fix
+          console.log('🕒 Date Debug:', { 
+            todayUTC, 
+            todayLocal, 
+            currentTime: new Date().toLocaleString() 
+          });
+          
+          query = query.gte('match_date', todayLocal);
         }
 
         // PERFORMANCE: Limit initial load to reduce processing time
