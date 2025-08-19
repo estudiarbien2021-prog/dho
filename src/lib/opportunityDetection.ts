@@ -542,17 +542,17 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
     `${o.type}:${o.prediction}(détections:${o.detectionCount})(cote:${o.odds})`
   ));
 
-  // Trier les opportunités consensus par nombre de détections (décroissant) puis par cotes (décroissant)
+  // Trier les opportunités consensus par nombre de détections (décroissant) puis par cotes (croissant)
   consensusOpportunities.sort((a, b) => {
     if (b.detectionCount !== a.detectionCount) {
       return b.detectionCount - a.detectionCount;
     }
-    return b.odds - a.odds;
+    return a.odds - b.odds;
   });
 
-  // Trier les opportunités normales par cotes décroissantes uniquement (peu importe l'ordre de priorisation)
+  // Trier les opportunités normales par cotes croissantes (cotes les plus petites en premier)
   normalOpportunities.sort((a, b) => {
-    return b.odds - a.odds;
+    return a.odds - b.odds;
   });
   
   // ÉTAPE 6: Sélectionner jusqu'à 2 opportunités de marchés différents
