@@ -71,16 +71,30 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
 
   useEffect(() => {
     const loadOpportunities = async () => {
-      if (!match) return;
+      if (!match) {
+        console.log('🔴 MODAL - AUCUN MATCH FOURNI');
+        return;
+      }
+      
+      console.log('🔴 MODAL - CALCUL À LA VOLÉE DES RECOMMANDATIONS');
+      console.log('🔴 MODAL - MATCH DETAILS:', {
+        id: match.id,
+        home_team: match.home_team,
+        away_team: match.away_team,
+        league: match.league
+      });
       
       try {
         setLoading(true);
+        console.log('🔴 MODAL - AVANT detectOpportunities');
         const opps = await detectOpportunities(match);
+        console.log('🔴 MODAL - OPPORTUNITIES BRUTES AVANT PRIORISATION:', opps.length, opps);
+        
         setOpportunities(opps);
-        console.log('🔴 MODAL OPPORTUNITIES - RAW:', opps.length, opps.map(o => `${o.type}:${o.prediction}(inverted:${o.isInverted})`));
-        console.log('🔴 MODAL OPPORTUNITIES - DÉTAILS COMPLETS:', opps);
+        console.log('🔴 MODAL - RAW:', opps.length, opps.map(o => `${o.type}:${o.prediction}(inverted:${o.isInverted})`));
+        console.log('🔴 MODAL - DÉTAILS COMPLETS:', opps);
       } catch (error) {
-        console.error('Error loading opportunities:', error);
+        console.error('🔴 MODAL - ERREUR lors du chargement:', error);
         setOpportunities([]);
       } finally {
         setLoading(false);
@@ -88,6 +102,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
     };
 
     if (isOpen && match) {
+      console.log('🔴 MODAL - USEEFFECT DÉCLENCHÉ POUR:', match.home_team, 'vs', match.away_team);
       loadOpportunities();
     }
   }, [match, isOpen]);
