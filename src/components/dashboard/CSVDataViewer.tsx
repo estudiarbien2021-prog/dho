@@ -11,7 +11,7 @@ import { Trash2, Edit, Save, X, Loader2, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface CSVRow {
-  [key: string]: string | number;
+  [key: string]: string;
 }
 
 interface CSVDataViewerProps {
@@ -49,33 +49,33 @@ export function CSVDataViewer({ isOpen, onClose, uploadDate, filename }: CSVData
 
       if (data && data.length > 0) {
         // Convertir les données de la base vers un format CSV brut
-        const rawData: CSVRow[] = data.map((match, index) => ({
-          id: match.id,
-          league: match.league || '',
-          home_team: match.home_team || '',
-          away_team: match.away_team || '',
-          match_date: match.match_date || '',
-          country: match.country || '',
-          kickoff_utc: match.kickoff_utc || '',
-          odds_home: match.odds_home || '',
-          odds_draw: match.odds_draw || '',
-          odds_away: match.odds_away || '',
-          odds_btts_yes: match.odds_btts_yes || '',
-          odds_btts_no: match.odds_btts_no || '',
-          odds_over_2_5: match.odds_over_2_5 || '',
-          odds_under_2_5: match.odds_under_2_5 || '',
-          p_home_fair: match.p_home_fair || '',
-          p_draw_fair: match.p_draw_fair || '',
-          p_away_fair: match.p_away_fair || '',
-          p_btts_yes_fair: match.p_btts_yes_fair || '',
-          p_btts_no_fair: match.p_btts_no_fair || '',
-          p_over_2_5_fair: match.p_over_2_5_fair || '',
-          p_under_2_5_fair: match.p_under_2_5_fair || '',
-          vig_1x2: match.vig_1x2 || '',
-          vig_btts: match.vig_btts || '',
-          vig_ou_2_5: match.vig_ou_2_5 || '',
-          ai_prediction: match.ai_prediction || '',
-          ai_confidence: match.ai_confidence || ''
+        const rawData: CSVRow[] = data.map((match) => ({
+          id: String(match.id),
+          league: String(match.league || ''),
+          home_team: String(match.home_team || ''),
+          away_team: String(match.away_team || ''),
+          match_date: String(match.match_date || ''),
+          country: String(match.country || ''),
+          kickoff_utc: String(match.kickoff_utc || ''),
+          odds_home: String(match.odds_home || ''),
+          odds_draw: String(match.odds_draw || ''),
+          odds_away: String(match.odds_away || ''),
+          odds_btts_yes: String(match.odds_btts_yes || ''),
+          odds_btts_no: String(match.odds_btts_no || ''),
+          odds_over_2_5: String(match.odds_over_2_5 || ''),
+          odds_under_2_5: String(match.odds_under_2_5 || ''),
+          p_home_fair: String(match.p_home_fair || ''),
+          p_draw_fair: String(match.p_draw_fair || ''),
+          p_away_fair: String(match.p_away_fair || ''),
+          p_btts_yes_fair: String(match.p_btts_yes_fair || ''),
+          p_btts_no_fair: String(match.p_btts_no_fair || ''),
+          p_over_2_5_fair: String(match.p_over_2_5_fair || ''),
+          p_under_2_5_fair: String(match.p_under_2_5_fair || ''),
+          vig_1x2: String(match.vig_1x2 || ''),
+          vig_btts: String(match.vig_btts || ''),
+          vig_ou_2_5: String(match.vig_ou_2_5 || ''),
+          ai_prediction: String(match.ai_prediction || ''),
+          ai_confidence: String(match.ai_confidence || '')
         }));
 
         setCsvData(rawData);
@@ -122,15 +122,15 @@ export function CSVDataViewer({ isOpen, onClose, uploadDate, filename }: CSVData
           home_team: editData.home_team,
           away_team: editData.away_team,
           country: editData.country,
-          odds_home: parseFloat(editData.odds_home as string) || null,
-          odds_draw: parseFloat(editData.odds_draw as string) || null,
-          odds_away: parseFloat(editData.odds_away as string) || null,
-          odds_btts_yes: parseFloat(editData.odds_btts_yes as string) || null,
-          odds_btts_no: parseFloat(editData.odds_btts_no as string) || null,
-          odds_over_2_5: parseFloat(editData.odds_over_2_5 as string) || null,
-          odds_under_2_5: parseFloat(editData.odds_under_2_5 as string) || null,
+          odds_home: parseFloat(editData.odds_home) || null,
+          odds_draw: parseFloat(editData.odds_draw) || null,
+          odds_away: parseFloat(editData.odds_away) || null,
+          odds_btts_yes: parseFloat(editData.odds_btts_yes) || null,
+          odds_btts_no: parseFloat(editData.odds_btts_no) || null,
+          odds_over_2_5: parseFloat(editData.odds_over_2_5) || null,
+          odds_under_2_5: parseFloat(editData.odds_under_2_5) || null,
         })
-        .eq('id', rowId);
+        .eq('id', parseInt(rowId));
 
       if (error) throw error;
 
@@ -164,7 +164,7 @@ export function CSVDataViewer({ isOpen, onClose, uploadDate, filename }: CSVData
       const { error } = await supabase
         .from('matches')
         .delete()
-        .eq('id', rowId);
+        .eq('id', parseInt(rowId));
 
       if (error) throw error;
 
@@ -196,7 +196,7 @@ export function CSVDataViewer({ isOpen, onClose, uploadDate, filename }: CSVData
         headers.map(header => {
           const value = row[header];
           // Échapper les valeurs qui contiennent des virgules
-          return typeof value === 'string' && value.includes(',') 
+          return value && value.includes(',') 
             ? `"${value}"` 
             : value;
         }).join(',')
@@ -232,7 +232,7 @@ export function CSVDataViewer({ isOpen, onClose, uploadDate, filename }: CSVData
     const value = row[header];
     return (
       <span className="text-xs whitespace-nowrap">
-        {value?.toString() || ''}
+        {value || ''}
       </span>
     );
   };
