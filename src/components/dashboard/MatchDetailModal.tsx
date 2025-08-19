@@ -412,7 +412,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
                                <Badge variant={isMainConsensus ? "default" : index === 0 ? "default" : "outline"} 
                                       className={`text-xs ${isMainConsensus ? 'bg-yellow-500 text-white' : ''}`}>
                                   {isMainConsensus ? 'RECOMMANDATION PRINCIPALE' : 
-                                   `#${index + 1} ${index === 0 ? 'principale' : `PRIORITÉ ${opportunity?.priority || 'N/A'}`}`}
+                                   `${index === 0 ? 'principale' : index === 1 ? 'secondaire' : `PRIORITÉ ${opportunity?.priority || 'N/A'}`}`}
                                </Badge>
                                <span className="font-semibold text-sm">{rec.betType}</span>
                                {rec.detectionCount > 1 && (
