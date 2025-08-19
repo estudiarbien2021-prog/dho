@@ -12,6 +12,7 @@ import { leagueToFlag } from '@/lib/leagueCountry';
 import { generateConfidenceScore } from '@/lib/confidence';
 import { detectOpportunities, convertOpportunityToAIRecommendation, prioritizeOpportunitiesByRealProbability } from '@/lib/opportunityDetection';
 import { conditionalRulesService } from '@/services/conditionalRulesService';
+import { CONDITION_LABELS, ACTION_LABELS, OPERATOR_LABELS, MARKET_LABELS } from '@/types/conditionalRules';
 import AIRecommendationDisplay from '@/components/AIRecommendationDisplay';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -43,6 +44,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
   const [loading, setLoading] = useState(true);
   const [chartLoading, setChartLoading] = useState<{ [key: string]: number }>({});
   const [allRuleEvaluations, setAllRuleEvaluations] = useState<any[]>([]);
+  const [allRules, setAllRules] = useState<any[]>([]);
 
   // Reset AI graphics when modal closes
   useEffect(() => {
@@ -71,12 +73,17 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
     }
   }, [isOpen]);
 
+  // Load all rules and opportunities when modal opens
   useEffect(() => {
     const loadOpportunities = async () => {
       if (!match) return;
       
       try {
         setLoading(true);
+        
+        // Load all rules for complete display
+        const allRulesData = await conditionalRulesService.getRules();
+        setAllRules(allRulesData);
         
         // Always evaluate all rules for debug section
         const ruleContext = {
@@ -115,6 +122,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
         console.error('Error loading opportunities:', error);
         setOpportunities([]);
         setAllRuleEvaluations([]);
+        setAllRules([]);
       } finally {
         setLoading(false);
       }
@@ -317,6 +325,44 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
     }
   };
 
+  // Helper functions to format rule descriptions
+  const formatConditionDescription = (condition: any) => {
+    const conditionLabel = CONDITION_LABELS[condition.type] || condition.type;
+    const operatorLabel = OPERATOR_LABELS[condition.operator] || condition.operator;
+    
+    if (condition.operator === 'between') {
+      return `${conditionLabel} ${operatorLabel} ${condition.value} et ${condition.secondValue}`;
+    } else {
+      return `${conditionLabel} ${operatorLabel} ${condition.value}${condition.type.includes('probability') ? '%' : ''}`;
+    }
+  };
+
+  const formatRuleDescription = (rule: any) => {
+    if (!rule || !rule.conditions) return 'Règle incomplète';
+    
+    const conditions = rule.conditions.map(formatConditionDescription);
+    const connectors = rule.logicalConnectors || [];
+    
+    let description = 'Si ';
+    for (let i = 0; i < conditions.length; i++) {
+      description += conditions[i];
+      if (i < connectors.length) {
+        description += ` ${connectors[i]} `;
+      }
+    }
+    
+    const actionLabel = ACTION_LABELS[rule.action] || rule.action;
+    description += ` → ${actionLabel}`;
+    
+    return description;
+  };
+
+  const isRuleValidated = (rule: any) => {
+    return allRuleEvaluations.some(evaluation => 
+      evaluation && evaluation.rule && evaluation.rule.id === rule.id && evaluation.conditionsMet
+    );
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
@@ -466,29 +512,76 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
               </div>
             </div>
 
-            {/* Liste simple des règles validées */}
-            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-              <h4 className="font-semibold mb-2 text-green-700">✅ Libellés des règles validées:</h4>
-              <div className="text-xs text-green-600 mb-2">
-                Total règles évaluées: {allRuleEvaluations.length} | 
-                Règles avec données: {allRuleEvaluations.filter(r => r && r.rule).length} | 
-                Règles validées: {allRuleEvaluations.filter(r => r && r.conditionsMet && r.rule).length}
+            {/* Liste complète des règles évaluées */}
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <h4 className="font-semibold mb-3 text-blue-700">📋 Liste complète des règles évaluées</h4>
+              <div className="text-xs text-blue-600 mb-3">
+                Total règles: {allRules.length} | 
+                Activées: {allRules.filter(r => r.enabled).length} | 
+                Désactivées: {allRules.filter(r => !r.enabled).length} | 
+                Validées: {allRuleEvaluations.filter(r => r && r.conditionsMet && r.rule).length}
               </div>
-              {allRuleEvaluations.filter(r => r && r.conditionsMet && r.rule).length > 0 ? (
-                <ul className="list-disc list-inside text-sm text-green-700 space-y-1">
-                  {allRuleEvaluations
-                    .filter(r => r && r.conditionsMet && r.rule)
-                    .map((rule, index) => (
-                      <li key={`label-${index}`}>
-                        <span className="font-medium">{rule.rule?.name || 'Règle sans nom'}</span>
-                        <span className="text-xs text-green-600 ml-2">
-                          ({rule.rule?.market?.toUpperCase() || 'N/A'} - Priorité {rule.rule?.priority || 0})
-                        </span>
-                      </li>
-                    ))}
-                </ul>
+              
+              {allRules.length > 0 ? (
+                <div className="space-y-2 max-h-80 overflow-y-auto">
+                  {allRules
+                    .sort((a, b) => (a.priority || 0) - (b.priority || 0))
+                    .map((rule, index) => {
+                      const isValidated = isRuleValidated(rule);
+                      const isEnabled = rule.enabled;
+                      
+                      let bgColor = 'bg-gray-50 border-gray-200';
+                      let textColor = 'text-gray-700';
+                      let statusIcon = '❌';
+                      
+                      if (!isEnabled) {
+                        bgColor = 'bg-orange-50 border-orange-200';
+                        textColor = 'text-orange-700';
+                        statusIcon = '🔴';
+                      } else if (isValidated) {
+                        bgColor = 'bg-green-50 border-green-200';
+                        textColor = 'text-green-700';
+                        statusIcon = '✅';
+                      }
+                      
+                      return (
+                        <div key={rule.id || index} className={`p-3 rounded-lg border ${bgColor}`}>
+                          <div className="flex items-start gap-3">
+                            <span className="text-lg flex-shrink-0 mt-0.5">{statusIcon}</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <Badge variant="outline" className={`text-xs ${
+                                  !isEnabled ? 'bg-orange-100 text-orange-700' :
+                                  isValidated ? 'bg-green-100 text-green-700' : 
+                                  'bg-gray-100 text-gray-700'
+                                }`}>
+                                  {MARKET_LABELS[rule.market] || rule.market}
+                                </Badge>
+                                <Badge variant={isEnabled ? "default" : "secondary"} className="text-xs">
+                                  {isEnabled ? 'Activée' : 'Désactivée'}
+                                </Badge>
+                                <Badge variant="outline" className="text-xs">
+                                  Priorité {rule.priority || 0}
+                                </Badge>
+                              </div>
+                              
+                              <div className={`text-sm font-medium mb-1 ${textColor}`}>
+                                {formatRuleDescription(rule)}
+                              </div>
+                              
+                              {rule.name && (
+                                <div className="text-xs text-muted-foreground">
+                                  <strong>Nom:</strong> {rule.name}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
               ) : (
-                <p className="text-sm text-gray-600 italic">Aucune règle validée trouvée</p>
+                <p className="text-sm text-gray-600 italic">Aucune règle trouvée</p>
               )}
             </div>
 
