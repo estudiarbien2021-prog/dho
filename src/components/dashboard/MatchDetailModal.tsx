@@ -408,36 +408,74 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
             </Card>
           )}
 
-          {/* Debug Information */}
+          {/* All Detected Opportunities */}
           <Card className="p-4 bg-blue-50">
-            <h3 className="font-semibold mb-2 text-blue-800">🔍 Debug - Traçabilité des recommandations</h3>
-            <div className="space-y-2 text-xs text-blue-700">
-              <div><strong>Source:</strong> {preCalculatedRecommendations ? 'Pré-calculées' : 'Calculées à la volée'}</div>
-              {!preCalculatedRecommendations && (
-                <>
-                  <div><strong>Opportunités brutes détectées:</strong> {opportunities.length}</div>
-                  <div><strong>Après priorisation:</strong> {(() => {
-                    const prioritizedOpportunities = prioritizeOpportunitiesByRealProbability(opportunities, match);
-                    return prioritizedOpportunities.length;
-                  })()}</div>
-                  <div><strong>Après conversion:</strong> {(() => {
-                    const prioritizedOpportunities = prioritizeOpportunitiesByRealProbability(opportunities, match);
-                    return prioritizedOpportunities.map(convertOpportunityToAIRecommendation).length;
-                  })()}</div>
-                </>
-              )}
-              <div><strong>Affichées finalement:</strong> {allRecommendations.length}</div>
-              {!preCalculatedRecommendations && opportunities.length > 0 && (
-                <div className="mt-2">
-                  <strong>Détail des opportunités:</strong>
-                  <ul className="list-disc list-inside ml-2">
-                    {opportunities.map((opp, i) => (
-                      <li key={i}>{opp.type}: {opp.prediction} (priorité: {opp.priority})</li>
-                    ))}
-                  </ul>
+            <h3 className="font-semibold mb-4 text-blue-800 flex items-center gap-2">
+              <Eye className="h-5 w-5" />
+              Toutes les opportunités détectées ({!preCalculatedRecommendations ? opportunities.length : 'pré-calculées'})
+            </h3>
+            
+            {!preCalculatedRecommendations && opportunities.length > 0 ? (
+              <div className="space-y-3">
+                {opportunities.map((opp, index) => (
+                  <div key={index} className="p-3 bg-white rounded-lg border border-blue-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs bg-blue-100 text-blue-800">
+                          #{index + 1}
+                        </Badge>
+                        <span className="font-semibold text-sm text-blue-900">{opp.type}</span>
+                        <Badge variant={opp.priority === 1 ? "default" : "secondary"} className="text-xs">
+                          Priorité {opp.priority}
+                        </Badge>
+                      </div>
+                      {opp.detectionCount > 1 && (
+                        <Badge variant="outline" className="text-xs bg-green-100 text-green-800">
+                          {opp.detectionCount} détections
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-foreground">
+                        Prédiction: <span className="text-blue-800">{opp.prediction}</span>
+                      </p>
+                      <div className="flex items-center gap-3 text-xs">
+                        <span className="text-muted-foreground">
+                          Cote: <span className="font-mono font-semibold">{opp.odds?.toFixed(2) || 'N/A'}</span>
+                        </span>
+                        {opp.isInverted && (
+                          <Badge variant="destructive" className="text-xs">INVERSÉE</Badge>
+                        )}
+                      </div>
+                      
+                      {opp.reason && opp.reason.length > 0 && (
+                        <div className="mt-2 p-2 bg-blue-50 rounded text-xs text-blue-700">
+                          <strong>Raisons:</strong> {opp.reason.join(' • ')}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                
+                <div className="mt-4 p-3 bg-white/70 rounded-lg border border-blue-200">
+                  <div className="text-xs text-blue-700">
+                    <strong>Statistiques:</strong> {opportunities.length} opportunité{opportunities.length > 1 ? 's' : ''} détectée{opportunities.length > 1 ? 's' : ''} •
+                    {opportunities.filter(o => o.isInverted).length} stratégie{opportunities.filter(o => o.isInverted).length > 1 ? 's' : ''} inversée{opportunities.filter(o => o.isInverted).length > 1 ? 's' : ''} •
+                    {opportunities.filter(o => o.detectionCount > 1).length} consensus
+                  </div>
                 </div>
-              )}
-            </div>
+              </div>
+            ) : preCalculatedRecommendations ? (
+              <div className="text-sm text-blue-700">
+                <p className="mb-2">Les opportunités ont été pré-calculées par le système de dashboard.</p>
+                <p className="text-xs">Voir la section "Analyse IA Complète" ci-dessus pour les détails.</p>
+              </div>
+            ) : (
+              <div className="text-sm text-blue-700">
+                <p>Aucune opportunité détectée pour ce match.</p>
+              </div>
+            )}
           </Card>
 
           {/* Match Statistics */}
