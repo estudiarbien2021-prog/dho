@@ -319,6 +319,29 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
     }
   };
 
+  const getProbabilityPercentage = (betType: string) => {
+    let probability = 0;
+    
+    switch (betType) {
+      case '1X2':
+        probability = Math.max(match.p_home_fair, match.p_draw_fair, match.p_away_fair);
+        break;
+      case 'BTTS':
+        probability = Math.max(match.p_btts_yes_fair || 0, match.p_btts_no_fair || 0);
+        break;
+      case 'O/U 2.5':
+      case '+/- 2.5':
+        probability = Math.max(match.p_over_2_5_fair || 0, match.p_under_2_5_fair || 0);
+        break;
+      default:
+        probability = 0;
+    }
+    
+    // Convert to percentage if it's in decimal format (< 1)
+    const percentValue = probability > 1 ? probability : probability * 100;
+    return percentValue.toFixed(1);
+  };
+
   // Helper function to format validated rule descriptions from RuleEvaluationResult
   const formatValidatedRuleDescription = (ruleEvaluation: any) => {
     if (!ruleEvaluation) return 'Règle inconnue';
@@ -428,9 +451,9 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
                                <Badge variant="outline" className="font-mono">
                                  Cote: {rec.odds.toFixed(2)}
                                </Badge>
-                               <Badge className={`${getConfidenceColor(rec.confidence)} text-white text-xs`}>
-                                 Confiance: {rec.confidence.toUpperCase()}
-                               </Badge>
+                                <Badge className="bg-primary text-white text-xs">
+                                  Probabilité: {getProbabilityPercentage(rec.betType)}%
+                                </Badge>
                                {rec.isInverted && (
                                  <Badge variant="destructive" className="text-xs">STRATÉGIE INVERSÉE</Badge>
                                )}
