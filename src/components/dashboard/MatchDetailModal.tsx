@@ -467,9 +467,14 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
             </div>
 
             {/* Liste simple des règles validées */}
-            {allRuleEvaluations.filter(r => r && r.conditionsMet && r.rule).length > 0 && (
-              <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                <h4 className="font-semibold mb-2 text-green-700">✅ Libellés des règles validées:</h4>
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+              <h4 className="font-semibold mb-2 text-green-700">✅ Libellés des règles validées:</h4>
+              <div className="text-xs text-green-600 mb-2">
+                Total règles évaluées: {allRuleEvaluations.length} | 
+                Règles avec données: {allRuleEvaluations.filter(r => r && r.rule).length} | 
+                Règles validées: {allRuleEvaluations.filter(r => r && r.conditionsMet && r.rule).length}
+              </div>
+              {allRuleEvaluations.filter(r => r && r.conditionsMet && r.rule).length > 0 ? (
                 <ul className="list-disc list-inside text-sm text-green-700 space-y-1">
                   {allRuleEvaluations
                     .filter(r => r && r.conditionsMet && r.rule)
@@ -482,8 +487,10 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
                       </li>
                     ))}
                 </ul>
-              </div>
-            )}
+              ) : (
+                <p className="text-sm text-gray-600 italic">Aucune règle validée trouvée</p>
+              )}
+            </div>
 
             {/* Validated Rules Section */}
             {allRuleEvaluations.filter(r => r && r.conditionsMet && r.rule).length > 0 && (
