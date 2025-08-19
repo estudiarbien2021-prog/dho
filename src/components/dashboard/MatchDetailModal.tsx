@@ -33,10 +33,9 @@ interface MatchDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   marketFilters?: string[];
-  preCalculatedRecommendations?: any[];
 }
 
-export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], preCalculatedRecommendations }: MatchDetailModalProps) {
+export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }: MatchDetailModalProps) {
   const [showAIGraphics, setShowAIGraphics] = useState(true);
   const [opportunities, setOpportunities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -122,42 +121,28 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
     return `Domicile ${homePercent}% | Nul ${drawPercent}% | Extérieur ${awayPercent}%`;
   };
 
-  const getOver25Percentages = () => {
-    const overValue = match.p_over_2_5_fair > 1 ? match.p_over_2_5_fair : match.p_over_2_5_fair * 100;
-    
-    // Si p_under_2_5_fair est 0, calculer automatiquement comme 100 - over
-    let underValue;
-    if (match.p_under_2_5_fair === 0) {
-      underValue = 100 - overValue;
-    } else {
-      underValue = match.p_under_2_5_fair > 1 ? match.p_under_2_5_fair : match.p_under_2_5_fair * 100;
-    }
-    
-    const overPercent = overValue.toFixed(1);
-    const underPercent = underValue.toFixed(1);
-    
-    console.log('🔍 O/U 2.5 PERCENTAGES CALCULÉS (CORRIGÉ):', { overPercent, underPercent, original_under: match.p_under_2_5_fair });
-    
-    return `+2,5 buts ${overPercent}% | -2,5 buts ${underPercent}%`;
-  };
-
   const getBttsPercentages = () => {
     const yesValue = match.p_btts_yes_fair > 1 ? match.p_btts_yes_fair : match.p_btts_yes_fair * 100;
-    
-    // Si p_btts_no_fair est 0, calculer automatiquement comme 100 - yes
-    let noValue;
-    if (match.p_btts_no_fair === 0) {
-      noValue = 100 - yesValue;
-    } else {
-      noValue = match.p_btts_no_fair > 1 ? match.p_btts_no_fair : match.p_btts_no_fair * 100;
-    }
+    const noValue = match.p_btts_no_fair > 1 ? match.p_btts_no_fair : match.p_btts_no_fair * 100;
     
     const yesPercent = yesValue.toFixed(1);
     const noPercent = noValue.toFixed(1);
     
-    console.log('🔍 BTTS PERCENTAGES CALCULÉS (CORRIGÉ):', { yesPercent, noPercent, original_no: match.p_btts_no_fair });
+    console.log('🔍 BTTS PERCENTAGES CALCULÉS:', { yesPercent, noPercent });
     
     return `Oui ${yesPercent}% | Non ${noPercent}%`;
+  };
+
+  const getOver25Percentages = () => {
+    const overValue = match.p_over_2_5_fair > 1 ? match.p_over_2_5_fair : match.p_over_2_5_fair * 100;
+    const underValue = match.p_under_2_5_fair > 1 ? match.p_under_2_5_fair : match.p_under_2_5_fair * 100;
+    
+    const overPercent = overValue.toFixed(1);
+    const underPercent = underValue.toFixed(1);
+    
+    console.log('🔍 O/U 2.5 PERCENTAGES CALCULÉS:', { overPercent, underPercent });
+    
+    return `+2,5 buts ${overPercent}% | -2,5 buts ${underPercent}%`;
   };
 
   const get1x2Winner = () => {
@@ -189,20 +174,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
 
   const getBttsWinner = () => match.p_btts_yes_fair > match.p_btts_no_fair ? 'Oui' : 'Non';
   const getOver25Winner = () => {
-    // Utiliser la même logique corrigée pour déterminer le gagnant
-    const overValue = match.p_over_2_5_fair > 1 ? match.p_over_2_5_fair : match.p_over_2_5_fair * 100;
-    const underValue = match.p_under_2_5_fair === 0 ? 100 - overValue : 
-                       (match.p_under_2_5_fair > 1 ? match.p_under_2_5_fair : match.p_under_2_5_fair * 100);
-    
-    return overValue > underValue ? '+2,5 buts' : '-2,5 buts';
-  };
-
-  // Helper function to safely format vigorish values
-  const formatVigorish = (vigorish: number | undefined | null) => {
-    if (vigorish === null || vigorish === undefined) {
-      return 'N/A';
-    }
-    return (vigorish * 100).toFixed(1) + '%';
+    return match.p_over_2_5_fair > match.p_under_2_5_fair ? '+2,5 buts' : '-2,5 buts';
   };
 
   if (loading) {
@@ -220,35 +192,16 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
     );
   }
   
-  // Use pre-calculated recommendations only if they exist AND are not empty, otherwise calculate on-the-fly
-  let allRecommendations: any[] = [];
-  let prioritizedOpportunities: any[] = [];
-
-  if (preCalculatedRecommendations && preCalculatedRecommendations.length > 0) {
-    console.log('🔴 MODAL - UTILISATION DES RECOMMANDATIONS PRÉ-CALCULÉES:', preCalculatedRecommendations.length);
-    allRecommendations = preCalculatedRecommendations;
-    // For compatibility with existing code, we need to map back to opportunities structure
-    prioritizedOpportunities = preCalculatedRecommendations.map((rec, index) => ({
-      type: rec.betType,
-      prediction: rec.prediction,
-      odds: rec.odds,
-      isInverted: rec.isInverted || false,
-      reason: rec.reason || [],
-      priority: index + 1 // Just for display purposes
-    }));
-  } else {
-    console.log('🔴 MODAL - CALCUL À LA VOLÉE DES RECOMMANDATIONS');
-    console.log('🔴 MODAL - OPPORTUNITIES BRUTES AVANT PRIORISATION:', opportunities.length, opportunities.map(o => `${o.type}:${o.prediction}(inv:${o.isInverted})`));
-    
-    prioritizedOpportunities = prioritizeOpportunitiesByRealProbability(opportunities, match);
-    console.log('🔴 MODAL - AFTER PRIORITIZATION:', prioritizedOpportunities.length, prioritizedOpportunities.map(o => `${o.type}:${o.prediction}(inv:${o.isInverted})`));
-    
-    const allDetectedRecommendations = prioritizedOpportunities.map(convertOpportunityToAIRecommendation);
-    
-    console.log('🔴 MODAL - APRÈS CONVERSION:', allDetectedRecommendations.length, allDetectedRecommendations.map(r => `${r.betType}:${r.prediction}`));
-    
-    allRecommendations = allDetectedRecommendations;
-  }
+  console.log('🔴 MODAL - OPPORTUNITIES BRUTES AVANT PRIORISATION:', opportunities.length, opportunities.map(o => `${o.type}:${o.prediction}(inv:${o.isInverted})`));
+  
+  const prioritizedOpportunities = prioritizeOpportunitiesByRealProbability(opportunities, match);
+  console.log('🔴 MODAL - AFTER PRIORITIZATION:', prioritizedOpportunities.length, prioritizedOpportunities.map(o => `${o.type}:${o.prediction}(inv:${o.isInverted})`));
+  
+  const allDetectedRecommendations = prioritizedOpportunities.map(convertOpportunityToAIRecommendation);
+  
+  console.log('🔴 MODAL - APRÈS CONVERSION:', allDetectedRecommendations.length, allDetectedRecommendations.map(r => `${r.betType}:${r.prediction}`));
+  
+  const allRecommendations = allDetectedRecommendations;
   
   console.log('🔴 MODAL - RECOMMANDATIONS FINALES AFFICHÉES:', allRecommendations.length, allRecommendations.map(r => `${r.betType}:${r.prediction}`));
 
@@ -447,7 +400,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
             <div className="space-y-2 text-xs text-blue-700">
               <div><strong>Opportunités brutes détectées:</strong> {opportunities.length}</div>
               <div><strong>Après priorisation:</strong> {prioritizedOpportunities.length}</div>
-              <div><strong>Après conversion:</strong> {allRecommendations.length}</div>
+              <div><strong>Après conversion:</strong> {allDetectedRecommendations.length}</div>
               <div><strong>Affichées finalement:</strong> {allRecommendations.length}</div>
               <div className="mt-2">
                 <strong>Détail des opportunités:</strong>
@@ -474,7 +427,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant={match.vig_1x2 < 0.06 ? "default" : "destructive"}>
-                    Vigorish: {formatVigorish(match.vig_1x2)}
+                    Vigorish: {(match.vig_1x2 * 100).toFixed(1)}%
                   </Badge>
                 </div>
               </div>
@@ -492,7 +445,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant={(match.vig_btts || 0) < 0.06 ? "default" : "destructive"}>
-                    Vigorish: {formatVigorish(match.vig_btts)}
+                    Vigorish: {((match.vig_btts || 0) * 100).toFixed(1)}%
                   </Badge>
                 </div>
               </div>
@@ -510,7 +463,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant={match.vig_ou_2_5 < 0.06 ? "default" : "destructive"}>
-                    Vigorish: {formatVigorish(match.vig_ou_2_5)}
+                    Vigorish: {(match.vig_ou_2_5 * 100).toFixed(1)}%
                   </Badge>
                 </div>
               </div>

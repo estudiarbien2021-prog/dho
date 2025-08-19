@@ -301,7 +301,6 @@ export function UserDashboard({ currentLang }: DashboardProps) {
           setSelectedMatch(null);
         }}
         marketFilters={filters.marketFilters}
-        preCalculatedRecommendations={selectedMatch ? matchRecommendations[selectedMatch.id] : undefined}
       />
 
       {/* AI Prediction Dialog */}

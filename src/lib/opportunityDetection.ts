@@ -538,12 +538,12 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
     return b.odds - a.odds;
   });
 
-  // Trier les opportunités normales par cotes (décroissant) puis par priorité (croissant)
+  // Trier les opportunités normales par priorité (croissant) puis par cotes (décroissant)
   normalOpportunities.sort((a, b) => {
-    if (b.odds !== a.odds) {
-      return b.odds - a.odds;
+    if (a.priority !== b.priority) {
+      return a.priority - b.priority;
     }
-    return a.priority - b.priority;
+    return b.odds - a.odds;
   });
   
   // ÉTAPE 6: Sélectionner jusqu'à 2 opportunités de marchés différents
