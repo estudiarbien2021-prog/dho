@@ -129,7 +129,7 @@ export function CSVDataViewer({ isOpen, onClose, uploadDate, filename }: CSVData
           odds_over_2_5: parseFloat(editData.odds_over_2_5) || null,
           odds_under_2_5: parseFloat(editData.odds_under_2_5) || null,
         })
-        .eq('id', parseInt(rowId));
+        .eq('id', Number(rowId));
 
       if (error) throw error;
 
@@ -163,7 +163,7 @@ export function CSVDataViewer({ isOpen, onClose, uploadDate, filename }: CSVData
       const { error } = await supabase
         .from('matches')
         .delete()
-        .eq('id', parseInt(rowId));
+        .eq('id', Number(rowId));
 
       if (error) throw error;
 
