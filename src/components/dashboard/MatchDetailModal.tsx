@@ -324,49 +324,61 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                     <Target className="h-4 w-4" />
                     Toutes les opportunités détectées:
                   </h4>
-                  {allRecommendations.map((rec, index) => {
-                    const opportunity = prioritizedOpportunities[index];
-                    return (
-                      <div key={index} className={`p-4 rounded-lg border-l-4 ${
-                        index === 0 ? 'bg-primary/15 border-primary' :
-                        index === 1 ? 'bg-secondary/15 border-secondary' :
-                        index === 2 ? 'bg-accent/15 border-accent' :
-                        'bg-muted/15 border-muted'
-                      }`}>
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Badge variant={index === 0 ? "default" : "outline"} className="text-xs">
-                                #{index + 1} {index === 0 ? 'PRIORITÉ MAX' : `PRIORITÉ ${opportunity?.priority || 'N/A'}`}
-                              </Badge>
-                              <span className="font-semibold text-sm">{rec.betType}</span>
-                            </div>
-                            <p className="text-base font-medium text-foreground">
-                              → {rec.prediction}
-                            </p>
-                            <div className="flex items-center gap-3 mt-2">
-                              <Badge variant="outline" className="font-mono">
-                                Cote: {rec.odds.toFixed(2)}
-                              </Badge>
-                              <Badge className={`${getConfidenceColor(rec.confidence)} text-white text-xs`}>
-                                Confiance: {rec.confidence.toUpperCase()}
-                              </Badge>
-                              {rec.isInverted && (
-                                <Badge variant="destructive" className="text-xs">STRATÉGIE INVERSÉE</Badge>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {/* Reasoning for this recommendation */}
-                        {rec.reason && rec.reason.length > 0 && (
-                          <div className="mt-3 p-2 bg-white/50 rounded text-xs text-muted-foreground">
-                            <strong>Justification:</strong> {rec.reason.join(' • ')}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                   {allRecommendations.map((rec, index) => {
+                     const opportunity = prioritizedOpportunities[index];
+                     const isMainConsensus = rec.detectionCount >= 3;
+                     return (
+                       <div key={index} className={`p-4 rounded-lg border-l-4 ${
+                         isMainConsensus ? 'bg-yellow-50 border-yellow-500' :
+                         index === 0 ? 'bg-primary/15 border-primary' :
+                         index === 1 ? 'bg-secondary/15 border-secondary' :
+                         index === 2 ? 'bg-accent/15 border-accent' :
+                         'bg-muted/15 border-muted'
+                       }`}>
+                         <div className="flex items-center justify-between">
+                           <div className="flex-1">
+                             <div className="flex items-center gap-2 mb-1">
+                               {isMainConsensus && (
+                                 <span className="text-xl">⭐</span>
+                               )}
+                               <Badge variant={isMainConsensus ? "default" : index === 0 ? "default" : "outline"} 
+                                      className={`text-xs ${isMainConsensus ? 'bg-yellow-500 text-white' : ''}`}>
+                                 {isMainConsensus ? 'RECOMMANDATION PRINCIPALE' : 
+                                  `#${index + 1} ${index === 0 ? 'PRIORITÉ MAX' : `PRIORITÉ ${opportunity?.priority || 'N/A'}`}`}
+                               </Badge>
+                               <span className="font-semibold text-sm">{rec.betType}</span>
+                               {rec.detectionCount > 1 && (
+                                 <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
+                                   {rec.detectionCount} détections
+                                 </Badge>
+                               )}
+                             </div>
+                             <p className="text-base font-medium text-foreground">
+                               → {rec.prediction}
+                             </p>
+                             <div className="flex items-center gap-3 mt-2">
+                               <Badge variant="outline" className="font-mono">
+                                 Cote: {rec.odds.toFixed(2)}
+                               </Badge>
+                               <Badge className={`${getConfidenceColor(rec.confidence)} text-white text-xs`}>
+                                 Confiance: {rec.confidence.toUpperCase()}
+                               </Badge>
+                               {rec.isInverted && (
+                                 <Badge variant="destructive" className="text-xs">STRATÉGIE INVERSÉE</Badge>
+                               )}
+                             </div>
+                           </div>
+                         </div>
+                         
+                         {/* Reasoning for this recommendation */}
+                         {rec.reason && rec.reason.length > 0 && (
+                           <div className="mt-3 p-2 bg-white/50 rounded text-xs text-muted-foreground">
+                             <strong>Justification:</strong> {rec.reason.join(' • ')}
+                           </div>
+                         )}
+                       </div>
+                     );
+                   })}
                 </div>
 
                 {/* Summary Stats */}
