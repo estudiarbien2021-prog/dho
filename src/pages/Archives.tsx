@@ -378,6 +378,7 @@ export function Archives() {
           setSelectedMatch(null);
         }}
         marketFilters={filters.marketFilters}
+        preCalculatedRecommendations={selectedMatch ? matchRecommendations.get(selectedMatch.id) : undefined}
       />
     </div>
   );

@@ -33,9 +33,10 @@ interface MatchDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   marketFilters?: string[];
+  preCalculatedRecommendations?: any[];
 }
 
-export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }: MatchDetailModalProps) {
+export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], preCalculatedRecommendations }: MatchDetailModalProps) {
   const [showAIGraphics, setShowAIGraphics] = useState(true);
   const [opportunities, setOpportunities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,12 +73,17 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     const loadOpportunities = async () => {
       if (!match) return;
       
+      // Use pre-calculated recommendations if available
+      if (preCalculatedRecommendations) {
+        setLoading(false);
+        return;
+      }
+      
       try {
         setLoading(true);
         const opps = await detectOpportunities(match);
         setOpportunities(opps);
-        console.log('🔴 MODAL OPPORTUNITIES - RAW:', opps.length, opps.map(o => `${o.type}:${o.prediction}(inverted:${o.isInverted})`));
-        console.log('🔴 MODAL OPPORTUNITIES - DÉTAILS COMPLETS:', opps);
+        console.log('🔴 MODAL OPPORTUNITIES - RAW (FALLBACK):', opps.length, opps.map(o => `${o.type}:${o.prediction}(inverted:${o.isInverted})`));
       } catch (error) {
         console.error('Error loading opportunities:', error);
         setOpportunities([]);
@@ -89,7 +95,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     if (isOpen && match) {
       loadOpportunities();
     }
-  }, [match, isOpen]);
+  }, [match, isOpen, preCalculatedRecommendations]);
 
   if (!match) return null;
 
@@ -192,16 +198,20 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     );
   }
   
-  console.log('🔴 MODAL - OPPORTUNITIES BRUTES AVANT PRIORISATION:', opportunities.length, opportunities.map(o => `${o.type}:${o.prediction}(inv:${o.isInverted})`));
+  // Use pre-calculated recommendations if available, otherwise calculate them
+  const allRecommendations = preCalculatedRecommendations || (() => {
+    console.log('🔴 MODAL - OPPORTUNITIES BRUTES AVANT PRIORISATION (FALLBACK):', opportunities.length, opportunities.map(o => `${o.type}:${o.prediction}(inv:${o.isInverted})`));
+    
+    const prioritizedOpportunities = prioritizeOpportunitiesByRealProbability(opportunities, match);
+    console.log('🔴 MODAL - AFTER PRIORITIZATION (FALLBACK):', prioritizedOpportunities.length, prioritizedOpportunities.map(o => `${o.type}:${o.prediction}(inv:${o.isInverted})`));
+    
+    const allDetectedRecommendations = prioritizedOpportunities.map(convertOpportunityToAIRecommendation);
+    console.log('🔴 MODAL - APRÈS CONVERSION (FALLBACK):', allDetectedRecommendations.length, allDetectedRecommendations.map(r => `${r.betType}:${r.prediction}`));
+    
+    return allDetectedRecommendations;
+  })();
   
-  const prioritizedOpportunities = prioritizeOpportunitiesByRealProbability(opportunities, match);
-  console.log('🔴 MODAL - AFTER PRIORITIZATION:', prioritizedOpportunities.length, prioritizedOpportunities.map(o => `${o.type}:${o.prediction}(inv:${o.isInverted})`));
-  
-  const allDetectedRecommendations = prioritizedOpportunities.map(convertOpportunityToAIRecommendation);
-  
-  console.log('🔴 MODAL - APRÈS CONVERSION:', allDetectedRecommendations.length, allDetectedRecommendations.map(r => `${r.betType}:${r.prediction}`));
-  
-  const allRecommendations = allDetectedRecommendations;
+  console.log('🔴 MODAL - SOURCE RECOMMANDATIONS:', preCalculatedRecommendations ? 'PRE-CALCULÉES' : 'CALCULÉES À LA VOLÉE');
   
   console.log('🔴 MODAL - RECOMMANDATIONS FINALES AFFICHÉES:', allRecommendations.length, allRecommendations.map(r => `${r.betType}:${r.prediction}`));
 
@@ -324,8 +334,12 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                     <Target className="h-4 w-4" />
                     Toutes les opportunités détectées:
                   </h4>
-                   {allRecommendations.map((rec, index) => {
-                     const opportunity = prioritizedOpportunities[index];
+   {allRecommendations.map((rec, index) => {
+                     // For pre-calculated recommendations, we don't have prioritizedOpportunities
+                     const opportunity = preCalculatedRecommendations ? null : (() => {
+                       const prioritizedOpportunities = prioritizeOpportunitiesByRealProbability(opportunities, match);
+                       return prioritizedOpportunities[index];
+                     })();
                      const isMainConsensus = rec.detectionCount >= 3;
                      return (
                        <div key={index} className={`p-4 rounded-lg border-l-4 ${
@@ -398,18 +412,31 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
           <Card className="p-4 bg-blue-50">
             <h3 className="font-semibold mb-2 text-blue-800">🔍 Debug - Traçabilité des recommandations</h3>
             <div className="space-y-2 text-xs text-blue-700">
-              <div><strong>Opportunités brutes détectées:</strong> {opportunities.length}</div>
-              <div><strong>Après priorisation:</strong> {prioritizedOpportunities.length}</div>
-              <div><strong>Après conversion:</strong> {allDetectedRecommendations.length}</div>
+              <div><strong>Source:</strong> {preCalculatedRecommendations ? 'Pré-calculées' : 'Calculées à la volée'}</div>
+              {!preCalculatedRecommendations && (
+                <>
+                  <div><strong>Opportunités brutes détectées:</strong> {opportunities.length}</div>
+                  <div><strong>Après priorisation:</strong> {(() => {
+                    const prioritizedOpportunities = prioritizeOpportunitiesByRealProbability(opportunities, match);
+                    return prioritizedOpportunities.length;
+                  })()}</div>
+                  <div><strong>Après conversion:</strong> {(() => {
+                    const prioritizedOpportunities = prioritizeOpportunitiesByRealProbability(opportunities, match);
+                    return prioritizedOpportunities.map(convertOpportunityToAIRecommendation).length;
+                  })()}</div>
+                </>
+              )}
               <div><strong>Affichées finalement:</strong> {allRecommendations.length}</div>
-              <div className="mt-2">
-                <strong>Détail des opportunités:</strong>
-                <ul className="list-disc list-inside ml-2">
-                  {opportunities.map((opp, i) => (
-                    <li key={i}>{opp.type}: {opp.prediction} (priorité: {opp.priority})</li>
-                  ))}
-                </ul>
-              </div>
+              {!preCalculatedRecommendations && opportunities.length > 0 && (
+                <div className="mt-2">
+                  <strong>Détail des opportunités:</strong>
+                  <ul className="list-disc list-inside ml-2">
+                    {opportunities.map((opp, i) => (
+                      <li key={i}>{opp.type}: {opp.prediction} (priorité: {opp.priority})</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           </Card>
 
