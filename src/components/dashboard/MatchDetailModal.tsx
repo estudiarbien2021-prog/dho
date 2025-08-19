@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { ProcessedMatch } from '@/types/match';
 import { supabase } from '@/integrations/supabase/client';
@@ -201,9 +202,58 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
   
   console.log('🔴 MODAL - APRÈS CONVERSION:', allDetectedRecommendations.length, allDetectedRecommendations.map(r => `${r.betType}:${r.prediction}`));
   
-  const allRecommendations = allDetectedRecommendations;
+  // Nouvelle logique : Regrouper les recommandations identiques et privilégier celles détectées plusieurs fois
+  const groupedRecommendations = allDetectedRecommendations.reduce((acc, rec, index) => {
+    const key = `${rec.betType}:${rec.prediction}`;
+    
+    if (!acc[key]) {
+      acc[key] = {
+        recommendation: rec,
+        opportunities: [prioritizedOpportunities[index]],
+        detectionCount: 1,
+        totalPriority: prioritizedOpportunities[index].priority || 0
+      };
+    } else {
+      acc[key].opportunities.push(prioritizedOpportunities[index]);
+      acc[key].detectionCount += 1;
+      acc[key].totalPriority += (prioritizedOpportunities[index].priority || 0);
+    }
+    
+    return acc;
+  }, {} as Record<string, { recommendation: any; opportunities: any[]; detectionCount: number; totalPriority: number }>);
   
-  console.log('🔴 MODAL - RECOMMANDATIONS FINALES AFFICHÉES:', allRecommendations.length, allRecommendations.map(r => `${r.betType}:${r.prediction}`));
+  console.log('🔍 REGROUPEMENT DES RECOMMANDATIONS:', Object.keys(groupedRecommendations).map(key => ({
+    key,
+    detectionCount: groupedRecommendations[key].detectionCount,
+    totalPriority: groupedRecommendations[key].totalPriority
+  })));
+  
+  // Trier les recommandations : d'abord par nombre de détections (descendant), puis par priorité totale (descendant)
+  const finalRecommendations = Object.values(groupedRecommendations)
+    .sort((a, b) => {
+      // Priorité 1: Nombre de détections (plus = mieux)
+      if (a.detectionCount !== b.detectionCount) {
+        return b.detectionCount - a.detectionCount;
+      }
+      // Priorité 2: Priorité totale (plus faible = mieux, car priorité 1 > priorité 2)
+      return a.totalPriority - b.totalPriority;
+    })
+    .map(group => ({
+      ...group.recommendation,
+      detectionCount: group.detectionCount,
+      reasons: group.opportunities.map(opp => opp.reason || []).flat(),
+      isMainRecommendation: false // sera défini ci-dessous
+    }));
+  
+  // Marquer la première comme principale si elle a été détectée plusieurs fois
+  if (finalRecommendations.length > 0 && finalRecommendations[0].detectionCount >= 2) {
+    finalRecommendations[0].isMainRecommendation = true;
+    console.log('🎯 RECOMMANDATION PRINCIPALE SÉLECTIONNÉE:', finalRecommendations[0].betType, finalRecommendations[0].prediction, `(détectée ${finalRecommendations[0].detectionCount} fois)`);
+  }
+  
+  const allRecommendations = finalRecommendations;
+  
+  console.log('🔴 MODAL - RECOMMANDATIONS FINALES APRÈS REGROUPEMENT:', allRecommendations.length, allRecommendations.map(r => `${r.betType}:${r.prediction} (×${r.detectionCount})`));
 
   console.log('🚨 DEBUG MatchDetailModal:', {
     matchName: `${match.home_team} vs ${match.away_team}`,
@@ -212,7 +262,9 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     firstRecommendation: allRecommendations[0] ? {
       betType: allRecommendations[0].betType,
       prediction: allRecommendations[0].prediction,
-      odds: allRecommendations[0].odds
+      odds: allRecommendations[0].odds,
+      detectionCount: allRecommendations[0].detectionCount,
+      isMainRecommendation: allRecommendations[0].isMainRecommendation
     } : null
   });
 
@@ -243,20 +295,23 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
 
   const mainRecommendation = allRecommendations.length > 0 ? {
     ...normalizeRecommendation(allRecommendations[0]),
-    isInverted: opportunities[0]?.isInverted || false,
-    reason: opportunities[0]?.reason || []
+    isInverted: prioritizedOpportunities[0]?.isInverted || false,
+    reason: allRecommendations[0].reasons || [],
+    detectionCount: allRecommendations[0].detectionCount,
+    isMainRecommendation: allRecommendations[0].isMainRecommendation
   } : null;
   
   console.log('🚨 DEBUG MatchDetailModal - Final recommendation after normalize:', mainRecommendation);
   
   const secondAIRecommendation = allRecommendations.length > 1 ? {
     ...normalizeRecommendation(allRecommendations[1]),
-    isInverted: opportunities[1]?.isInverted || false,
-    reason: opportunities[1]?.reason || [],
-    vigorish: opportunities[1]?.type === '1X2' ? match.vig_1x2 : 
-              opportunities[1]?.type === 'BTTS' ? match.vig_btts : match.vig_ou_2_5,
-    probability: opportunities[1]?.type === '1X2' ? Math.max(match.p_home_fair, match.p_draw_fair, match.p_away_fair) :
-                 opportunities[1]?.type === 'BTTS' ? Math.max(match.p_btts_yes_fair, match.p_btts_no_fair) :
+    isInverted: prioritizedOpportunities[1]?.isInverted || false,
+    reason: allRecommendations[1].reasons || [],
+    detectionCount: allRecommendations[1].detectionCount,
+    vigorish: prioritizedOpportunities[1]?.type === '1X2' ? match.vig_1x2 : 
+              prioritizedOpportunities[1]?.type === 'BTTS' ? match.vig_btts : match.vig_ou_2_5,
+    probability: prioritizedOpportunities[1]?.type === '1X2' ? Math.max(match.p_home_fair, match.p_draw_fair, match.p_away_fair) :
+                 prioritizedOpportunities[1]?.type === 'BTTS' ? Math.max(match.p_btts_yes_fair, match.p_btts_no_fair) :
                  Math.max(match.p_over_2_5_fair, match.p_under_2_5_fair)
   } : null;
   
@@ -325,9 +380,9 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                     Toutes les opportunités détectées:
                   </h4>
                   {allRecommendations.map((rec, index) => {
-                    const opportunity = prioritizedOpportunities[index];
                     return (
                       <div key={index} className={`p-4 rounded-lg border-l-4 ${
+                        rec.isMainRecommendation ? 'bg-primary/20 border-primary shadow-lg' :
                         index === 0 ? 'bg-primary/15 border-primary' :
                         index === 1 ? 'bg-secondary/15 border-secondary' :
                         index === 2 ? 'bg-accent/15 border-accent' :
@@ -336,10 +391,15 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
-                              <Badge variant={index === 0 ? "default" : "outline"} className="text-xs">
-                                #{index + 1} {index === 0 ? 'PRIORITÉ MAX' : `PRIORITÉ ${opportunity?.priority || 'N/A'}`}
+                              <Badge variant={rec.isMainRecommendation ? "default" : index === 0 ? "default" : "outline"} className="text-xs">
+                                #{index + 1} {rec.isMainRecommendation ? '⭐ PRINCIPALE' : index === 0 ? 'PRIORITÉ MAX' : 'SECONDAIRE'}
                               </Badge>
                               <span className="font-semibold text-sm">{rec.betType}</span>
+                              {rec.detectionCount > 1 && (
+                                <Badge variant="outline" className="bg-green-100 text-green-800 text-xs">
+                                  ×{rec.detectionCount} règles
+                                </Badge>
+                              )}
                             </div>
                             <p className="text-base font-medium text-foreground">
                               → {rec.prediction}
@@ -359,9 +419,9 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                         </div>
                         
                         {/* Reasoning for this recommendation */}
-                        {rec.reason && rec.reason.length > 0 && (
+                        {rec.reasons && rec.reasons.length > 0 && (
                           <div className="mt-3 p-2 bg-white/50 rounded text-xs text-muted-foreground">
-                            <strong>Justification:</strong> {rec.reason.join(' • ')}
+                            <strong>Justification:</strong> {rec.reasons.join(' • ')}
                           </div>
                         )}
                       </div>
@@ -376,6 +436,9 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                     {allRecommendations.some(r => r.isInverted) && (
                       <span className="ml-2 text-orange-600">• Inclut des stratégies contrariennes</span>
                     )}
+                    {allRecommendations.some(r => r.detectionCount > 1) && (
+                      <span className="ml-2 text-green-600">• Consensus multi-règles détecté</span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -389,12 +452,20 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
               <div><strong>Opportunités brutes détectées:</strong> {opportunities.length}</div>
               <div><strong>Après priorisation:</strong> {prioritizedOpportunities.length}</div>
               <div><strong>Après conversion:</strong> {allDetectedRecommendations.length}</div>
-              <div><strong>Affichées finalement:</strong> {allRecommendations.length}</div>
+              <div><strong>Après regroupement:</strong> {allRecommendations.length}</div>
               <div className="mt-2">
                 <strong>Détail des opportunités:</strong>
                 <ul className="list-disc list-inside ml-2">
                   {opportunities.map((opp, i) => (
                     <li key={i}>{opp.type}: {opp.prediction} (priorité: {opp.priority})</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="mt-2">
+                <strong>Regroupement final:</strong>
+                <ul className="list-disc list-inside ml-2">
+                  {allRecommendations.map((rec, i) => (
+                    <li key={i}>{rec.betType}: {rec.prediction} (×{rec.detectionCount} règles) {rec.isMainRecommendation ? '⭐' : ''}</li>
                   ))}
                 </ul>
               </div>
