@@ -11,10 +11,11 @@ import { FlagMini } from '@/components/Flag';
 import { leagueToFlag } from '@/lib/leagueCountry';
 import { generateConfidenceScore } from '@/lib/confidence';
 import { detectOpportunities, convertOpportunityToAIRecommendation, prioritizeOpportunitiesByRealProbability } from '@/lib/opportunityDetection';
+import { conditionalRulesService } from '@/services/conditionalRulesService';
 import AIRecommendationDisplay from '@/components/AIRecommendationDisplay';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Clock, TrendingDown, Target, Eye, Download, Loader2, Zap, Brain, TrendingUp } from 'lucide-react';
+import { Clock, TrendingDown, Target, Eye, Download, Loader2, Zap, Brain, TrendingUp, CheckCircle, XCircle } from 'lucide-react';
 import { NeuralNetworkVisualization } from '@/components/charts/NeuralNetworkVisualization';
 import { ConfidenceScoreBars } from '@/components/charts/ConfidenceScoreBars';
 import { InfluenceFactors } from '@/components/charts/InfluenceFactors';
@@ -41,6 +42,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
   const [opportunities, setOpportunities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [chartLoading, setChartLoading] = useState<{ [key: string]: number }>({});
+  const [allRuleEvaluations, setAllRuleEvaluations] = useState<any[]>([]);
 
   // Reset AI graphics when modal closes
   useEffect(() => {
@@ -73,20 +75,46 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
     const loadOpportunities = async () => {
       if (!match) return;
       
-      // Use pre-calculated recommendations if available
-      if (preCalculatedRecommendations) {
-        setLoading(false);
-        return;
-      }
-      
       try {
         setLoading(true);
+        
+        // Always evaluate all rules for debug section
+        const ruleContext = {
+          vigorish_1x2: match.vig_1x2,
+          vigorish_btts: match.vig_btts || 0,
+          vigorish_ou25: match.vig_ou_2_5,
+          probability_home: match.p_home_fair,
+          probability_draw: match.p_draw_fair,
+          probability_away: match.p_away_fair,
+          probability_btts_yes: match.p_btts_yes_fair,
+          probability_btts_no: match.p_btts_no_fair,
+          probability_over25: match.p_over_2_5_fair,
+          probability_under25: match.p_under_2_5_fair,
+          odds_home: match.odds_home,
+          odds_draw: match.odds_draw,
+          odds_away: match.odds_away,
+          odds_btts_yes: match.odds_btts_yes || 0,
+          odds_btts_no: match.odds_btts_no || 0,
+          odds_over_25: match.odds_over_2_5 || 0,
+          odds_under_25: match.odds_under_2_5 || 0
+        };
+        
+        const ruleResults = await conditionalRulesService.evaluateRules(ruleContext);
+        setAllRuleEvaluations(ruleResults);
+        
+        // Use pre-calculated recommendations if available
+        if (preCalculatedRecommendations) {
+          setLoading(false);
+          return;
+        }
+        
         const opps = await detectOpportunities(match);
         setOpportunities(opps);
         console.log('🔴 MODAL OPPORTUNITIES - RAW (FALLBACK):', opps.length, opps.map(o => `${o.type}:${o.prediction}(inverted:${o.isInverted})`));
       } catch (error) {
         console.error('Error loading opportunities:', error);
         setOpportunities([]);
+        setAllRuleEvaluations([]);
       } finally {
         setLoading(false);
       }
@@ -410,34 +438,114 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
 
           {/* Debug Information */}
           <Card className="p-4 bg-blue-50">
-            <h3 className="font-semibold mb-2 text-blue-800">🔍 Debug - Traçabilité des recommandations</h3>
-            <div className="space-y-2 text-xs text-blue-700">
-              <div><strong>Source:</strong> {preCalculatedRecommendations ? 'Pré-calculées' : 'Calculées à la volée'}</div>
-              {!preCalculatedRecommendations && (
-                <>
+            <h3 className="font-semibold mb-4 text-blue-800">🔍 Debug - Traçabilité des recommandations</h3>
+            
+            {/* Pipeline Statistics */}
+            <div className="mb-6 p-3 bg-white/50 rounded-lg">
+              <h4 className="font-semibold mb-2 text-blue-700">📊 Statistiques du Pipeline</h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                <div className="text-center">
+                  <div className="text-lg font-bold text-blue-800">{allRuleEvaluations.length}</div>
+                  <div className="text-blue-600">Règles Totales</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold text-green-600">{allRuleEvaluations.filter(r => r.conditionsMet).length}</div>
+                  <div className="text-green-600">Validées (✅)</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold text-red-600">{allRuleEvaluations.filter(r => !r.conditionsMet).length}</div>
+                  <div className="text-red-600">Échouées (❌)</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold text-purple-600">{allRecommendations.length}</div>
+                  <div className="text-purple-600">Recommandations Finales</div>
+                </div>
+              </div>
+              <div className="mt-2 text-xs text-blue-700">
+                <strong>Source:</strong> {preCalculatedRecommendations ? 'Pré-calculées' : 'Calculées à la volée'}
+              </div>
+            </div>
+
+            {/* Validated Rules Section */}
+            {allRuleEvaluations.filter(r => r.conditionsMet).length > 0 && (
+              <div className="mb-4">
+                <h4 className="font-semibold mb-3 text-green-700 flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4" />
+                  Règles Validées (✅) - {allRuleEvaluations.filter(r => r.conditionsMet).length}
+                </h4>
+                <div className="space-y-2">
+                  {allRuleEvaluations.filter(r => r.conditionsMet).map((rule, index) => (
+                    <div key={`validated-${index}`} className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-medium text-green-800">{rule.rule.name}</span>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs bg-green-100 text-green-700">
+                            {rule.rule.market.toUpperCase()}
+                          </Badge>
+                          <Badge variant="default" className="text-xs bg-green-600 text-white">
+                            Priorité: {rule.rule.priority}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="text-xs text-green-700 mb-2">
+                        <strong>Action:</strong> {rule.rule.action}
+                      </div>
+                      <div className="text-xs text-green-600">
+                        <strong>Conditions évaluées:</strong> {rule.evaluationDetails}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Non-Validated Rules Section */}
+            {allRuleEvaluations.filter(r => !r.conditionsMet).length > 0 && (
+              <div className="mb-4">
+                <h4 className="font-semibold mb-3 text-red-700 flex items-center gap-2">
+                  <XCircle className="h-4 w-4" />
+                  Règles Non-Validées (❌) - {allRuleEvaluations.filter(r => !r.conditionsMet).length}
+                </h4>
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {allRuleEvaluations.filter(r => !r.conditionsMet).map((rule, index) => (
+                    <div key={`failed-${index}`} className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-medium text-red-800">{rule.rule.name}</span>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs bg-red-100 text-red-700">
+                            {rule.rule.market.toUpperCase()}
+                          </Badge>
+                          <Badge variant="secondary" className="text-xs">
+                            Priorité: {rule.rule.priority}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="text-xs text-red-700 mb-2">
+                        <strong>Action:</strong> {rule.rule.action}
+                      </div>
+                      <div className="text-xs text-red-600">
+                        <strong>Conditions échouées:</strong> {rule.evaluationDetails}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Legacy Debug Info */}
+            {!preCalculatedRecommendations && opportunities.length > 0 && (
+              <div className="mt-4 p-3 bg-white/30 rounded-lg">
+                <h5 className="font-semibold mb-2 text-blue-700 text-xs">🔧 Détails Techniques</h5>
+                <div className="space-y-1 text-xs text-blue-600">
                   <div><strong>Opportunités brutes détectées:</strong> {opportunities.length}</div>
                   <div><strong>Après priorisation:</strong> {(() => {
                     const prioritizedOpportunities = prioritizeOpportunitiesByRealProbability(opportunities, match);
                     return prioritizedOpportunities.length;
                   })()}</div>
-                  <div><strong>Après conversion:</strong> {(() => {
-                    const prioritizedOpportunities = prioritizeOpportunitiesByRealProbability(opportunities, match);
-                    return prioritizedOpportunities.map(convertOpportunityToAIRecommendation).length;
-                  })()}</div>
-                </>
-              )}
-              <div><strong>Affichées finalement:</strong> {allRecommendations.length}</div>
-              {!preCalculatedRecommendations && opportunities.length > 0 && (
-                <div className="mt-2">
-                  <strong>Détail des opportunités:</strong>
-                  <ul className="list-disc list-inside ml-2">
-                    {opportunities.map((opp, i) => (
-                      <li key={i}>{opp.type}: {opp.prediction} (priorité: {opp.priority})</li>
-                    ))}
-                  </ul>
+                  <div><strong>Affichées finalement:</strong> {allRecommendations.length}</div>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </Card>
 
           {/* Match Statistics */}
