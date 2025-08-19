@@ -428,9 +428,9 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
                                <Badge variant="outline" className="font-mono">
                                  Cote: {rec.odds.toFixed(2)}
                                </Badge>
-                               <Badge className={`${getConfidenceColor(rec.confidence)} text-white text-xs`}>
-                                 Confiance: {rec.confidence.toUpperCase()}
-                               </Badge>
+                                <Badge className={`${getConfidenceColor(rec.confidence)} text-white text-xs hidden`}>
+                                  Confiance: {rec.confidence.toUpperCase()}
+                                </Badge>
                                {rec.isInverted && (
                                  <Badge variant="destructive" className="text-xs">STRATÉGIE INVERSÉE</Badge>
                                )}
