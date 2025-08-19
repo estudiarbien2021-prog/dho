@@ -513,10 +513,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
                           <Badge variant="secondary" className="text-xs">
                             P{ruleEvaluation.priority || 0}
                           </Badge>
-                          <span className="font-medium text-green-800 truncate">
-                            {ruleEvaluation.ruleName || "Règle sans nom"}
-                          </span>
-                          <span className="text-green-700 flex-1 truncate">
+                          <span className="text-green-700 flex-1">
                             {formatValidatedRuleDescription(ruleEvaluation)}
                           </span>
                         </div>
