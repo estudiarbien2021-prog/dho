@@ -33,9 +33,10 @@ interface MatchDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   marketFilters?: string[];
+  preCalculatedRecommendations?: any[];
 }
 
-export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }: MatchDetailModalProps) {
+export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], preCalculatedRecommendations }: MatchDetailModalProps) {
   const [showAIGraphics, setShowAIGraphics] = useState(true);
   const [opportunities, setOpportunities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -219,16 +220,35 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     );
   }
   
-  console.log('🔴 MODAL - OPPORTUNITIES BRUTES AVANT PRIORISATION:', opportunities.length, opportunities.map(o => `${o.type}:${o.prediction}(inv:${o.isInverted})`));
-  
-  const prioritizedOpportunities = prioritizeOpportunitiesByRealProbability(opportunities, match);
-  console.log('🔴 MODAL - AFTER PRIORITIZATION:', prioritizedOpportunities.length, prioritizedOpportunities.map(o => `${o.type}:${o.prediction}(inv:${o.isInverted})`));
-  
-  const allDetectedRecommendations = prioritizedOpportunities.map(convertOpportunityToAIRecommendation);
-  
-  console.log('🔴 MODAL - APRÈS CONVERSION:', allDetectedRecommendations.length, allDetectedRecommendations.map(r => `${r.betType}:${r.prediction}`));
-  
-  const allRecommendations = allDetectedRecommendations;
+  // Use pre-calculated recommendations if available, otherwise calculate on-the-fly
+  let allRecommendations: any[] = [];
+  let prioritizedOpportunities: any[] = [];
+
+  if (preCalculatedRecommendations && preCalculatedRecommendations.length > 0) {
+    console.log('🔴 MODAL - UTILISATION DES RECOMMANDATIONS PRÉ-CALCULÉES:', preCalculatedRecommendations.length);
+    allRecommendations = preCalculatedRecommendations;
+    // For compatibility with existing code, we need to map back to opportunities structure
+    prioritizedOpportunities = preCalculatedRecommendations.map((rec, index) => ({
+      type: rec.betType,
+      prediction: rec.prediction,
+      odds: rec.odds,
+      isInverted: rec.isInverted || false,
+      reason: rec.reason || [],
+      priority: index + 1 // Just for display purposes
+    }));
+  } else {
+    console.log('🔴 MODAL - CALCUL À LA VOLÉE DES RECOMMANDATIONS');
+    console.log('🔴 MODAL - OPPORTUNITIES BRUTES AVANT PRIORISATION:', opportunities.length, opportunities.map(o => `${o.type}:${o.prediction}(inv:${o.isInverted})`));
+    
+    prioritizedOpportunities = prioritizeOpportunitiesByRealProbability(opportunities, match);
+    console.log('🔴 MODAL - AFTER PRIORITIZATION:', prioritizedOpportunities.length, prioritizedOpportunities.map(o => `${o.type}:${o.prediction}(inv:${o.isInverted})`));
+    
+    const allDetectedRecommendations = prioritizedOpportunities.map(convertOpportunityToAIRecommendation);
+    
+    console.log('🔴 MODAL - APRÈS CONVERSION:', allDetectedRecommendations.length, allDetectedRecommendations.map(r => `${r.betType}:${r.prediction}`));
+    
+    allRecommendations = allDetectedRecommendations;
+  }
   
   console.log('🔴 MODAL - RECOMMANDATIONS FINALES AFFICHÉES:', allRecommendations.length, allRecommendations.map(r => `${r.betType}:${r.prediction}`));
 
@@ -427,7 +447,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
             <div className="space-y-2 text-xs text-blue-700">
               <div><strong>Opportunités brutes détectées:</strong> {opportunities.length}</div>
               <div><strong>Après priorisation:</strong> {prioritizedOpportunities.length}</div>
-              <div><strong>Après conversion:</strong> {allDetectedRecommendations.length}</div>
+              <div><strong>Après conversion:</strong> {allRecommendations.length}</div>
               <div><strong>Affichées finalement:</strong> {allRecommendations.length}</div>
               <div className="mt-2">
                 <strong>Détail des opportunités:</strong>
