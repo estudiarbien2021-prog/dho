@@ -109,6 +109,26 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
         const ruleResults = await conditionalRulesService.evaluateRules(ruleContext);
         setAllRuleEvaluations(ruleResults);
         
+        // DEBUG TEMPORAIRE - Vérifier les résultats des règles
+        console.log('🔍 DEBUG MODAL - NOMBRE DE RÈGLES ÉVALUÉES:', ruleResults.length);
+        console.log('🔍 DEBUG MODAL - RÈGLES AVEC CONDITIONS REMPLIES:', 
+          ruleResults.filter(r => r.conditionsMet).length);
+        console.log('🔍 DEBUG MODAL - DÉTAIL DES RÈGLES VALIDÉES:', 
+          ruleResults.filter(r => r.conditionsMet).map(r => ({ 
+            name: r.ruleName, 
+            market: r.market, 
+            action: r.action, 
+            priority: r.priority,
+            conditionsMet: r.conditionsMet 
+          })));
+        console.log('🔍 DEBUG MODAL - TOUTES LES RÈGLES:', 
+          ruleResults.map(r => ({ 
+            name: r.ruleName, 
+            market: r.market, 
+            conditionsMet: r.conditionsMet, 
+            action: r.action 
+          })));
+        
         // Use pre-calculated recommendations if available
         if (preCalculatedRecommendations) {
           setLoading(false);
