@@ -94,25 +94,54 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
   if (!match) return null;
 
   console.log('🔴 MODAL OUVERT POUR:', match.home_team, 'vs', match.away_team, '- ID:', match.id);
+  console.log('🔍 DEBUG PROBABILITÉS BRUTES:', {
+    p_home_fair: match.p_home_fair,
+    p_draw_fair: match.p_draw_fair,
+    p_away_fair: match.p_away_fair,
+    p_btts_yes_fair: match.p_btts_yes_fair,
+    p_btts_no_fair: match.p_btts_no_fair,
+    p_over_2_5_fair: match.p_over_2_5_fair,
+    p_under_2_5_fair: match.p_under_2_5_fair
+  });
 
   const flagInfo = leagueToFlag(match.league, match.country, match.home_team, match.away_team);
 
   const get1x2Percentages = () => {
-    const homePercent = (match.p_home_fair * 100).toFixed(1);
-    const drawPercent = (match.p_draw_fair * 100).toFixed(1);
-    const awayPercent = (match.p_away_fair * 100).toFixed(1);
+    // Vérifier si les valeurs sont déjà en pourcentage (> 1) ou en décimal (< 1)
+    const homeValue = match.p_home_fair > 1 ? match.p_home_fair : match.p_home_fair * 100;
+    const drawValue = match.p_draw_fair > 1 ? match.p_draw_fair : match.p_draw_fair * 100;
+    const awayValue = match.p_away_fair > 1 ? match.p_away_fair : match.p_away_fair * 100;
+    
+    const homePercent = homeValue.toFixed(1);
+    const drawPercent = drawValue.toFixed(1);
+    const awayPercent = awayValue.toFixed(1);
+    
+    console.log('🔍 1X2 PERCENTAGES CALCULÉS:', { homePercent, drawPercent, awayPercent });
+    
     return `Domicile ${homePercent}% | Nul ${drawPercent}% | Extérieur ${awayPercent}%`;
   };
 
   const getBttsPercentages = () => {
-    const yesPercent = (match.p_btts_yes_fair * 100).toFixed(1);
-    const noPercent = (match.p_btts_no_fair * 100).toFixed(1);
+    const yesValue = match.p_btts_yes_fair > 1 ? match.p_btts_yes_fair : match.p_btts_yes_fair * 100;
+    const noValue = match.p_btts_no_fair > 1 ? match.p_btts_no_fair : match.p_btts_no_fair * 100;
+    
+    const yesPercent = yesValue.toFixed(1);
+    const noPercent = noValue.toFixed(1);
+    
+    console.log('🔍 BTTS PERCENTAGES CALCULÉS:', { yesPercent, noPercent });
+    
     return `Oui ${yesPercent}% | Non ${noPercent}%`;
   };
 
   const getOver25Percentages = () => {
-    const overPercent = (match.p_over_2_5_fair * 100).toFixed(1);
-    const underPercent = (match.p_under_2_5_fair * 100).toFixed(1);
+    const overValue = match.p_over_2_5_fair > 1 ? match.p_over_2_5_fair : match.p_over_2_5_fair * 100;
+    const underValue = match.p_under_2_5_fair > 1 ? match.p_under_2_5_fair : match.p_under_2_5_fair * 100;
+    
+    const overPercent = overValue.toFixed(1);
+    const underPercent = underValue.toFixed(1);
+    
+    console.log('🔍 O/U 2.5 PERCENTAGES CALCULÉS:', { overPercent, underPercent });
+    
     return `+2,5 buts ${overPercent}% | -2,5 buts ${underPercent}%`;
   };
 
