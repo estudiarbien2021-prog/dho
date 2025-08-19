@@ -390,48 +390,11 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
               <div><strong>Après priorisation:</strong> {prioritizedOpportunities.length}</div>
               <div><strong>Après conversion:</strong> {allDetectedRecommendations.length}</div>
               <div><strong>Affichées finalement:</strong> {allRecommendations.length}</div>
-              
-              {/* NOUVEAU: Analyse détaillée des priorités */}
-              <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded">
-                <div className="font-semibold text-red-800 mb-1">🚨 ANALYSE DES PRIORITÉS DÉTECTÉES:</div>
-                {opportunities.map((opp, i) => (
-                  <div key={i} className="text-red-700">
-                    • {opp.type}: {opp.prediction} - Priorité: <strong>{opp.priority}</strong>
-                    {opp.priority > 15 && <span className="text-red-600 font-bold"> ⚠️ PRIORITÉ ÉLEVÉE ANORMALE</span>}
-                  </div>
-                ))}
-              </div>
-              
-              {/* NOUVEAU: Vérification des règles conditionnelles */}
-              <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
-                <div className="font-semibold text-yellow-800 mb-1">📋 RÈGLES CONDITIONNELLES APPLIQUÉES:</div>
-                <div className="text-yellow-700">
-                  Vigorish 1X2: {(match.vig_1x2 * 100).toFixed(1)}% 
-                  {match.vig_1x2 < 0.06 && <span className="text-green-600"> ✓ Faible</span>}
-                </div>
-                <div className="text-yellow-700">
-                  Vigorish BTTS: {(match.vig_btts * 100).toFixed(1)}%
-                  {match.vig_btts < 0.06 && <span className="text-green-600"> ✓ Faible</span>}
-                </div>
-                <div className="text-yellow-700">
-                  Vigorish O/U 2.5: {(match.vig_ou_2_5 * 100).toFixed(1)}%
-                  {match.vig_ou_2_5 < 0.06 && <span className="text-green-600"> ✓ Faible</span>}
-                </div>
-              </div>
-              
               <div className="mt-2">
-                <strong>Détail des opportunités avec raisons:</strong>
+                <strong>Détail des opportunités:</strong>
                 <ul className="list-disc list-inside ml-2">
                   {opportunities.map((opp, i) => (
-                    <li key={i} className="text-xs">
-                      <strong>{opp.type}:</strong> {opp.prediction} 
-                      <span className="text-blue-600"> (priorité: {opp.priority})</span>
-                      {opp.reason && opp.reason.length > 0 && (
-                        <div className="ml-4 text-gray-600 mt-1">
-                          Raison: {opp.reason.join(' • ')}
-                        </div>
-                      )}
-                    </li>
+                    <li key={i}>{opp.type}: {opp.prediction} (priorité: {opp.priority})</li>
                   ))}
                 </ul>
               </div>
