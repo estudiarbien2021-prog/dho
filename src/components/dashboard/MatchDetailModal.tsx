@@ -423,13 +423,13 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
               <div className="grid grid-cols-4 gap-4">
                 <div className="text-center p-3 bg-white/70 rounded-lg border border-blue-200">
                   <div className="text-2xl font-bold text-blue-600">
-                    {preCalculatedRecommendations ? 'N/A' : opportunities.length}
+                    {preCalculatedRecommendations ? allRecommendations.length : opportunities.length}
                   </div>
                   <div className="text-xs text-blue-700 font-medium">Opportunités brutes</div>
                 </div>
                 <div className="text-center p-3 bg-white/70 rounded-lg border border-blue-200">
                   <div className="text-2xl font-bold text-blue-600">
-                    {preCalculatedRecommendations ? 'N/A' : (() => {
+                    {preCalculatedRecommendations ? allRecommendations.length : (() => {
                       const prioritized = prioritizeOpportunitiesByRealProbability(opportunities, match);
                       return prioritized.length;
                     })()}
@@ -438,7 +438,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
                 </div>
                 <div className="text-center p-3 bg-white/70 rounded-lg border border-blue-200">
                   <div className="text-2xl font-bold text-blue-600">
-                    {preCalculatedRecommendations ? 'N/A' : (() => {
+                    {preCalculatedRecommendations ? allRecommendations.length : (() => {
                       const prioritized = prioritizeOpportunitiesByRealProbability(opportunities, match);
                       return prioritized.map(convertOpportunityToAIRecommendation).length;
                     })()}
@@ -468,18 +468,18 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
               </div>
 
               {/* All Detected Opportunities (Raw) */}
-              {!preCalculatedRecommendations && opportunities.length > 0 && (
+              {((preCalculatedRecommendations && allRecommendations.length > 0) || (!preCalculatedRecommendations && opportunities.length > 0)) && (
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <Brain className="h-4 w-4 text-blue-600" />
                     <h4 className="font-semibold text-blue-800">Toutes les opportunités détectées (brutes)</h4>
                     <Badge variant="outline" className="bg-blue-100 text-blue-700">
-                      {opportunities.length} total{opportunities.length > 1 ? 'es' : 'e'}
+                      {preCalculatedRecommendations ? allRecommendations.length : opportunities.length} total{(preCalculatedRecommendations ? allRecommendations.length : opportunities.length) > 1 ? 'es' : 'e'}
                     </Badge>
                   </div>
                   
                   <div className="space-y-2">
-                    {opportunities.map((opp, index) => (
+                    {(preCalculatedRecommendations ? allRecommendations : opportunities).map((opp, index) => (
                       <div key={index} className="p-3 bg-white/90 rounded border-l-4 border-blue-400">
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
@@ -487,7 +487,9 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
                               <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
                                 #{index + 1}
                               </Badge>
-                              <span className="font-medium text-sm text-blue-800">{opp.type}</span>
+                              <span className="font-medium text-sm text-blue-800">
+                                {preCalculatedRecommendations ? opp.betType : opp.type}
+                              </span>
                               {opp.isInverted && (
                                 <Badge variant="destructive" className="text-xs">INVERSÉE</Badge>
                               )}
@@ -500,7 +502,14 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
                             <div className="text-sm">
                               <strong>Prédiction:</strong> {opp.prediction} 
                               <span className="ml-2 font-mono text-blue-600">({opp.odds?.toFixed(2)})</span>
-                              <span className="ml-2 text-xs text-gray-600">Priorité: {opp.priority}</span>
+                              {!preCalculatedRecommendations && (
+                                <span className="ml-2 text-xs text-gray-600">Priorité: {opp.priority}</span>
+                              )}
+                              {preCalculatedRecommendations && (
+                                <span className="ml-2 text-xs text-gray-600">
+                                  Confiance: {opp.confidence?.toUpperCase() || 'N/A'}
+                                </span>
+                              )}
                             </div>
                             {opp.reason && opp.reason.length > 0 && (
                               <div className="mt-1 text-xs text-blue-600">
