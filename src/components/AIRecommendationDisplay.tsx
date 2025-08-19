@@ -55,14 +55,17 @@ export function AIRecommendationDisplay({ match, marketFilters, variant = 'compa
       <div className="flex flex-col gap-1 items-center">
         {aiRecs.map((aiRec, index) => {
           const confidence = aiRec.confidenceScore || 75;
+          const isMainRecommendation = index === 0;
+          const isConsensus = aiRec.detectionCount && aiRec.detectionCount >= 3;
           
           return (
             <div key={index} className="w-full text-center">
               <Badge 
                 variant={getConfidenceColor(aiRec.confidence)}
-                className="text-xs"
+                className={`text-xs ${isMainRecommendation ? 'ring-2 ring-yellow-400' : ''}`}
               >
-                {showIcon && '🎯'} {formatBetType(aiRec.betType)} {aiRec.prediction}
+                {isMainRecommendation && '⭐'} {showIcon && !isMainRecommendation && '🎯'} {formatBetType(aiRec.betType)} {aiRec.prediction}
+                {isConsensus && ` (${aiRec.detectionCount})`}
               </Badge>
               <div className="text-xs text-muted-foreground">
                 Cote: {aiRec.odds.toFixed(2)} | Confiance: {confidence}%
@@ -90,11 +93,14 @@ export function AIRecommendationDisplay({ match, marketFilters, variant = 'compa
 
     const aiRec = aiRecs[0];
     const confidence = aiRec.confidenceScore || 75;
+    const isConsensus = aiRec.detectionCount && aiRec.detectionCount >= 3;
 
     return (
       <div className="text-xs text-center">
-        <div className="font-medium text-green-700">
-          {formatBetType(aiRec.betType)} {aiRec.prediction}
+        <div className="font-medium text-green-700 flex items-center justify-center gap-1">
+          <span>⭐</span>
+          <span>{formatBetType(aiRec.betType)} {aiRec.prediction}</span>
+          {isConsensus && <span className="text-yellow-600">({aiRec.detectionCount})</span>}
         </div>
         <div className="text-muted-foreground">
           {aiRec.odds.toFixed(2)} | {confidence}%
@@ -121,17 +127,25 @@ export function AIRecommendationDisplay({ match, marketFilters, variant = 'compa
         <div className="space-y-3 text-center">
           {aiRecs.map((aiRec, index) => {
             const confidence = aiRec.confidenceScore || 75;
+            const isMainRecommendation = index === 0;
+            const isConsensus = aiRec.detectionCount && aiRec.detectionCount >= 3;
             
             return (
-              <div key={index} className={`${index > 0 ? 'pt-3 border-t border-green-300' : ''}`}>
+              <div key={index} className={`${index > 0 ? 'pt-3 border-t border-green-300' : ''} ${isMainRecommendation ? 'bg-yellow-50 p-2 rounded border border-yellow-200' : ''}`}>
                 <div className="grid grid-cols-3 gap-2 text-xs">
                   <div>
                     <div className="text-green-600 font-medium">Type</div>
-                    <div className="text-green-800">{formatBetType(aiRec.betType)}</div>
+                    <div className="text-green-800 flex items-center gap-1">
+                      {isMainRecommendation && <span>⭐</span>}
+                      <span>{formatBetType(aiRec.betType)}</span>
+                    </div>
                   </div>
                   <div>
                     <div className="text-green-600 font-medium">Prédiction</div>
-                    <div className="text-green-800">{aiRec.prediction}</div>
+                    <div className="text-green-800 flex items-center gap-1">
+                      <span>{aiRec.prediction}</span>
+                      {isConsensus && <span className="text-yellow-600 text-xs">({aiRec.detectionCount})</span>}
+                    </div>
                   </div>
                   <div>
                     <div className="text-green-600 font-medium">Cote</div>
@@ -173,15 +187,18 @@ export function AIRecommendationDisplay({ match, marketFilters, variant = 'compa
         <div className="space-y-4">
           {aiRecs.map((aiRec, index) => {
             const confidence = aiRec.confidenceScore || 75;
+            const isMainRecommendation = index === 0;
+            const isConsensus = aiRec.detectionCount && aiRec.detectionCount >= 3;
             
             return (
-              <div key={index} className={`${index > 0 ? 'pt-4 border-t border-green-300' : ''}`}>
+              <div key={index} className={`${index > 0 ? 'pt-4 border-t border-green-300' : ''} ${isMainRecommendation ? 'bg-gradient-to-r from-yellow-50 to-green-50 p-3 rounded-lg border border-yellow-300' : ''}`}>
                 <div className="flex items-center justify-between mb-2">
                   <Badge 
                     variant={getConfidenceColor(aiRec.confidence)}
-                    className="text-sm px-3 py-1"
+                    className={`text-sm px-3 py-1 ${isMainRecommendation ? 'ring-2 ring-yellow-400' : ''}`}
                   >
-                    {formatBetType(aiRec.betType)} {aiRec.prediction}
+                    {isMainRecommendation && '⭐'} {formatBetType(aiRec.betType)} {aiRec.prediction}
+                    {isConsensus && ` (${aiRec.detectionCount})`}
                   </Badge>
                   <div className="text-xl font-bold text-green-700">
                     {aiRec.odds.toFixed(2)}
