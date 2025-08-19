@@ -365,6 +365,7 @@ export function Archives() {
             onMatchClick={handleMatchClick}
             marketFilters={filters.marketFilters}
             matchRecommendations={matchRecommendations}
+            groupBy={filters.groupBy}
           />
         </div>
       )}
