@@ -14,6 +14,7 @@ import { Upload, RefreshCw, Calendar, CheckCircle, XCircle, Clock, Trash2, Users
 import { MatchesManagement } from '@/components/dashboard/MatchesManagement';
 import { PicksValidation } from '@/components/dashboard/PicksValidation';
 import { RulesManagement } from '@/components/dashboard/RulesManagement';
+import { CSVDataViewer } from '@/components/dashboard/CSVDataViewer';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -74,6 +75,13 @@ export function Admin() {
   
   // Tab State
   const [activeTab, setActiveTab] = useState('users');
+
+  // CSV Viewer State
+  const [csvViewerOpen, setCsvViewerOpen] = useState(false);
+  const [selectedCSVData, setSelectedCSVData] = useState<{
+    uploadDate: string;
+    filename: string;
+  } | null>(null);
 
   // Load data on component mount
   useEffect(() => {
@@ -436,6 +444,16 @@ export function Admin() {
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const openCSVViewer = (uploadDate: string, filename: string) => {
+    setSelectedCSVData({ uploadDate, filename });
+    setCsvViewerOpen(true);
+  };
+
+  const closeCsvViewer = () => {
+    setCsvViewerOpen(false);
+    setSelectedCSVData(null);
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -999,9 +1017,12 @@ export function Admin() {
                           {format(new Date(upload.upload_date), 'dd/MM/yyyy', { locale: fr })}
                         </TableCell>
                         <TableCell>
-                          <code className="text-sm bg-surface-soft px-2 py-1 rounded">
+                          <button
+                            className="text-sm bg-surface-soft px-2 py-1 rounded hover:bg-surface transition-colors cursor-pointer"
+                            onClick={() => openCSVViewer(upload.upload_date, upload.filename)}
+                          >
                             {upload.filename}
-                          </code>
+                          </button>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
@@ -1053,6 +1074,16 @@ export function Admin() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* CSV Data Viewer Modal */}
+      {selectedCSVData && (
+        <CSVDataViewer
+          isOpen={csvViewerOpen}
+          onClose={closeCsvViewer}
+          uploadDate={selectedCSVData.uploadDate}
+          filename={selectedCSVData.filename}
+        />
+      )}
     </div>
   );
 }
