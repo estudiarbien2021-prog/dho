@@ -220,11 +220,11 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
     );
   }
   
-  // Use pre-calculated recommendations if available, otherwise calculate on-the-fly
+  // Use pre-calculated recommendations if available (including empty arrays), otherwise calculate on-the-fly
   let allRecommendations: any[] = [];
   let prioritizedOpportunities: any[] = [];
 
-  if (preCalculatedRecommendations && preCalculatedRecommendations.length > 0) {
+  if (preCalculatedRecommendations !== undefined) {
     console.log('🔴 MODAL - UTILISATION DES RECOMMANDATIONS PRÉ-CALCULÉES:', preCalculatedRecommendations.length);
     allRecommendations = preCalculatedRecommendations;
     // For compatibility with existing code, we need to map back to opportunities structure
