@@ -196,6 +196,14 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     return overValue > underValue ? '+2,5 buts' : '-2,5 buts';
   };
 
+  // Helper function to safely format vigorish values
+  const formatVigorish = (vigorish: number | undefined | null) => {
+    if (vigorish === null || vigorish === undefined) {
+      return 'N/A';
+    }
+    return (vigorish * 100).toFixed(1) + '%';
+  };
+
   if (loading) {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -446,7 +454,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant={match.vig_1x2 < 0.06 ? "default" : "destructive"}>
-                    Vigorish: {(match.vig_1x2 * 100).toFixed(1)}%
+                    Vigorish: {formatVigorish(match.vig_1x2)}
                   </Badge>
                 </div>
               </div>
@@ -464,7 +472,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant={(match.vig_btts || 0) < 0.06 ? "default" : "destructive"}>
-                    Vigorish: {((match.vig_btts || 0) * 100).toFixed(1)}%
+                    Vigorish: {formatVigorish(match.vig_btts)}
                   </Badge>
                 </div>
               </div>
@@ -482,7 +490,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant={match.vig_ou_2_5 < 0.06 ? "default" : "destructive"}>
-                    Vigorish: {(match.vig_ou_2_5 * 100).toFixed(1)}%
+                    Vigorish: {formatVigorish(match.vig_ou_2_5)}
                   </Badge>
                 </div>
               </div>
