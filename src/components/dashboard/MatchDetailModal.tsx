@@ -44,7 +44,6 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
   const [loading, setLoading] = useState(true);
   const [chartLoading, setChartLoading] = useState<{ [key: string]: number }>({});
   const [allRuleEvaluations, setAllRuleEvaluations] = useState<any[]>([]);
-  const [allRules, setAllRules] = useState<any[]>([]);
 
   // Reset AI graphics when modal closes
   useEffect(() => {
@@ -73,7 +72,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
     }
   }, [isOpen]);
 
-  // Load all rules and opportunities when modal opens
+  // Load opportunities when modal opens
   useEffect(() => {
     const loadOpportunities = async () => {
       if (!match) return;
@@ -81,11 +80,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
       try {
         setLoading(true);
         
-        // Load all rules for complete display
-        const allRulesData = await conditionalRulesService.getRules();
-        setAllRules(allRulesData);
-        
-        // Always evaluate all rules for debug section
+        // Evaluate rules for debug section
         const ruleContext = {
           vigorish_1x2: match.vig_1x2,
           vigorish_btts: match.vig_btts || 0,
@@ -109,26 +104,6 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
         const ruleResults = await conditionalRulesService.evaluateRules(ruleContext);
         setAllRuleEvaluations(ruleResults);
         
-        // DEBUG TEMPORAIRE - Vérifier les résultats des règles
-        console.log('🔍 DEBUG MODAL - NOMBRE DE RÈGLES ÉVALUÉES:', ruleResults.length);
-        console.log('🔍 DEBUG MODAL - RÈGLES AVEC CONDITIONS REMPLIES:', 
-          ruleResults.filter(r => r.conditionsMet).length);
-        console.log('🔍 DEBUG MODAL - DÉTAIL DES RÈGLES VALIDÉES:', 
-          ruleResults.filter(r => r.conditionsMet).map(r => ({ 
-            name: r.ruleName, 
-            market: r.market, 
-            action: r.action, 
-            priority: r.priority,
-            conditionsMet: r.conditionsMet 
-          })));
-        console.log('🔍 DEBUG MODAL - TOUTES LES RÈGLES:', 
-          ruleResults.map(r => ({ 
-            name: r.ruleName, 
-            market: r.market, 
-            conditionsMet: r.conditionsMet, 
-            action: r.action 
-          })));
-        
         // Use pre-calculated recommendations if available
         if (preCalculatedRecommendations) {
           setLoading(false);
@@ -142,7 +117,6 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
         console.error('Error loading opportunities:', error);
         setOpportunities([]);
         setAllRuleEvaluations([]);
-        setAllRules([]);
       } finally {
         setLoading(false);
       }
@@ -345,42 +319,28 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
     }
   };
 
-  // Helper functions to format rule descriptions
-  const formatConditionDescription = (condition: any) => {
-    const conditionLabel = CONDITION_LABELS[condition.type] || condition.type;
-    const operatorLabel = OPERATOR_LABELS[condition.operator] || condition.operator;
+  // Helper function to format validated rule descriptions from RuleEvaluationResult
+  const formatValidatedRuleDescription = (ruleEvaluation: any) => {
+    if (!ruleEvaluation) return 'Règle inconnue';
     
-    if (condition.operator === 'between') {
-      return `${conditionLabel} ${operatorLabel} ${condition.value} et ${condition.secondValue}`;
+    const marketLabel = MARKET_LABELS[ruleEvaluation.market] || ruleEvaluation.market;
+    const actionLabel = ACTION_LABELS[ruleEvaluation.action] || ruleEvaluation.action;
+    
+    // Use evaluation details if available, otherwise construct basic description
+    if (ruleEvaluation.evaluationDetails) {
+      return `Si ${ruleEvaluation.evaluationDetails} → ${actionLabel}`;
     } else {
-      return `${conditionLabel} ${operatorLabel} ${condition.value}${condition.type.includes('probability') ? '%' : ''}`;
+      return `Marché ${marketLabel} → ${actionLabel}`;
     }
   };
 
-  const formatRuleDescription = (rule: any) => {
-    if (!rule || !rule.conditions) return 'Règle incomplète';
-    
-    const conditions = rule.conditions.map(formatConditionDescription);
-    const connectors = rule.logicalConnectors || [];
-    
-    let description = 'Si ';
-    for (let i = 0; i < conditions.length; i++) {
-      description += conditions[i];
-      if (i < connectors.length) {
-        description += ` ${connectors[i]} `;
-      }
+  const getMarketBadgeColor = (market: string) => {
+    switch (market) {
+      case '1x2': return 'bg-blue-100 text-blue-700';
+      case 'btts': return 'bg-green-100 text-green-700';
+      case 'ou25': return 'bg-orange-100 text-orange-700';
+      default: return 'bg-gray-100 text-gray-700';
     }
-    
-    const actionLabel = ACTION_LABELS[rule.action] || rule.action;
-    description += ` → ${actionLabel}`;
-    
-    return description;
-  };
-
-  const isRuleValidated = (rule: any) => {
-    return allRuleEvaluations.some(evaluation => 
-      evaluation && evaluation.rule && evaluation.rule.id === rule.id && evaluation.conditionsMet
-    );
   };
 
   return (
@@ -502,96 +462,73 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
             </Card>
           )}
 
-          {/* Debug Information */}
-          <Card className="p-4 bg-blue-50">
-            <h3 className="font-semibold mb-4 text-blue-800">🔍 Debug - Traçabilité des recommandations</h3>
+          {/* Debug Information - Règles validées et recommandations générées */}
+          <Card className="p-4 bg-green-50">
+            <h3 className="font-semibold mb-4 text-green-800 flex items-center gap-2">
+              🔍 Debug - Règles validées et recommandations générées
+            </h3>
             
-            {/* Pipeline Statistics */}
+            {/* Statistiques simplifiées */}
             <div className="mb-6 p-3 bg-white/50 rounded-lg">
-              <h4 className="font-semibold mb-2 text-blue-700">📊 Statistiques du Pipeline</h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+              <h4 className="font-semibold mb-2 text-green-700">📊 Statistiques d'évaluation</h4>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-xs">
                 <div className="text-center">
                   <div className="text-lg font-bold text-blue-800">{allRuleEvaluations.length}</div>
-                  <div className="text-blue-600">Règles Totales</div>
+                  <div className="text-blue-600">Règles évaluées</div>
                 </div>
                 <div className="text-center">
                   <div className="text-lg font-bold text-green-600">{allRuleEvaluations.filter(r => r && r.conditionsMet).length}</div>
-                  <div className="text-green-600">Validées (✅)</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-lg font-bold text-red-600">{allRuleEvaluations.filter(r => r && !r.conditionsMet).length}</div>
-                  <div className="text-red-600">Échouées (❌)</div>
+                  <div className="text-green-600">Règles validées ✅</div>
                 </div>
                 <div className="text-center">
                   <div className="text-lg font-bold text-purple-600">{allRecommendations.length}</div>
-                  <div className="text-purple-600">Recommandations Finales</div>
+                  <div className="text-purple-600">Recommandations finales</div>
                 </div>
               </div>
-              <div className="mt-2 text-xs text-blue-700">
+              <div className="mt-2 text-xs text-green-700">
                 <strong>Source:</strong> {preCalculatedRecommendations ? 'Pré-calculées' : 'Calculées à la volée'}
               </div>
             </div>
 
-            {/* Liste complète des règles évaluées */}
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <h4 className="font-semibold mb-3 text-blue-700">📋 Liste complète des règles évaluées</h4>
-              <div className="text-xs text-blue-600 mb-3">
-                Total règles: {allRules.length} | 
-                Activées: {allRules.filter(r => r.enabled).length} | 
-                Désactivées: {allRules.filter(r => !r.enabled).length} | 
-                Validées: {allRuleEvaluations.filter(r => r && r.conditionsMet && r.rule).length}
-              </div>
-              
-              {allRules.length > 0 ? (
-                <div className="space-y-2 max-h-80 overflow-y-auto">
-                  {allRules
+            {/* Liste des règles validées uniquement */}
+            {allRuleEvaluations.filter(r => r && r.conditionsMet).length > 0 ? (
+              <div className="mb-4">
+                <h4 className="font-semibold mb-3 text-green-700 flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4" />
+                  Règles validées qui ont déclenché des recommandations ({allRuleEvaluations.filter(r => r && r.conditionsMet).length})
+                </h4>
+                <div className="space-y-3">
+                  {allRuleEvaluations
+                    .filter(r => r && r.conditionsMet)
                     .sort((a, b) => (a.priority || 0) - (b.priority || 0))
-                    .map((rule, index) => {
-                      const isValidated = isRuleValidated(rule);
-                      const isEnabled = rule.enabled;
-                      
-                      let bgColor = 'bg-gray-50 border-gray-200';
-                      let textColor = 'text-gray-700';
-                      let statusIcon = '❌';
-                      
-                      if (!isEnabled) {
-                        bgColor = 'bg-orange-50 border-orange-200';
-                        textColor = 'text-orange-700';
-                        statusIcon = '🔴';
-                      } else if (isValidated) {
-                        bgColor = 'bg-green-50 border-green-200';
-                        textColor = 'text-green-700';
-                        statusIcon = '✅';
-                      }
+                    .map((ruleEvaluation, index) => {
+                      const marketLabel = MARKET_LABELS[ruleEvaluation.market] || ruleEvaluation.market;
                       
                       return (
-                        <div key={rule.id || index} className={`p-3 rounded-lg border ${bgColor}`}>
+                        <div key={`validated-${index}`} className="p-4 bg-green-100 border border-green-300 rounded-lg">
                           <div className="flex items-start gap-3">
-                            <span className="text-lg flex-shrink-0 mt-0.5">{statusIcon}</span>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <Badge variant="outline" className={`text-xs ${
-                                  !isEnabled ? 'bg-orange-100 text-orange-700' :
-                                  isValidated ? 'bg-green-100 text-green-700' : 
-                                  'bg-gray-100 text-gray-700'
-                                }`}>
-                                  {MARKET_LABELS[rule.market] || rule.market}
+                            <span className="text-green-600 mt-0.5 text-lg">✅</span>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Badge variant="outline" className={`text-xs ${getMarketBadgeColor(ruleEvaluation.market)}`}>
+                                  {marketLabel}
                                 </Badge>
-                                <Badge variant={isEnabled ? "default" : "secondary"} className="text-xs">
-                                  {isEnabled ? 'Activée' : 'Désactivée'}
-                                </Badge>
-                                <Badge variant="outline" className="text-xs">
-                                  Priorité {rule.priority || 0}
+                                <Badge variant="secondary" className="text-xs">
+                                  Priorité {ruleEvaluation.priority || 0}
                                 </Badge>
                               </div>
                               
-                              <div className={`text-sm font-medium mb-1 ${textColor}`}>
-                                {formatRuleDescription(rule)}
+                              <div className="text-sm font-medium text-green-800">
+                                <strong>Règle :</strong> {ruleEvaluation.ruleName || 'Règle sans nom'}
                               </div>
                               
-                              {rule.name && (
-                                <div className="text-xs text-muted-foreground">
-                                  <strong>Nom:</strong> {rule.name}
+                              <div className="text-sm text-green-700 mt-1">
+                                <strong>Description complète :</strong> {formatValidatedRuleDescription(ruleEvaluation)}
+                              </div>
+                              
+                              {ruleEvaluation.evaluationDetails && (
+                                <div className="text-xs text-green-600 mt-2 p-2 bg-white/50 rounded">
+                                  <strong>Détails :</strong> {ruleEvaluation.evaluationDetails}
                                 </div>
                               )}
                             </div>
@@ -600,69 +537,30 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
                       );
                     })}
                 </div>
-              ) : (
-                <p className="text-sm text-gray-600 italic">Aucune règle trouvée</p>
-              )}
-            </div>
-
-            {/* Validated Rules Section */}
-            {allRuleEvaluations.filter(r => r && r.conditionsMet && r.rule).length > 0 ? (
-              <div className="mb-4">
-                <h4 className="font-semibold mb-3 text-green-700 flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4" />
-                  Règles Validées - {allRuleEvaluations.filter(r => r && r.conditionsMet && r.rule).length} détectée{allRuleEvaluations.filter(r => r && r.conditionsMet && r.rule).length > 1 ? 's' : ''}
-                </h4>
-                <div className="space-y-2">
-                  {allRuleEvaluations
-                    .filter(r => r && r.conditionsMet && r.rule)
-                    .sort((a, b) => (a.rule?.priority || 0) - (b.rule?.priority || 0))
-                    .map((ruleEvaluation, index) => {
-                      const rule = ruleEvaluation.rule;
-                      const marketDisplay = rule?.market === 'ou25' ? '2,5 buts' : 
-                                          rule?.market === 'btts' ? 'BTTS' : 
-                                          rule?.market === '1x2' ? '1X2' : rule?.market?.toUpperCase() || 'N/A';
-                      
-                      return (
-                        <div key={`validated-${index}`} className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                          <div className="flex items-start gap-2">
-                            <span className="text-green-600 mt-0.5">✅</span>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <Badge variant="outline" className="text-xs bg-green-100 text-green-700">
-                                  {marketDisplay}
-                                </Badge>
-                                <Badge variant="secondary" className="text-xs">
-                                  Priorité {rule?.priority || 0}
-                                </Badge>
-                              </div>
-                              <div className="text-sm text-green-800">
-                                {formatRuleDescription(rule)}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                </div>
               </div>
             ) : (
-              <div className="mb-4">
-                <h4 className="font-semibold mb-2 text-gray-600">Règles Validées</h4>
-                <p className="text-sm text-gray-500 italic">Aucune règle n'a été validée pour ce match</p>
+              <div className="mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                <h4 className="font-semibold mb-2 text-gray-600 flex items-center gap-2">
+                  <XCircle className="h-4 w-4" />
+                  Aucune règle validée
+                </h4>
+                <p className="text-sm text-gray-500 italic">
+                  Aucune règle n'a été validée pour ce match. Toutes les règles évaluées ont échoué aux conditions définies.
+                </p>
               </div>
             )}
 
-            {/* Legacy Debug Info */}
+            {/* Détails techniques (seulement si calculé à la volée) */}
             {!preCalculatedRecommendations && opportunities.length > 0 && (
               <div className="mt-4 p-3 bg-white/30 rounded-lg">
-                <h5 className="font-semibold mb-2 text-blue-700 text-xs">🔧 Détails Techniques</h5>
-                <div className="space-y-1 text-xs text-blue-600">
+                <h5 className="font-semibold mb-2 text-green-700 text-xs">🔧 Détails techniques du pipeline</h5>
+                <div className="space-y-1 text-xs text-green-600">
                   <div><strong>Opportunités brutes détectées:</strong> {opportunities.length}</div>
                   <div><strong>Après priorisation:</strong> {(() => {
                     const prioritizedOpportunities = prioritizeOpportunitiesByRealProbability(opportunities, match);
                     return prioritizedOpportunities.length;
                   })()}</div>
-                  <div><strong>Affichées finalement:</strong> {allRecommendations.length}</div>
+                  <div><strong>Recommandations affichées:</strong> {allRecommendations.length}</div>
                 </div>
               </div>
             )}
