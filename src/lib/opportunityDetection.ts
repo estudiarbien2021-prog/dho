@@ -276,6 +276,8 @@ function getLeastProbablePrediction(market: string, context: RuleEvaluationConte
     const probYes = context.probability_btts_yes || 0;
     const probNo = context.probability_btts_no || 0;
     console.log(`🎯 BTTS probabilities: Yes=${probYes}, No=${probNo}`);
+    // CORRECTION: Pour "least probable", si probYes < probNo, alors "Oui" est moins probable
+    // donc on recommande "Oui" (pari contre la tendance)
     return probYes < probNo ? 'Oui' : 'Non';
   }
   

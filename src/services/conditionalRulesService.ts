@@ -209,6 +209,18 @@ class ConditionalRulesService {
     if (conditions.length === 0) return false;
     if (conditions.length === 1) return this.evaluateCondition(conditions[0], context, ruleMarket);
 
+    // VALIDATION: Vérifier que le nombre de connecteurs est correct
+    const expectedConnectors = conditions.length - 1;
+    if (connectors.length !== expectedConnectors) {
+      console.log(`⚠️ ERREUR CONNECTEURS: ${connectors.length} connecteurs pour ${conditions.length} conditions (attendu: ${expectedConnectors})`);
+      // Fallback sécurisé : utiliser AND par défaut pour les connecteurs manquants
+      const safeConnectors = [...connectors];
+      while (safeConnectors.length < expectedConnectors) {
+        safeConnectors.push('AND');
+      }
+      connectors = safeConnectors.slice(0, expectedConnectors);
+    }
+
     let result = this.evaluateCondition(conditions[0], context, ruleMarket);
 
     for (let i = 1; i < conditions.length; i++) {
