@@ -466,6 +466,25 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
               </div>
             </div>
 
+            {/* Liste simple des règles validées */}
+            {allRuleEvaluations.filter(r => r && r.conditionsMet && r.rule).length > 0 && (
+              <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <h4 className="font-semibold mb-2 text-green-700">✅ Libellés des règles validées:</h4>
+                <ul className="list-disc list-inside text-sm text-green-700 space-y-1">
+                  {allRuleEvaluations
+                    .filter(r => r && r.conditionsMet && r.rule)
+                    .map((rule, index) => (
+                      <li key={`label-${index}`}>
+                        <span className="font-medium">{rule.rule?.name || 'Règle sans nom'}</span>
+                        <span className="text-xs text-green-600 ml-2">
+                          ({rule.rule?.market?.toUpperCase() || 'N/A'} - Priorité {rule.rule?.priority || 0})
+                        </span>
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            )}
+
             {/* Validated Rules Section */}
             {allRuleEvaluations.filter(r => r && r.conditionsMet && r.rule).length > 0 && (
               <div className="mb-4">
