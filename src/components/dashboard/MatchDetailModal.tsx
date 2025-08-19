@@ -493,30 +493,26 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
             {/* Liste des règles validées uniquement */}
             {allRuleEvaluations.filter(r => r && r.conditionsMet).length > 0 ? (
               <div className="mb-4">
-                <h4 className="font-semibold mb-3 text-green-700 flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4" />
-                  Règles validées qui ont déclenché des recommandations ({allRuleEvaluations.filter(r => r && r.conditionsMet).length})
+                <h4 className="font-semibold mb-2 text-green-700 flex items-center gap-2 text-sm">
+                  <CheckCircle className="h-3 w-3" />
+                  Règles validées ({allRuleEvaluations.filter(r => r && r.conditionsMet).length})
                 </h4>
-                <div className="space-y-1">
+                <div className="p-3 bg-green-50 border border-green-200 rounded text-xs leading-relaxed">
                   {allRuleEvaluations
                     .filter(r => r && r.conditionsMet)
                     .sort((a, b) => (a.priority || 0) - (b.priority || 0))
                     .map((ruleEvaluation, index) => {
                       const marketLabel = MARKET_LABELS[ruleEvaluation.market] || ruleEvaluation.market;
-                      
                       return (
-                        <div key={`validated-${index}`} className="p-2 bg-green-100 border border-green-300 rounded flex items-center gap-2 text-sm">
-                          <span className="text-green-600">✅</span>
-                          <Badge variant="outline" className={`text-xs ${getMarketBadgeColor(ruleEvaluation.market)}`}>
-                            {marketLabel}
-                          </Badge>
-                          <Badge variant="secondary" className="text-xs">
-                            P{ruleEvaluation.priority || 0}
-                          </Badge>
-                          <span className="text-green-700 flex-1">
-                            {formatValidatedRuleDescription(ruleEvaluation)}
+                        <span key={`validated-${index}`} className="mr-2">
+                          <span className="inline-flex items-center gap-1">
+                            <span className="text-green-600">✅</span>
+                            <span className="font-medium text-green-800">{marketLabel}</span>
+                            <span className="text-gray-600">(P{ruleEvaluation.priority || 0})</span>
+                            <span className="text-green-700">{formatValidatedRuleDescription(ruleEvaluation)}</span>
                           </span>
-                        </div>
+                          {index < allRuleEvaluations.filter(r => r && r.conditionsMet).length - 1 && <span className="text-gray-400"> • </span>}
+                        </span>
                       );
                     })}
                 </div>
