@@ -18,6 +18,9 @@ export async function detectOpportunities(match: ProcessedMatch): Promise<Detect
     btts_vigorish: `${(match.vig_btts * 100).toFixed(1)}%`,
     btts_prob_yes: `${(match.p_btts_yes_fair * 100).toFixed(1)}%`,
     btts_prob_no: `${(match.p_btts_no_fair * 100).toFixed(1)}%`,
+    ou25_vigorish: `${(match.vig_ou_2_5 * 100).toFixed(1)}%`,
+    ou25_prob_over: `${(match.p_over_2_5_fair * 100).toFixed(1)}%`,
+    ou25_prob_under: `${(match.p_under_2_5_fair * 100).toFixed(1)}%`,
     match_id: match.id
   });
   
@@ -47,7 +50,12 @@ export async function detectOpportunities(match: ProcessedMatch): Promise<Detect
     btts_prob_yes_decimal: context.probability_btts_yes,
     btts_prob_no_decimal: context.probability_btts_no,
     btts_odds_yes: context.odds_btts_yes,
-    btts_odds_no: context.odds_btts_no
+    btts_odds_no: context.odds_btts_no,
+    ou25_vigorish_decimal: context.vigorish_ou25,
+    ou25_prob_over_decimal: context.probability_over25,
+    ou25_prob_under_decimal: context.probability_under25,
+    ou25_odds_over: context.odds_over25,
+    ou25_odds_under: context.odds_under25
   });
 
   // Evaluate conditional rules

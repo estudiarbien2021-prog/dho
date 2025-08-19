@@ -117,6 +117,7 @@ class ConditionalRulesService {
     console.log('  📋 Total des règles:', allRules.length);
     console.log('  ✅ Règles activées:', enabledRules.length);
     console.log('  🎯 FOCUS RÈGLES BTTS:', enabledRules.filter(r => r.market === 'btts').length, 'règles BTTS configurées');
+    console.log('  🎯 FOCUS RÈGLES O/U 2.5:', enabledRules.filter(r => r.market === 'ou25').length, 'règles O/U 2.5 configurées');
     console.log('  📊 Contexte d\'évaluation:', {
       vig_1x2: (context.vigorish_1x2 * 100).toFixed(2) + '%',
       vig_btts: (context.vigorish_btts * 100).toFixed(2) + '%',
@@ -125,14 +126,26 @@ class ConditionalRulesService {
       prob_draw: (context.probability_draw * 100).toFixed(1) + '%',
       prob_away: (context.probability_away * 100).toFixed(1) + '%',
       prob_btts_yes: (context.probability_btts_yes * 100).toFixed(1) + '%',
-      prob_btts_no: (context.probability_btts_no * 100).toFixed(1) + '%'
+      prob_btts_no: (context.probability_btts_no * 100).toFixed(1) + '%',
+      prob_over25: (context.probability_over25 * 100).toFixed(1) + '%',
+      prob_under25: (context.probability_under25 * 100).toFixed(1) + '%'
     });
     
-    // ÉTAPE DE VÉRIFICATION CRITIQUE: Examiner spécifiquement les règles BTTS
+    // ÉTAPE DE VÉRIFICATION CRITIQUE: Examiner spécifiquement les règles BTTS et O/U 2.5
     const bttsRules = enabledRules.filter(r => r.market === 'btts');
+    const ou25Rules = enabledRules.filter(r => r.market === 'ou25');
+    
     console.log('📋 ANALYSE DÉTAILLÉE RÈGLES BTTS:');
     bttsRules.forEach(rule => {
       console.log(`  🔍 Règle BTTS: "${rule.name}"`);
+      console.log(`    Conditions: ${JSON.stringify(rule.conditions)}`);
+      console.log(`    Action: ${rule.action}`);
+      console.log(`    Priorité: ${rule.priority}`);
+    });
+
+    console.log('📋 ANALYSE DÉTAILLÉE RÈGLES O/U 2.5:');
+    ou25Rules.forEach(rule => {
+      console.log(`  🔍 Règle O/U 2.5: "${rule.name}"`);
       console.log(`    Conditions: ${JSON.stringify(rule.conditions)}`);
       console.log(`    Action: ${rule.action}`);
       console.log(`    Priorité: ${rule.priority}`);
@@ -156,6 +169,34 @@ class ConditionalRulesService {
         console.log(`      Conditions respectées: ${conditionsMet ? 'OUI' : 'NON'}`);
         if (!conditionsMet) {
           console.log(`      ⚠️ Cette règle BTTS NE GÉNÈRERA PAS de recommandation`);
+        }
+      }
+
+      // ANALYSE SPÉCIFIQUE POUR O/U 2.5 (RÈGLE 17 FOCUS)
+      if (rule.market === 'ou25') {
+        console.log(`    🎯 DÉTAIL O/U 2.5 - Règle "${rule.name}" (ID: ${rule.id}):`);
+        console.log(`      Vigorish actuel: ${(context.vigorish_ou25 * 100).toFixed(1)}%`);
+        console.log(`      Prob Over 2.5: ${(context.probability_over25 * 100).toFixed(1)}%`);
+        console.log(`      Prob Under 2.5: ${(context.probability_under25 * 100).toFixed(1)}%`);
+        console.log(`      Conditions respectées: ${conditionsMet ? 'OUI' : 'NON'}`);
+        
+        // Vérification spéciale pour la règle 17
+        if (rule.name === 'Si Vigorish (%) > 7.9% ET Probabilité Over 2.5 (%) > 51.9% OU Probabilité Under 2.5 (%) > 51.9% → Recommander le moins probable' || 
+            rule.priority === 17) {
+          console.log(`      🚨 RÈGLE 17 DÉTECTÉE ! Analyse détaillée:`);
+          console.log(`        - Vigorish O/U 2.5: ${(context.vigorish_ou25 * 100).toFixed(1)}% > 7.9% ? ${context.vigorish_ou25 > 0.079 ? 'OUI ✓' : 'NON ✗'}`);
+          console.log(`        - Prob Over 2.5: ${(context.probability_over25 * 100).toFixed(1)}% > 51.9% ? ${context.probability_over25 > 0.519 ? 'OUI ✓' : 'NON ✗'}`);
+          console.log(`        - Prob Under 2.5: ${(context.probability_under25 * 100).toFixed(1)}% > 51.9% ? ${context.probability_under25 > 0.519 ? 'OUI ✓' : 'NON ✗'}`);
+          console.log(`        - RÈGLE 17 DEVRAIT S'APPLIQUER: ${conditionsMet ? '✅ OUI' : '❌ NON'}`);
+          
+          if (conditionsMet) {
+            const leastProbable = context.probability_over25 < context.probability_under25 ? 'Over 2.5 (+2,5 buts)' : 'Under 2.5 (-2,5 buts)';
+            console.log(`        - RECOMMANDATION ATTENDUE: ${leastProbable}`);
+          }
+        }
+        
+        if (!conditionsMet) {
+          console.log(`      ⚠️ Cette règle O/U 2.5 NE GÉNÈRERA PAS de recommandation`);
         }
       }
       
