@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,7 +49,7 @@ export function CSVDataViewer({ isOpen, onClose, uploadDate, filename }: CSVData
       if (data && data.length > 0) {
         // Convertir les données de la base vers un format CSV brut
         const rawData: CSVRow[] = data.map((match) => ({
-          id: String(match.id),
+          id: String(match.id || ''),
           league: String(match.league || ''),
           home_team: String(match.home_team || ''),
           away_team: String(match.away_team || ''),
@@ -130,7 +129,7 @@ export function CSVDataViewer({ isOpen, onClose, uploadDate, filename }: CSVData
           odds_over_2_5: parseFloat(editData.odds_over_2_5) || null,
           odds_under_2_5: parseFloat(editData.odds_under_2_5) || null,
         })
-        .eq('id', parseInt(rowId));
+        .eq('id', parseInt(String(rowId)));
 
       if (error) throw error;
 
@@ -164,7 +163,7 @@ export function CSVDataViewer({ isOpen, onClose, uploadDate, filename }: CSVData
       const { error } = await supabase
         .from('matches')
         .delete()
-        .eq('id', parseInt(rowId));
+        .eq('id', parseInt(String(rowId)));
 
       if (error) throw error;
 
