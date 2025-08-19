@@ -538,11 +538,8 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
     return b.odds - a.odds;
   });
 
-  // Trier les opportunités normales par priorité (croissant) puis par cotes (décroissant)
+  // Trier les opportunités normales par cotes décroissantes uniquement (peu importe l'ordre de priorisation)
   normalOpportunities.sort((a, b) => {
-    if (a.priority !== b.priority) {
-      return a.priority - b.priority;
-    }
     return b.odds - a.odds;
   });
   
