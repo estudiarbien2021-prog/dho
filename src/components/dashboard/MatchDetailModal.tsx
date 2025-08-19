@@ -497,7 +497,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
                   <CheckCircle className="h-4 w-4" />
                   Règles validées qui ont déclenché des recommandations ({allRuleEvaluations.filter(r => r && r.conditionsMet).length})
                 </h4>
-                <div className="space-y-3">
+                <div className="space-y-1">
                   {allRuleEvaluations
                     .filter(r => r && r.conditionsMet)
                     .sort((a, b) => (a.priority || 0) - (b.priority || 0))
@@ -505,34 +505,20 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
                       const marketLabel = MARKET_LABELS[ruleEvaluation.market] || ruleEvaluation.market;
                       
                       return (
-                        <div key={`validated-${index}`} className="p-4 bg-green-100 border border-green-300 rounded-lg">
-                          <div className="flex items-start gap-3">
-                            <span className="text-green-600 mt-0.5 text-lg">✅</span>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <Badge variant="outline" className={`text-xs ${getMarketBadgeColor(ruleEvaluation.market)}`}>
-                                  {marketLabel}
-                                </Badge>
-                                <Badge variant="secondary" className="text-xs">
-                                  Priorité {ruleEvaluation.priority || 0}
-                                </Badge>
-                              </div>
-                              
-                              <div className="text-sm font-medium text-green-800">
-                                <strong>Règle :</strong> {ruleEvaluation.ruleName || 'Règle sans nom'}
-                              </div>
-                              
-                              <div className="text-sm text-green-700 mt-1">
-                                <strong>Description complète :</strong> {formatValidatedRuleDescription(ruleEvaluation)}
-                              </div>
-                              
-                              {ruleEvaluation.evaluationDetails && (
-                                <div className="text-xs text-green-600 mt-2 p-2 bg-white/50 rounded">
-                                  <strong>Détails :</strong> {ruleEvaluation.evaluationDetails}
-                                </div>
-                              )}
-                            </div>
-                          </div>
+                        <div key={`validated-${index}`} className="p-2 bg-green-100 border border-green-300 rounded flex items-center gap-2 text-sm">
+                          <span className="text-green-600">✅</span>
+                          <Badge variant="outline" className={`text-xs ${getMarketBadgeColor(ruleEvaluation.market)}`}>
+                            {marketLabel}
+                          </Badge>
+                          <Badge variant="secondary" className="text-xs">
+                            P{ruleEvaluation.priority || 0}
+                          </Badge>
+                          <span className="font-medium text-green-800 truncate">
+                            {ruleEvaluation.ruleName || "Règle sans nom"}
+                          </span>
+                          <span className="text-green-700 flex-1 truncate">
+                            {formatValidatedRuleDescription(ruleEvaluation)}
+                          </span>
                         </div>
                       );
                     })}
