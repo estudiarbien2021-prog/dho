@@ -231,6 +231,31 @@ class ConditionalRulesService {
     if (conditions.length === 0) return false;
     if (conditions.length === 1) return this.evaluateCondition(conditions[0], context, ruleMarket);
 
+    // DEBUG SPÉCIAL POUR RÈGLE 17 - ÉVALUATION DÉTAILLÉE
+    const isRule17Context = conditions.some(c => 
+      c.type === 'vigorish' && c.value === 0.079 && 
+      conditions.some(c2 => c2.type === 'probability_over25' && c2.value === 0.519)
+    );
+    
+    if (isRule17Context) {
+      console.log('🚨🚨🚨 ÉVALUATION RÈGLE 17 - STEP BY STEP:');
+      console.log('  📊 Contexte reçu:', {
+        vigorish_ou25: context.vigorish_ou25,
+        probability_over25: context.probability_over25,
+        probability_under25: context.probability_under25
+      });
+      console.log('  📋 Conditions à évaluer:', conditions.length);
+      conditions.forEach((cond, i) => {
+        console.log(`    Condition ${i + 1}:`, {
+          type: cond.type,
+          operator: cond.operator, 
+          value: cond.value,
+          expected: `${cond.type} ${cond.operator} ${cond.value}`
+        });
+      });
+      console.log('  🔗 Connecteurs:', connectors);
+    }
+
     // VALIDATION: Vérifier que le nombre de connecteurs est correct
     const expectedConnectors = conditions.length - 1;
     if (connectors.length !== expectedConnectors) {
@@ -244,16 +269,34 @@ class ConditionalRulesService {
     }
 
     let result = this.evaluateCondition(conditions[0], context, ruleMarket);
+    
+    if (isRule17Context) {
+      console.log(`  🎯 Résultat condition 1: ${result}`);
+    }
 
     for (let i = 1; i < conditions.length; i++) {
       const conditionResult = this.evaluateCondition(conditions[i], context, ruleMarket);
       const connector = connectors[i - 1];
+      
+      if (isRule17Context) {
+        console.log(`  🎯 Résultat condition ${i + 1}: ${conditionResult}`);
+        console.log(`  🔗 Connecteur utilisé: ${connector}`);
+        console.log(`  📊 Résultat précédent: ${result}`);
+      }
 
       if (connector === 'AND') {
         result = result && conditionResult;
       } else if (connector === 'OR') {
         result = result || conditionResult;
       }
+      
+      if (isRule17Context) {
+        console.log(`  ➡️ Nouveau résultat après ${connector}: ${result}`);
+      }
+    }
+    
+    if (isRule17Context) {
+      console.log(`🚨🚨🚨 RÈGLE 17 - RÉSULTAT FINAL: ${result ? '✅ TOUTES CONDITIONS RESPECTÉES' : '❌ AU MOINS UNE CONDITION NON RESPECTÉE'}`);
     }
 
     return result;
