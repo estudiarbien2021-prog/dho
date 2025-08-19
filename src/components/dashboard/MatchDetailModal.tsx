@@ -450,7 +450,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
                 </div>
 
                 {/* Summary Stats */}
-                <div className="mt-4 p-3 bg-muted/30 rounded-lg">
+                <div className="mt-4 p-3 bg-muted/30 rounded-lg hidden">
                   <div className="text-sm text-muted-foreground">
                     <strong>Résumé:</strong> {allRecommendations.length} recommandation{allRecommendations.length > 1 ? 's' : ''} détectée{allRecommendations.length > 1 ? 's' : ''} et affichée{allRecommendations.length > 1 ? 's' : ''} • {opportunities.length} opportunité{opportunities.length > 1 ? 's' : ''} brute{opportunities.length > 1 ? 's' : ''} analysée{opportunities.length > 1 ? 's' : ''}
                     {allRecommendations.some(r => r.isInverted) && (
