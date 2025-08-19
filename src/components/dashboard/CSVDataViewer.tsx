@@ -1,42 +1,17 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "@/hooks/use-toast";
-import { Trash2, Edit, Save, X, Loader2 } from "lucide-react";
+import { Trash2, Edit, Save, X, Loader2, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
 
-interface Match {
-  id: string;
-  match_date: string;
-  league: string;
-  home_team: string;
-  away_team: string;
-  country: string;
-  kickoff_utc: string;
-  odds_home: number;
-  odds_draw: number;
-  odds_away: number;
-  odds_btts_yes: number;
-  odds_btts_no: number;
-  odds_over_2_5: number;
-  odds_under_2_5: number;
-  p_home_fair: number;
-  p_draw_fair: number;
-  p_away_fair: number;
-  p_btts_yes_fair: number;
-  p_btts_no_fair: number;
-  p_over_2_5_fair: number;
-  p_under_2_5_fair: number;
-  vig_1x2: number;
-  vig_btts: number;
-  vig_ou_2_5: number;
-  ai_prediction?: string;
-  ai_confidence?: number;
+interface CSVRow {
+  [key: string]: string | number;
 }
 
 interface CSVDataViewerProps {
@@ -47,21 +22,23 @@ interface CSVDataViewerProps {
 }
 
 export function CSVDataViewer({ isOpen, onClose, uploadDate, filename }: CSVDataViewerProps) {
-  const [matches, setMatches] = useState<Match[]>([]);
+  const [csvData, setCsvData] = useState<CSVRow[]>([]);
+  const [headers, setHeaders] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editData, setEditData] = useState<Partial<Match>>({});
-  const [deleting, setDeleting] = useState<string | null>(null);
+  const [editingRowIndex, setEditingRowIndex] = useState<number | null>(null);
+  const [editData, setEditData] = useState<CSVRow>({});
+  const [deleting, setDeleting] = useState<number | null>(null);
 
   useEffect(() => {
     if (isOpen) {
-      loadMatches();
+      loadRawCSVData();
     }
   }, [isOpen, uploadDate]);
 
-  const loadMatches = async () => {
+  const loadRawCSVData = async () => {
     setLoading(true);
     try {
+      // Récupérer toutes les données brutes du CSV pour cette date
       const { data, error } = await supabase
         .from('matches')
         .select('*')
@@ -69,11 +46,51 @@ export function CSVDataViewer({ isOpen, onClose, uploadDate, filename }: CSVData
         .order('kickoff_utc');
 
       if (error) throw error;
-      setMatches(data || []);
+
+      if (data && data.length > 0) {
+        // Convertir les données de la base vers un format CSV brut
+        const rawData: CSVRow[] = data.map((match, index) => ({
+          id: match.id,
+          league: match.league || '',
+          home_team: match.home_team || '',
+          away_team: match.away_team || '',
+          match_date: match.match_date || '',
+          country: match.country || '',
+          kickoff_utc: match.kickoff_utc || '',
+          odds_home: match.odds_home || '',
+          odds_draw: match.odds_draw || '',
+          odds_away: match.odds_away || '',
+          odds_btts_yes: match.odds_btts_yes || '',
+          odds_btts_no: match.odds_btts_no || '',
+          odds_over_2_5: match.odds_over_2_5 || '',
+          odds_under_2_5: match.odds_under_2_5 || '',
+          p_home_fair: match.p_home_fair || '',
+          p_draw_fair: match.p_draw_fair || '',
+          p_away_fair: match.p_away_fair || '',
+          p_btts_yes_fair: match.p_btts_yes_fair || '',
+          p_btts_no_fair: match.p_btts_no_fair || '',
+          p_over_2_5_fair: match.p_over_2_5_fair || '',
+          p_under_2_5_fair: match.p_under_2_5_fair || '',
+          vig_1x2: match.vig_1x2 || '',
+          vig_btts: match.vig_btts || '',
+          vig_ou_2_5: match.vig_ou_2_5 || '',
+          ai_prediction: match.ai_prediction || '',
+          ai_confidence: match.ai_confidence || ''
+        }));
+
+        setCsvData(rawData);
+        
+        // Extraire les headers depuis les clés du premier objet
+        if (rawData.length > 0) {
+          const csvHeaders = Object.keys(rawData[0]);
+          setHeaders(csvHeaders);
+        }
+      }
     } catch (error) {
+      console.error('Erreur lors du chargement des données:', error);
       toast({
         title: "Erreur",
-        description: "Impossible de charger les données",
+        description: "Impossible de charger les données du CSV",
         variant: "destructive",
       });
     } finally {
@@ -81,39 +98,56 @@ export function CSVDataViewer({ isOpen, onClose, uploadDate, filename }: CSVData
     }
   };
 
-  const startEdit = (match: Match) => {
-    setEditingId(match.id);
-    setEditData(match);
+  const startEdit = (rowIndex: number) => {
+    setEditingRowIndex(rowIndex);
+    setEditData({ ...csvData[rowIndex] });
   };
 
   const cancelEdit = () => {
-    setEditingId(null);
+    setEditingRowIndex(null);
     setEditData({});
   };
 
   const saveEdit = async () => {
-    if (!editingId || !editData) return;
+    if (editingRowIndex === null) return;
     
     try {
+      const rowId = csvData[editingRowIndex].id;
+      
+      // Mettre à jour dans Supabase
       const { error } = await supabase
         .from('matches')
-        .update(editData)
-        .eq('id', editingId);
+        .update({
+          league: editData.league,
+          home_team: editData.home_team,
+          away_team: editData.away_team,
+          country: editData.country,
+          odds_home: parseFloat(editData.odds_home as string) || null,
+          odds_draw: parseFloat(editData.odds_draw as string) || null,
+          odds_away: parseFloat(editData.odds_away as string) || null,
+          odds_btts_yes: parseFloat(editData.odds_btts_yes as string) || null,
+          odds_btts_no: parseFloat(editData.odds_btts_no as string) || null,
+          odds_over_2_5: parseFloat(editData.odds_over_2_5 as string) || null,
+          odds_under_2_5: parseFloat(editData.odds_under_2_5 as string) || null,
+        })
+        .eq('id', rowId);
 
       if (error) throw error;
 
-      setMatches(matches.map(m => 
-        m.id === editingId ? { ...m, ...editData } : m
-      ));
+      // Mettre à jour localement
+      const newData = [...csvData];
+      newData[editingRowIndex] = editData;
+      setCsvData(newData);
       
-      setEditingId(null);
+      setEditingRowIndex(null);
       setEditData({});
       
       toast({
         title: "Succès",
-        description: "Match modifié avec succès",
+        description: "Ligne modifiée avec succès",
       });
     } catch (error) {
+      console.error('Erreur lors de la modification:', error);
       toast({
         title: "Erreur",
         description: "Erreur lors de la modification",
@@ -122,23 +156,27 @@ export function CSVDataViewer({ isOpen, onClose, uploadDate, filename }: CSVData
     }
   };
 
-  const deleteMatch = async (id: string) => {
-    setDeleting(id);
+  const deleteRow = async (rowIndex: number) => {
+    setDeleting(rowIndex);
     try {
+      const rowId = csvData[rowIndex].id;
+      
       const { error } = await supabase
         .from('matches')
         .delete()
-        .eq('id', id);
+        .eq('id', rowId);
 
       if (error) throw error;
 
-      setMatches(matches.filter(m => m.id !== id));
+      const newData = csvData.filter((_, index) => index !== rowIndex);
+      setCsvData(newData);
       
       toast({
         title: "Succès",
-        description: "Match supprimé avec succès",
+        description: "Ligne supprimée avec succès",
       });
     } catch (error) {
+      console.error('Erreur lors de la suppression:', error);
       toast({
         title: "Erreur",
         description: "Erreur lors de la suppression",
@@ -149,184 +187,166 @@ export function CSVDataViewer({ isOpen, onClose, uploadDate, filename }: CSVData
     }
   };
 
-  const updateEditData = (field: keyof Match, value: any) => {
+  const downloadCSV = () => {
+    if (!csvData.length) return;
+    
+    const csvContent = [
+      headers.join(','),
+      ...csvData.map(row => 
+        headers.map(header => {
+          const value = row[header];
+          // Échapper les valeurs qui contiennent des virgules
+          return typeof value === 'string' && value.includes(',') 
+            ? `"${value}"` 
+            : value;
+        }).join(',')
+      )
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${filename}_modified.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const updateEditData = (field: string, value: string) => {
     setEditData(prev => ({ ...prev, [field]: value }));
   };
 
-  const renderEditableCell = (match: Match, field: keyof Match, type: 'text' | 'number' = 'text') => {
-    if (editingId === match.id) {
+  const renderCell = (row: CSVRow, header: string, rowIndex: number) => {
+    if (editingRowIndex === rowIndex) {
       return (
         <Input
-          type={type}
-          value={editData[field] || ''}
-          onChange={(e) => updateEditData(field, type === 'number' ? parseFloat(e.target.value) || 0 : e.target.value)}
-          className="h-8 text-sm"
+          value={editData[header] || ''}
+          onChange={(e) => updateEditData(header, e.target.value)}
+          className="h-8 text-xs min-w-[100px]"
         />
       );
     }
     
-    let displayValue = match[field];
-    if (field === 'kickoff_utc' && displayValue) {
-      displayValue = format(new Date(displayValue as string), 'dd/MM HH:mm', { locale: fr });
-    }
-    
-    return <span className="text-sm">{displayValue}</span>;
+    const value = row[header];
+    return (
+      <span className="text-xs whitespace-nowrap">
+        {value?.toString() || ''}
+      </span>
+    );
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-7xl max-h-[90vh] overflow-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            Données CSV: {filename}
-            <Badge variant="outline">{matches.length} matchs</Badge>
+      <DialogContent className="max-w-[95vw] max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0">
+          <DialogTitle className="flex items-center gap-4 justify-between">
+            <div className="flex items-center gap-2">
+              <span>Données CSV: {filename}</span>
+              <Badge variant="outline">{csvData.length} lignes</Badge>
+            </div>
+            <Button
+              onClick={downloadCSV}
+              size="sm"
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Télécharger CSV
+            </Button>
           </DialogTitle>
         </DialogHeader>
 
         {loading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin" />
-            <span className="ml-2">Chargement...</span>
+            <span className="ml-2">Chargement des données...</span>
           </div>
         ) : (
-          <div className="overflow-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Actions</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Ligue</TableHead>
-                  <TableHead>Domicile</TableHead>
-                  <TableHead>Extérieur</TableHead>
-                  <TableHead>Pays</TableHead>
-                  <TableHead>Kickoff</TableHead>
-                  <TableHead>Cotes 1X2</TableHead>
-                  <TableHead>Cotes BTTS</TableHead>
-                  <TableHead>Cotes O/U 2.5</TableHead>
-                  <TableHead>Prob. Fair</TableHead>
-                  <TableHead>Vigorish</TableHead>
-                  <TableHead>IA</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {matches.map((match) => (
-                  <TableRow key={match.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        {editingId === match.id ? (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="default"
-                              onClick={saveEdit}
-                              className="h-7 w-7 p-0"
-                            >
-                              <Save className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={cancelEdit}
-                              className="h-7 w-7 p-0"
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </>
-                        ) : (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => startEdit(match)}
-                              className="h-7 w-7 p-0"
-                            >
-                              <Edit className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => deleteMatch(match.id)}
-                              disabled={deleting === match.id}
-                              className="h-7 w-7 p-0"
-                            >
-                              {deleting === match.id ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                              ) : (
-                                <Trash2 className="h-3 w-3" />
-                              )}
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {renderEditableCell(match, 'match_date')}
-                    </TableCell>
-                    <TableCell>
-                      {renderEditableCell(match, 'league')}
-                    </TableCell>
-                    <TableCell>
-                      {renderEditableCell(match, 'home_team')}
-                    </TableCell>
-                    <TableCell>
-                      {renderEditableCell(match, 'away_team')}
-                    </TableCell>
-                    <TableCell>
-                      {renderEditableCell(match, 'country')}
-                    </TableCell>
-                    <TableCell>
-                      {renderEditableCell(match, 'kickoff_utc')}
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1 text-xs">
-                        <div>1: {renderEditableCell(match, 'odds_home', 'number')}</div>
-                        <div>X: {renderEditableCell(match, 'odds_draw', 'number')}</div>
-                        <div>2: {renderEditableCell(match, 'odds_away', 'number')}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1 text-xs">
-                        <div>Oui: {renderEditableCell(match, 'odds_btts_yes', 'number')}</div>
-                        <div>Non: {renderEditableCell(match, 'odds_btts_no', 'number')}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1 text-xs">
-                        <div>+2.5: {renderEditableCell(match, 'odds_over_2_5', 'number')}</div>
-                        <div>-2.5: {renderEditableCell(match, 'odds_under_2_5', 'number')}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1 text-xs">
-                        <div>1: {(match.p_home_fair * 100).toFixed(1)}%</div>
-                        <div>X: {(match.p_draw_fair * 100).toFixed(1)}%</div>
-                        <div>2: {(match.p_away_fair * 100).toFixed(1)}%</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1 text-xs">
-                        <div>1X2: {(match.vig_1x2 * 100).toFixed(1)}%</div>
-                        <div>BTTS: {(match.vig_btts * 100).toFixed(1)}%</div>
-                        <div>O/U: {(match.vig_ou_2_5 * 100).toFixed(1)}%</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {match.ai_prediction && (
-                        <div className="space-y-1 text-xs">
-                          <Badge variant="secondary" className="text-xs">
-                            {match.ai_prediction}
-                          </Badge>
-                          {match.ai_confidence && (
-                            <div>{(match.ai_confidence * 100).toFixed(0)}%</div>
+          <ScrollArea className="flex-1 w-full">
+            <div className="min-w-full">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gray-50">
+                    <TableHead className="sticky left-0 bg-gray-50 z-10 min-w-[120px] border-r">
+                      Actions
+                    </TableHead>
+                    {headers.map((header) => (
+                      <TableHead 
+                        key={header} 
+                        className="text-xs font-medium min-w-[120px] whitespace-nowrap border-r"
+                      >
+                        {header}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {csvData.map((row, rowIndex) => (
+                    <TableRow key={rowIndex} className="border-b">
+                      <TableCell className="sticky left-0 bg-white z-10 border-r">
+                        <div className="flex items-center gap-1">
+                          {editingRowIndex === rowIndex ? (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="default"
+                                onClick={saveEdit}
+                                className="h-7 w-7 p-0"
+                              >
+                                <Save className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={cancelEdit}
+                                className="h-7 w-7 p-0"
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => startEdit(rowIndex)}
+                                className="h-7 w-7 p-0"
+                              >
+                                <Edit className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => deleteRow(rowIndex)}
+                                disabled={deleting === rowIndex}
+                                className="h-7 w-7 p-0"
+                              >
+                                {deleting === rowIndex ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-3 w-3" />
+                                )}
+                              </Button>
+                            </>
                           )}
                         </div>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                      </TableCell>
+                      {headers.map((header) => (
+                        <TableCell 
+                          key={`${rowIndex}-${header}`} 
+                          className="text-xs border-r min-w-[120px]"
+                        >
+                          {renderCell(row, header, rowIndex)}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </ScrollArea>
         )}
       </DialogContent>
     </Dialog>
