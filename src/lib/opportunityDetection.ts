@@ -14,11 +14,19 @@ export interface DetectedOpportunity {
 
 export async function detectOpportunities(match: ProcessedMatch): Promise<DetectedOpportunity[]> {
   console.log('🔍 DÉTECTION OPPORTUNITÉS POUR:', match.home_team, 'vs', match.away_team, '- ID:', match.id);
+  console.log('🔍 NOMS EXACTS DES ÉQUIPES:', {
+    home_exact: `"${match.home_team}"`,
+    away_exact: `"${match.away_team}"`,
+    home_includes_zorya: match.home_team.includes('Zorya'),
+    away_includes_hirnyk: match.away_team.includes('Hirnyk')
+  });
   
-  // DEBUG SPÉCIAL POUR ZORYA vs HIRNYK
-  if ((match.home_team.includes('Zorya') && match.away_team.includes('Hirnyk')) || 
-      (match.home_team.includes('Hirnyk') && match.away_team.includes('Zorya'))) {
-    console.log('🚨🚨🚨 MATCH ZORYA vs HIRNYK DÉTECTÉ - DEBUG DÉTAILLÉ!');
+  // DEBUG SPÉCIAL POUR ZORYA vs HIRNYK - CONDITION ÉLARGIE
+  const isZoryaHirnyk = match.home_team.includes('Zorya') || match.away_team.includes('Zorya') ||
+                        match.home_team.includes('Hirnyk') || match.away_team.includes('Hirnyk');
+  
+  if (isZoryaHirnyk) {
+    console.log('🚨🚨🚨 MATCH ZORYA/HIRNYK DÉTECTÉ - DEBUG DÉTAILLÉ!');
     console.log('📊 TOUTES LES VALEURS DU MATCH:', {
       id: match.id,
       league: match.league,
@@ -79,25 +87,26 @@ export async function detectOpportunities(match: ProcessedMatch): Promise<Detect
     const markets = ['1x2', 'btts', 'ou25'] as const;
     
     // DEBUG SPÉCIAL POUR ZORYA vs HIRNYK
-    if ((match.home_team.includes('Zorya') && match.away_team.includes('Hirnyk')) || 
-        (match.home_team.includes('Hirnyk') && match.away_team.includes('Zorya'))) {
-      console.log('🔍 ÉVALUATION DES RÈGLES CONDITIONNELLES POUR ZORYA vs HIRNYK');
+    if (isZoryaHirnyk) {
+      console.log('🔍 ÉVALUATION DES RÈGLES CONDITIONNELLES POUR ZORYA/HIRNYK');
       console.log('📊 CONTEXTE RÈGLES:', context);
     }
     
     for (const market of markets) {
+      console.log(`🎯 ÉVALUATION MARCHÉ: ${market.toUpperCase()} - ${match.home_team} vs ${match.away_team}`);
+      
       // DEBUG SPÉCIAL POUR ZORYA vs HIRNYK
-      if ((match.home_team.includes('Zorya') && match.away_team.includes('Hirnyk')) || 
-          (match.home_team.includes('Hirnyk') && match.away_team.includes('Zorya'))) {
-        console.log(`🎯 ÉVALUATION MARCHÉ: ${market.toUpperCase()}`);
+      if (isZoryaHirnyk) {
+        console.log(`🎯 ÉVALUATION MARCHÉ ZORYA/HIRNYK: ${market.toUpperCase()}`);
       }
       
       const marketOpportunities = await conditionalRulesService.evaluateRules(context);
       
+      console.log(`📊 RÉSULTATS MARCHÉ ${market.toUpperCase()}:`, marketOpportunities);
+      
       // DEBUG SPÉCIAL POUR ZORYA vs HIRNYK
-      if ((match.home_team.includes('Zorya') && match.away_team.includes('Hirnyk')) || 
-          (match.home_team.includes('Hirnyk') && match.away_team.includes('Zorya'))) {
-        console.log(`📊 RÉSULTATS MARCHÉ ${market.toUpperCase()}:`, marketOpportunities);
+      if (isZoryaHirnyk) {
+        console.log(`📊 RÉSULTATS MARCHÉ ZORYA/HIRNYK ${market.toUpperCase()}:`, marketOpportunities);
       }
       
       // Convertir les résultats en opportunités
@@ -150,9 +159,8 @@ export async function detectOpportunities(match: ProcessedMatch): Promise<Detect
   console.log(`🔍 OPPORTUNITÉS DÉTECTÉES POUR ${match.home_team} vs ${match.away_team}:`, opportunities.length);
   
   // DEBUG SPÉCIAL POUR ZORYA vs HIRNYK
-  if ((match.home_team.includes('Zorya') && match.away_team.includes('Hirnyk')) || 
-      (match.home_team.includes('Hirnyk') && match.away_team.includes('Zorya'))) {
-    console.log('🚨🚨🚨 OPPORTUNITÉS FINALES POUR ZORYA vs HIRNYK:', {
+  if (isZoryaHirnyk) {
+    console.log('🚨🚨🚨 OPPORTUNITÉS FINALES POUR ZORYA/HIRNYK:', {
       total_opportunities: opportunities.length,
       opportunities: opportunities.map(opp => ({
         type: opp.type,
