@@ -145,6 +145,28 @@ class ConditionalRulesService {
     for (const rule of enabledRules) {
       const conditionsMet = this.evaluateConditions(rule.conditions, rule.logicalConnectors, context, rule.market);
       
+      // DEBUG SPÉCIAL POUR LA RÈGLE 17 (priorité 17) - ZORYA vs HIRNYK
+      if (rule.priority === 17) {
+        console.log('🚨 DEBUG RÈGLE 17 - ÉVALUATION DÉTAILLÉE:');
+        console.log('  📋 Règle 17 trouvée:', rule.name);
+        console.log('  🎯 Marché:', rule.market);
+        console.log('  ⚙️ Action:', rule.action);
+        console.log('  📊 Conditions de la règle:');
+        rule.conditions.forEach((cond, index) => {
+          const contextValue = this.getContextValue(cond.type, context, rule.market);
+          console.log(`    Condition ${index + 1}:`, {
+            type: cond.type,
+            operator: cond.operator,
+            expectedValue: cond.value,
+            contextValue,
+            contextValuePercent: contextValue ? (contextValue * 100).toFixed(1) + '%' : 'N/A',
+            conditionMet: contextValue !== null ? this.evaluateCondition(cond, context, rule.market) : false
+          });
+        });
+        console.log('  🔗 Connecteurs logiques:', rule.logicalConnectors);
+        console.log('  🎯 Résultat final:', conditionsMet ? '✅ TOUTES CONDITIONS RESPECTÉES' : '❌ AU MOINS UNE CONDITION NON RESPECTÉE');
+      }
+      
       console.log(`  🔍 RÈGLE "${rule.name}" (marché: ${rule.market}):`, conditionsMet ? '✅ CORRESPONDANCE' : '❌ PAS DE CORRESPONDANCE');
       
       // ANALYSE SPÉCIFIQUE POUR BTTS

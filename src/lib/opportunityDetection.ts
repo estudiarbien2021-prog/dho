@@ -14,6 +14,26 @@ export interface DetectedOpportunity {
 
 export async function detectOpportunities(match: ProcessedMatch): Promise<DetectedOpportunity[]> {
   console.log('🔍 DÉTECTION OPPORTUNITÉS POUR:', match.home_team, 'vs', match.away_team);
+  
+  // DEBUG SPÉCIAL POUR LA RÈGLE 17 - ZORYA vs HIRNYK
+  if ((match.home_team === 'Zorya' && match.away_team === 'Hirnyk') || 
+      (match.home_team === 'Hirnyk' && match.away_team === 'Zorya')) {
+    console.log('🚨 DEBUG RÈGLE 17 - MATCH ZORYA vs HIRNYK IDENTIFIÉ!');
+    console.log('📊 VALEURS CRITIQUES POUR RÈGLE 17:', {
+      vigorish_ou25: (match.vig_ou_2_5 * 100).toFixed(1) + '%',
+      vigorish_decimal: match.vig_ou_2_5,
+      prob_over25_percent: (match.p_over_2_5_fair * 100).toFixed(1) + '%',
+      prob_over25_decimal: match.p_over_2_5_fair,
+      prob_under25_percent: (match.p_under_2_5_fair * 100).toFixed(1) + '%', 
+      prob_under25_decimal: match.p_under_2_5_fair,
+      rule17_conditions_check: {
+        vig_gt_7_9: match.vig_ou_2_5 > 0.079,
+        over_gt_51_9: match.p_over_2_5_fair > 0.519,
+        under_gt_51_9: match.p_under_2_5_fair > 0.519
+      }
+    });
+  }
+  
   console.log('📊 DONNÉES MATCH CRITIQUES:', {
     btts_vigorish: `${(match.vig_btts * 100).toFixed(1)}%`,
     btts_prob_yes: `${(match.p_btts_yes_fair * 100).toFixed(1)}%`,
