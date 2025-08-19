@@ -121,28 +121,42 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
     return `Domicile ${homePercent}% | Nul ${drawPercent}% | Extérieur ${awayPercent}%`;
   };
 
-  const getBttsPercentages = () => {
-    const yesValue = match.p_btts_yes_fair > 1 ? match.p_btts_yes_fair : match.p_btts_yes_fair * 100;
-    const noValue = match.p_btts_no_fair > 1 ? match.p_btts_no_fair : match.p_btts_no_fair * 100;
-    
-    const yesPercent = yesValue.toFixed(1);
-    const noPercent = noValue.toFixed(1);
-    
-    console.log('🔍 BTTS PERCENTAGES CALCULÉS:', { yesPercent, noPercent });
-    
-    return `Oui ${yesPercent}% | Non ${noPercent}%`;
-  };
-
   const getOver25Percentages = () => {
     const overValue = match.p_over_2_5_fair > 1 ? match.p_over_2_5_fair : match.p_over_2_5_fair * 100;
-    const underValue = match.p_under_2_5_fair > 1 ? match.p_under_2_5_fair : match.p_under_2_5_fair * 100;
+    
+    // Si p_under_2_5_fair est 0, calculer automatiquement comme 100 - over
+    let underValue;
+    if (match.p_under_2_5_fair === 0) {
+      underValue = 100 - overValue;
+    } else {
+      underValue = match.p_under_2_5_fair > 1 ? match.p_under_2_5_fair : match.p_under_2_5_fair * 100;
+    }
     
     const overPercent = overValue.toFixed(1);
     const underPercent = underValue.toFixed(1);
     
-    console.log('🔍 O/U 2.5 PERCENTAGES CALCULÉS:', { overPercent, underPercent });
+    console.log('🔍 O/U 2.5 PERCENTAGES CALCULÉS (CORRIGÉ):', { overPercent, underPercent, original_under: match.p_under_2_5_fair });
     
     return `+2,5 buts ${overPercent}% | -2,5 buts ${underPercent}%`;
+  };
+
+  const getBttsPercentages = () => {
+    const yesValue = match.p_btts_yes_fair > 1 ? match.p_btts_yes_fair : match.p_btts_yes_fair * 100;
+    
+    // Si p_btts_no_fair est 0, calculer automatiquement comme 100 - yes
+    let noValue;
+    if (match.p_btts_no_fair === 0) {
+      noValue = 100 - yesValue;
+    } else {
+      noValue = match.p_btts_no_fair > 1 ? match.p_btts_no_fair : match.p_btts_no_fair * 100;
+    }
+    
+    const yesPercent = yesValue.toFixed(1);
+    const noPercent = noValue.toFixed(1);
+    
+    console.log('🔍 BTTS PERCENTAGES CALCULÉS (CORRIGÉ):', { yesPercent, noPercent, original_no: match.p_btts_no_fair });
+    
+    return `Oui ${yesPercent}% | Non ${noPercent}%`;
   };
 
   const get1x2Winner = () => {
@@ -174,7 +188,12 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [] }:
 
   const getBttsWinner = () => match.p_btts_yes_fair > match.p_btts_no_fair ? 'Oui' : 'Non';
   const getOver25Winner = () => {
-    return match.p_over_2_5_fair > match.p_under_2_5_fair ? '+2,5 buts' : '-2,5 buts';
+    // Utiliser la même logique corrigée pour déterminer le gagnant
+    const overValue = match.p_over_2_5_fair > 1 ? match.p_over_2_5_fair : match.p_over_2_5_fair * 100;
+    const underValue = match.p_under_2_5_fair === 0 ? 100 - overValue : 
+                       (match.p_under_2_5_fair > 1 ? match.p_under_2_5_fair : match.p_under_2_5_fair * 100);
+    
+    return overValue > underValue ? '+2,5 buts' : '-2,5 buts';
   };
 
   if (loading) {
