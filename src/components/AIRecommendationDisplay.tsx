@@ -66,8 +66,9 @@ export function AIRecommendationDisplay({ match, marketFilters, variant = 'compa
                 variant={getConfidenceColor(aiRec.confidence)}
                 className={`text-xs ${isMainRecommendation ? 'ring-2 ring-yellow-400' : ''}`}
               >
-                {isMainRecommendation && '⭐'} {showIcon && !isMainRecommendation && '🎯'} {formatBetType(aiRec.betType)} {aiRec.prediction}
-                {isConsensus && ` (${aiRec.detectionCount})`}
+                {isMainRecommendation ? `⭐ CONSENSUS (${aiRec.detectionCount} détections)` : 
+                 `${showIcon ? '🎯' : ''} ${formatBetType(aiRec.betType)} ${aiRec.prediction}`}
+                {!isMainRecommendation && isConsensus && ` (${aiRec.detectionCount})`}
               </Badge>
               <div className="text-xs text-muted-foreground">
                 Cote: {aiRec.odds.toFixed(2)} | Confiance: {confidence}%
@@ -100,9 +101,14 @@ export function AIRecommendationDisplay({ match, marketFilters, variant = 'compa
     return (
       <div className="text-xs text-center">
         <div className="font-medium text-green-700 flex items-center justify-center gap-1">
-          <span>⭐</span>
-          <span>{formatBetType(aiRec.betType)} {aiRec.prediction}</span>
-          {isConsensus && <span className="text-yellow-600">({aiRec.detectionCount})</span>}
+          {isConsensus ? (
+            <span>⭐ CONSENSUS ({aiRec.detectionCount} détections)</span>
+          ) : (
+            <>
+              <span>⭐</span>
+              <span>{formatBetType(aiRec.betType)} {aiRec.prediction}</span>
+            </>
+          )}
         </div>
         <div className="text-muted-foreground">
           {aiRec.odds.toFixed(2)} | {confidence}%
@@ -140,8 +146,11 @@ export function AIRecommendationDisplay({ match, marketFilters, variant = 'compa
                   <div>
                     <div className="text-green-600 font-medium">Type</div>
                     <div className="text-green-800 flex items-center gap-1">
-                      {isMainRecommendation && <span>⭐</span>}
-                      <span>{formatBetType(aiRec.betType)}</span>
+                      {isMainRecommendation ? (
+                        <span>⭐ CONSENSUS ({aiRec.detectionCount})</span>
+                      ) : (
+                        <span>{formatBetType(aiRec.betType)}</span>
+                      )}
                     </div>
                   </div>
                   <div>
@@ -203,8 +212,9 @@ export function AIRecommendationDisplay({ match, marketFilters, variant = 'compa
                     variant={getConfidenceColor(aiRec.confidence)}
                     className={`text-sm px-3 py-1 ${isMainRecommendation ? 'ring-2 ring-yellow-400' : ''}`}
                   >
-                    {isMainRecommendation && '⭐'} {formatBetType(aiRec.betType)} {aiRec.prediction}
-                    {isConsensus && ` (${aiRec.detectionCount})`}
+                    {isMainRecommendation ? `⭐ CONSENSUS (${aiRec.detectionCount} détections)` : 
+                     `${formatBetType(aiRec.betType)} ${aiRec.prediction}`}
+                    {!isMainRecommendation && isConsensus && ` (${aiRec.detectionCount})`}
                   </Badge>
                   <div className="text-xl font-bold text-green-700">
                     {aiRec.odds.toFixed(2)}
