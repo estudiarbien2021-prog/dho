@@ -189,7 +189,7 @@ export const ACTION_LABELS: Record<ActionType, string> = {
   recommend_under25: 'Recommander Under 2.5',
   recommend_most_probable: 'Recommander le plus probable',
   recommend_least_probable: 'Recommander le moins probable',
-  invert_recommendation: 'Inverser la recommandation BTTS',
+  invert_recommendation: 'Inverser la recommandation',
   no_recommendation: 'Aucune recommandation'
 };
 

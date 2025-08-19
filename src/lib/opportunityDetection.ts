@@ -13,37 +13,7 @@ export interface DetectedOpportunity {
 }
 
 export async function detectOpportunities(match: ProcessedMatch): Promise<DetectedOpportunity[]> {
-  console.log('🔍 DÉTECTION OPPORTUNITÉS POUR:', match.home_team, 'vs', match.away_team, '- ID:', match.id);
-  console.log('🔍 NOMS EXACTS DES ÉQUIPES:', {
-    home_exact: `"${match.home_team}"`,
-    away_exact: `"${match.away_team}"`,
-    home_includes_zorya: match.home_team.includes('Zorya'),
-    away_includes_hirnyk: match.away_team.includes('Hirnyk')
-  });
-  
-  // DEBUG SPÉCIAL POUR ZORYA vs HIRNYK - CONDITION ÉLARGIE
-  const isZoryaHirnyk = match.home_team.includes('Zorya') || match.away_team.includes('Zorya') ||
-                        match.home_team.includes('Hirnyk') || match.away_team.includes('Hirnyk');
-  
-  if (isZoryaHirnyk) {
-    console.log('🚨🚨🚨 MATCH ZORYA/HIRNYK DÉTECTÉ - DEBUG DÉTAILLÉ!');
-    console.log('📊 TOUTES LES VALEURS DU MATCH:', {
-      id: match.id,
-      league: match.league,
-      home_team: match.home_team,
-      away_team: match.away_team,
-      vigorish_ou25_percent: (match.vig_ou_2_5 * 100).toFixed(1) + '%',
-      vigorish_ou25_decimal: match.vig_ou_2_5,
-      prob_over25_percent: (match.p_over_2_5_fair * 100).toFixed(1) + '%',
-      prob_over25_decimal: match.p_over_2_5_fair,
-      prob_under25_percent: (match.p_under_2_5_fair * 100).toFixed(1) + '%', 
-      prob_under25_decimal: match.p_under_2_5_fair,
-      odds_over25: match.odds_over_2_5,
-      odds_under25: match.odds_under_2_5,
-      has_ou25_data: !!(match.odds_over_2_5 && match.odds_under_2_5)
-    });
-  }
-  
+  console.log('🔍 DÉTECTION OPPORTUNITÉS POUR:', match.home_team, 'vs', match.away_team);
   console.log('📊 DONNÉES MATCH CRITIQUES:', {
     btts_vigorish: `${(match.vig_btts * 100).toFixed(1)}%`,
     btts_prob_yes: `${(match.p_btts_yes_fair * 100).toFixed(1)}%`,
@@ -80,97 +50,131 @@ export async function detectOpportunities(match: ProcessedMatch): Promise<Detect
     btts_odds_no: context.odds_btts_no
   });
 
-  const opportunities: DetectedOpportunity[] = [];
-
-  try {
-    // Appel du service de règles conditionnelles pour chaque marché
-    const markets = ['1x2', 'btts', 'ou25'] as const;
-    
-    // DEBUG SPÉCIAL POUR ZORYA vs HIRNYK
-    if (isZoryaHirnyk) {
-      console.log('🔍 ÉVALUATION DES RÈGLES CONDITIONNELLES POUR ZORYA/HIRNYK');
-      console.log('📊 CONTEXTE RÈGLES:', context);
+  // Evaluate conditional rules
+  const ruleResults = await conditionalRulesService.evaluateRules(context);
+  console.log('📋 RÈGLES ÉVALUÉES:', ruleResults.length, 'règles totales');
+  console.log('📋 DÉTAIL ÉVALUATION:');
+  ruleResults.forEach(r => {
+    console.log(`  🔍 ${r.ruleName} (${r.market}): ${r.conditionsMet ? '✅ RESPECTÉE' : '❌ NON RESPECTÉE'}`);
+    console.log(`     Détails: ${r.evaluationDetails}`);
+  });
+  
+  // ÉTAPE CRITIQUE: Filtrer STRICTEMENT les règles qui respectent TOUTES les conditions
+  const matchedRules = ruleResults.filter(result => result.conditionsMet);
+  console.log('✅ RÈGLES CORRESPONDANTES (conditions strictement respectées):', matchedRules.length);
+  matchedRules.forEach(r => {
+    console.log(`  ✅ ${r.ruleName}: action=${r.action}, priorité=${r.priority}`);
+  });
+  
+  // VÉRIFICATION CRITIQUE: Si aucune règle ne correspond, aucune recommandation ne sera générée
+  if (matchedRules.length === 0) {
+    console.log('🚫 AUCUNE RÈGLE RESPECTÉE - AUCUNE RECOMMANDATION GÉNÉRÉE');
+    console.log('🚫 EXPLICATION: Toutes les règles configurées ont été évaluées et aucune ne respecte ses conditions');
+    console.log('🚫 RÉSULTAT: Aucune recommandation automatique ne sera générée');
+    return [];
+  }
+  
+  // ÉTAPE 1: Filtrer les règles no_recommendation avant de créer les opportunités
+  const validRules = matchedRules.filter(result => {
+    if (result.action === 'no_recommendation') {
+      console.log(`🚫 OPPORTUNITÉ BLOQUÉE par no_recommendation: ${result.ruleName} (${result.market})`);
+      return false;
     }
-    
-    for (const market of markets) {
-      console.log(`🎯 ÉVALUATION MARCHÉ: ${market.toUpperCase()} - ${match.home_team} vs ${match.away_team}`);
-      
-      // DEBUG SPÉCIAL POUR ZORYA vs HIRNYK
-      if (isZoryaHirnyk) {
-        console.log(`🎯 ÉVALUATION MARCHÉ ZORYA/HIRNYK: ${market.toUpperCase()}`);
-      }
-      
-      const marketOpportunities = await conditionalRulesService.evaluateRules(context);
-      
-      console.log(`📊 RÉSULTATS MARCHÉ ${market.toUpperCase()}:`, marketOpportunities);
-      
-      // DEBUG SPÉCIAL POUR ZORYA vs HIRNYK
-      if (isZoryaHirnyk) {
-        console.log(`📊 RÉSULTATS MARCHÉ ZORYA/HIRNYK ${market.toUpperCase()}:`, marketOpportunities);
-      }
-      
-      // Convertir les résultats en opportunités
-      marketOpportunities.forEach(result => {
-        if (result.conditionsMet && result.action !== 'no_recommendation') {
-          let prediction = '';
-          let odds = 0;
-          
-          // Déterminer la prédiction selon l'action
-          if (result.action === 'recommend_most_probable') {
-            prediction = getMostProbablePrediction(market, context);
-          } else if (result.action === 'recommend_least_probable') {
-            prediction = getLeastProbablePrediction(market, context);
-          } else if (result.action === 'recommend_btts_yes') {
-            prediction = 'Oui';
-          } else if (result.action === 'recommend_btts_no') {
-            prediction = 'Non';
-          } else if (result.action === 'recommend_over25') {
-            prediction = '+2,5 buts';
-          } else if (result.action === 'recommend_under25') {
-            prediction = '-2,5 buts';
-          } else if (result.action === 'recommend_home') {
-            prediction = 'Victoire domicile';
-          } else if (result.action === 'recommend_away') {
-            prediction = 'Victoire extérieur';
-          } else if (result.action === 'recommend_draw') {
-            prediction = 'Match nul';
-          }
-          
-          odds = getOddsForPrediction(market, prediction, context);
-          
-          if (odds > 0) {
-            opportunities.push({
-              type: market.toUpperCase(),
-              prediction,
-              odds,
-              reason: [`Règle: ${result.ruleName}`],
-              isInverted: false,
-              priority: result.priority || 1,
-              detectionCount: 1
-            });
-          }
-        }
-      });
-    }
-  } catch (error) {
-    console.error('Error during conditional rules evaluation:', error);
+    return true;
+  });
+  
+  console.log('✅ RÈGLES VALIDES APRÈS FILTRAGE no_recommendation:', validRules.length, validRules.map(r => r.ruleName));
+  
+  // VÉRIFICATION FINALE: S'il n'y a pas de règles valides, ne pas créer d'opportunités
+  if (validRules.length === 0) {
+    console.log('🚫 AUCUNE RÈGLE VALIDE APRÈS FILTRAGE - AUCUNE OPPORTUNITÉ CRÉÉE');
+    return [];
   }
 
-  console.log(`🔍 OPPORTUNITÉS DÉTECTÉES POUR ${match.home_team} vs ${match.away_team}:`, opportunities.length);
-  
-  // DEBUG SPÉCIAL POUR ZORYA vs HIRNYK
-  if (isZoryaHirnyk) {
-    console.log('🚨🚨🚨 OPPORTUNITÉS FINALES POUR ZORYA/HIRNYK:', {
-      total_opportunities: opportunities.length,
-      opportunities: opportunities.map(opp => ({
-        type: opp.type,
-        market: opp.type,
-        recommendation: opp.prediction,
-        reason: opp.reason
-      }))
+  // Convert valid rule results to opportunities
+  const opportunities: DetectedOpportunity[] = validRules.map(result => {
+    console.log(`🔄 Conversion règle -> opportunité:`, {
+      ruleName: result.ruleName,
+      market: result.market,
+      action: result.action,
+      priority: result.priority
     });
-  }
-  
+
+    let prediction = '';
+    let type = result.market;
+    
+    // Change type to string for user display, not type system constraint
+    let userDisplayType: string = result.market;
+    
+    // Améliorer l'affichage du type de marché pour l'utilisateur
+    if (result.market === 'ou25') {
+      userDisplayType = 'O/U 2.5';
+    } else if (result.market === 'btts') {
+      userDisplayType = 'BTTS';
+    } else if (result.market === '1x2') {
+      userDisplayType = '1X2';
+    }
+    
+    // Déterminer la prédiction selon l'action et le marché
+    if (result.action === 'recommend_most_probable') {
+      prediction = getMostProbablePrediction(result.market, context);
+    } else if (result.action === 'recommend_least_probable') {
+      prediction = getLeastProbablePrediction(result.market, context);
+    } else if (result.action === 'recommend_double_chance_least_probable') {
+      prediction = getDoubleChanceLeastProbable(context);
+      userDisplayType = 'Double Chance';
+    } else if (result.action === 'recommend_refund_if_draw') {
+      const mostProbableTeam = getMostProbableTeamExcludingDraw(context);
+      prediction = mostProbableTeam === 'home' ? 'Victoire domicile (Remboursé si nul)' : 'Victoire extérieur (Remboursé si nul)';
+      userDisplayType = 'Remboursé si nul';
+    } else {
+      // Actions spécifiques comme 'recommend_over', 'recommend_yes', etc.
+      prediction = result.action.replace('recommend_', '');
+    }
+    
+    const odds = getOddsForPrediction(result.market, prediction, context);
+    
+    console.log(`✅ Opportunité créée:`, {
+      type,
+      prediction,
+      odds,
+      market: result.market
+    });
+
+    // CORRECTION: Afficher uniquement les détails exacts de la règle configurée
+    let reason = [`Règle: ${result.ruleName}`];
+    
+    // Ajouter les détails de l'évaluation de la règle
+    if (result.evaluationDetails) {
+      reason.push(`Conditions: ${result.evaluationDetails}`);
+    }
+    
+    // Ajouter les métriques actuelles du match pour transparence
+    let currentMetrics = '';
+    if (result.market === 'btts') {
+      currentMetrics = `Vigorish BTTS: ${(context.vigorish_btts * 100).toFixed(1)}%`;
+    } else if (result.market === 'ou25') {
+      currentMetrics = `Vigorish O/U 2.5: ${(context.vigorish_ou25 * 100).toFixed(1)}%`;
+    } else if (result.market === '1x2') {
+      currentMetrics = `Vigorish 1X2: ${(context.vigorish_1x2 * 100).toFixed(1)}%`;
+    }
+    
+    if (currentMetrics) {
+      reason.push(currentMetrics);
+    }
+
+    return {
+      type: userDisplayType,
+      prediction,
+      odds,
+      reason,
+      isInverted: result.action.includes('invert'),
+      priority: result.priority,
+      detectionCount: 1 // Initial count, will be updated in prioritization
+    };
+  });
+
+  console.log('🎯 OPPORTUNITÉS DÉTECTÉES:', opportunities.length, opportunities.map(o => `${o.type}:${o.prediction}`));
   return opportunities;
 }
 
