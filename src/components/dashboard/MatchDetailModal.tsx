@@ -586,68 +586,49 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
             </div>
 
             {/* Validated Rules Section */}
-            {allRuleEvaluations.filter(r => r && r.conditionsMet && r.rule).length > 0 && (
+            {allRuleEvaluations.filter(r => r && r.conditionsMet && r.rule).length > 0 ? (
               <div className="mb-4">
                 <h4 className="font-semibold mb-3 text-green-700 flex items-center gap-2">
                   <CheckCircle className="h-4 w-4" />
-                  Règles Validées (✅) - {allRuleEvaluations.filter(r => r && r.conditionsMet && r.rule).length}
+                  Règles Validées - {allRuleEvaluations.filter(r => r && r.conditionsMet && r.rule).length} détectée{allRuleEvaluations.filter(r => r && r.conditionsMet && r.rule).length > 1 ? 's' : ''}
                 </h4>
                 <div className="space-y-2">
-                  {allRuleEvaluations.filter(r => r && r.conditionsMet && r.rule).map((rule, index) => (
-                    <div key={`validated-${index}`} className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-medium text-green-800">{rule.rule?.name || 'Règle sans nom'}</span>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-xs bg-green-100 text-green-700">
-                            {rule.rule?.market?.toUpperCase() || 'N/A'}
-                          </Badge>
-                          <Badge variant="default" className="text-xs bg-green-600 text-white">
-                            Priorité: {rule.rule?.priority || 0}
-                          </Badge>
+                  {allRuleEvaluations
+                    .filter(r => r && r.conditionsMet && r.rule)
+                    .sort((a, b) => (a.rule?.priority || 0) - (b.rule?.priority || 0))
+                    .map((ruleEvaluation, index) => {
+                      const rule = ruleEvaluation.rule;
+                      const marketDisplay = rule?.market === 'ou25' ? '2,5 buts' : 
+                                          rule?.market === 'btts' ? 'BTTS' : 
+                                          rule?.market === '1x2' ? '1X2' : rule?.market?.toUpperCase() || 'N/A';
+                      
+                      return (
+                        <div key={`validated-${index}`} className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                          <div className="flex items-start gap-2">
+                            <span className="text-green-600 mt-0.5">✅</span>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <Badge variant="outline" className="text-xs bg-green-100 text-green-700">
+                                  {marketDisplay}
+                                </Badge>
+                                <Badge variant="secondary" className="text-xs">
+                                  Priorité {rule?.priority || 0}
+                                </Badge>
+                              </div>
+                              <div className="text-sm text-green-800">
+                                {formatRuleDescription(rule)}
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                      <div className="text-xs text-green-700 mb-2">
-                        <strong>Action:</strong> {rule.rule?.action || 'N/A'}
-                      </div>
-                      <div className="text-xs text-green-600">
-                        <strong>Conditions évaluées:</strong> {rule.evaluationDetails || 'Aucune information'}
-                      </div>
-                    </div>
-                  ))}
+                      );
+                    })}
                 </div>
               </div>
-            )}
-
-            {/* Non-Validated Rules Section */}
-            {allRuleEvaluations.filter(r => r && !r.conditionsMet && r.rule).length > 0 && (
+            ) : (
               <div className="mb-4">
-                <h4 className="font-semibold mb-3 text-red-700 flex items-center gap-2">
-                  <XCircle className="h-4 w-4" />
-                  Règles Non-Validées (❌) - {allRuleEvaluations.filter(r => r && !r.conditionsMet && r.rule).length}
-                </h4>
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {allRuleEvaluations.filter(r => r && !r.conditionsMet && r.rule).map((rule, index) => (
-                    <div key={`failed-${index}`} className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-medium text-red-800">{rule.rule?.name || 'Règle sans nom'}</span>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-xs bg-red-100 text-red-700">
-                            {rule.rule?.market?.toUpperCase() || 'N/A'}
-                          </Badge>
-                          <Badge variant="secondary" className="text-xs">
-                            Priorité: {rule.rule?.priority || 0}
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="text-xs text-red-700 mb-2">
-                        <strong>Action:</strong> {rule.rule?.action || 'N/A'}
-                      </div>
-                      <div className="text-xs text-red-600">
-                        <strong>Conditions échouées:</strong> {rule.evaluationDetails || 'Aucune information'}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <h4 className="font-semibold mb-2 text-gray-600">Règles Validées</h4>
+                <p className="text-sm text-gray-500 italic">Aucune règle n'a été validée pour ce match</p>
               </div>
             )}
 
