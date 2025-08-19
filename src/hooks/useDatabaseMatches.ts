@@ -248,8 +248,14 @@ export function useDatabaseMatches(specificDate?: string) {
         return false;
       }
 
-      // ÉTAPE 2: AFFICHER TOUS LES MATCHS (MÊME SANS RECOMMANDATIONS IA)
-      // Les matches sans recommandations IA sont maintenant affichés
+      // ÉTAPE 2: FILTRER LES MATCHS SANS RECOMMANDATIONS IA
+      // Exclure les matchs sans règles respectées
+      const matchId = `${match.home_team}-${match.away_team}-${match.kickoff_utc.toISOString()}`;
+      const hasRecommendations = matchRecommendations[matchId] && matchRecommendations[matchId].length > 0;
+      
+      if (!hasRecommendations) {
+        return false;
+      }
 
       // Search filter
       if (filters.search) {
