@@ -414,7 +414,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
                                   {isMainConsensus ? 'RECOMMANDATION PRINCIPALE' : 
                                    `${index === 0 ? 'principale' : index === 1 ? 'secondaire' : `PRIORITÉ ${opportunity?.priority || 'N/A'}`}`}
                                </Badge>
-                               <span className="font-semibold text-sm">{rec.betType}</span>
+                               <span className="font-semibold text-sm">{rec.betType === 'O/U 2.5' ? '+/- 2.5' : rec.betType}</span>
                                {rec.detectionCount > 1 && (
                                  <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
                                    {rec.detectionCount} détections
