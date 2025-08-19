@@ -55,7 +55,9 @@ export function AIRecommendationDisplay({ match, marketFilters, variant = 'compa
       <div className="flex flex-col gap-1 items-center">
         {aiRecs.map((aiRec, index) => {
           const confidence = aiRec.confidenceScore || 75;
-          const isMainRecommendation = index === 0;
+          // Identifier la recommandation avec le plus de détections (consensus ≥3)
+          const maxDetectionCount = Math.max(...aiRecs.map(r => r.detectionCount || 0));
+          const isMainRecommendation = (aiRec.detectionCount || 0) >= 3 && aiRec.detectionCount === maxDetectionCount;
           const isConsensus = aiRec.detectionCount && aiRec.detectionCount >= 3;
           
           return (
@@ -127,7 +129,9 @@ export function AIRecommendationDisplay({ match, marketFilters, variant = 'compa
         <div className="space-y-3 text-center">
           {aiRecs.map((aiRec, index) => {
             const confidence = aiRec.confidenceScore || 75;
-            const isMainRecommendation = index === 0;
+            // Identifier la recommandation avec le plus de détections (consensus ≥3)
+            const maxDetectionCount = Math.max(...aiRecs.map(r => r.detectionCount || 0));
+            const isMainRecommendation = (aiRec.detectionCount || 0) >= 3 && aiRec.detectionCount === maxDetectionCount;
             const isConsensus = aiRec.detectionCount && aiRec.detectionCount >= 3;
             
             return (
@@ -187,7 +191,9 @@ export function AIRecommendationDisplay({ match, marketFilters, variant = 'compa
         <div className="space-y-4">
           {aiRecs.map((aiRec, index) => {
             const confidence = aiRec.confidenceScore || 75;
-            const isMainRecommendation = index === 0;
+            // Identifier la recommandation avec le plus de détections (consensus ≥3)
+            const maxDetectionCount = Math.max(...aiRecs.map(r => r.detectionCount || 0));
+            const isMainRecommendation = (aiRec.detectionCount || 0) >= 3 && aiRec.detectionCount === maxDetectionCount;
             const isConsensus = aiRec.detectionCount && aiRec.detectionCount >= 3;
             
             return (

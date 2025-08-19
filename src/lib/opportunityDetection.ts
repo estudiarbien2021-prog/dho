@@ -501,12 +501,16 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
       const isContradictory = checkIfContradictory(opportunities, market);
       
       if (isContradictory) {
-        // Garder celle avec la plus grosse cote
-        const bestOddsOpportunity = opportunities.reduce((best, current) => 
-          current.odds > best.odds ? current : best
-        );
-        console.log(`✅ RÉSOLUTION CONTRADICTION - Sélection de la meilleure cote:`, `${bestOddsOpportunity.prediction}(détections:${bestOddsOpportunity.detectionCount})(cote:${bestOddsOpportunity.odds})`);
-        resolvedOpportunities.push(bestOddsOpportunity);
+        // Prioriser d'abord le consensus (plus de détections), puis la meilleure cote
+        const bestOpportunity = opportunities.reduce((best, current) => {
+          // D'abord comparer le nombre de détections
+          if (current.detectionCount > best.detectionCount) return current;
+          if (current.detectionCount < best.detectionCount) return best;
+          // Si même nombre de détections, prendre la meilleure cote
+          return current.odds > best.odds ? current : best;
+        });
+        console.log(`✅ RÉSOLUTION CONTRADICTION - Sélection consensus puis meilleure cote:`, `${bestOpportunity.prediction}(détections:${bestOpportunity.detectionCount})(cote:${bestOpportunity.odds})`);
+        resolvedOpportunities.push(bestOpportunity);
       } else {
         // Si pas vraiment contradictoires, garder toutes (ex: différents types de 1X2)
         resolvedOpportunities.push(...opportunities);
