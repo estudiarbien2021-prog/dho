@@ -347,7 +347,7 @@ export function Admin() {
       const response = await (supabase as any)
         .from('matches')
         .select('*')
-        .eq('date', uploadDate)
+        .eq('match_date', uploadDate)
         .order('kickoff_utc');
 
       const { data: matches, error } = response;
