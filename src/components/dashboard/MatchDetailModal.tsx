@@ -572,7 +572,7 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
               </h3>
               <div className="space-y-2">
                 <div className="text-sm text-text-weak">{getBttsPercentages()}</div>
-                <div className="text-sm">
+                <div className="text-sm hidden">
                   <strong>Plus probable:</strong> {getBttsWinner()}
                 </div>
                 <div className="flex items-center gap-2">
