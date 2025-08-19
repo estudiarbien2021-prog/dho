@@ -408,200 +408,35 @@ export function MatchDetailModal({ match, isOpen, onClose, marketFilters = [], p
             </Card>
           )}
 
-          {/* Debug - Complete Traceability */}
-          <Card className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
-            <div className="flex items-center gap-2 mb-4">
-              <Eye className="h-5 w-5 text-blue-600" />
-              <h3 className="text-lg font-semibold text-blue-800">🔍 Debug - Traçabilité des recommandations</h3>
-              <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300">
-                Analyse complète
-              </Badge>
-            </div>
-            
-            <div className="space-y-6">
-              {/* Pipeline Statistics */}
-              <div className="grid grid-cols-4 gap-4">
-                <div className="text-center p-3 bg-white/70 rounded-lg border border-blue-200">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {preCalculatedRecommendations ? allRecommendations.length : opportunities.length}
-                  </div>
-                  <div className="text-xs text-blue-700 font-medium">Opportunités brutes</div>
-                </div>
-                <div className="text-center p-3 bg-white/70 rounded-lg border border-blue-200">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {preCalculatedRecommendations ? allRecommendations.length : (() => {
-                      const prioritized = prioritizeOpportunitiesByRealProbability(opportunities, match);
-                      return prioritized.length;
-                    })()}
-                  </div>
-                  <div className="text-xs text-blue-700 font-medium">Après priorisation</div>
-                </div>
-                <div className="text-center p-3 bg-white/70 rounded-lg border border-blue-200">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {preCalculatedRecommendations ? allRecommendations.length : (() => {
-                      const prioritized = prioritizeOpportunitiesByRealProbability(opportunities, match);
-                      return prioritized.map(convertOpportunityToAIRecommendation).length;
-                    })()}
-                  </div>
-                  <div className="text-xs text-blue-700 font-medium">Après conversion</div>
-                </div>
-                <div className="text-center p-3 bg-white/70 rounded-lg border border-blue-200">
-                  <div className="text-2xl font-bold text-green-600">
-                    {allRecommendations.length}
-                  </div>
-                  <div className="text-xs text-green-700 font-medium">Affichées finalement</div>
-                </div>
-              </div>
-
-              {/* Source Information */}
-              <div className="p-4 bg-white/80 rounded-lg border border-blue-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <Zap className="h-4 w-4 text-blue-600" />
-                  <h4 className="font-semibold text-blue-800">Source des recommandations</h4>
-                </div>
-                <div className="text-sm text-blue-700">
-                  <Badge variant={preCalculatedRecommendations ? "default" : "secondary"} 
-                         className={preCalculatedRecommendations ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}>
-                    {preCalculatedRecommendations ? '✅ Pré-calculées (optimisé)' : '⚡ Calculées à la volée'}
-                  </Badge>
-                </div>
-              </div>
-
-              {/* All Detected Opportunities (Raw) */}
-              {((preCalculatedRecommendations && allRecommendations.length > 0) || (!preCalculatedRecommendations && opportunities.length > 0)) && (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Brain className="h-4 w-4 text-blue-600" />
-                    <h4 className="font-semibold text-blue-800">Toutes les opportunités détectées (brutes)</h4>
-                    <Badge variant="outline" className="bg-blue-100 text-blue-700">
-                      {preCalculatedRecommendations ? allRecommendations.length : opportunities.length} total{(preCalculatedRecommendations ? allRecommendations.length : opportunities.length) > 1 ? 'es' : 'e'}
-                    </Badge>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    {(preCalculatedRecommendations ? allRecommendations : opportunities).map((opp, index) => (
-                      <div key={index} className="p-3 bg-white/90 rounded border-l-4 border-blue-400">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
-                                #{index + 1}
-                              </Badge>
-                              <span className="font-medium text-sm text-blue-800">
-                                {preCalculatedRecommendations ? opp.betType : opp.type}
-                              </span>
-                              {opp.isInverted && (
-                                <Badge variant="destructive" className="text-xs">INVERSÉE</Badge>
-                              )}
-                              {opp.detectionCount > 1 && (
-                                <Badge variant="default" className="text-xs bg-yellow-100 text-yellow-700">
-                                  {opp.detectionCount} détections
-                                </Badge>
-                              )}
-                            </div>
-                            <div className="text-sm">
-                              <strong>Prédiction:</strong> {opp.prediction} 
-                              <span className="ml-2 font-mono text-blue-600">({opp.odds?.toFixed(2)})</span>
-                              {!preCalculatedRecommendations && (
-                                <span className="ml-2 text-xs text-gray-600">Priorité: {opp.priority}</span>
-                              )}
-                              {preCalculatedRecommendations && (
-                                <span className="ml-2 text-xs text-gray-600">
-                                  Confiance: {opp.confidence?.toUpperCase() || 'N/A'}
-                                </span>
-                              )}
-                            </div>
-                            {opp.reason && opp.reason.length > 0 && (
-                              <div className="mt-1 text-xs text-blue-600">
-                                <strong>Conditions:</strong> {opp.reason.join(' • ')}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
+          {/* Debug Information */}
+          <Card className="p-4 bg-blue-50">
+            <h3 className="font-semibold mb-2 text-blue-800">🔍 Debug - Traçabilité des recommandations</h3>
+            <div className="space-y-2 text-xs text-blue-700">
+              <div><strong>Source:</strong> {preCalculatedRecommendations ? 'Pré-calculées' : 'Calculées à la volée'}</div>
+              {!preCalculatedRecommendations && (
+                <>
+                  <div><strong>Opportunités brutes détectées:</strong> {opportunities.length}</div>
+                  <div><strong>Après priorisation:</strong> {(() => {
+                    const prioritizedOpportunities = prioritizeOpportunitiesByRealProbability(opportunities, match);
+                    return prioritizedOpportunities.length;
+                  })()}</div>
+                  <div><strong>Après conversion:</strong> {(() => {
+                    const prioritizedOpportunities = prioritizeOpportunitiesByRealProbability(opportunities, match);
+                    return prioritizedOpportunities.map(convertOpportunityToAIRecommendation).length;
+                  })()}</div>
+                </>
+              )}
+              <div><strong>Affichées finalement:</strong> {allRecommendations.length}</div>
+              {!preCalculatedRecommendations && opportunities.length > 0 && (
+                <div className="mt-2">
+                  <strong>Détail des opportunités:</strong>
+                  <ul className="list-disc list-inside ml-2">
+                    {opportunities.map((opp, i) => (
+                      <li key={i}>{opp.type}: {opp.prediction} (priorité: {opp.priority})</li>
                     ))}
-                  </div>
+                  </ul>
                 </div>
               )}
-
-              {/* Final Recommendations Details */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Target className="h-4 w-4 text-green-600" />
-                  <h4 className="font-semibold text-green-800">Recommandations finales sélectionnées</h4>
-                  <Badge variant="default" className="bg-green-100 text-green-700">
-                    {allRecommendations.length} retenue{allRecommendations.length > 1 ? 's' : ''}
-                  </Badge>
-                </div>
-                
-                <div className="space-y-2">
-                  {allRecommendations.map((rec, index) => {
-                    const isConsensus = rec.detectionCount >= 3;
-                    return (
-                      <div key={index} className={`p-3 bg-white/90 rounded border-l-4 ${
-                        isConsensus ? 'border-yellow-500' : 
-                        index === 0 ? 'border-green-500' : 'border-gray-400'
-                      }`}>
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              {isConsensus && <span className="text-lg">⭐</span>}
-                              <Badge variant={isConsensus ? "default" : index === 0 ? "default" : "outline"} 
-                                     className={`text-xs ${
-                                       isConsensus ? 'bg-yellow-500 text-white' : 
-                                       index === 0 ? 'bg-green-500 text-white' : ''
-                                     }`}>
-                                {isConsensus ? 'CONSENSUS' : `#${index + 1}`}
-                              </Badge>
-                              <span className="font-medium text-sm">{rec.betType}</span>
-                              {rec.detectionCount > 1 && (
-                                <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
-                                  {rec.detectionCount} détections
-                                </Badge>
-                              )}
-                            </div>
-                            <div className="text-sm">
-                              <strong>→</strong> {rec.prediction} 
-                              <span className="ml-2 font-mono text-green-600">({rec.odds?.toFixed(2)})</span>
-                              <Badge className="ml-2 text-xs" variant={
-                                rec.confidence === 'high' ? 'default' : 
-                                rec.confidence === 'medium' ? 'secondary' : 'outline'
-                              }>
-                                {rec.confidence?.toUpperCase()}
-                              </Badge>
-                            </div>
-                            {rec.reason && rec.reason.length > 0 && (
-                              <div className="mt-1 text-xs text-gray-600">
-                                <strong>Justification:</strong> {rec.reason.join(' • ')}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Processing Summary */}
-              <div className="p-4 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-lg border border-blue-300">
-                <div className="flex items-center gap-2 mb-2">
-                  <TrendingUp className="h-4 w-4 text-blue-600" />
-                  <h4 className="font-semibold text-blue-800">Résumé du processus</h4>
-                </div>
-                <div className="text-sm text-blue-700 space-y-1">
-                  <div>✓ Analyse des règles conditionnelles et détection d'opportunités</div>
-                  <div>✓ Priorisation basée sur le consensus et la probabilité réelle</div>
-                  <div>✓ Conversion en recommandations avec calcul de confiance</div>
-                  <div>✓ Sélection finale avec résolution des contradictions</div>
-                  {allRecommendations.some(r => r.detectionCount >= 3) && (
-                    <div className="text-yellow-700 font-medium">⭐ Consensus détecté sur au moins une opportunité</div>
-                  )}
-                  {allRecommendations.some(r => r.isInverted) && (
-                    <div className="text-orange-700 font-medium">⚠️ Stratégies contrariennes incluses</div>
-                  )}
-                </div>
-              </div>
             </div>
           </Card>
 
