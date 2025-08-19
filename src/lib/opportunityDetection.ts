@@ -509,14 +509,14 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
       const isContradictory = checkIfContradictory(opportunities, market);
       
       if (isContradictory) {
-        // Prioriser d'abord le consensus (plus de détections), puis la meilleure cote
-        const bestOpportunity = opportunities.reduce((best, current) => {
-          // D'abord comparer le nombre de détections
-          if (current.detectionCount > best.detectionCount) return current;
-          if (current.detectionCount < best.detectionCount) return best;
-          // Si même nombre de détections, prendre la meilleure cote
-          return current.odds > best.odds ? current : best;
-        });
+        // Vérifier s'il y a un consensus (3+ détections) dans les opportunités contradictoires
+        const consensusOpportunity = opportunities.find(o => o.detectionCount >= 3);
+        
+        const bestOpportunity = consensusOpportunity || 
+          // S'il n'y a pas de consensus, prendre simplement la meilleure cote
+          opportunities.reduce((best, current) => {
+            return current.odds > best.odds ? current : best;
+          });
         console.log(`✅ RÉSOLUTION CONTRADICTION - Sélection consensus puis meilleure cote:`, `${bestOpportunity.prediction}(détections:${bestOpportunity.detectionCount})(cote:${bestOpportunity.odds})`);
         resolvedOpportunities.push(bestOpportunity);
       } else {
