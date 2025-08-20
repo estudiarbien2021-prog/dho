@@ -503,210 +503,62 @@ function getOddsForPrediction(market: string, prediction: string, context: RuleE
   return 0;
 }
 
-// NOUVELLE FONCTION: Sélectionner intelligemment jusqu'à 2 opportunités avec les meilleures priorités de marchés différents
+// FONCTION SIMPLIFIÉE: Retourner toutes les opportunités valides de marchés différents
 export function prioritizeOpportunitiesByRealProbability(opportunities: DetectedOpportunity[], match: ProcessedMatch): DetectedOpportunity[] {
-  // 🚨 DEBUG CRITIQUE - LOGS VISIBLES FORCÉS
-  console.error('🚨🚨🚨 PRIORITIZATION CALLED 🚨🚨🚨');
+  console.error('🚨🚨🚨 PRIORITIZATION CALLED - VERSION SIMPLIFIÉE 🚨🚨🚨');
   console.error('📥 INPUT OPPORTUNITIES:', opportunities?.length || 0);
-  console.error('📊 OPPORTUNITIES DETAIL:', opportunities?.map(o => `${o.type}:${o.prediction}(odds:${o.odds})`) || []);
+  console.error('📊 INPUT DETAIL:', opportunities?.map(o => `${o.type}:${o.prediction}(odds:${o.odds})`) || []);
   
-  console.log('🎯 PRIORISATION INTELLIGENTE - INPUT:', opportunities.length, 'opportunités:', opportunities.map(o => `${o.type}:${o.prediction}(priorité:${o.priority})(cote:${o.odds})`));
-  
-  // ALERTE VISUELLE POUR DEBUGGING
-  if (opportunities.length > 1) {
-    console.warn(`🚨 DEBUGGING FORCÉ - ${opportunities.length} opportunités en entrée:`, opportunities.map(o => `${o.type}:${o.prediction}`));
-  }
-  
-  // ÉTAPE 1: Séparer les vraies recommandations des "no_recommendation"
-  const realRecommendations = opportunities.filter(opp => 
+  // ÉTAPE 1: Filtrer les vraies recommandations
+  const validRecommendations = opportunities.filter(opp => 
     opp.prediction !== 'no_recommendation' && 
     opp.prediction !== 'No recommendation' &&
     !opp.prediction.toLowerCase().includes('no recommendation')
   );
   
-  console.log('🔄 RECOMMANDATIONS VALIDES:', realRecommendations.length, 'opportunités:', realRecommendations.map(r => `${r.type}:${r.prediction}(priorité:${r.priority})(cote:${r.odds})`));
+  console.error('✅ RECOMMANDATIONS VALIDES:', validRecommendations.length);
+  console.error('📋 VALID DETAIL:', validRecommendations.map(o => `${o.type}:${o.prediction}(odds:${o.odds})`));
   
-  // ALERTE VISUELLE POUR DEBUGGING
-  if (realRecommendations.length > 1) {
-    console.warn(`🚨 DEBUGGING - ${realRecommendations.length} recommandations valides après filtrage`);
-  }
-  
-  if (realRecommendations.length === 0) {
-    console.log('🚫 AUCUNE RECOMMANDATION VALIDE');
+  if (validRecommendations.length === 0) {
+    console.error('❌ AUCUNE RECOMMANDATION VALIDE - RETOUR VIDE');
     return [];
   }
   
-  // ÉTAPE 2: NOUVEAU - Compter les détections identiques (même marché + même prédiction)
-  const detectionMap = new Map<string, DetectedOpportunity>();
-  const normalizeMarketType = (type: string): string => {
-    const normalized = type.toLowerCase().trim();
-    if (normalized === 'o/u 2.5' || normalized === 'ou25' || normalized === 'o/u 2,5') return 'ou25';
-    if (normalized === 'btts') return 'btts';
-    if (normalized === '1x2') return '1x2';
-    if (normalized === 'double chance') return 'double_chance';
-    if (normalized === 'remboursé si nul') return 'refund_if_draw';
-    console.warn(`🔍 NORMALISATION MARCHÉ: "${type}" → "${normalized}"`);
-    return normalized;
-  };
-
-  // Grouper les opportunités identiques et compter les détections
-  realRecommendations.forEach(opp => {
-    const normalizedMarket = normalizeMarketType(opp.type);
-    const detectionKey = `${normalizedMarket}:${opp.prediction}`;
-    
-    if (detectionMap.has(detectionKey)) {
-      // Incrementer le compteur de détection
-      const existingOpp = detectionMap.get(detectionKey)!;
-      existingOpp.detectionCount += 1;
-      // Garder la meilleure cote
-      if (opp.odds > existingOpp.odds) {
-        existingOpp.odds = opp.odds;
-        existingOpp.reason = [...existingOpp.reason, ...opp.reason];
-      }
-      console.log(`🔄 DÉTECTION SUPPLÉMENTAIRE: ${detectionKey} (total: ${existingOpp.detectionCount})`);
-    } else {
-      // Première détection de cette opportunité
-      detectionMap.set(detectionKey, { ...opp, detectionCount: 1 });
-      console.log(`🆕 NOUVELLE DÉTECTION: ${detectionKey} (détections: 1)`);
-    }
-  });
-
-  const consolidatedOpportunities = Array.from(detectionMap.values());
-  console.log('📊 OPPORTUNITÉS CONSOLIDÉES:', consolidatedOpportunities.map(o => 
-    `${o.type}:${o.prediction}(détections:${o.detectionCount})(cote:${o.odds})`
-  ));
-
-  // ÉTAPE 3: Détecter et résoudre les opportunités contradictoires sur le même marché
+  // ÉTAPE 2: Grouper par marché (version simplifiée)
   const marketGroups = new Map<string, DetectedOpportunity[]>();
   
-  consolidatedOpportunities.forEach(opportunity => {
-    const normalizedMarket = normalizeMarketType(opportunity.type);
-    if (!marketGroups.has(normalizedMarket)) {
-      marketGroups.set(normalizedMarket, []);
+  validRecommendations.forEach(opportunity => {
+    const market = opportunity.type.toLowerCase().trim();
+    if (!marketGroups.has(market)) {
+      marketGroups.set(market, []);
     }
-    marketGroups.get(normalizedMarket)!.push(opportunity);
+    marketGroups.get(market)!.push(opportunity);
   });
   
-  console.log('📊 GROUPEMENT PAR MARCHÉ:', Array.from(marketGroups.entries()).map(([market, opps]) => 
-    `${market}: ${opps.length} opportunité(s)`
+  console.error('📊 MARCHÉS GROUPÉS:', Array.from(marketGroups.entries()).map(([market, opps]) => 
+    `${market}: ${opps.length} opp(s)`
   ));
   
-  // ÉTAPE 4: Résoudre les contradictions en gardant la meilleure cote par marché
-  const resolvedOpportunities: DetectedOpportunity[] = [];
+  // ÉTAPE 3: Prendre la meilleure opportunité par marché (par cote décroissante)
+  const selectedOpportunities: DetectedOpportunity[] = [];
   
-  marketGroups.forEach((opportunities, market) => {
-    if (opportunities.length > 1) {
-      console.log(`⚠️ CONTRADICTION DÉTECTÉE sur marché ${market}:`, opportunities.map(o => `${o.prediction}(détections:${o.detectionCount})(cote:${o.odds})`));
-      
-      // Détecter si les opportunités sont vraiment contradictoires
-      const isContradictory = checkIfContradictory(opportunities, market);
-      
-      if (isContradictory) {
-        // Vérifier s'il y a un consensus (3+ détections) dans les opportunités contradictoires
-        const consensusOpportunity = opportunities.find(o => o.detectionCount >= 3);
-        
-        const bestOpportunity = consensusOpportunity || 
-          // S'il n'y a pas de consensus, prendre simplement la meilleure cote
-          opportunities.reduce((best, current) => {
-            return current.odds > best.odds ? current : best;
-          });
-        console.log(`✅ RÉSOLUTION CONTRADICTION - Sélection consensus puis meilleure cote:`, `${bestOpportunity.prediction}(détections:${bestOpportunity.detectionCount})(cote:${bestOpportunity.odds})`);
-        resolvedOpportunities.push(bestOpportunity);
-      } else {
-        // Si pas vraiment contradictoires, garder toutes (ex: différents types de 1X2)
-        resolvedOpportunities.push(...opportunities);
-      }
-    } else {
-      // Pas de contradiction, garder l'opportunité unique
-      resolvedOpportunities.push(opportunities[0]);
-    }
+  marketGroups.forEach((opps, market) => {
+    // Trier par cote décroissante et prendre la première
+    const sorted = opps.sort((a, b) => b.odds - a.odds);
+    const selected = sorted[0];
+    selectedOpportunities.push(selected);
+    console.error(`✅ SÉLECTION MARCHÉ "${market}": ${selected.prediction} (cote: ${selected.odds})`);
   });
   
-  console.log('🔄 APRÈS RÉSOLUTION DES CONTRADICTIONS:', resolvedOpportunities.length, resolvedOpportunities.map(r => `${r.type}:${r.prediction}(détections:${r.detectionCount})(cote:${r.odds})`));
+  // ÉTAPE 4: Limiter à 2 opportunités maximum
+  const finalResult = selectedOpportunities.slice(0, 2);
   
-  // ÉTAPE 5: NOUVEAU - Prioriser par consensus (3+ détections) puis par priorité et cotes
-  const consensusOpportunities = resolvedOpportunities.filter(o => o.detectionCount >= 3);
-  const normalOpportunities = resolvedOpportunities.filter(o => o.detectionCount < 3);
-  
-  console.log('⭐ OPPORTUNITÉS CONSENSUS (3+ détections):', consensusOpportunities.map(o => 
-    `${o.type}:${o.prediction}(détections:${o.detectionCount})(cote:${o.odds})`
-  ));
-  console.log('📊 OPPORTUNITÉS NORMALES:', normalOpportunities.map(o => 
-    `${o.type}:${o.prediction}(détections:${o.detectionCount})(cote:${o.odds})`
-  ));
-
-  // Trier les opportunités consensus par nombre de détections (décroissant) puis par cotes (décroissant)
-  consensusOpportunities.sort((a, b) => {
-    if (b.detectionCount !== a.detectionCount) {
-      return b.detectionCount - a.detectionCount;
-    }
-    return b.odds - a.odds; // CORRIGÉ: cotes décroissantes (plus élevées en premier)
-  });
-
-  // Trier les opportunités normales par cotes décroissantes (cotes les plus élevées en premier)
-  normalOpportunities.sort((a, b) => {
-    return b.odds - a.odds; // CORRIGÉ: cotes décroissantes (plus élevées en premier)
+  console.error('🏁 RÉSULTAT FINAL:', finalResult.length, 'opportunités');
+  finalResult.forEach((opp, index) => {
+    console.error(`🏆 [${index + 1}] ${opp.type}:${opp.prediction} (cote: ${opp.odds})`);
   });
   
-  // ÉTAPE 6: SÉLECTION LOGIQUE FIXÉE - Retourner jusqu'à 2 opportunités de marchés différents
-  const selectedRecommendations: DetectedOpportunity[] = [];
-  const usedMarkets = new Set<string>();
-  
-  console.warn(`🚨 ÉTAPE 6 - SÉLECTION AVEC LOGS DÉTAILLÉS:`, resolvedOpportunities.length, 'opportunités disponibles');
-  console.warn(`📊 OPPORTUNITÉS RÉSOLUES:`, resolvedOpportunities.map(o => `${o.type}:${o.prediction}(cote:${o.odds})`));
-  
-  // VÉRIFICATION DU CONTENU DE resolvedOpportunities
-  if (resolvedOpportunities.length === 0) {
-    console.error('🚨 ERREUR CRITIQUE: resolvedOpportunities est vide!');
-    return [];
-  }
-  
-  // LOGIQUE DE SÉLECTION AVEC LOGS DÉTAILLÉS
-  for (let i = 0; i < resolvedOpportunities.length; i++) {
-    const opportunity = resolvedOpportunities[i];
-    const normalizedMarket = normalizeMarketType(opportunity.type);
-    
-    console.warn(`🔍 [${i}] EXAMEN: "${opportunity.type}" → normalisé: "${normalizedMarket}"`);
-    console.warn(`   ├── Prédiction: "${opportunity.prediction}"`);
-    console.warn(`   ├── Cote: ${opportunity.odds}`);
-    console.warn(`   ├── Marché déjà utilisé: ${usedMarkets.has(normalizedMarket)}`);
-    console.warn(`   ├── Limite atteinte: ${selectedRecommendations.length >= 2}`);
-    console.warn(`   └── Marchés utilisés: [${Array.from(usedMarkets).join(', ')}]`);
-    
-    if (!usedMarkets.has(normalizedMarket) && selectedRecommendations.length < 2) {
-      selectedRecommendations.push(opportunity);
-      usedMarkets.add(normalizedMarket);
-      console.warn(`✅ [${i}] SÉLECTIONNÉE: ${opportunity.type}:${opportunity.prediction} (cote: ${opportunity.odds})`);
-      console.warn(`   └── Marchés utilisés maintenant: [${Array.from(usedMarkets).join(', ')}]`);
-    } else {
-      const raison = usedMarkets.has(normalizedMarket) ? 'marché déjà utilisé' : 'limite de 2 atteinte';
-      console.warn(`❌ [${i}] REJETÉE: ${raison}`);
-    }
-  }
-  
-  console.warn(`📋 RÉSULTAT FINAL: ${selectedRecommendations.length}/2 opportunités sélectionnées`);
-  console.warn(`🎯 MARCHÉS UTILISÉS: [${Array.from(usedMarkets).join(', ')}]`);
-  
-  // ALERTE FINALE pour vérifier le résultat
-  selectedRecommendations.forEach((rec, index) => {
-    console.warn(`🏆 RECOMMANDATION ${index + 1}: ${rec.type}:${rec.prediction} (cote: ${rec.odds})`);
-  });
-  
-  // ÉTAPE 7: Réorganiser les 2 opportunités finales pour mettre celle avec la cote la moins élevée comme principale
-  if (selectedRecommendations.length === 2) {
-    selectedRecommendations.sort((a, b) => a.odds - b.odds); // Trier par cotes croissantes (cotes faibles en premier)
-    console.warn('🔄 RÉORGANISATION: Opportunité avec cote la moins élevée mise comme principale');
-    console.warn(`🏆 APRÈS RÉORGANISATION - PRINCIPALE: ${selectedRecommendations[0].type}:${selectedRecommendations[0].prediction} (cote: ${selectedRecommendations[0].odds})`);
-    console.warn(`🥈 APRÈS RÉORGANISATION - SECONDAIRE: ${selectedRecommendations[1].type}:${selectedRecommendations[1].prediction} (cote: ${selectedRecommendations[1].odds})`);
-  }
-  
-  console.log('🎯 MARCHÉS UTILISÉS:', Array.from(usedMarkets));
-  console.log('🏆 RECOMMANDATION PRINCIPALE (1ère - cote la moins élevée):', selectedRecommendations[0] ? 
-    `${selectedRecommendations[0].type}:${selectedRecommendations[0].prediction} (détections:${selectedRecommendations[0].detectionCount})(cote:${selectedRecommendations[0].odds})` : 'AUCUNE');
-  console.log('🥈 RECOMMANDATION SECONDAIRE (2ème - cote la plus élevée):', selectedRecommendations[1] ? 
-    `${selectedRecommendations[1].type}:${selectedRecommendations[1].prediction} (détections:${selectedRecommendations[1].detectionCount})(cote:${selectedRecommendations[1].odds})` : 'AUCUNE');
-  
-  return selectedRecommendations;
+  return finalResult;
 }
 
 // NOUVELLE FONCTION: Vérifier si les opportunités sont vraiment contradictoires
