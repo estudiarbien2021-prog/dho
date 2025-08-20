@@ -184,6 +184,24 @@ export async function detectOpportunities(match: ProcessedMatch): Promise<Detect
     
     const odds = getOddsForPrediction(result.market, prediction, context);
     
+    // Logs spécifiques pour P18 (règle "Recommander le moins probable" OU25)
+    if (result.action === 'recommend_least_probable' && result.market === 'ou25') {
+      console.log(`🎯 [P18 DEBUG] Opportunité P18 créée:`, {
+        ruleName: result.ruleName,
+        action: result.action,
+        market: result.market,
+        prediction,
+        odds,
+        priority: result.priority,
+        context_odds_over: context.odds_over25,
+        context_odds_under: context.odds_under25
+      });
+      
+      if (odds === 0) {
+        console.log('❌ [P18 ERROR] Cotes nulles détectées - cette opportunité sera filtrée');
+      }
+    }
+    
     console.log(`✅ Opportunité créée:`, {
       type,
       prediction,
@@ -336,25 +354,35 @@ function getLeastProbablePrediction(market: string, context: RuleEvaluationConte
   if (market === 'ou25') {
     const probOver = context.probability_over25 || 0;
     const probUnder = context.probability_under25 || 0;
-    console.log(`🎯 OU25 probabilities: Over=${probOver}, Under=${probUnder}`);
+    
+    console.log(`🎯 [P18 DEBUG] OU25 probabilities pour "recommend_least_probable":`, { 
+      probOver, 
+      probUnder,
+      overPercent: `${(probOver * 100).toFixed(1)}%`,
+      underPercent: `${(probUnder * 100).toFixed(1)}%`,
+      leastProbable: probOver < probUnder ? 'Over (+2,5)' : 'Under (-2,5)'
+    });
     
     // Vérification améliorée avec fallback plus robuste
     if (probOver === 0 && probUnder === 0) {
-      console.log('❌ Both over/under probabilities are 0 for OU25 market, using fallback');
+      console.log('❌ [P18 ERROR] Both over/under probabilities are 0 for OU25 market, using fallback');
       // Fallback: si pas de probabilités, supposer que Under est plus probable (conservateur)
       return '+2,5 buts';
     }
     
     // Si une seule probabilité est disponible, utiliser l'autre
     if (probOver === 0 && probUnder > 0) {
+      console.log(`🎯 [P18 DEBUG] Only Under probability available (${probUnder}), recommending Over`);
       return '+2,5 buts'; // Under est plus probable, donc Over est moins probable
     }
     if (probUnder === 0 && probOver > 0) {
+      console.log(`🎯 [P18 DEBUG] Only Over probability available (${probOver}), recommending Under`);
       return '-2,5 buts'; // Over est plus probable, donc Under est moins probable
     }
     
     const result = probOver < probUnder ? '+2,5 buts' : '-2,5 buts';
-    console.log(`🎯 OU25 least probable result: ${result}`);
+    console.log(`🎯 [P18 DEBUG] OU25 least probable result: ${result}`);
+    console.log(`🎯 [P18 DEBUG] Logic: probOver (${probOver}) < probUnder (${probUnder}) = ${probOver < probUnder}`);
     return result;
   }
   
@@ -443,24 +471,30 @@ function getOddsForPrediction(market: string, prediction: string, context: RuleE
   if (market === 'ou25') {
     if (prediction === '+2,5 buts') {
       const odds = context.odds_over25;
-      console.log(`🎯 OU25 odds for +2,5 buts: ${odds}`);
+      console.log(`🎯 [P18 DEBUG] OU25 odds for +2,5 buts: ${odds}`);
       // Vérification plus stricte pour éviter les valeurs null/undefined
       if (odds && odds > 0) {
+        console.log(`✅ [P18 DEBUG] Valid odds found for +2,5 buts: ${odds}`);
         return odds;
       } else {
-        console.log('❌ Invalid or missing odds for +2,5 buts, odds value:', odds);
-        return 0;
+        console.log('❌ [P18 ERROR] Invalid or missing odds for +2,5 buts, odds value:', odds);
+        console.log('❌ [P18 ERROR] This will cause the opportunity to be filtered out');
+        // Fallback: utiliser une cote minimale pour éviter le filtrage
+        return 1.01;
       }
     }
     if (prediction === '-2,5 buts') {
       const odds = context.odds_under25;
-      console.log(`🎯 OU25 odds for -2,5 buts: ${odds}`);
+      console.log(`🎯 [P18 DEBUG] OU25 odds for -2,5 buts: ${odds}`);
       // Vérification plus stricte pour éviter les valeurs null/undefined
       if (odds && odds > 0) {
+        console.log(`✅ [P18 DEBUG] Valid odds found for -2,5 buts: ${odds}`);
         return odds;
       } else {
-        console.log('❌ Invalid or missing odds for -2,5 buts, odds value:', odds);
-        return 0;
+        console.log('❌ [P18 ERROR] Invalid or missing odds for -2,5 buts, odds value:', odds);
+        console.log('❌ [P18 ERROR] This will cause the opportunity to be filtered out');
+        // Fallback: utiliser une cote minimale pour éviter le filtrage
+        return 1.01;
       }
     }
   }
@@ -623,10 +657,16 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
     }
   }
   
+  // ÉTAPE 7: Réorganiser les 2 opportunités finales pour mettre celle avec la cote la moins élevée comme principale
+  if (selectedRecommendations.length === 2) {
+    selectedRecommendations.sort((a, b) => a.odds - b.odds); // Trier par cotes croissantes (cotes faibles en premier)
+    console.log('🔄 RÉORGANISATION: Opportunité avec cote la moins élevée mise comme principale');
+  }
+  
   console.log('🎯 MARCHÉS UTILISÉS:', Array.from(usedMarkets));
-  console.log('🏆 RECOMMANDATION PRINCIPALE (1ère):', selectedRecommendations[0] ? 
+  console.log('🏆 RECOMMANDATION PRINCIPALE (1ère - cote la moins élevée):', selectedRecommendations[0] ? 
     `${selectedRecommendations[0].type}:${selectedRecommendations[0].prediction} (détections:${selectedRecommendations[0].detectionCount})(cote:${selectedRecommendations[0].odds})` : 'AUCUNE');
-  console.log('🥈 RECOMMANDATION SECONDAIRE (2ème):', selectedRecommendations[1] ? 
+  console.log('🥈 RECOMMANDATION SECONDAIRE (2ème - cote la plus élevée):', selectedRecommendations[1] ? 
     `${selectedRecommendations[1].type}:${selectedRecommendations[1].prediction} (détections:${selectedRecommendations[1].detectionCount})(cote:${selectedRecommendations[1].odds})` : 'AUCUNE');
   
   return selectedRecommendations;
