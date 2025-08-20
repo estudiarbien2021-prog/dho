@@ -138,6 +138,13 @@ export async function detectOpportunities(match: ProcessedMatch): Promise<Detect
   
   console.log('✅ RÈGLES VALIDES APRÈS FILTRAGE no_recommendation:', validRules.length, validRules.map(r => r.ruleName));
   
+  // ⭐ DEBUG SPÉCIAL P16
+  const p16Rules = validRules.filter(r => r.ruleName.includes('P16'));
+  console.log('🚨 DEBUG P16 - Règles P16 trouvées après filtrage:', p16Rules.length);
+  p16Rules.forEach(r => {
+    console.log(`🚨 P16 DÉTAIL: Nom=${r.ruleName}, Action=${r.action}, Marché=${r.market}, Priorité=${r.priority}`);
+  });
+  
   // VÉRIFICATION FINALE: S'il n'y a pas de règles valides, ne pas créer d'opportunités
   if (validRules.length === 0) {
     console.log('🚫 AUCUNE RÈGLE VALIDE APRÈS FILTRAGE - AUCUNE OPPORTUNITÉ CRÉÉE');
@@ -193,6 +200,19 @@ export async function detectOpportunities(match: ProcessedMatch): Promise<Detect
     }
     
     const odds = getOddsForPrediction(result.market, prediction, context);
+    
+    // ⭐ LOG SPÉCIAL POUR P16/OVER 2.5
+    if (result.ruleName.includes('P16') || prediction.includes('2,5 buts') || prediction.includes('+2,5')) {
+      console.log(`🚨 P16/OVER 2.5 OPPORTUNITÉ CRÉÉE:`, {
+        ruleName: result.ruleName,
+        action: result.action,
+        market: result.market,
+        prediction,
+        userDisplayType,
+        odds,
+        priority: result.priority
+      });
+    }
     
     // Logs spécifiques pour P18 (règle "Recommander le moins probable" OU25)
     if (result.action === 'recommend_least_probable' && result.market === 'ou25') {
