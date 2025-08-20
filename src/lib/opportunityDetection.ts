@@ -33,18 +33,28 @@ function getActionToPredictionMapping(action: string, market: string, context: a
     'recommend_btts_yes': 'Oui',
     'recommend_btts_no': 'Non',
     'recommend_over': '+2,5 buts',
+    'recommend_over25': '+2,5 buts', // ⭐ AJOUT pour gérer recommend_over25
     'recommend_under': '-2,5 buts',
+    'recommend_under25': '-2,5 buts', // ⭐ AJOUT pour gérer recommend_under25
     'recommend_yes': 'Oui',
     'recommend_no': 'Non'
   };
   
+  console.log(`🔍 DEBUG ACTION MAPPING: ${action} → Recherche dans actionMapping...`);
+  
   const mappedPrediction = actionMapping[action];
   if (mappedPrediction) {
+    console.log(`✅ DEBUG ACTION MAPPING: ${action} → ${mappedPrediction}`);
     return mappedPrediction;
   }
   
+  console.log(`❌ DEBUG ACTION MAPPING: Action '${action}' NON TROUVÉE dans le mapping`);
+  console.log(`🔍 DEBUG ACTION MAPPING: Actions disponibles:`, Object.keys(actionMapping));
+  
   // Fallback: enlever le préfixe 'recommend_'
-  return action.replace('recommend_', '');
+  const fallback = action.replace('recommend_', '');
+  console.log(`🔄 DEBUG ACTION MAPPING: Fallback utilisé: ${action} → ${fallback}`);
+  return fallback;
 }
 
 export async function detectOpportunities(match: ProcessedMatch): Promise<DetectedOpportunity[]> {
