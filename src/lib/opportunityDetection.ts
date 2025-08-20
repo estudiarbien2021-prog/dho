@@ -535,9 +535,9 @@ function getOddsForPrediction(market: string, prediction: string, context: RuleE
 
 // NOUVELLE FONCTION: Sélectionner intelligemment jusqu'à 2 opportunités avec les meilleures priorités de marchés différents
 export function prioritizeOpportunitiesByRealProbability(opportunities: DetectedOpportunity[], match: ProcessedMatch): DetectedOpportunity[] {
-  console.log('🎯 PRIORISATION SIMPLIFIÉE - INPUT:', opportunities.map(o => `${o.type}:${o.prediction}(cote:${o.odds})`));
+  console.log('🎯 PRIORISATION INTELLIGENTE - INPUT:', opportunities.map(o => `${o.type}:${o.prediction}(cote:${o.odds})`));
   
-  // Filtrer les vraies recommandations
+  // ÉTAPE 1: Filtrer les vraies recommandations
   const validOpportunities = opportunities.filter(opp => 
     opp.prediction !== 'no_recommendation' && 
     opp.prediction !== 'No recommendation' &&
@@ -547,12 +547,87 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
   
   console.log('✅ OPPORTUNITÉS VALIDES:', validOpportunities.map(o => `${o.type}:${o.prediction}(cote:${o.odds})`));
   
-  // Trier par cotes croissantes (les plus faibles en premier)
-  validOpportunities.sort((a, b) => a.odds - b.odds);
+  if (validOpportunities.length === 0) {
+    return [];
+  }
   
-  console.log('🏆 RECOMMANDATIONS FINALES (triées par cotes):', validOpportunities.map(o => `${o.type}:${o.prediction}(cote:${o.odds})`));
+  // ÉTAPE 2: Regrouper par marché normalisé
+  const marketGroups = new Map<string, DetectedOpportunity[]>();
   
-  return validOpportunities;
+  validOpportunities.forEach(opp => {
+    let normalizedMarket = opp.type.toLowerCase();
+    if (normalizedMarket.includes('o/u') || normalizedMarket.includes('2.5') || normalizedMarket.includes('2,5')) {
+      normalizedMarket = 'ou25';
+    } else if (normalizedMarket.includes('btts')) {
+      normalizedMarket = 'btts';
+    } else if (normalizedMarket.includes('1x2')) {
+      normalizedMarket = '1x2';
+    }
+    
+    if (!marketGroups.has(normalizedMarket)) {
+      marketGroups.set(normalizedMarket, []);
+    }
+    marketGroups.get(normalizedMarket)!.push(opp);
+  });
+  
+  console.log('📊 GROUPEMENT PAR MARCHÉ:', Array.from(marketGroups.entries()).map(([market, opps]) => 
+    `${market}: ${opps.length} opportunité(s)`
+  ));
+  
+  // ÉTAPE 3: Sélectionner la meilleure opportunité par marché (celle avec la meilleure cote)
+  const bestByMarket: DetectedOpportunity[] = [];
+  
+  marketGroups.forEach((opportunities, market) => {
+    // Si plusieurs opportunités sur le même marché, vérifier si elles sont contradictoires
+    if (opportunities.length > 1) {
+      console.log(`⚠️ MULTIPLE OPPORTUNITÉS sur marché ${market}:`, opportunities.map(o => `${o.prediction}(cote:${o.odds})`));
+      
+      // Pour le marché BTTS et O/U, prendre celle avec la meilleure cote
+      const bestOpportunity = opportunities.reduce((best, current) => {
+        return current.odds > best.odds ? current : best;
+      });
+      console.log(`✅ SÉLECTION ${market}: ${bestOpportunity.prediction} (cote: ${bestOpportunity.odds})`);
+      bestByMarket.push(bestOpportunity);
+    } else {
+      // Une seule opportunité sur ce marché
+      bestByMarket.push(opportunities[0]);
+      console.log(`✅ SÉLECTION ${market}: ${opportunities[0].prediction} (cote: ${opportunities[0].odds})`);
+    }
+  });
+  
+  // ÉTAPE 4: Limiter à 2 opportunités maximum, en priorisant les marchés différents
+  const finalRecommendations: DetectedOpportunity[] = [];
+  const usedMarkets = new Set<string>();
+  
+  // Trier par cotes décroissantes (meilleures cotes en premier)
+  bestByMarket.sort((a, b) => b.odds - a.odds);
+  
+  // Sélectionner jusqu'à 2 opportunités de marchés différents
+  for (const opportunity of bestByMarket) {
+    let normalizedMarket = opportunity.type.toLowerCase();
+    if (normalizedMarket.includes('o/u') || normalizedMarket.includes('2.5') || normalizedMarket.includes('2,5')) {
+      normalizedMarket = 'ou25';
+    } else if (normalizedMarket.includes('btts')) {
+      normalizedMarket = 'btts';
+    } else if (normalizedMarket.includes('1x2')) {
+      normalizedMarket = '1x2';
+    }
+    
+    if (!usedMarkets.has(normalizedMarket) && finalRecommendations.length < 2) {
+      finalRecommendations.push(opportunity);
+      usedMarkets.add(normalizedMarket);
+      console.log(`🏆 SÉLECTION FINALE ${finalRecommendations.length}: ${opportunity.type}:${opportunity.prediction} (cote: ${opportunity.odds})`);
+    }
+  }
+  
+  // ÉTAPE 5: Réorganiser pour mettre la cote la plus faible en premier (recommandation principale)
+  finalRecommendations.sort((a, b) => a.odds - b.odds);
+  
+  console.log('🏆 RECOMMANDATIONS FINALES:', finalRecommendations.map((o, index) => 
+    `${index + 1}. ${o.type}:${o.prediction}(cote:${o.odds})`
+  ));
+  
+  return finalRecommendations;
 }
 
 // NOUVELLE FONCTION: Vérifier si les opportunités sont vraiment contradictoires
