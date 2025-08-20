@@ -507,6 +507,10 @@ function getOddsForPrediction(market: string, prediction: string, context: RuleE
 export function prioritizeOpportunitiesByRealProbability(opportunities: DetectedOpportunity[], match: ProcessedMatch): DetectedOpportunity[] {
   console.log('🎯 PRIORISATION INTELLIGENTE - INPUT:', opportunities.map(o => `${o.type}:${o.prediction}(priorité:${o.priority})(cote:${o.odds})`));
   
+  // DEBUG: Log spécifique pour Over 2.5
+  const over25Opportunities = opportunities.filter(o => o.type.includes('O/U') || o.type.includes('OU') || o.prediction.includes('2.5') || o.prediction.includes('2,5'));
+  console.log('🏆 DEBUG OVER 2.5 - Opportunités détectées:', over25Opportunities.map(o => `Type:[${o.type}] Prediction:[${o.prediction}] Cote:${o.odds}`));
+  
   // ÉTAPE 1: Séparer les vraies recommandations des "no_recommendation"
   const realRecommendations = opportunities.filter(opp => 
     opp.prediction !== 'no_recommendation' && 
@@ -515,6 +519,7 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
   );
   
   console.log('🔄 RECOMMANDATIONS VALIDES:', realRecommendations.length, realRecommendations.map(r => `${r.type}:${r.prediction}(priorité:${r.priority})(cote:${r.odds})`));
+  console.log('🏆 DEBUG OVER 2.5 - Recommandations valides Over 2.5:', realRecommendations.filter(r => r.type.includes('O/U') || r.type.includes('OU') || r.prediction.includes('2.5') || r.prediction.includes('2,5')));
   
   if (realRecommendations.length === 0) {
     console.log('🚫 AUCUNE RECOMMANDATION VALIDE');
@@ -524,12 +529,22 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
   // ÉTAPE 2: NOUVEAU - Compter les détections identiques (même marché + même prédiction)
   const detectionMap = new Map<string, DetectedOpportunity>();
   const normalizeMarketType = (type: string): string => {
-    if (type === 'O/U 2.5' || type === 'OU25') return 'ou25';
-    if (type === 'BTTS') return 'btts';
+    console.log('🔄 NORMALISATION MARCHÉ:', type);
+    // Améliorer la normalisation pour Over/Under 2.5
+    if (type === 'O/U 2.5' || type === 'OU25' || type === 'Over/Under 2.5' || type === 'O/U25' || type.includes('2.5') || type.includes('2,5')) {
+      console.log('✅ NORMALISATION -> ou25');
+      return 'ou25';
+    }
+    if (type === 'BTTS' || type.toLowerCase().includes('btts')) {
+      console.log('✅ NORMALISATION -> btts');
+      return 'btts';
+    }
     if (type === '1X2') return '1x2';
     if (type === 'Double Chance') return 'double_chance';
     if (type === 'Remboursé si nul') return 'refund_if_draw';
-    return type.toLowerCase();
+    const normalized = type.toLowerCase();
+    console.log('✅ NORMALISATION -> ', normalized);
+    return normalized;
   };
 
   // Grouper les opportunités identiques et compter les détections
