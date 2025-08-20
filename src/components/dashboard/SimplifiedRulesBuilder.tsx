@@ -260,14 +260,45 @@ export default function SimplifiedRulesBuilder() {
     }, 0);
   };
 
-  const updateLogicalConnector = (ruleId: string, index: number, connector: LogicalConnector) => {
+  const updateLogicalConnector = (ruleId: string, index: number, connector: LogicalConnector, groupId?: string) => {
     const rule = rules.find(r => r.id === ruleId);
     if (!rule) return;
 
-    const updatedConnectors = [...rule.logicalConnectors];
-    updatedConnectors[index] = connector;
+    if (groupId) {
+      // Update connector within a specific group
+      const updatedConditions = updateConnectorInGroup(rule.conditions, groupId, index, connector);
+      updateRule(ruleId, { conditions: updatedConditions });
+    } else {
+      // Update root-level connector
+      const updatedConnectors = [...rule.logicalConnectors];
+      updatedConnectors[index] = connector;
+      updateRule(ruleId, { logicalConnectors: updatedConnectors });
+    }
+  };
 
-    updateRule(ruleId, { logicalConnectors: updatedConnectors });
+  const updateConnectorInGroup = (
+    conditions: (Condition | ConditionGroup)[],
+    groupId: string,
+    index: number,
+    connector: LogicalConnector
+  ): (Condition | ConditionGroup)[] => {
+    return conditions.map(condition => {
+      if (isConditionGroup(condition)) {
+        if (condition.id === groupId) {
+          // Found the target group, update its connector
+          const updatedConnectors = [...condition.logicalConnectors];
+          updatedConnectors[index] = connector;
+          return { ...condition, logicalConnectors: updatedConnectors };
+        } else {
+          // Recursively search in nested groups
+          return {
+            ...condition,
+            conditions: updateConnectorInGroup(condition.conditions, groupId, index, connector)
+          };
+        }
+      }
+      return condition;
+    });
   };
 
   const validateRule = async (ruleId: string) => {
@@ -540,7 +571,7 @@ interface RuleEditorProps {
   onAddCondition: () => void;
   onUpdateCondition: (ruleId: string, conditionId: string, updates: Partial<Condition>) => void;
   onRemoveCondition: (ruleId: string, conditionId: string) => void;
-  onUpdateLogicalConnector: (ruleId: string, index: number, connector: LogicalConnector) => void;
+  onUpdateLogicalConnector: (ruleId: string, index: number, connector: LogicalConnector, groupId?: string) => void;
   onValidate: () => void;
   onCancel: () => void;
 }

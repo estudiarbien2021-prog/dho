@@ -26,10 +26,11 @@ interface ConditionRendererProps {
   logicalConnectors: LogicalConnector[];
   onUpdateCondition: (ruleId: string, conditionId: string, updates: Partial<Condition>) => void;
   onRemoveCondition: (ruleId: string, conditionId: string) => void;
-  onUpdateLogicalConnector: (ruleId: string, index: number, connector: LogicalConnector) => void;
+  onUpdateLogicalConnector: (ruleId: string, index: number, connector: LogicalConnector, groupId?: string) => void;
   onAddConditionToGroup?: (groupId: string) => void;
   onCreateGroup?: (ruleId: string) => void;
   depth?: number;
+  parentGroupId?: string;
 }
 
 export function ConditionRenderer({
@@ -44,7 +45,8 @@ export function ConditionRenderer({
   onUpdateLogicalConnector,
   onAddConditionToGroup,
   onCreateGroup,
-  depth = 0
+  depth = 0,
+  parentGroupId
 }: ConditionRendererProps) {
   if (isCondition(condition)) {
     return (
@@ -144,7 +146,7 @@ export function ConditionRenderer({
             <Select
               value={logicalConnectors[conditionIndex]}
               onValueChange={(value: LogicalConnector) => 
-                onUpdateLogicalConnector(ruleId, conditionIndex, value)
+                onUpdateLogicalConnector(ruleId, conditionIndex, value, parentGroupId)
               }
             >
               <SelectTrigger className="w-20">
@@ -203,6 +205,7 @@ export function ConditionRenderer({
               onAddConditionToGroup={onAddConditionToGroup}
               onCreateGroup={onCreateGroup}
               depth={depth + 1}
+              parentGroupId={condition.id}
             />
           ))}
         </div>
@@ -213,7 +216,7 @@ export function ConditionRenderer({
             <Select
               value={logicalConnectors[conditionIndex]}
               onValueChange={(value: LogicalConnector) => 
-                onUpdateLogicalConnector(ruleId, conditionIndex, value)
+                onUpdateLogicalConnector(ruleId, conditionIndex, value, parentGroupId)
               }
             >
               <SelectTrigger className="w-20">
