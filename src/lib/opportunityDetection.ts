@@ -12,6 +12,41 @@ export interface DetectedOpportunity {
   detectionCount: number;
 }
 
+/**
+ * Convertit une action en prédiction lisible selon le marché
+ */
+function getActionToPredictionMapping(action: string, market: string, context: any): string {
+  // Actions dynamiques
+  if (action === 'recommend_most_probable') {
+    return getMostProbablePrediction(market, context);
+  } else if (action === 'recommend_least_probable') {
+    return getLeastProbablePrediction(market, context);
+  } else if (action === 'recommend_double_chance_least_probable') {
+    return getDoubleChanceLeastProbable(context);
+  }
+  
+  // Actions spécifiques avec mapping exact
+  const actionMapping: Record<string, string> = {
+    'recommend_home': 'Victoire domicile',
+    'recommend_draw': 'Nul',
+    'recommend_away': 'Victoire extérieur',
+    'recommend_btts_yes': 'Oui',
+    'recommend_btts_no': 'Non',
+    'recommend_over': '+2,5 buts',
+    'recommend_under': '-2,5 buts',
+    'recommend_yes': 'Oui',
+    'recommend_no': 'Non'
+  };
+  
+  const mappedPrediction = actionMapping[action];
+  if (mappedPrediction) {
+    return mappedPrediction;
+  }
+  
+  // Fallback: enlever le préfixe 'recommend_'
+  return action.replace('recommend_', '');
+}
+
 export async function detectOpportunities(match: ProcessedMatch): Promise<DetectedOpportunity[]> {
   console.log('🔍 DÉTECTION OPPORTUNITÉS POUR:', match.home_team, 'vs', match.away_team);
   console.log('📊 DONNÉES MATCH CRITIQUES:', {
@@ -136,8 +171,15 @@ export async function detectOpportunities(match: ProcessedMatch): Promise<Detect
       prediction = mostProbableTeam === 'home' ? 'Victoire domicile (Remboursé si nul)' : 'Victoire extérieur (Remboursé si nul)';
       userDisplayType = 'Remboursé si nul';
     } else {
-      // Actions spécifiques comme 'recommend_over', 'recommend_yes', etc.
-      prediction = result.action.replace('recommend_', '');
+      // Déterminer la prédiction en fonction de l'action avec mapping spécifique
+      prediction = getActionToPredictionMapping(result.action, result.market, context);
+      
+      console.log(`[OPPORTUNITY DEBUG] Action: ${result.action} → Prediction: ${prediction} (Market: ${result.market})`);
+      
+      if (!prediction || prediction === 'Unknown') {
+        console.warn(`[OPPORTUNITY WARNING] Impossible de déterminer la prédiction pour l'action: ${result.action}`);
+        return { type: '', prediction: '', odds: 0, reason: [], isInverted: false, priority: 0, detectionCount: 0 } as DetectedOpportunity;
+      }
     }
     
     const odds = getOddsForPrediction(result.market, prediction, context);
