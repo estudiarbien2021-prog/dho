@@ -535,49 +535,27 @@ function getOddsForPrediction(market: string, prediction: string, context: RuleE
 
 // NOUVELLE FONCTION: Sélectionner intelligemment jusqu'à 2 opportunités avec les meilleures priorités de marchés différents
 export function prioritizeOpportunitiesByRealProbability(opportunities: DetectedOpportunity[], match: ProcessedMatch): DetectedOpportunity[] {
-  console.log('🎯 PRIORISATION INTELLIGENTE - INPUT:', opportunities.map(o => `${o.type}:${o.prediction}(priorité:${o.priority})(cote:${o.odds})`));
+  console.log('🎯 PRIORISATION SIMPLIFIÉE - INPUT:', opportunities.map(o => `${o.type}:${o.prediction}(cote:${o.odds})`));
   
-  // DEBUG: Log spécifique pour Over 2.5
-  const over25Opportunities = opportunities.filter(o => o.type.includes('O/U') || o.type.includes('OU') || o.prediction.includes('2.5') || o.prediction.includes('2,5'));
-  console.log('🏆 DEBUG OVER 2.5 - Opportunités détectées:', over25Opportunities.map(o => `Type:[${o.type}] Prediction:[${o.prediction}] Cote:${o.odds}`));
-  
-  // ÉTAPE 1: Séparer les vraies recommandations des "no_recommendation"
-  const realRecommendations = opportunities.filter(opp => 
+  // Filtrer les vraies recommandations
+  const validOpportunities = opportunities.filter(opp => 
     opp.prediction !== 'no_recommendation' && 
     opp.prediction !== 'No recommendation' &&
-    !opp.prediction.toLowerCase().includes('no recommendation')
+    !opp.prediction.toLowerCase().includes('no recommendation') &&
+    opp.odds > 0
   );
   
-  console.log('🔄 RECOMMANDATIONS VALIDES:', realRecommendations.length, realRecommendations.map(r => `${r.type}:${r.prediction}(priorité:${r.priority})(cote:${r.odds})`));
-  console.log('🏆 DEBUG OVER 2.5 - Recommandations valides Over 2.5:', realRecommendations.filter(r => r.type.includes('O/U') || r.type.includes('OU') || r.prediction.includes('2.5') || r.prediction.includes('2,5')));
+  console.log('✅ OPPORTUNITÉS VALIDES:', validOpportunities.map(o => `${o.type}:${o.prediction}(cote:${o.odds})`));
   
-  if (realRecommendations.length === 0) {
-    console.log('🚫 AUCUNE RECOMMANDATION VALIDE');
-    return [];
-  }
+  // Trier par cotes croissantes (les plus faibles en premier)
+  validOpportunities.sort((a, b) => a.odds - b.odds);
   
-  // ÉTAPE 2: NOUVEAU - Compter les détections identiques (même marché + même prédiction)
-  const detectionMap = new Map<string, DetectedOpportunity>();
-  const normalizeMarketType = (type: string): string => {
-    console.log('🔄 NORMALISATION MARCHÉ:', type);
-    // Améliorer la normalisation pour Over/Under 2.5
-    if (type === 'O/U 2.5' || type === 'OU25' || type === 'Over/Under 2.5' || type === 'O/U25' || type.includes('2.5') || type.includes('2,5')) {
-      console.log('✅ NORMALISATION -> ou25');
-      return 'ou25';
-    }
-    if (type === 'BTTS' || type.toLowerCase().includes('btts')) {
-      console.log('✅ NORMALISATION -> btts');
-      return 'btts';
-    }
-    if (type === '1X2') return '1x2';
-    if (type === 'Double Chance') return 'double_chance';
-    if (type === 'Remboursé si nul') return 'refund_if_draw';
-    const normalized = type.toLowerCase();
-    console.log('✅ NORMALISATION -> ', normalized);
-    return normalized;
-  };
+  console.log('🏆 RECOMMANDATIONS FINALES (triées par cotes):', validOpportunities.map(o => `${o.type}:${o.prediction}(cote:${o.odds})`));
+  
+  return validOpportunities;
+}
 
-  // Grouper les opportunités identiques et compter les détections
+// NOUVELLE FONCTION: Vérifier si les opportunités sont vraiment contradictoires
   realRecommendations.forEach(opp => {
     const normalizedMarket = normalizeMarketType(opp.type);
     const detectionKey = `${normalizedMarket}:${opp.prediction}`;
