@@ -507,6 +507,11 @@ function getOddsForPrediction(market: string, prediction: string, context: RuleE
 export function prioritizeOpportunitiesByRealProbability(opportunities: DetectedOpportunity[], match: ProcessedMatch): DetectedOpportunity[] {
   console.log('🎯 PRIORISATION INTELLIGENTE - INPUT:', opportunities.length, 'opportunités:', opportunities.map(o => `${o.type}:${o.prediction}(priorité:${o.priority})(cote:${o.odds})`));
   
+  // ALERTE VISUELLE POUR DEBUGGING
+  if (opportunities.length > 1) {
+    console.warn(`🚨 DEBUGGING FORCÉ - ${opportunities.length} opportunités en entrée:`, opportunities.map(o => `${o.type}:${o.prediction}`));
+  }
+  
   // ÉTAPE 1: Séparer les vraies recommandations des "no_recommendation"
   const realRecommendations = opportunities.filter(opp => 
     opp.prediction !== 'no_recommendation' && 
@@ -515,6 +520,11 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
   );
   
   console.log('🔄 RECOMMANDATIONS VALIDES:', realRecommendations.length, 'opportunités:', realRecommendations.map(r => `${r.type}:${r.prediction}(priorité:${r.priority})(cote:${r.odds})`));
+  
+  // ALERTE VISUELLE POUR DEBUGGING
+  if (realRecommendations.length > 1) {
+    console.warn(`🚨 DEBUGGING - ${realRecommendations.length} recommandations valides après filtrage`);
+  }
   
   if (realRecommendations.length === 0) {
     console.log('🚫 AUCUNE RECOMMANDATION VALIDE');
@@ -631,49 +641,40 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
     return b.odds - a.odds; // CORRIGÉ: cotes décroissantes (plus élevées en premier)
   });
   
-  // ÉTAPE 6: Sélectionner jusqu'à 2 opportunités de marchés différents
+  // ÉTAPE 6: LOGIQUE SIMPLIFIÉE POUR DEBUGGING - Retourner jusqu'à 2 opportunités de marchés différents
   const selectedRecommendations: DetectedOpportunity[] = [];
   const usedMarkets = new Set<string>();
   
-  console.log('🔄 ÉTAPE 6 - SÉLECTION D\'OPPORTUNITÉS:');
-  console.log('⭐ Opportunités consensus disponibles:', consensusOpportunities.length);
-  console.log('📊 Opportunités normales disponibles:', normalOpportunities.length);
+  console.warn(`🚨 ÉTAPE 6 SIMPLIFIÉE - SÉLECTION FORCÉE:`, resolvedOpportunities.length, 'opportunités disponibles');
   
-  // D'abord, traiter les opportunités consensus
-  for (const opportunity of consensusOpportunities) {
+  // LOGIQUE SIMPLIFIÉE: prendre les 2 meilleures opportunités de marchés différents
+  for (const opportunity of resolvedOpportunities) {
     const normalizedMarket = normalizeMarketType(opportunity.type);
-    console.log(`🔍 EXAMEN CONSENSUS: ${opportunity.type} → marché normalisé: "${normalizedMarket}" (détections: ${opportunity.detectionCount})`);
+    console.warn(`🔍 EXAMEN OPPORTUNITÉ: ${opportunity.type} → marché normalisé: "${normalizedMarket}"`);
     
     if (!usedMarkets.has(normalizedMarket) && selectedRecommendations.length < 2) {
       selectedRecommendations.push(opportunity);
       usedMarkets.add(normalizedMarket);
-      console.log(`⭐ SÉLECTION CONSENSUS: ${opportunity.type}:${opportunity.prediction} (détections: ${opportunity.detectionCount}) (cote: ${opportunity.odds})`);
+      console.warn(`✅ SÉLECTION FORCÉE: ${opportunity.type}:${opportunity.prediction} (cote: ${opportunity.odds})`);
     } else {
-      console.log(`❌ CONSENSUS REJETÉE: marché déjà utilisé (${usedMarkets.has(normalizedMarket)}) ou limite atteinte (${selectedRecommendations.length >= 2})`);
+      console.warn(`❌ OPPORTUNITÉ REJETÉE: marché déjà utilisé (${usedMarkets.has(normalizedMarket)}) ou limite atteinte (${selectedRecommendations.length >= 2})`);
     }
   }
   
-  // Ensuite, compléter avec les opportunités normales
-  for (const opportunity of normalOpportunities) {
-    const normalizedMarket = normalizeMarketType(opportunity.type);
-    console.log(`🔍 EXAMEN NORMALE: ${opportunity.type} → marché normalisé: "${normalizedMarket}" (détections: ${opportunity.detectionCount})`);
-    
-    if (!usedMarkets.has(normalizedMarket) && selectedRecommendations.length < 2) {
-      selectedRecommendations.push(opportunity);
-      usedMarkets.add(normalizedMarket);
-      console.log(`✅ SÉLECTION NORMALE: ${opportunity.type}:${opportunity.prediction} (détections: ${opportunity.detectionCount}) (cote: ${opportunity.odds})`);
-    } else {
-      console.log(`❌ NORMALE REJETÉE: marché déjà utilisé (${usedMarkets.has(normalizedMarket)}) ou limite atteinte (${selectedRecommendations.length >= 2})`);
-    }
-  }
+  console.warn(`📋 RÉSULTAT FINAL: ${selectedRecommendations.length}/2 opportunités sélectionnées`);
+  console.warn(`🎯 MARCHÉS UTILISÉS: [${Array.from(usedMarkets).join(', ')}]`);
   
-  console.log(`📋 RÉSUMÉ SÉLECTION: ${selectedRecommendations.length}/2 opportunités sélectionnées`);
-  console.log(`🎯 MARCHÉS UTILISÉS: [${Array.from(usedMarkets).join(', ')}]`);
+  // ALERTE FINALE pour vérifier le résultat
+  selectedRecommendations.forEach((rec, index) => {
+    console.warn(`🏆 RECOMMANDATION ${index + 1}: ${rec.type}:${rec.prediction} (cote: ${rec.odds})`);
+  });
   
   // ÉTAPE 7: Réorganiser les 2 opportunités finales pour mettre celle avec la cote la moins élevée comme principale
   if (selectedRecommendations.length === 2) {
     selectedRecommendations.sort((a, b) => a.odds - b.odds); // Trier par cotes croissantes (cotes faibles en premier)
-    console.log('🔄 RÉORGANISATION: Opportunité avec cote la moins élevée mise comme principale');
+    console.warn('🔄 RÉORGANISATION: Opportunité avec cote la moins élevée mise comme principale');
+    console.warn(`🏆 APRÈS RÉORGANISATION - PRINCIPALE: ${selectedRecommendations[0].type}:${selectedRecommendations[0].prediction} (cote: ${selectedRecommendations[0].odds})`);
+    console.warn(`🥈 APRÈS RÉORGANISATION - SECONDAIRE: ${selectedRecommendations[1].type}:${selectedRecommendations[1].prediction} (cote: ${selectedRecommendations[1].odds})`);
   }
   
   console.log('🎯 MARCHÉS UTILISÉS:', Array.from(usedMarkets));
