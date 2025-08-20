@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   ConditionalRule, 
   Condition, 
+  ConditionGroup,
   Market, 
   ConditionType, 
   ActionType, 
@@ -21,9 +22,12 @@ import {
   CONDITION_LABELS,
   ACTION_LABELS,
   OPERATOR_LABELS,
-  MARKET_LABELS
+  MARKET_LABELS,
+  isCondition,
+  isConditionGroup
 } from '@/types/conditionalRules';
 import { conditionalRulesService } from '@/services/conditionalRulesService';
+import { ConditionRenderer } from './ConditionRenderer';
 
 export default function SimplifiedRulesBuilder() {
   const [rules, setRules] = useState<ConditionalRule[]>([]);
@@ -133,36 +137,127 @@ export default function SimplifiedRulesBuilder() {
     });
   };
 
+  const addConditionGroup = (ruleId: string) => {
+    const rule = rules.find(r => r.id === ruleId);
+    if (!rule) return;
+
+    const newGroup: ConditionGroup = {
+      id: crypto.randomUUID(),
+      type: 'group',
+      conditions: [{
+        id: crypto.randomUUID(),
+        type: CONDITION_OPTIONS[rule.market][0],
+        operator: '>',
+        value: 0
+      }],
+      logicalConnectors: []
+    };
+
+    const updatedConditions = [...rule.conditions, newGroup];
+    const updatedConnectors = [...rule.logicalConnectors, 'AND' as LogicalConnector];
+
+    updateRule(ruleId, {
+      conditions: updatedConditions,
+      logicalConnectors: updatedConnectors
+    });
+  };
+
   const updateCondition = (ruleId: string, conditionId: string, updates: Partial<Condition>) => {
     const rule = rules.find(r => r.id === ruleId);
     if (!rule) return;
 
-    const updatedConditions = rule.conditions.map(condition =>
-      condition.id === conditionId ? { ...condition, ...updates } : condition
-    );
-
+    const updatedConditions = updateConditionInList(rule.conditions, conditionId, updates);
     updateRule(ruleId, { conditions: updatedConditions });
+  };
+
+  const updateConditionInList = (
+    conditions: (Condition | ConditionGroup)[], 
+    conditionId: string, 
+    updates: Partial<Condition>
+  ): (Condition | ConditionGroup)[] => {
+    return conditions.map(condition => {
+      if (isCondition(condition) && condition.id === conditionId) {
+        return { ...condition, ...updates };
+      } else if (isConditionGroup(condition)) {
+        return {
+          ...condition,
+          conditions: updateConditionInList(condition.conditions, conditionId, updates)
+        };
+      }
+      return condition;
+    });
   };
 
   const removeCondition = (ruleId: string, conditionId: string) => {
     const rule = rules.find(r => r.id === ruleId);
-    if (!rule || rule.conditions.length <= 1) return;
+    if (!rule || getTotalConditionsCount(rule.conditions) <= 1) return;
 
-    const conditionIndex = rule.conditions.findIndex(c => c.id === conditionId);
-    const updatedConditions = rule.conditions.filter(c => c.id !== conditionId);
+    const { conditions: updatedConditions, connectors: updatedConnectors } = removeConditionFromList(
+      rule.conditions, 
+      rule.logicalConnectors, 
+      conditionId
+    );
+
+    updateRule(ruleId, {
+      conditions: updatedConditions,
+      logicalConnectors: updatedConnectors
+    });
+  };
+
+  const removeConditionFromList = (
+    conditions: (Condition | ConditionGroup)[],
+    connectors: LogicalConnector[],
+    conditionId: string
+  ): { conditions: (Condition | ConditionGroup)[], connectors: LogicalConnector[] } => {
+    const conditionIndex = conditions.findIndex(c => 
+      (isCondition(c) && c.id === conditionId) || 
+      (isConditionGroup(c) && hasConditionInGroup(c, conditionId))
+    );
+    
+    if (conditionIndex === -1) {
+      // Try to remove from nested groups
+      const updatedConditions = conditions.map(condition => {
+        if (isConditionGroup(condition)) {
+          const { conditions: nestedConditions, connectors: nestedConnectors } = removeConditionFromList(
+            condition.conditions,
+            condition.logicalConnectors,
+            conditionId
+          );
+          return { ...condition, conditions: nestedConditions, logicalConnectors: nestedConnectors };
+        }
+        return condition;
+      });
+      return { conditions: updatedConditions, connectors };
+    }
+
+    const updatedConditions = conditions.filter((_, i) => i !== conditionIndex);
     
     // Adjust logical connectors
-    let updatedConnectors = [...rule.logicalConnectors];
+    let updatedConnectors = [...connectors];
     if (conditionIndex === 0 && updatedConnectors.length > 0) {
       updatedConnectors = updatedConnectors.slice(1);
     } else if (conditionIndex < updatedConnectors.length) {
       updatedConnectors = updatedConnectors.filter((_, i) => i !== conditionIndex - 1);
     }
 
-    updateRule(ruleId, {
-      conditions: updatedConditions,
-      logicalConnectors: updatedConnectors
-    });
+    return { conditions: updatedConditions, connectors: updatedConnectors };
+  };
+
+  const hasConditionInGroup = (group: ConditionGroup, conditionId: string): boolean => {
+    return group.conditions.some(c => 
+      (isCondition(c) && c.id === conditionId) ||
+      (isConditionGroup(c) && hasConditionInGroup(c, conditionId))
+    );
+  };
+
+  const getTotalConditionsCount = (conditions: (Condition | ConditionGroup)[]): number => {
+    return conditions.reduce((count, condition) => {
+      if (isCondition(condition)) {
+        return count + 1;
+      } else {
+        return count + getTotalConditionsCount(condition.conditions);
+      }
+    }, 0);
   };
 
   const updateLogicalConnector = (ruleId: string, index: number, connector: LogicalConnector) => {
@@ -244,6 +339,19 @@ export default function SimplifiedRulesBuilder() {
 
   const generateRuleSummary = (rule: ConditionalRule): string => {
     const conditionStrings = rule.conditions.map((cond, index) => {
+      return getConditionSummary(cond, index, rule.conditions.length, rule.logicalConnectors);
+    }).join('');
+
+    return `Si ${conditionStrings} → ${ACTION_LABELS[rule.action]}`;
+  };
+
+  const getConditionSummary = (
+    cond: Condition | ConditionGroup, 
+    index: number, 
+    totalConditions: number, 
+    connectors: LogicalConnector[]
+  ): string => {
+    if (isCondition(cond)) {
       // Format values based on condition type
       const formatValue = (value: number, type: ConditionType): string => {
         // Vigorish and probability conditions are stored as decimals but displayed as percentages
@@ -262,15 +370,27 @@ export default function SimplifiedRulesBuilder() {
         conditionText = `${CONDITION_LABELS[cond.type]} entre ${formattedValue} et ${formattedValueMax}`;
       }
       
-      if (index < rule.conditions.length - 1) {
-        const connector = rule.logicalConnectors[index] === 'AND' ? 'ET' : 'OU';
+      if (index < totalConditions - 1) {
+        const connector = connectors[index] === 'AND' ? 'ET' : 'OU';
         conditionText += ` ${connector} `;
       }
       
       return conditionText;
-    }).join('');
-
-    return `Si ${conditionStrings} → ${ACTION_LABELS[rule.action]}`;
+    } else {
+      // Handle group
+      const groupConditions = cond.conditions.map((groupCond, groupIndex) => {
+        return getConditionSummary(groupCond, groupIndex, cond.conditions.length, cond.logicalConnectors);
+      }).join('');
+      
+      let groupText = `(${groupConditions})`;
+      
+      if (index < totalConditions - 1) {
+        const connector = connectors[index] === 'AND' ? 'ET' : 'OU';
+        groupText += ` ${connector} `;
+      }
+      
+      return groupText;
+    }
   };
 
   const marketRules = rules.filter(rule => rule.market === selectedMarket);
@@ -483,124 +603,107 @@ function RuleEditor({
         <div className="space-y-3">
           <Label className="text-sm font-medium">SI</Label>
           {rule.conditions.map((condition, index) => (
-            <div key={condition.id}>
-              <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-                <Select
-                  value={condition.type}
-                  onValueChange={(value: ConditionType) => 
-                    onUpdateCondition(rule.id, condition.id, { type: value })
-                  }
-                >
-                  <SelectTrigger className="w-48">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CONDITION_OPTIONS[rule.market].map(conditionType => (
-                      <SelectItem key={conditionType} value={conditionType}>
-                        {CONDITION_LABELS[conditionType]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select
-                  value={condition.operator}
-                  onValueChange={(value: Operator) => 
-                    onUpdateCondition(rule.id, condition.id, { operator: value })
-                  }
-                >
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(OPERATOR_LABELS).map(([op, label]) => (
-                      <SelectItem key={op} value={op}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Input
-                  type="number"
-                  value={
-                    condition.type === 'vigorish' || condition.type.includes('probability')
-                      ? (condition.value * 100).toFixed(1)
-                      : condition.value
-                  }
-                  onChange={(e) => {
-                    const inputValue = parseFloat(e.target.value) || 0;
-                    const actualValue = condition.type === 'vigorish' || condition.type.includes('probability')
-                      ? inputValue / 100  // Convert percentage to decimal for storage
-                      : inputValue;
-                    onUpdateCondition(rule.id, condition.id, { value: actualValue });
-                  }}
-                  className="w-24"
-                  step={condition.type === 'vigorish' || condition.type.includes('probability') ? "0.1" : "0.01"}
-                  placeholder={condition.type === 'vigorish' || condition.type.includes('probability') ? "%" : ""}
-                />
-
-                {condition.operator === 'between' && (
-                  <>
-                    <span className="text-sm text-muted-foreground">et</span>
-                    <Input
-                      type="number"
-                      value={
-                        condition.type === 'vigorish' || condition.type.includes('probability')
-                          ? ((condition.valueMax || 0) * 100).toFixed(1)
-                          : (condition.valueMax || 0)
-                      }
-                      onChange={(e) => {
-                        const inputValue = parseFloat(e.target.value) || 0;
-                        const actualValue = condition.type === 'vigorish' || condition.type.includes('probability')
-                          ? inputValue / 100  // Convert percentage to decimal for storage
-                          : inputValue;
-                        onUpdateCondition(rule.id, condition.id, { valueMax: actualValue });
-                      }}
-                      className="w-24"
-                      step={condition.type === 'vigorish' || condition.type.includes('probability') ? "0.1" : "0.01"}
-                      placeholder={condition.type === 'vigorish' || condition.type.includes('probability') ? "%" : ""}
-                    />
-                  </>
-                )}
-
-                {rule.conditions.length > 1 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onRemoveCondition(rule.id, condition.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-
-              {/* Logical Connector */}
-              {index < rule.conditions.length - 1 && (
-                <div className="flex justify-center my-2">
-                  <Select
-                    value={rule.logicalConnectors[index]}
-                    onValueChange={(value: LogicalConnector) => 
-                      onUpdateLogicalConnector(rule.id, index, value)
+            <ConditionRenderer
+              key={condition.id}
+              condition={condition}
+              conditionIndex={index}
+              ruleId={rule.id}
+              market={rule.market}
+              totalConditions={rule.conditions.length}
+              logicalConnectors={rule.logicalConnectors}
+              onUpdateCondition={onUpdateCondition}
+              onRemoveCondition={onRemoveCondition}
+              onUpdateLogicalConnector={onUpdateLogicalConnector}
+              onAddConditionToGroup={(groupId) => {
+                // Add condition to specific group
+                const currentRule = rule;
+                if (!currentRule) return;
+                
+                const newCondition: Condition = {
+                  id: crypto.randomUUID(),
+                  type: CONDITION_OPTIONS[currentRule.market][0],
+                  operator: '>',
+                  value: 0
+                };
+                
+                const addConditionToGroup = (
+                  conditions: (Condition | ConditionGroup)[], 
+                  targetGroupId: string
+                ): (Condition | ConditionGroup)[] => {
+                  return conditions.map(cond => {
+                    if (isConditionGroup(cond) && cond.id === targetGroupId) {
+                      return {
+                        ...cond,
+                        conditions: [...cond.conditions, newCondition],
+                        logicalConnectors: [...cond.logicalConnectors, 'AND' as LogicalConnector]
+                      };
+                    } else if (isConditionGroup(cond)) {
+                      return {
+                        ...cond,
+                        conditions: addConditionToGroup(cond.conditions, targetGroupId)
+                      };
                     }
-                  >
-                    <SelectTrigger className="w-20">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="AND">ET</SelectItem>
-                      <SelectItem value="OR">OU</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </div>
+                    return cond;
+                  });
+                };
+                
+                const updatedConditions = addConditionToGroup(currentRule.conditions, groupId);
+                onUpdate({ conditions: updatedConditions });
+              }}
+              onCreateGroup={() => {
+                const newGroup: ConditionGroup = {
+                  id: crypto.randomUUID(),
+                  type: 'group',
+                  conditions: [{
+                    id: crypto.randomUUID(),
+                    type: CONDITION_OPTIONS[rule.market][0],
+                    operator: '>',
+                    value: 0
+                  }],
+                  logicalConnectors: []
+                };
+
+                const updatedConditions = [...rule.conditions, newGroup];
+                const updatedConnectors = [...rule.logicalConnectors, 'AND' as LogicalConnector];
+
+                onUpdate({
+                  conditions: updatedConditions,
+                  logicalConnectors: updatedConnectors
+                });
+              }}
+            />
           ))}
 
-          <Button variant="outline" size="sm" onClick={onAddCondition}>
-            <Plus className="h-4 w-4 mr-2" />
-            Ajouter une condition
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={onAddCondition}>
+              <Plus className="h-4 w-4 mr-2" />
+              Ajouter une condition
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => {
+              const newGroup: ConditionGroup = {
+                id: crypto.randomUUID(),
+                type: 'group',
+                conditions: [{
+                  id: crypto.randomUUID(),
+                  type: CONDITION_OPTIONS[rule.market][0],
+                  operator: '>',
+                  value: 0
+                }],
+                logicalConnectors: []
+              };
+
+              const updatedConditions = [...rule.conditions, newGroup];
+              const updatedConnectors = [...rule.logicalConnectors, 'AND' as LogicalConnector];
+
+              onUpdate({
+                conditions: updatedConditions,
+                logicalConnectors: updatedConnectors
+              });
+            }}>
+              <Plus className="h-4 w-4 mr-2" />
+              Ajouter un groupe
+            </Button>
+          </div>
         </div>
 
         {/* Action */}

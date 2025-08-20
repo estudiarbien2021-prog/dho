@@ -4,8 +4,11 @@ import {
   RuleEvaluationContext, 
   RuleEvaluationResult,
   Condition,
+  ConditionGroup,
   LogicalConnector,
-  Market
+  Market,
+  isCondition,
+  isConditionGroup
 } from '@/types/conditionalRules';
 
 class ConditionalRulesService {
@@ -242,13 +245,20 @@ class ConditionalRulesService {
   }
 
   private evaluateConditions(
-    conditions: Condition[], 
+    conditions: (Condition | ConditionGroup)[], 
     connectors: LogicalConnector[], 
     context: RuleEvaluationContext,
     ruleMarket: Market
   ): boolean {
     if (conditions.length === 0) return false;
-    if (conditions.length === 1) return this.evaluateCondition(conditions[0], context, ruleMarket);
+    if (conditions.length === 1) {
+      const condition = conditions[0];
+      if (isCondition(condition)) {
+        return this.evaluateCondition(condition, context, ruleMarket);
+      } else {
+        return this.evaluateConditionGroup(condition, context, ruleMarket);
+      }
+    }
 
     // VALIDATION: Vérifier que le nombre de connecteurs est correct
     const expectedConnectors = conditions.length - 1;
@@ -262,10 +272,24 @@ class ConditionalRulesService {
       connectors = safeConnectors.slice(0, expectedConnectors);
     }
 
-    let result = this.evaluateCondition(conditions[0], context, ruleMarket);
+    let result: boolean;
+    const firstCondition = conditions[0];
+    if (isCondition(firstCondition)) {
+      result = this.evaluateCondition(firstCondition, context, ruleMarket);
+    } else {
+      result = this.evaluateConditionGroup(firstCondition, context, ruleMarket);
+    }
 
     for (let i = 1; i < conditions.length; i++) {
-      const conditionResult = this.evaluateCondition(conditions[i], context, ruleMarket);
+      const condition = conditions[i];
+      let conditionResult: boolean;
+      
+      if (isCondition(condition)) {
+        conditionResult = this.evaluateCondition(condition, context, ruleMarket);
+      } else {
+        conditionResult = this.evaluateConditionGroup(condition, context, ruleMarket);
+      }
+      
       const connector = connectors[i - 1];
 
       if (connector === 'AND') {
@@ -276,6 +300,14 @@ class ConditionalRulesService {
     }
 
     return result;
+  }
+
+  private evaluateConditionGroup(
+    group: ConditionGroup,
+    context: RuleEvaluationContext,
+    ruleMarket: Market
+  ): boolean {
+    return this.evaluateConditions(group.conditions, group.logicalConnectors, context, ruleMarket);
   }
 
   private evaluateCondition(condition: Condition, context: RuleEvaluationContext, ruleMarket?: Market): boolean {
@@ -368,41 +400,58 @@ class ConditionalRulesService {
   }
 
   private getEvaluationDetails(rule: ConditionalRule, context: RuleEvaluationContext, conditionsMet: boolean): string {
+    const details = this.getConditionDetails(rule.conditions, rule.logicalConnectors, context, rule.market);
+    return `${details} → ${conditionsMet ? 'RESPECTÉE' : 'NON RESPECTÉE'}`;
+  }
+
+  private getConditionDetails(
+    conditions: (Condition | ConditionGroup)[],
+    connectors: LogicalConnector[],
+    context: RuleEvaluationContext,
+    ruleMarket: Market
+  ): string {
     const details: string[] = [];
     
-    for (let i = 0; i < rule.conditions.length; i++) {
-      const condition = rule.conditions[i];
-      const contextValue = this.getContextValue(condition.type, context, rule.market);
-      const conditionMet = contextValue !== null ? this.evaluateCondition(condition, context, rule.market) : false;
+    for (let i = 0; i < conditions.length; i++) {
+      const condition = conditions[i];
       
-      // Format plus lisible pour l'affichage utilisateur
-      let conditionLabel = condition.type as string;
-      if (condition.type === 'vigorish') {
-        conditionLabel = `Vigorish ${rule.market.toUpperCase()}`;
-      } else if (condition.type.startsWith('probability_')) {
-        conditionLabel = condition.type.replace('probability_', 'Prob. ').replace('_', ' ');
+      if (isCondition(condition)) {
+        const contextValue = this.getContextValue(condition.type, context, ruleMarket);
+        const conditionMet = contextValue !== null ? this.evaluateCondition(condition, context, ruleMarket) : false;
+        
+        // Format plus lisible pour l'affichage utilisateur
+        let conditionLabel = condition.type as string;
+        if (condition.type === 'vigorish') {
+          conditionLabel = `Vigorish ${ruleMarket.toUpperCase()}`;
+        } else if (condition.type.startsWith('probability_')) {
+          conditionLabel = condition.type.replace('probability_', 'Prob. ').replace('_', ' ');
+        }
+        
+        // Formatage plus lisible des valeurs
+        const displayValue = contextValue ? 
+          (condition.type === 'vigorish' || condition.type.startsWith('probability_') ? 
+            `${(contextValue * 100).toFixed(1)}%` : 
+            contextValue.toFixed(2)) : 'N/A';
+        
+        const expectedValue = condition.type === 'vigorish' || condition.type.startsWith('probability_') ? 
+          `${(condition.value * 100).toFixed(1)}%` : 
+          condition.value.toString();
+        
+        details.push(
+          `${conditionLabel}: ${displayValue} ${condition.operator} ${expectedValue} ${conditionMet ? '✓' : '✗'}`
+        );
+      } else {
+        // Handle group
+        const groupDetails = this.getConditionDetails(condition.conditions, condition.logicalConnectors, context, ruleMarket);
+        details.push(`(${groupDetails})`);
       }
       
-      // Formatage plus lisible des valeurs
-      const displayValue = contextValue ? 
-        (condition.type === 'vigorish' || condition.type.startsWith('probability_') ? 
-          `${(contextValue * 100).toFixed(1)}%` : 
-          contextValue.toFixed(2)) : 'N/A';
-      
-      const expectedValue = condition.type === 'vigorish' || condition.type.startsWith('probability_') ? 
-        `${(condition.value * 100).toFixed(1)}%` : 
-        condition.value.toString();
-      
-      details.push(
-        `${conditionLabel}: ${displayValue} ${condition.operator} ${expectedValue} ${conditionMet ? '✓' : '✗'}`
-      );
-      
-      if (i < rule.logicalConnectors.length) {
-        details.push(rule.logicalConnectors[i]);
+      if (i < connectors.length) {
+        details.push(connectors[i]);
       }
     }
     
-    return `${details.join(' ')} → ${conditionsMet ? 'RESPECTÉE' : 'NON RESPECTÉE'}`;
+    return details.join(' ');
   }
 
   private getDefaultRules(): ConditionalRule[] {

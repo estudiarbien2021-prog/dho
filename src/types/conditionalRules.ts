@@ -49,18 +49,34 @@ export interface Condition {
   valueMax?: number; // For 'between' operator
 }
 
+export interface ConditionGroup {
+  id: string;
+  type: 'group';
+  conditions: (Condition | ConditionGroup)[];
+  logicalConnectors: LogicalConnector[]; // n-1 connectors for n conditions
+}
+
 export interface ConditionalRule {
   id: string;
   name: string;
   market: Market;
-  conditions: Condition[];
-  logicalConnectors: LogicalConnector[]; // n-1 connectors for n conditions
+  conditions: (Condition | ConditionGroup)[];
+  logicalConnectors: LogicalConnector[]; // n-1 connectors for n conditions/groups
   action: ActionType;
   priority: number;
   enabled: boolean;
   created_at?: string;
   updated_at?: string;
 }
+
+// Helper type guards
+export const isCondition = (item: Condition | ConditionGroup): item is Condition => {
+  return 'type' in item && item.type !== 'group';
+};
+
+export const isConditionGroup = (item: Condition | ConditionGroup): item is ConditionGroup => {
+  return 'type' in item && item.type === 'group';
+};
 
 export interface RuleEvaluationContext {
   // Match data needed for evaluation
