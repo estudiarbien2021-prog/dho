@@ -19,7 +19,17 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { ConditionalRule, Market, MARKET_LABELS, ACTION_LABELS, CONDITION_LABELS } from '@/types/conditionalRules';
+import { 
+  ConditionalRule, 
+  Condition, 
+  ConditionGroup,
+  Market, 
+  MARKET_LABELS, 
+  ACTION_LABELS, 
+  CONDITION_LABELS,
+  isCondition,
+  isConditionGroup
+} from '@/types/conditionalRules';
 import { conditionalRulesService } from '@/services/conditionalRulesService';
 import { SortableRow } from './SortableRowComponent';
 
@@ -101,12 +111,13 @@ export function GlobalRulesView({}: GlobalRulesViewProps) {
         return value.toString();
       };
 
-      const label = CONDITION_LABELS[condition.type] || condition.type;
-      const formattedValue = formatValue(condition.value, condition.type);
+      const label = isCondition(condition) ? CONDITION_LABELS[condition.type] : 'Groupe';
+      const formattedValue = isCondition(condition) ? formatValue(condition.value, condition.type) : 'complexe';
       const connector = index < rule.logicalConnectors.length ? 
         ` ${rule.logicalConnectors[index] === 'AND' ? 'ET' : 'OU'} ` : '';
       
-      return `${label} ${condition.operator} ${formattedValue}${connector}`;
+      const operatorLabel = isCondition(condition) ? condition.operator : '';
+      return `${label} ${operatorLabel} ${formattedValue}${connector}`;
     }).join('');
 
     const action = ACTION_LABELS[rule.action] || rule.action;
