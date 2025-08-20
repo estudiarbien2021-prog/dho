@@ -629,12 +629,16 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
     }
   });
   
-  // ÉTAPE 4: Limiter à 3 opportunités maximum, en priorisant les marchés différents
+  // ÉTAPE 4: Filtrer les recommandations avec des cotes < 1,5
+  const validOddsOpportunities = bestByMarket.filter(opportunity => opportunity.odds >= 1.5);
+  console.log(`🚫 FILTRE COTES: ${bestByMarket.length - validOddsOpportunities.length} recommandations supprimées (cotes < 1,5)`);
+  
+  // ÉTAPE 5: Limiter à 3 opportunités maximum, en priorisant les marchés différents
   const finalRecommendations: DetectedOpportunity[] = [];
   const usedMarkets = new Set<string>();
   
   // Trier par cotes croissantes (cotes les plus faibles en premier)
-  bestByMarket.sort((a, b) => a.odds - b.odds);
+  validOddsOpportunities.sort((a, b) => a.odds - b.odds);
   
   // Sélectionner jusqu'à 3 opportunités de marchés différents
   for (const opportunity of bestByMarket) {
