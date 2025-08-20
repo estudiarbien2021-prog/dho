@@ -23,8 +23,6 @@ function getActionToPredictionMapping(action: string, market: string, context: a
     return getLeastProbablePrediction(market, context);
   } else if (action === 'recommend_double_chance_least_probable') {
     return getDoubleChanceLeastProbable(context);
-  } else if (action === 'recommend_double_chance_most_probable') {
-    return getDoubleChanceMostProbable(context);
   }
   
   // Actions spécifiques avec mapping exact
@@ -301,38 +299,6 @@ function getDoubleChanceLeastProbable(context: RuleEvaluationContext): string {
     case 'draw_home':
       return '1X';
     case 'home_away':
-    case 'away_home':
-      return '12';
-    case 'draw_away':
-    case 'away_draw':
-      return 'X2';
-    default:
-      return '1X'; // fallback
-  }
-}
-
-function getDoubleChanceMostProbable(context: RuleEvaluationContext): string {
-  const outcomes = [
-    { name: 'home', probability: context.probability_home },
-    { name: 'draw', probability: context.probability_draw },
-    { name: 'away', probability: context.probability_away }
-  ];
-  
-  // Sort by probability descending (most probable first)
-  outcomes.sort((a, b) => b.probability - a.probability);
-  
-  // Get the two most probable outcomes
-  const mostProbable1 = outcomes[0].name;
-  const mostProbable2 = outcomes[1].name;
-  
-  // Map to double chance combinations
-  const combination = `${mostProbable1}_${mostProbable2}`;
-  
-  switch (combination) {
-    case 'home_draw':
-    case 'draw_home':
-      return '1X';
-    case 'home_away':  
     case 'away_home':
       return '12';
     case 'draw_away':
@@ -629,18 +595,14 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
     }
   });
   
-  // ÉTAPE 4: Filtrer les recommandations avec des cotes < 1,5
-  const validOddsOpportunities = bestByMarket.filter(opportunity => opportunity.odds >= 1.5);
-  console.log(`🚫 FILTRE COTES: ${bestByMarket.length - validOddsOpportunities.length} recommandations supprimées (cotes < 1,5)`);
-  
-  // ÉTAPE 5: Limiter à 3 opportunités maximum, en priorisant les marchés différents
+  // ÉTAPE 4: Limiter à 2 opportunités maximum, en priorisant les marchés différents
   const finalRecommendations: DetectedOpportunity[] = [];
   const usedMarkets = new Set<string>();
   
-  // Trier par cotes croissantes (cotes les plus faibles en premier)
-  validOddsOpportunities.sort((a, b) => a.odds - b.odds);
+  // Trier par cotes décroissantes (meilleures cotes en premier)
+  bestByMarket.sort((a, b) => b.odds - a.odds);
   
-  // Sélectionner jusqu'à 3 opportunités de marchés différents
+  // Sélectionner jusqu'à 2 opportunités de marchés différents
   for (const opportunity of bestByMarket) {
     let normalizedMarket = opportunity.type.toLowerCase();
     if (normalizedMarket.includes('o/u') || normalizedMarket.includes('2.5') || normalizedMarket.includes('2,5')) {
@@ -651,7 +613,7 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
       normalizedMarket = '1x2';
     }
     
-    if (!usedMarkets.has(normalizedMarket) && finalRecommendations.length < 3) {
+    if (!usedMarkets.has(normalizedMarket) && finalRecommendations.length < 2) {
       finalRecommendations.push(opportunity);
       usedMarkets.add(normalizedMarket);
       console.log(`🏆 SÉLECTION FINALE ${finalRecommendations.length}: ${opportunity.type}:${opportunity.prediction} (cote: ${opportunity.odds})`);
