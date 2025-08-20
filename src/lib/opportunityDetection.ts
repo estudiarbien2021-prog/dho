@@ -534,12 +534,14 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
   // ÉTAPE 2: NOUVEAU - Compter les détections identiques (même marché + même prédiction)
   const detectionMap = new Map<string, DetectedOpportunity>();
   const normalizeMarketType = (type: string): string => {
-    if (type === 'O/U 2.5' || type === 'OU25') return 'ou25';
-    if (type === 'BTTS') return 'btts';
-    if (type === '1X2') return '1x2';
-    if (type === 'Double Chance') return 'double_chance';
-    if (type === 'Remboursé si nul') return 'refund_if_draw';
-    return type.toLowerCase();
+    const normalized = type.toLowerCase().trim();
+    if (normalized === 'o/u 2.5' || normalized === 'ou25' || normalized === 'o/u 2,5') return 'ou25';
+    if (normalized === 'btts') return 'btts';
+    if (normalized === '1x2') return '1x2';
+    if (normalized === 'double chance') return 'double_chance';
+    if (normalized === 'remboursé si nul') return 'refund_if_draw';
+    console.warn(`🔍 NORMALISATION MARCHÉ: "${type}" → "${normalized}"`);
+    return normalized;
   };
 
   // Grouper les opportunités identiques et compter les détections
@@ -641,23 +643,39 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
     return b.odds - a.odds; // CORRIGÉ: cotes décroissantes (plus élevées en premier)
   });
   
-  // ÉTAPE 6: LOGIQUE SIMPLIFIÉE POUR DEBUGGING - Retourner jusqu'à 2 opportunités de marchés différents
+  // ÉTAPE 6: SÉLECTION LOGIQUE FIXÉE - Retourner jusqu'à 2 opportunités de marchés différents
   const selectedRecommendations: DetectedOpportunity[] = [];
   const usedMarkets = new Set<string>();
   
-  console.warn(`🚨 ÉTAPE 6 SIMPLIFIÉE - SÉLECTION FORCÉE:`, resolvedOpportunities.length, 'opportunités disponibles');
+  console.warn(`🚨 ÉTAPE 6 - SÉLECTION AVEC LOGS DÉTAILLÉS:`, resolvedOpportunities.length, 'opportunités disponibles');
+  console.warn(`📊 OPPORTUNITÉS RÉSOLUES:`, resolvedOpportunities.map(o => `${o.type}:${o.prediction}(cote:${o.odds})`));
   
-  // LOGIQUE SIMPLIFIÉE: prendre les 2 meilleures opportunités de marchés différents
-  for (const opportunity of resolvedOpportunities) {
+  // VÉRIFICATION DU CONTENU DE resolvedOpportunities
+  if (resolvedOpportunities.length === 0) {
+    console.error('🚨 ERREUR CRITIQUE: resolvedOpportunities est vide!');
+    return [];
+  }
+  
+  // LOGIQUE DE SÉLECTION AVEC LOGS DÉTAILLÉS
+  for (let i = 0; i < resolvedOpportunities.length; i++) {
+    const opportunity = resolvedOpportunities[i];
     const normalizedMarket = normalizeMarketType(opportunity.type);
-    console.warn(`🔍 EXAMEN OPPORTUNITÉ: ${opportunity.type} → marché normalisé: "${normalizedMarket}"`);
+    
+    console.warn(`🔍 [${i}] EXAMEN: "${opportunity.type}" → normalisé: "${normalizedMarket}"`);
+    console.warn(`   ├── Prédiction: "${opportunity.prediction}"`);
+    console.warn(`   ├── Cote: ${opportunity.odds}`);
+    console.warn(`   ├── Marché déjà utilisé: ${usedMarkets.has(normalizedMarket)}`);
+    console.warn(`   ├── Limite atteinte: ${selectedRecommendations.length >= 2}`);
+    console.warn(`   └── Marchés utilisés: [${Array.from(usedMarkets).join(', ')}]`);
     
     if (!usedMarkets.has(normalizedMarket) && selectedRecommendations.length < 2) {
       selectedRecommendations.push(opportunity);
       usedMarkets.add(normalizedMarket);
-      console.warn(`✅ SÉLECTION FORCÉE: ${opportunity.type}:${opportunity.prediction} (cote: ${opportunity.odds})`);
+      console.warn(`✅ [${i}] SÉLECTIONNÉE: ${opportunity.type}:${opportunity.prediction} (cote: ${opportunity.odds})`);
+      console.warn(`   └── Marchés utilisés maintenant: [${Array.from(usedMarkets).join(', ')}]`);
     } else {
-      console.warn(`❌ OPPORTUNITÉ REJETÉE: marché déjà utilisé (${usedMarkets.has(normalizedMarket)}) ou limite atteinte (${selectedRecommendations.length >= 2})`);
+      const raison = usedMarkets.has(normalizedMarket) ? 'marché déjà utilisé' : 'limite de 2 atteinte';
+      console.warn(`❌ [${i}] REJETÉE: ${raison}`);
     }
   }
   
