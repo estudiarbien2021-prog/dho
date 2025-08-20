@@ -657,10 +657,16 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
     }
   }
   
+  // ÉTAPE 7: Réorganiser les 2 opportunités finales pour mettre celle avec la cote la moins élevée comme principale
+  if (selectedRecommendations.length === 2) {
+    selectedRecommendations.sort((a, b) => a.odds - b.odds); // Trier par cotes croissantes (cotes faibles en premier)
+    console.log('🔄 RÉORGANISATION: Opportunité avec cote la moins élevée mise comme principale');
+  }
+  
   console.log('🎯 MARCHÉS UTILISÉS:', Array.from(usedMarkets));
-  console.log('🏆 RECOMMANDATION PRINCIPALE (1ère):', selectedRecommendations[0] ? 
+  console.log('🏆 RECOMMANDATION PRINCIPALE (1ère - cote la moins élevée):', selectedRecommendations[0] ? 
     `${selectedRecommendations[0].type}:${selectedRecommendations[0].prediction} (détections:${selectedRecommendations[0].detectionCount})(cote:${selectedRecommendations[0].odds})` : 'AUCUNE');
-  console.log('🥈 RECOMMANDATION SECONDAIRE (2ème):', selectedRecommendations[1] ? 
+  console.log('🥈 RECOMMANDATION SECONDAIRE (2ème - cote la plus élevée):', selectedRecommendations[1] ? 
     `${selectedRecommendations[1].type}:${selectedRecommendations[1].prediction} (détections:${selectedRecommendations[1].detectionCount})(cote:${selectedRecommendations[1].odds})` : 'AUCUNE');
   
   return selectedRecommendations;
