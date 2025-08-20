@@ -104,9 +104,9 @@ export async function detectOpportunities(match: ProcessedMatch): Promise<Detect
   
   // ÉTAPE CRITIQUE: Filtrer STRICTEMENT les règles qui respectent TOUTES les conditions
   const matchedRules = ruleResults.filter(result => result.conditionsMet);
-  console.log('✅ RÈGLES CORRESPONDANTES (conditions strictement respectées):', matchedRules.length);
+  console.error('✅ RÈGLES CORRESPONDANTES (conditions strictement respectées):', matchedRules.length);
   matchedRules.forEach(r => {
-    console.log(`  ✅ ${r.ruleName}: action=${r.action}, priorité=${r.priority}`);
+    console.error(`  ✅ ${r.ruleName}: action=${r.action}, priorité=${r.priority}`);
   });
   
   // VÉRIFICATION CRITIQUE: Si aucune règle ne correspond, aucune recommandation ne sera générée
@@ -242,7 +242,7 @@ export async function detectOpportunities(match: ProcessedMatch): Promise<Detect
     };
   });
 
-  console.log('🎯 OPPORTUNITÉS DÉTECTÉES:', opportunities.length, opportunities.map(o => `${o.type}:${o.prediction}`));
+  console.error('🚨🚨 OPPORTUNITÉS DÉTECTÉES:', opportunities.length, opportunities.map(o => `${o.type}:${o.prediction}(cote:${o.odds})`));
   return opportunities;
 }
 
