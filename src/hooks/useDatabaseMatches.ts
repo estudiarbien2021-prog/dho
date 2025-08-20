@@ -34,6 +34,7 @@ function getTodayLocal(): string {
 }
 
 export function useDatabaseMatches(specificDate?: string) {
+  console.error('🚀 HOOK CALLED - useDatabaseMatches', specificDate);
   // Force rebuild - Performance optimized match data hook
   const [rawMatches, setRawMatches] = useState<ProcessedMatch[]>([]);
   const [filters, setFilters] = useState<MatchFilters>(defaultFilters);
@@ -144,7 +145,9 @@ export function useDatabaseMatches(specificDate?: string) {
               // Pre-calculate AI recommendations
               let recommendations = [];
               if (opportunities.length > 0) {
+                console.error('🔥 AVANT PRIORITISATION - opportunities.length:', opportunities.length);
                 const prioritizedOpportunities = prioritizeOpportunitiesByRealProbability(opportunities, match);
+                console.error('🔥 APRÈS PRIORITISATION - prioritizedOpportunities.length:', prioritizedOpportunities.length);
                 
                 recommendations = prioritizedOpportunities.map(opp => {
                   const converted = convertOpportunityToAIRecommendation(opp);

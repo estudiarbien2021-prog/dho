@@ -505,6 +505,11 @@ function getOddsForPrediction(market: string, prediction: string, context: RuleE
 
 // NOUVELLE FONCTION: Sélectionner intelligemment jusqu'à 2 opportunités avec les meilleures priorités de marchés différents
 export function prioritizeOpportunitiesByRealProbability(opportunities: DetectedOpportunity[], match: ProcessedMatch): DetectedOpportunity[] {
+  // 🚨 DEBUG CRITIQUE - LOGS VISIBLES FORCÉS
+  console.error('🚨🚨🚨 PRIORITIZATION CALLED 🚨🚨🚨');
+  console.error('📥 INPUT OPPORTUNITIES:', opportunities?.length || 0);
+  console.error('📊 OPPORTUNITIES DETAIL:', opportunities?.map(o => `${o.type}:${o.prediction}(odds:${o.odds})`) || []);
+  
   console.log('🎯 PRIORISATION INTELLIGENTE - INPUT:', opportunities.length, 'opportunités:', opportunities.map(o => `${o.type}:${o.prediction}(priorité:${o.priority})(cote:${o.odds})`));
   
   // ALERTE VISUELLE POUR DEBUGGING
