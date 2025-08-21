@@ -307,6 +307,71 @@ export function ScoreEditor({ matches, onMatchUpdate }: ScoreEditorProps) {
     }
   };
 
+  const testAdminAndSave = async (matchId: string) => {
+    console.log('🔬🔬🔬 DIAGNOSTIC COMPLET ADMIN 🔬🔬🔬');
+    
+    try {
+      // Test 1: Utilisateur actuel
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      console.log('👤 1. UTILISATEUR:', userData?.user?.email, userError?.message);
+      
+      // Test 2: Fonction is_admin
+      const { data: isAdminResult, error: adminError } = await supabase.rpc('is_admin');
+      console.log('🔑 2. IS_ADMIN():', isAdminResult, adminError?.message);
+      
+      // Test 3: Vérifier que le match existe
+      const { data: matchExists, error: matchError } = await supabase
+        .from('matches')
+        .select('id, home_team, away_team')
+        .eq('id', matchId)
+        .single();
+      console.log('🎯 3. MATCH EXISTE:', matchExists, matchError?.message);
+      
+      // Test 4: Test UPDATE avec score de test
+      const testScore = Math.floor(Math.random() * 5);
+      const { data: updateResult, error: updateError } = await supabase
+        .from('matches')
+        .update({
+          home_score: testScore,
+          away_score: testScore + 1,
+          match_status: 'finished'
+        })
+        .eq('id', matchId)
+        .select();
+      
+      console.log('📡 4. TEST UPDATE:', {
+        success: !updateError,
+        rowsAffected: updateResult?.length || 0,
+        error: updateError?.message,
+        testScore: `${testScore}-${testScore + 1}`
+      });
+      
+      // Affichage résultats
+      const results = {
+        user: userData?.user?.email || 'AUCUN',
+        isAdmin: isAdminResult || false,
+        matchFound: !!matchExists,
+        updateSuccess: !updateError && (updateResult?.length || 0) > 0
+      };
+      
+      console.log('📊 RÉSULTATS:', results);
+      
+      toast({
+        title: results.updateSuccess ? '✅ TEST RÉUSSI' : '❌ TEST ÉCHOUÉ',
+        description: `Admin: ${results.isAdmin} | Match trouvé: ${results.matchFound} | Update: ${results.updateSuccess}`,
+        variant: results.updateSuccess ? 'default' : 'destructive'
+      });
+      
+    } catch (error) {
+      console.error('💥 ERREUR DIAGNOSTIC:', error);
+      toast({
+        title: '💥 ERREUR DIAGNOSTIC',
+        description: String(error),
+        variant: 'destructive'
+      });
+    }
+  };
+
   const handleScoreSave = async (matchId: string) => {
     const match = filteredMatches.find(m => m.id === matchId);
     console.log(`💾 handleScoreSave START pour ${match?.home_team} vs ${match?.away_team}:`, {
@@ -767,18 +832,26 @@ export function ScoreEditor({ matches, onMatchUpdate }: ScoreEditorProps) {
                         <span className="text-text-weak text-xs">Pas de prédiction</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm">
-                      <div className="flex gap-1">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleScoreEdit(match.id, match.home_score !== null ? `${match.home_score}-${match.away_score}` : '')}
-                          className="px-2"
-                        >
-                          <Trophy className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </td>
+                     <td className="px-4 py-3 whitespace-nowrap text-sm">
+                       <div className="flex gap-1">
+                         <Button
+                           size="sm"
+                           variant="ghost"
+                           onClick={() => handleScoreEdit(match.id, match.home_score !== null ? `${match.home_score}-${match.away_score}` : '')}
+                           className="px-2"
+                         >
+                           <Trophy className="h-3 w-3" />
+                         </Button>
+                         <Button
+                           size="sm"
+                           variant="outline"
+                           onClick={() => testAdminAndSave(match.id)}
+                           className="px-2 bg-red-500 text-white hover:bg-red-600"
+                         >
+                           🔬 TEST
+                         </Button>
+                       </div>
+                     </td>
                   </tr>
                 ))}
               </tbody>
