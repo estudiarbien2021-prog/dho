@@ -46,7 +46,8 @@ export function ScoreEditor({ matches, onMatchUpdate }: ScoreEditorProps) {
 
   // Filter matches by selected date and other filters
   useEffect(() => {
-    const dateStr = format(selectedDate, 'yyyy-MM-dd');
+    // Use UTC to match the date format stored in database
+    const dateStr = selectedDate.toISOString().split('T')[0];
     let filtered = matches.filter(match => match.match_date === dateStr);
     
     if (selectedLeague !== 'all') {
