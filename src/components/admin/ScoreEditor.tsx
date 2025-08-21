@@ -48,6 +48,16 @@ export function ScoreEditor({ matches, onMatchUpdate }: ScoreEditorProps) {
   useEffect(() => {
     // Use UTC to match the date format stored in database
     const dateStr = selectedDate.toISOString().split('T')[0];
+    
+    // Debug logging
+    console.log('ScoreEditor Debug:', {
+      selectedDate,
+      dateStr,
+      totalMatches: matches.length,
+      availableDates: [...new Set(matches.map(m => m.match_date))].sort(),
+      matchesForDate: matches.filter(match => match.match_date === dateStr).length
+    });
+    
     let filtered = matches.filter(match => match.match_date === dateStr);
     
     if (selectedLeague !== 'all') {
