@@ -66,11 +66,6 @@ export interface ProcessedMatch {
   // AI predictions from admin
   ai_prediction?: string | null;
   ai_confidence?: number;
-
-  // Match results
-  home_score?: number | null;
-  away_score?: number | null;
-  match_status: 'scheduled' | 'live' | 'finished' | 'cancelled' | 'postponed';
 }
 
 export interface UploadResult {

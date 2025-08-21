@@ -90,12 +90,10 @@ export type Database = {
         Row: {
           ai_confidence: number | null
           ai_prediction: string | null
-          away_score: number | null
           away_team: string
           category: string
           country: string | null
           created_at: string
-          home_score: number | null
           home_team: string
           id: string
           is_low_vig_1x2: boolean
@@ -103,7 +101,6 @@ export type Database = {
           kickoff_utc: string
           league: string
           match_date: string
-          match_status: string | null
           odds_away: number
           odds_btts_no: number | null
           odds_btts_yes: number | null
@@ -128,12 +125,10 @@ export type Database = {
         Insert: {
           ai_confidence?: number | null
           ai_prediction?: string | null
-          away_score?: number | null
           away_team: string
           category: string
           country?: string | null
           created_at?: string
-          home_score?: number | null
           home_team: string
           id?: string
           is_low_vig_1x2?: boolean
@@ -141,7 +136,6 @@ export type Database = {
           kickoff_utc: string
           league: string
           match_date?: string
-          match_status?: string | null
           odds_away?: number
           odds_btts_no?: number | null
           odds_btts_yes?: number | null
@@ -166,12 +160,10 @@ export type Database = {
         Update: {
           ai_confidence?: number | null
           ai_prediction?: string | null
-          away_score?: number | null
           away_team?: string
           category?: string
           country?: string | null
           created_at?: string
-          home_score?: number | null
           home_team?: string
           id?: string
           is_low_vig_1x2?: boolean
@@ -179,7 +171,6 @@ export type Database = {
           kickoff_utc?: string
           league?: string
           match_date?: string
-          match_status?: string | null
           odds_away?: number
           odds_btts_no?: number | null
           odds_btts_yes?: number | null
@@ -304,10 +295,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      force_admin_update: {
-        Args: { p_away_score: number; p_home_score: number; p_match_id: string }
-        Returns: undefined
-      }
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean

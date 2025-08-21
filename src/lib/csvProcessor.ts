@@ -275,16 +275,7 @@ export function processCSVData(csvText: string): ProcessedMatch[] {
         odds_under_2_5: oddsUnder25 > 0 ? oddsUnder25 : undefined,
         
         // Additional markets
-        over_under_markets: processedOuMarkets,
-        
-        // AI predictions
-        ai_prediction: null,
-        ai_confidence: 0,
-        
-        // Match results
-        home_score: null,
-        away_score: null,
-        match_status: 'scheduled' as const
+        over_under_markets: processedOuMarkets
       };
       
       processed.push(match);
