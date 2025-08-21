@@ -181,11 +181,130 @@ export function ScoreEditor({ matches, onMatchUpdate }: ScoreEditorProps) {
   };
 
   const handleScoreEdit = (matchId: string, score: string) => {
+    console.log(`✏️ handleScoreEdit pour match ${matchId}:`, score);
     setFilteredMatches(prev => prev.map(match => 
       match.id === matchId 
         ? { ...match, isEditing: true, editingScore: score }
         : match
     ));
+  };
+
+  const saveScoreDirectly = async (matchId: string, scoreValue: string) => {
+    console.log(`🚀 saveScoreDirectly START pour match ${matchId}:`, scoreValue);
+    
+    if (!scoreValue || !scoreValue.trim()) {
+      console.log(`❌ Score vide, abandon`);
+      return;
+    }
+
+    const match = filteredMatches.find(m => m.id === matchId);
+    if (!match) {
+      console.log(`❌ Match non trouvé:`, matchId);
+      return;
+    }
+
+    if (match.isSaving) {
+      console.log(`⚠️ Sauvegarde déjà en cours pour ${match.home_team} vs ${match.away_team}`);
+      return;
+    }
+
+    // Parse score format "2-1"
+    const scoreParts = scoreValue.trim().split('-');
+    if (scoreParts.length !== 2) {
+      console.log(`❌ Format invalide:`, scoreParts);
+      toast({
+        title: "Format invalide",
+        description: "Format requis: '2-1'",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const homeScore = parseInt(scoreParts[0]);
+    const awayScore = parseInt(scoreParts[1]);
+
+    if (isNaN(homeScore) || isNaN(awayScore) || homeScore < 0 || awayScore < 0) {
+      console.log(`❌ Scores invalides:`, { homeScore, awayScore });
+      toast({
+        title: "Scores invalides",
+        description: "Les scores doivent être des nombres positifs",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Marquer comme en cours de sauvegarde
+    setFilteredMatches(prev => prev.map(m => 
+      m.id === matchId ? { ...m, isSaving: true } : m
+    ));
+
+    try {
+      console.log(`📡 UPDATE Supabase ${match.home_team} vs ${match.away_team}:`, {
+        matchId,
+        homeScore,
+        awayScore
+      });
+
+      const { error, data } = await supabase
+        .from('matches')
+        .update({
+          home_score: homeScore,
+          away_score: awayScore,
+          match_status: 'finished',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', matchId)
+        .select('id, home_score, away_score, match_status');
+
+      console.log(`📡 RÉPONSE Supabase:`, { error, data, matchCount: data?.length });
+
+      if (error) {
+        console.error(`💥 ERREUR Supabase:`, error);
+        throw error;
+      }
+
+      if (!data || data.length === 0) {
+        console.error(`💥 Aucun match mis à jour - ID introuvable:`, matchId);
+        throw new Error(`Match avec ID ${matchId} non trouvé`);
+      }
+
+      // Mise à jour réussie
+      setFilteredMatches(prev => prev.map(m => 
+        m.id === matchId 
+          ? { 
+              ...m, 
+              home_score: homeScore, 
+              away_score: awayScore, 
+              match_status: 'finished' as const,
+              isEditing: false,
+              editingScore: undefined,
+              isSaving: false
+            }
+          : m
+      ));
+
+      console.log(`✅ SUCCÈS ${match.home_team} ${homeScore}-${awayScore} ${match.away_team}`);
+
+      toast({
+        title: "✅ Score sauvegardé",
+        description: `${match.home_team} ${homeScore}-${awayScore} ${match.away_team}`,
+      });
+
+      onMatchUpdate();
+    } catch (error: any) {
+      console.error(`💥 ERREUR COMPLÈTE:`, error);
+      
+      // Reset le flag de sauvegarde
+      setFilteredMatches(prev => prev.map(m => 
+        m.id === matchId ? { ...m, isSaving: false } : m
+      ));
+      
+      toast({
+        title: "❌ Erreur de sauvegarde",
+        description: error.message || "Erreur inconnue",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleScoreSave = async (matchId: string) => {
@@ -558,34 +677,30 @@ export function ScoreEditor({ matches, onMatchUpdate }: ScoreEditorProps) {
                             onChange={(e) => handleScoreEdit(match.id, e.target.value)}
                             onBlur={(e) => {
                               const currentValue = e.target.value?.trim();
-                              console.log(`🔄 Auto-save onBlur pour ${match.home_team} vs ${match.away_team}:`, {
+                              console.log(`🔄 NOUVEAU Auto-save onBlur pour ${match.home_team} vs ${match.away_team}:`, {
                                 currentValue,
-                                editingScore: match.editingScore,
                                 matchId: match.id
                               });
                               if (currentValue) {
-                                // Forcer la mise à jour de l'état avant la sauvegarde
-                                handleScoreEdit(match.id, currentValue);
-                                setTimeout(() => handleScoreSave(match.id), 100);
+                                saveScoreDirectly(match.id, currentValue);
                               }
                             }}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') {
                                 const currentValue = (e.target as HTMLInputElement).value?.trim();
-                                console.log(`⚡ Auto-save onEnter pour ${match.home_team} vs ${match.away_team}:`, {
+                                console.log(`⚡ NOUVEAU Auto-save onEnter pour ${match.home_team} vs ${match.away_team}:`, {
                                   currentValue,
-                                  editingScore: match.editingScore,
                                   matchId: match.id
                                 });
                                 if (currentValue) {
-                                  handleScoreEdit(match.id, currentValue);
-                                  setTimeout(() => handleScoreSave(match.id), 100);
+                                  saveScoreDirectly(match.id, currentValue);
                                 }
                                 e.preventDefault();
                               }
                             }}
                             placeholder="2-1"
                             className="w-16 text-center"
+                            disabled={match.isSaving}
                           />
                           <Button
                             size="sm"
