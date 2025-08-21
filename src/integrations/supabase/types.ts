@@ -304,6 +304,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      force_admin_update: {
+        Args: { p_away_score: number; p_home_score: number; p_match_id: string }
+        Returns: undefined
+      }
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean

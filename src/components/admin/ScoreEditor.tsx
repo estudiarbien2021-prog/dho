@@ -239,33 +239,24 @@ export function ScoreEditor({ matches, onMatchUpdate }: ScoreEditorProps) {
     ));
 
     try {
-      console.log(`📡 UPDATE Supabase ${match.home_team} vs ${match.away_team}:`, {
+      console.log(`📡 FORCE UPDATE Supabase ${match.home_team} vs ${match.away_team}:`, {
         matchId,
         homeScore,
         awayScore
       });
 
-      const { error, data } = await supabase
-        .from('matches')
-        .update({
-          home_score: homeScore,
-          away_score: awayScore,
-          match_status: 'finished',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', matchId)
-        .select('id, home_score, away_score, match_status');
+      // Utiliser la nouvelle fonction force_admin_update au lieu de l'UPDATE direct
+      const { error } = await supabase.rpc('force_admin_update', {
+        p_match_id: matchId,
+        p_home_score: homeScore,
+        p_away_score: awayScore
+      });
 
-      console.log(`📡 RÉPONSE Supabase:`, { error, data, matchCount: data?.length });
+      console.log(`📡 RÉPONSE FORCE UPDATE:`, { error });
 
       if (error) {
-        console.error(`💥 ERREUR Supabase:`, error);
+        console.error(`💥 ERREUR FORCE UPDATE:`, error);
         throw error;
-      }
-
-      if (!data || data.length === 0) {
-        console.error(`💥 Aucun match mis à jour - ID introuvable:`, matchId);
-        throw new Error(`Match avec ID ${matchId} non trouvé`);
       }
 
       // Mise à jour réussie
@@ -283,7 +274,7 @@ export function ScoreEditor({ matches, onMatchUpdate }: ScoreEditorProps) {
           : m
       ));
 
-      console.log(`✅ SUCCÈS ${match.home_team} ${homeScore}-${awayScore} ${match.away_team}`);
+      console.log(`✅ FORCE UPDATE SUCCÈS ${match.home_team} ${homeScore}-${awayScore} ${match.away_team}`);
 
       toast({
         title: "✅ Score sauvegardé",
@@ -292,7 +283,7 @@ export function ScoreEditor({ matches, onMatchUpdate }: ScoreEditorProps) {
 
       onMatchUpdate();
     } catch (error: any) {
-      console.error(`💥 ERREUR COMPLÈTE:`, error);
+      console.error(`💥 ERREUR FORCE UPDATE COMPLÈTE:`, error);
       
       // Reset le flag de sauvegarde
       setFilteredMatches(prev => prev.map(m => 
