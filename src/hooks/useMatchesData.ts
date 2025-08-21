@@ -93,6 +93,15 @@ export function useMatchesData() {
                 odds_over_2_5: parseFloat(row.odds_over_2_5) || undefined,
                 odds_under_2_5: parseFloat(row.odds_under_2_5) || undefined,
                 
+                // AI predictions
+                ai_prediction: null,
+                ai_confidence: 0,
+                
+                // Match results
+                home_score: null,
+                away_score: null,
+                match_status: 'scheduled' as const,
+                
                 over_under_markets: []
               };
             }).filter(match => match !== null && match.odds_home > 0);

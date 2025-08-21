@@ -14,7 +14,9 @@ import { Upload, RefreshCw, Calendar, CheckCircle, XCircle, Clock, Trash2, Users
 import { MatchesManagement } from '@/components/dashboard/MatchesManagement';
 import { PicksValidation } from '@/components/dashboard/PicksValidation';
 import { RulesManagement } from '@/components/dashboard/RulesManagement';
+import { ScoreEditor } from '@/components/admin/ScoreEditor';
 import { CSVDataViewer } from '@/components/dashboard/CSVDataViewer';
+import { useDatabaseMatches } from '@/hooks/useDatabaseMatches';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -82,6 +84,9 @@ export function Admin() {
     uploadDate: string;
     filename: string;
   } | null>(null);
+
+  // Matches data for ScoreEditor
+  const { matches, isLoading: isLoadingMatches } = useDatabaseMatches();
 
   // Load data on component mount
   useEffect(() => {
@@ -581,7 +586,7 @@ export function Admin() {
 
       {/* Admin Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="users" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
             Utilisateurs
@@ -597,6 +602,10 @@ export function Admin() {
           <TabsTrigger value="rules" className="flex items-center gap-2">
             <Shield className="h-4 w-4" />
             Règles IA
+          </TabsTrigger>
+          <TabsTrigger value="results" className="flex items-center gap-2">
+            <Trophy className="h-4 w-4" />
+            Résultats
           </TabsTrigger>
           <TabsTrigger value="data" className="flex items-center gap-2">
             <Database className="h-4 w-4" />
@@ -754,9 +763,16 @@ export function Admin() {
           <PicksValidation />
         </TabsContent>
 
-        {/* Rules Management Tab */}
-        <TabsContent value="rules" className="space-y-6">
-          <RulesManagement />
+        {/* Results Management Tab */}
+        <TabsContent value="results" className="space-y-6">
+          <ScoreEditor 
+            matches={matches} 
+            onMatchUpdate={() => {
+              // Reload matches when scores are updated
+              loadUploadHistory();
+              // Could also emit an event to refresh other components
+            }} 
+          />
         </TabsContent>
 
         {/* Data Management Tab */}

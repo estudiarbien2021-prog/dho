@@ -127,6 +127,11 @@ export function useDatabaseMatches(specificDate?: string) {
           ai_prediction: match.ai_prediction,
           ai_confidence: match.ai_confidence ? Number(match.ai_confidence) : 0,
           
+          // Match results
+          home_score: match.home_score ? Number(match.home_score) : null,
+          away_score: match.away_score ? Number(match.away_score) : null,
+          match_status: (match.match_status as ProcessedMatch['match_status']) || 'scheduled',
+          
           over_under_markets: []
         }));
         
