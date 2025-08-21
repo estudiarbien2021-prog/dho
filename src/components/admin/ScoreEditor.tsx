@@ -189,114 +189,7 @@ export function ScoreEditor({ matches, onMatchUpdate }: ScoreEditorProps) {
     ));
   };
 
-  const saveScoreDirectly = async (matchId: string, scoreValue: string) => {
-    console.log(`🚀 saveScoreDirectly START pour match ${matchId}:`, scoreValue);
-    
-    if (!scoreValue || !scoreValue.trim()) {
-      console.log(`❌ Score vide, abandon`);
-      return;
-    }
-
-    const match = filteredMatches.find(m => m.id === matchId);
-    if (!match) {
-      console.log(`❌ Match non trouvé:`, matchId);
-      return;
-    }
-
-    if (match.isSaving) {
-      console.log(`⚠️ Sauvegarde déjà en cours pour ${match.home_team} vs ${match.away_team}`);
-      return;
-    }
-
-    // Parse score format "2-1"
-    const scoreParts = scoreValue.trim().split('-');
-    if (scoreParts.length !== 2) {
-      console.log(`❌ Format invalide:`, scoreParts);
-      toast({
-        title: "Format invalide",
-        description: "Format requis: '2-1'",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const homeScore = parseInt(scoreParts[0]);
-    const awayScore = parseInt(scoreParts[1]);
-
-    if (isNaN(homeScore) || isNaN(awayScore) || homeScore < 0 || awayScore < 0) {
-      console.log(`❌ Scores invalides:`, { homeScore, awayScore });
-      toast({
-        title: "Scores invalides",
-        description: "Les scores doivent être des nombres positifs",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Marquer comme en cours de sauvegarde
-    setFilteredMatches(prev => prev.map(m => 
-      m.id === matchId ? { ...m, isSaving: true } : m
-    ));
-
-    try {
-      console.log(`📡 FORCE UPDATE Supabase ${match.home_team} vs ${match.away_team}:`, {
-        matchId,
-        homeScore,
-        awayScore
-      });
-
-      // Utiliser la nouvelle fonction force_admin_update au lieu de l'UPDATE direct
-      const { error } = await supabase.rpc('force_admin_update', {
-        p_match_id: matchId,
-        p_home_score: homeScore,
-        p_away_score: awayScore
-      });
-
-      console.log(`📡 RÉPONSE FORCE UPDATE:`, { error });
-
-      if (error) {
-        console.error(`💥 ERREUR FORCE UPDATE:`, error);
-        throw error;
-      }
-
-      // Mise à jour réussie
-      setFilteredMatches(prev => prev.map(m => 
-        m.id === matchId 
-          ? { 
-              ...m, 
-              home_score: homeScore, 
-              away_score: awayScore, 
-              match_status: 'finished' as const,
-              isEditing: false,
-              editingScore: undefined,
-              isSaving: false
-            }
-          : m
-      ));
-
-      console.log(`✅ FORCE UPDATE SUCCÈS ${match.home_team} ${homeScore}-${awayScore} ${match.away_team}`);
-
-      toast({
-        title: "✅ Score sauvegardé",
-        description: `${match.home_team} ${homeScore}-${awayScore} ${match.away_team}`,
-      });
-
-      onMatchUpdate();
-    } catch (error: any) {
-      console.error(`💥 ERREUR FORCE UPDATE COMPLÈTE:`, error);
-      
-      // Reset le flag de sauvegarde
-      setFilteredMatches(prev => prev.map(m => 
-        m.id === matchId ? { ...m, isSaving: false } : m
-      ));
-      
-      toast({
-        title: "❌ Erreur de sauvegarde",
-        description: error.message || "Erreur inconnue",
-        variant: "destructive"
-      });
-    }
-  };
+  // FONCTION SUPPRIMÉE - utiliser handleScoreSave() uniquement
 
   const runDiagnosticOnly = async (matchId: string) => {
     console.log('🔬🔬🔬 DIAGNOSTIC ADMIN (AUCUNE MODIFICATION) 🔬🔬🔬');
@@ -345,14 +238,16 @@ export function ScoreEditor({ matches, onMatchUpdate }: ScoreEditorProps) {
 
   const handleScoreSave = async (matchId: string) => {
     const match = filteredMatches.find(m => m.id === matchId);
-    console.log(`💾 handleScoreSave START pour ${match?.home_team} vs ${match?.away_team}:`, {
+    console.log(`💾💾💾 handleScoreSave START (FONCTION UNIQUE) pour ${match?.home_team} vs ${match?.away_team}:`, {
       matchId,
+      timestamp: new Date().toISOString(),
       match: match ? {
         id: match.id,
         editingScore: match.editingScore,
         home_team: match.home_team,
         away_team: match.away_team,
-        isSaving: match.isSaving
+        isSaving: match.isSaving,
+        isEditing: match.isEditing
       } : null
     });
 
@@ -712,23 +607,35 @@ export function ScoreEditor({ matches, onMatchUpdate }: ScoreEditorProps) {
                             onChange={(e) => handleScoreEdit(match.id, e.target.value)}
                             onBlur={(e) => {
                               const currentValue = e.target.value?.trim();
-                              console.log(`🔄 NOUVEAU Auto-save onBlur pour ${match.home_team} vs ${match.away_team}:`, {
+                              console.log(`🔄 Auto-save onBlur pour ${match.home_team} vs ${match.away_team}:`, {
                                 currentValue,
-                                matchId: match.id
+                                matchId: match.id,
+                                source: 'onBlur'
                               });
                               if (currentValue) {
-                                saveScoreDirectly(match.id, currentValue);
+                                // Mettre à jour editingScore puis appeler handleScoreSave
+                                setFilteredMatches(prev => prev.map(m => 
+                                  m.id === match.id ? { ...m, editingScore: currentValue } : m
+                                ));
+                                // Appeler handleScoreSave après mise à jour du state
+                                setTimeout(() => handleScoreSave(match.id), 0);
                               }
                             }}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') {
                                 const currentValue = (e.target as HTMLInputElement).value?.trim();
-                                console.log(`⚡ NOUVEAU Auto-save onEnter pour ${match.home_team} vs ${match.away_team}:`, {
+                                console.log(`⚡ Auto-save onEnter pour ${match.home_team} vs ${match.away_team}:`, {
                                   currentValue,
-                                  matchId: match.id
+                                  matchId: match.id,
+                                  source: 'onEnter'
                                 });
                                 if (currentValue) {
-                                  saveScoreDirectly(match.id, currentValue);
+                                  // Mettre à jour editingScore puis appeler handleScoreSave
+                                  setFilteredMatches(prev => prev.map(m => 
+                                    m.id === match.id ? { ...m, editingScore: currentValue } : m
+                                  ));
+                                  // Appeler handleScoreSave après mise à jour du state
+                                  setTimeout(() => handleScoreSave(match.id), 0);
                                 }
                                 e.preventDefault();
                               }
