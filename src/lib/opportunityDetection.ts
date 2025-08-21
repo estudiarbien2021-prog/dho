@@ -620,12 +620,18 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
     }
   }
   
-  // ÉTAPE 5: Réorganiser pour mettre la cote la plus faible en premier (recommandation principale)
-  finalRecommendations.sort((a, b) => a.odds - b.odds);
+  // ÉTAPE 5: Classement Final - Réorganisation par vigorish décroissant
+  // Le vigorish le plus élevé = recommandation principale (affiché en premier)
+  finalRecommendations.sort((a, b) => {
+    const vigorishA = getVigorishForOpportunity(a, match);
+    const vigorishB = getVigorishForOpportunity(b, match);
+    return vigorishB - vigorishA; // Tri décroissant : vigorish le plus élevé en premier
+  });
   
-  console.log('🏆 RECOMMANDATIONS FINALES:', finalRecommendations.map((o, index) => 
-    `${index + 1}. ${o.type}:${o.prediction}(cote:${o.odds})`
-  ));
+  console.log('🏆 RECOMMANDATIONS FINALES:', finalRecommendations.map((o, index) => {
+    const vigorish = getVigorishForOpportunity(o, match);
+    return `${index + 1}. ${o.type}:${o.prediction}(cote:${o.odds}, vig:${vigorish.toFixed(1)}%)`;
+  }));
   
   return finalRecommendations;
 }
