@@ -606,9 +606,17 @@ export function ScoreEditor({ matches, onMatchUpdate }: ScoreEditorProps) {
                     <td className="px-4 py-3 whitespace-nowrap">
                       {match.isEditing ? (
                         <div className="flex gap-2">
-                          <Input
+                           <Input
                             value={match.editingScore || ''}
-                            onChange={(e) => handleScoreEdit(match.id, e.target.value)}
+                            onChange={(e) => {
+                              console.log(`⌨️ INPUT onChange pour ${match.home_team} vs ${match.away_team}:`, {
+                                inputValue: e.target.value,
+                                previousEditingScore: match.editingScore,
+                                timestamp: new Date().toISOString(),
+                                keyCount: e.target.value.length
+                              });
+                              handleScoreEdit(match.id, e.target.value);
+                            }}
                             onBlur={(e) => {
                               const currentValue = e.target.value?.trim();
                               console.log(`🔄 Auto-save onBlur pour ${match.home_team} vs ${match.away_team}:`, {
