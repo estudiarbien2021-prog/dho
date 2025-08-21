@@ -23,6 +23,7 @@ interface ScoreEditorProps {
 interface MatchWithEditing extends ProcessedMatch {
   isEditing?: boolean;
   editingScore?: string;
+  isSaving?: boolean;
 }
 
 interface AIAccuracy {
@@ -195,7 +196,8 @@ export function ScoreEditor({ matches, onMatchUpdate }: ScoreEditorProps) {
         id: match.id,
         editingScore: match.editingScore,
         home_team: match.home_team,
-        away_team: match.away_team
+        away_team: match.away_team,
+        isSaving: match.isSaving
       } : null
     });
 
@@ -207,6 +209,17 @@ export function ScoreEditor({ matches, onMatchUpdate }: ScoreEditorProps) {
       return;
     }
 
+    // Éviter les doublons de sauvegarde
+    if (match.isSaving) {
+      console.log(`⚠️ ABORT handleScoreSave - Sauvegarde déjà en cours pour ${match.home_team} vs ${match.away_team}`);
+      return;
+    }
+
+    // Marquer comme en cours de sauvegarde
+    setFilteredMatches(prev => prev.map(m => 
+      m.id === matchId ? { ...m, isSaving: true } : m
+    ));
+
     // Parse score format "2-1"
     const scoreParts = match.editingScore.trim().split('-');
     console.log(`🔍 Parse score "${match.editingScore}":`, {
@@ -216,6 +229,9 @@ export function ScoreEditor({ matches, onMatchUpdate }: ScoreEditorProps) {
 
     if (scoreParts.length !== 2) {
       console.log(`❌ Format invalide pour ${match.home_team} vs ${match.away_team}`);
+      setFilteredMatches(prev => prev.map(m => 
+        m.id === matchId ? { ...m, isSaving: false } : m
+      ));
       toast({
         title: "Format de score invalide",
         description: "Utilisez le format '2-1' (domicile-extérieur)",
@@ -231,6 +247,9 @@ export function ScoreEditor({ matches, onMatchUpdate }: ScoreEditorProps) {
 
     if (isNaN(homeScore) || isNaN(awayScore) || homeScore < 0 || awayScore < 0) {
       console.log(`❌ Scores invalides pour ${match.home_team} vs ${match.away_team}`);
+      setFilteredMatches(prev => prev.map(m => 
+        m.id === matchId ? { ...m, isSaving: false } : m
+      ));
       toast({
         title: "Score invalide",
         description: "Les scores doivent être des nombres positifs",
@@ -270,7 +289,8 @@ export function ScoreEditor({ matches, onMatchUpdate }: ScoreEditorProps) {
               away_score: awayScore, 
               match_status: 'finished' as const,
               isEditing: false,
-              editingScore: undefined
+              editingScore: undefined,
+              isSaving: false
             }
           : m
       ));
@@ -286,6 +306,12 @@ export function ScoreEditor({ matches, onMatchUpdate }: ScoreEditorProps) {
       calculateAIAccuracy();
     } catch (error) {
       console.error(`💥 ERREUR lors de la sauvegarde pour ${match.home_team} vs ${match.away_team}:`, error);
+      
+      // Remettre l'état de sauvegarde à false en cas d'erreur
+      setFilteredMatches(prev => prev.map(m => 
+        m.id === matchId ? { ...m, isSaving: false } : m
+      ));
+      
       toast({
         title: "Erreur",
         description: `Impossible de sauvegarder le score pour ${match.home_team} vs ${match.away_team}`,
