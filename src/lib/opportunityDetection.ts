@@ -574,7 +574,7 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
     `${market}: ${opps.length} opportunité(s)`
   ));
   
-  // ÉTAPE 3: Sélectionner la meilleure opportunité par marché (celle avec la meilleure cote)
+  // ÉTAPE 3: Sélectionner la meilleure opportunité par marché (celle avec la cote la moins élevée)
   const bestByMarket: DetectedOpportunity[] = [];
   
   marketGroups.forEach((opportunities, market) => {
@@ -582,9 +582,9 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
     if (opportunities.length > 1) {
       console.log(`⚠️ MULTIPLE OPPORTUNITÉS sur marché ${market}:`, opportunities.map(o => `${o.prediction}(cote:${o.odds})`));
       
-      // Pour le marché BTTS et O/U, prendre celle avec la meilleure cote
+      // Pour le marché BTTS et O/U, prendre celle avec la cote la moins élevée
       const bestOpportunity = opportunities.reduce((best, current) => {
-        return current.odds > best.odds ? current : best;
+        return current.odds < best.odds ? current : best;
       });
       console.log(`✅ SÉLECTION ${market}: ${bestOpportunity.prediction} (cote: ${bestOpportunity.odds})`);
       bestByMarket.push(bestOpportunity);
@@ -599,8 +599,8 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
   const finalRecommendations: DetectedOpportunity[] = [];
   const usedMarkets = new Set<string>();
   
-  // Trier par cotes décroissantes (meilleures cotes en premier)
-  bestByMarket.sort((a, b) => b.odds - a.odds);
+  // Trier par cotes croissantes (cotes les moins élevées en premier)
+  bestByMarket.sort((a, b) => a.odds - b.odds);
   
   // Sélectionner jusqu'à 2 opportunités de marchés différents
   for (const opportunity of bestByMarket) {
@@ -620,12 +620,12 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
     }
   }
   
-  // ÉTAPE 5: Classement Final - Réorganisation par vigorish décroissant
-  // Le vigorish le plus élevé = recommandation principale (affiché en premier)
+  // ÉTAPE 5: Classement Final - Réorganisation par vigorish croissant
+  // Le vigorish le moins élevé = recommandation principale (affiché en premier)
   finalRecommendations.sort((a, b) => {
     const vigorishA = getVigorishForOpportunity(a, match);
     const vigorishB = getVigorishForOpportunity(b, match);
-    return vigorishB - vigorishA; // Tri décroissant : vigorish le plus élevé en premier
+    return vigorishA - vigorishB; // Tri croissant : vigorish le moins élevé en premier
   });
   
   console.log('🏆 RECOMMANDATIONS FINALES:', finalRecommendations.map((o, index) => {
