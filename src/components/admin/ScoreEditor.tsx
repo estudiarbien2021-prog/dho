@@ -298,8 +298,8 @@ export function ScoreEditor({ matches, onMatchUpdate }: ScoreEditorProps) {
     }
   };
 
-  const testAdminAndSave = async (matchId: string) => {
-    console.log('🔬🔬🔬 DIAGNOSTIC COMPLET ADMIN 🔬🔬🔬');
+  const runDiagnosticOnly = async (matchId: string) => {
+    console.log('🔬🔬🔬 DIAGNOSTIC ADMIN (AUCUNE MODIFICATION) 🔬🔬🔬');
     
     try {
       // Test 1: Utilisateur actuel
@@ -318,39 +318,19 @@ export function ScoreEditor({ matches, onMatchUpdate }: ScoreEditorProps) {
         .single();
       console.log('🎯 3. MATCH EXISTE:', matchExists, matchError?.message);
       
-      // Test 4: Test UPDATE avec score de test
-      const testScore = Math.floor(Math.random() * 5);
-      const { data: updateResult, error: updateError } = await supabase
-        .from('matches')
-        .update({
-          home_score: testScore,
-          away_score: testScore + 1,
-          match_status: 'finished'
-        })
-        .eq('id', matchId)
-        .select();
-      
-      console.log('📡 4. TEST UPDATE:', {
-        success: !updateError,
-        rowsAffected: updateResult?.length || 0,
-        error: updateError?.message,
-        testScore: `${testScore}-${testScore + 1}`
-      });
-      
-      // Affichage résultats
+      // Affichage résultats (SANS AUCUNE MODIFICATION DE DONNÉES)
       const results = {
         user: userData?.user?.email || 'AUCUN',
         isAdmin: isAdminResult || false,
-        matchFound: !!matchExists,
-        updateSuccess: !updateError && (updateResult?.length || 0) > 0
+        matchFound: !!matchExists
       };
       
-      console.log('📊 RÉSULTATS:', results);
+      console.log('📊 RÉSULTATS DIAGNOSTIC SEULEMENT:', results);
       
       toast({
-        title: results.updateSuccess ? '✅ TEST RÉUSSI' : '❌ TEST ÉCHOUÉ',
-        description: `Admin: ${results.isAdmin} | Match trouvé: ${results.matchFound} | Update: ${results.updateSuccess}`,
-        variant: results.updateSuccess ? 'default' : 'destructive'
+        title: '🔍 DIAGNOSTIC TERMINÉ',
+        description: `Admin: ${results.isAdmin} | Match trouvé: ${results.matchFound} | Utilisateur: ${results.user}`,
+        variant: 'default'
       });
       
     } catch (error) {
@@ -832,14 +812,14 @@ export function ScoreEditor({ matches, onMatchUpdate }: ScoreEditorProps) {
                          >
                            <Trophy className="h-3 w-3" />
                          </Button>
-                         <Button
-                           size="sm"
-                           variant="outline"
-                           onClick={() => testAdminAndSave(match.id)}
-                           className="px-2 bg-red-500 text-white hover:bg-red-600"
-                         >
-                           🔬 TEST
-                         </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => runDiagnosticOnly(match.id)}
+                            className="px-2 bg-blue-500 text-white hover:bg-blue-600"
+                          >
+                            🔍 DIAGNOSTIC
+                          </Button>
                        </div>
                      </td>
                   </tr>
