@@ -494,14 +494,32 @@ export function ScoreEditor({ matches, onMatchUpdate }: ScoreEditorProps) {
                           <Input
                             value={match.editingScore || ''}
                             onChange={(e) => handleScoreEdit(match.id, e.target.value)}
-                            onBlur={() => {
-                              if (match.editingScore && match.editingScore.trim()) {
-                                handleScoreSave(match.id);
+                            onBlur={(e) => {
+                              const currentValue = e.target.value?.trim();
+                              console.log(`🔄 Auto-save onBlur pour ${match.home_team} vs ${match.away_team}:`, {
+                                currentValue,
+                                editingScore: match.editingScore,
+                                matchId: match.id
+                              });
+                              if (currentValue) {
+                                // Forcer la mise à jour de l'état avant la sauvegarde
+                                handleScoreEdit(match.id, currentValue);
+                                setTimeout(() => handleScoreSave(match.id), 100);
                               }
                             }}
                             onKeyDown={(e) => {
-                              if (e.key === 'Enter' && match.editingScore && match.editingScore.trim()) {
-                                handleScoreSave(match.id);
+                              if (e.key === 'Enter') {
+                                const currentValue = (e.target as HTMLInputElement).value?.trim();
+                                console.log(`⚡ Auto-save onEnter pour ${match.home_team} vs ${match.away_team}:`, {
+                                  currentValue,
+                                  editingScore: match.editingScore,
+                                  matchId: match.id
+                                });
+                                if (currentValue) {
+                                  handleScoreEdit(match.id, currentValue);
+                                  setTimeout(() => handleScoreSave(match.id), 100);
+                                }
+                                e.preventDefault();
                               }
                             }}
                             placeholder="2-1"
