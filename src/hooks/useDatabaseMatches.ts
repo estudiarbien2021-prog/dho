@@ -47,7 +47,7 @@ export function useDatabaseMatches(specificDate?: string) {
     const loadMatches = async () => {
       try {
         setIsLoading(true);
-        console.log('Loading matches from database...');
+        console.log('🔍 useDatabaseMatches: Loading matches from database...');
         
         let query = supabase
           .from('matches')
@@ -56,24 +56,16 @@ export function useDatabaseMatches(specificDate?: string) {
         
         // Filter by specific date if provided
         if (specificDate) {
+          console.log('🎯 Loading matches for specific date:', specificDate);
           query = query.eq('match_date', specificDate);
         } else {
-          // Default: show today's matches and future matches
-          const todayUTC = new Date().toISOString().split('T')[0];
-          const todayLocal = getTodayLocal();
-          
-          // Debug logs to verify timezone fix
-          console.log('🕒 Date Debug:', { 
-            todayUTC, 
-            todayLocal, 
-            currentTime: new Date().toLocaleString() 
-          });
-          
-          query = query.gte('match_date', todayLocal);
+          // MODIFICATION: Charger TOUS les matchs pour permettre le filtrage par date dans l'admin
+          console.log('📊 Loading ALL matches for admin interface');
+          // Pas de filtre de date - charge tous les matchs disponibles
         }
 
-        // PERFORMANCE: Limit initial load to reduce processing time
-        query = query.limit(200);
+        // PERFORMANCE: Augmenter la limite pour l'admin
+        query = query.limit(1000);
         
         const { data, error: dbError } = await query;
         
@@ -81,7 +73,8 @@ export function useDatabaseMatches(specificDate?: string) {
           throw dbError;
         }
         
-        console.log(`Loaded ${data?.length || 0} matches from database`);
+        console.log(`✅ Loaded ${data?.length || 0} matches from database`);
+        console.log('📅 Available dates:', [...new Set((data || []).map(m => m.match_date))].sort());
         
         // Transform database data to match ProcessedMatch interface
         const processedMatches: ProcessedMatch[] = (data || []).map(match => ({
