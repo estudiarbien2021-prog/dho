@@ -236,10 +236,14 @@ export function ScoreEditor({ matches, onMatchUpdate }: ScoreEditorProps) {
     }
   };
 
-  const handleScoreSave = async (matchId: string) => {
+  const handleScoreSave = async (matchId: string, scoreValue?: string) => {
     const match = filteredMatches.find(m => m.id === matchId);
+    const finalScore = scoreValue || match?.editingScore;
+    
     console.log(`💾💾💾 handleScoreSave START (FONCTION UNIQUE) pour ${match?.home_team} vs ${match?.away_team}:`, {
       matchId,
+      scoreValue,
+      finalScore,
       timestamp: new Date().toISOString(),
       match: match ? {
         id: match.id,
@@ -251,10 +255,10 @@ export function ScoreEditor({ matches, onMatchUpdate }: ScoreEditorProps) {
       } : null
     });
 
-    if (!match || !match.editingScore) {
-      console.log(`❌ ABORT handleScoreSave - Match ou editingScore manquant:`, {
+    if (!match || !finalScore) {
+      console.log(`❌ ABORT handleScoreSave - Match ou score manquant:`, {
         match: !!match,
-        editingScore: match?.editingScore
+        finalScore
       });
       return;
     }
@@ -271,8 +275,8 @@ export function ScoreEditor({ matches, onMatchUpdate }: ScoreEditorProps) {
     ));
 
     // Parse score format "2-1"
-    const scoreParts = match.editingScore.trim().split('-');
-    console.log(`🔍 Parse score "${match.editingScore}":`, {
+    const scoreParts = finalScore.trim().split('-');
+    console.log(`🔍 Parse score "${finalScore}":`, {
       scoreParts,
       length: scoreParts.length
     });
@@ -613,12 +617,8 @@ export function ScoreEditor({ matches, onMatchUpdate }: ScoreEditorProps) {
                                 source: 'onBlur'
                               });
                               if (currentValue) {
-                                // Mettre à jour editingScore puis appeler handleScoreSave
-                                setFilteredMatches(prev => prev.map(m => 
-                                  m.id === match.id ? { ...m, editingScore: currentValue } : m
-                                ));
-                                // Appeler handleScoreSave après mise à jour du state
-                                setTimeout(() => handleScoreSave(match.id), 0);
+                                // Passer directement la valeur à handleScoreSave (pas de setTimeout)
+                                handleScoreSave(match.id, currentValue);
                               }
                             }}
                             onKeyDown={(e) => {
@@ -630,12 +630,8 @@ export function ScoreEditor({ matches, onMatchUpdate }: ScoreEditorProps) {
                                   source: 'onEnter'
                                 });
                                 if (currentValue) {
-                                  // Mettre à jour editingScore puis appeler handleScoreSave
-                                  setFilteredMatches(prev => prev.map(m => 
-                                    m.id === match.id ? { ...m, editingScore: currentValue } : m
-                                  ));
-                                  // Appeler handleScoreSave après mise à jour du state
-                                  setTimeout(() => handleScoreSave(match.id), 0);
+                                  // Passer directement la valeur à handleScoreSave (pas de setTimeout)
+                                  handleScoreSave(match.id, currentValue);
                                 }
                                 e.preventDefault();
                               }
