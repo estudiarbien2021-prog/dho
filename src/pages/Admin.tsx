@@ -87,6 +87,13 @@ export function Admin() {
 
   // Matches data for ScoreEditor
   const { matches, isLoading: isLoadingMatches } = useDatabaseMatches();
+  
+  // Debug logging for matches
+  console.log('🔍 Admin Debug:', {
+    matchesCount: matches.length,
+    isLoadingMatches,
+    availableDates: [...new Set(matches.map(m => m.match_date))].sort()
+  });
 
   // Load data on component mount
   useEffect(() => {
