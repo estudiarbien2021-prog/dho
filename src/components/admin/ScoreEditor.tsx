@@ -494,6 +494,16 @@ export function ScoreEditor({ matches, onMatchUpdate }: ScoreEditorProps) {
                           <Input
                             value={match.editingScore || ''}
                             onChange={(e) => handleScoreEdit(match.id, e.target.value)}
+                            onBlur={() => {
+                              if (match.editingScore && match.editingScore.trim()) {
+                                handleScoreSave(match.id);
+                              }
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && match.editingScore && match.editingScore.trim()) {
+                                handleScoreSave(match.id);
+                              }
+                            }}
                             placeholder="2-1"
                             className="w-16 text-center"
                           />
