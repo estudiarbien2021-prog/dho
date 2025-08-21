@@ -189,11 +189,33 @@ export function ScoreEditor({ matches, onMatchUpdate }: ScoreEditorProps) {
 
   const handleScoreSave = async (matchId: string) => {
     const match = filteredMatches.find(m => m.id === matchId);
-    if (!match || !match.editingScore) return;
+    console.log(`💾 handleScoreSave START pour ${match?.home_team} vs ${match?.away_team}:`, {
+      matchId,
+      match: match ? {
+        id: match.id,
+        editingScore: match.editingScore,
+        home_team: match.home_team,
+        away_team: match.away_team
+      } : null
+    });
+
+    if (!match || !match.editingScore) {
+      console.log(`❌ ABORT handleScoreSave - Match ou editingScore manquant:`, {
+        match: !!match,
+        editingScore: match?.editingScore
+      });
+      return;
+    }
 
     // Parse score format "2-1"
     const scoreParts = match.editingScore.trim().split('-');
+    console.log(`🔍 Parse score "${match.editingScore}":`, {
+      scoreParts,
+      length: scoreParts.length
+    });
+
     if (scoreParts.length !== 2) {
+      console.log(`❌ Format invalide pour ${match.home_team} vs ${match.away_team}`);
       toast({
         title: "Format de score invalide",
         description: "Utilisez le format '2-1' (domicile-extérieur)",
@@ -205,7 +227,10 @@ export function ScoreEditor({ matches, onMatchUpdate }: ScoreEditorProps) {
     const homeScore = parseInt(scoreParts[0]);
     const awayScore = parseInt(scoreParts[1]);
 
+    console.log(`🔢 Scores parsés:`, { homeScore, awayScore });
+
     if (isNaN(homeScore) || isNaN(awayScore) || homeScore < 0 || awayScore < 0) {
+      console.log(`❌ Scores invalides pour ${match.home_team} vs ${match.away_team}`);
       toast({
         title: "Score invalide",
         description: "Les scores doivent être des nombres positifs",
@@ -215,7 +240,13 @@ export function ScoreEditor({ matches, onMatchUpdate }: ScoreEditorProps) {
     }
 
     try {
-      const { error } = await supabase
+      console.log(`📡 Mise à jour Supabase pour ${match.home_team} vs ${match.away_team}:`, {
+        matchId,
+        homeScore,
+        awayScore
+      });
+
+      const { error, data } = await supabase
         .from('matches')
         .update({
           home_score: homeScore,
@@ -223,7 +254,10 @@ export function ScoreEditor({ matches, onMatchUpdate }: ScoreEditorProps) {
           match_status: 'finished',
           updated_at: new Date().toISOString()
         })
-        .eq('id', matchId);
+        .eq('id', matchId)
+        .select();
+
+      console.log(`📡 Réponse Supabase:`, { error, data });
 
       if (error) throw error;
 
@@ -241,6 +275,8 @@ export function ScoreEditor({ matches, onMatchUpdate }: ScoreEditorProps) {
           : m
       ));
 
+      console.log(`✅ Score sauvegardé avec succès pour ${match.home_team} vs ${match.away_team}`);
+
       toast({
         title: "Score mis à jour",
         description: `${match.home_team} ${homeScore}-${awayScore} ${match.away_team}`,
@@ -249,10 +285,10 @@ export function ScoreEditor({ matches, onMatchUpdate }: ScoreEditorProps) {
       onMatchUpdate();
       calculateAIAccuracy();
     } catch (error) {
-      console.error('Error updating score:', error);
+      console.error(`💥 ERREUR lors de la sauvegarde pour ${match.home_team} vs ${match.away_team}:`, error);
       toast({
         title: "Erreur",
-        description: "Impossible de sauvegarder le score",
+        description: `Impossible de sauvegarder le score pour ${match.home_team} vs ${match.away_team}`,
         variant: "destructive"
       });
     }
