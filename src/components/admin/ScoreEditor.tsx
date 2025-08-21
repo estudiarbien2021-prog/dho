@@ -642,7 +642,18 @@ export function ScoreEditor({ matches, onMatchUpdate }: ScoreEditorProps) {
                           />
                           <Button
                             size="sm"
-                            onClick={() => handleScoreSave(match.id)}
+                            onClick={() => {
+                              // Récupérer la valeur actuelle de l'input via match.editingScore
+                              const currentValue = match.editingScore?.trim();
+                              console.log(`💾 Save button click pour ${match.home_team} vs ${match.away_team}:`, {
+                                currentValue,
+                                matchId: match.id,
+                                source: 'saveButton'
+                              });
+                              if (currentValue) {
+                                handleScoreSave(match.id, currentValue);
+                              }
+                            }}
                             className="px-2"
                           >
                             <Save className="h-3 w-3" />
