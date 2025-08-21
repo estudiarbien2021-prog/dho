@@ -434,26 +434,25 @@ export function ScoreEditor({ matches, onMatchUpdate }: ScoreEditorProps) {
     }
 
     try {
-      console.log(`📡 Mise à jour Supabase pour ${match.home_team} vs ${match.away_team}:`, {
+      console.log(`📡 FORCE UPDATE pour ${match.home_team} vs ${match.away_team}:`, {
         matchId,
         homeScore,
         awayScore
       });
 
-      const { error, data } = await supabase
-        .from('matches')
-        .update({
-          home_score: homeScore,
-          away_score: awayScore,
-          match_status: 'finished',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', matchId)
-        .select();
+      // Utiliser force_admin_update au lieu de l'UPDATE direct
+      const { error } = await supabase.rpc('force_admin_update', {
+        p_match_id: matchId,
+        p_home_score: homeScore,
+        p_away_score: awayScore
+      });
 
-      console.log(`📡 Réponse Supabase:`, { error, data });
+      console.log(`📡 Réponse FORCE UPDATE:`, { error });
 
-      if (error) throw error;
+      if (error) {
+        console.error(`💥 ERREUR FORCE UPDATE:`, error);
+        throw error;
+      }
 
       // Update local state
       setFilteredMatches(prev => prev.map(m => 
