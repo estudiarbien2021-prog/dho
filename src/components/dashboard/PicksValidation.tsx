@@ -82,20 +82,11 @@ export function PicksValidation() {
     setIsModalOpen(true);
   };
 
-  // Fonction pour lancer une recherche multi-moteurs sur Oddspedia
+  // Fonction pour lancer une recherche Google sur Oddspedia
   const handleOddspediaSearch = (homeTeam: string, awayTeam: string) => {
-    const query = `${homeTeam} vs ${awayTeam} site:oddspedia.com`;
-    
-    // Ouvrir plusieurs moteurs de recherche pour maximiser les chances de succès
-    const searchUrls = [
-      `https://duckduckgo.com/?q=${encodeURIComponent(query)}`,
-      `https://www.bing.com/search?q=${encodeURIComponent(query)}`,
-      `https://www.startpage.com/sp/search?query=${encodeURIComponent(query)}`
-    ];
-    
-    searchUrls.forEach(url => {
-      window.open(url, '_blank', 'noopener,noreferrer');
-    });
+    const query = `${homeTeam}+vs+${awayTeam}+oddspedia.com`;
+    const searchUrl = `https://www.google.com/search?q=${query}`;
+    window.open(searchUrl, '_blank', 'noopener,noreferrer');
   };
 
   // Fonction de tri
