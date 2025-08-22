@@ -660,7 +660,10 @@ export function PicksValidation() {
                             <FlagMini code={flagInfo.code} confed={flagInfo.confed} />
                             <span className="text-xs text-text-weak">{pick.match.league}</span>
                           </div>
-                          <div className="font-medium text-sm">
+                          <div 
+                            className="font-medium text-sm select-text cursor-text"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             {pick.match.home_team} vs {pick.match.away_team}
                           </div>
                         </div>
