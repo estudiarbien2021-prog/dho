@@ -620,20 +620,21 @@ export function prioritizeOpportunitiesByRealProbability(opportunities: Detected
     }
   }
   
-  // ÉTAPE 5: Classement Final - Réorganisation par vigorish croissant
-  // Le vigorish le moins élevé = recommandation principale (affiché en premier)
+  // ÉTAPE 5: Classement Final - Réorganisation par cotes décroissantes
+  // La cote la plus élevée = recommandation principale (affiché en premier)
   finalRecommendations.sort((a, b) => {
-    const vigorishA = getVigorishForOpportunity(a, match);
-    const vigorishB = getVigorishForOpportunity(b, match);
-    return vigorishA - vigorishB; // Tri croissant : vigorish le moins élevé en premier
+    return b.odds - a.odds; // Tri décroissant : cotes les plus élevées en premier
   });
   
-  console.log('🏆 RECOMMANDATIONS FINALES:', finalRecommendations.map((o, index) => {
+  // Ne garder que la recommandation avec la cote la plus élevée
+  const finalResult = finalRecommendations.slice(0, 1);
+  
+  console.log('🏆 RECOMMANDATION FINALE:', finalResult.map((o, index) => {
     const vigorish = getVigorishForOpportunity(o, match);
     return `${index + 1}. ${o.type}:${o.prediction}(cote:${o.odds}, vig:${vigorish.toFixed(1)}%)`;
   }));
   
-  return finalRecommendations;
+  return finalResult;
 }
 
 // NOUVELLE FONCTION: Vérifier si les opportunités sont vraiment contradictoires
