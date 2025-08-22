@@ -82,10 +82,10 @@ export function PicksValidation() {
     setIsModalOpen(true);
   };
 
-  // Fonction pour lancer une recherche Google sur Oddspedia
-  const handleGoogleSearch = (homeTeam: string, awayTeam: string) => {
-    const query = `${homeTeam} vs ${awayTeam} oddspedia.com`;
-    const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+  // Fonction pour lancer une recherche directe sur Oddspedia
+  const handleOddspediaSearch = (homeTeam: string, awayTeam: string) => {
+    const query = `${homeTeam} vs ${awayTeam}`;
+    const searchUrl = `https://oddspedia.com/search?q=${encodeURIComponent(query)}`;
     window.open(searchUrl, '_blank', 'noopener,noreferrer');
   };
 
@@ -697,7 +697,7 @@ export function PicksValidation() {
                             size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleGoogleSearch(pick.match.home_team, pick.match.away_team);
+                              handleOddspediaSearch(pick.match.home_team, pick.match.away_team);
                             }}
                             className="hover:bg-surface-soft"
                             title="Rechercher sur Oddspedia"
@@ -788,7 +788,7 @@ export function PicksValidation() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleGoogleSearch(pick.home_team, pick.away_team)}
+                          onClick={() => handleOddspediaSearch(pick.home_team, pick.away_team)}
                           className="hover:bg-surface-soft"
                           title="Rechercher sur Oddspedia"
                         >
