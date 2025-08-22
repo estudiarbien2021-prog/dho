@@ -268,18 +268,49 @@ export function useDatabaseMatches(specificDate?: string) {
         return false;
       }
 
-      // Market filters
+      // Market filters - Filter based on actual AI recommendations generated
       if (filters.marketFilters && filters.marketFilters.length > 0) {
-        const hasMarket = filters.marketFilters.every(market => {
-          switch (market) {
-            case 'btts_yes': return match.odds_btts_yes && match.odds_btts_yes > 0;
-            case 'btts_no': return match.odds_btts_no && match.odds_btts_no > 0;
-            case 'over25': return match.odds_over_2_5 && match.odds_over_2_5 > 0;
-            case 'under25': return match.odds_under_2_5 && match.odds_under_2_5 > 0;
-            default: return true;
-          }
+        const recommendations = matchRecommendations.get(match.id) || [];
+        
+        // If no recommendations exist, don't show the match when market filter is active
+        if (recommendations.length === 0) {
+          return false;
+        }
+        
+        // Check if any recommendation matches the selected market filter
+        const hasMatchingRecommendation = filters.marketFilters.some(marketFilter => {
+          return recommendations.some(rec => {
+            const betType = rec.betType?.toLowerCase() || '';
+            const prediction = rec.prediction?.toLowerCase() || '';
+            
+            switch (marketFilter) {
+              case 'btts_yes':
+                return betType === 'btts' && (prediction.includes('oui') || prediction.includes('yes'));
+              case 'btts_no': 
+                return betType === 'btts' && (prediction.includes('non') || prediction.includes('no'));
+              case 'over25':
+                return (betType === 'o/u 2.5' || betType === 'ou25') && 
+                       (prediction.includes('+2,5') || prediction.includes('over') || prediction.includes('plus de 2'));
+              case 'under25':
+                return (betType === 'o/u 2.5' || betType === 'ou25') && 
+                       (prediction.includes('-2,5') || prediction.includes('under') || prediction.includes('moins de 2'));
+              case '1x2_home':
+                return betType === '1x2' && (prediction.includes('domicile') || prediction.includes('home') || prediction === '1');
+              case '1x2_draw':
+                return betType === '1x2' && (prediction.includes('nul') || prediction.includes('draw') || prediction === 'x');
+              case '1x2_away':
+                return betType === '1x2' && (prediction.includes('extérieur') || prediction.includes('away') || prediction === '2');
+              case 'double_chance':
+                return betType === 'double chance' || betType.includes('double');
+              default:
+                return true;
+            }
+          });
         });
-        if (!hasMarket) return false;
+        
+        if (!hasMatchingRecommendation) {
+          return false;
+        }
       }
 
       // Time window filter

@@ -102,9 +102,9 @@ export function FilterPanel({ filters, onFiltersChange, availableLeagues }: Filt
           </Select>
         </div>
 
-        {/* Market Filters */}
+        {/* Market Filters - Based on AI Recommendations */}
         <div className="space-y-2">
-          <Label className="text-sm font-medium">Marchés</Label>
+          <Label className="text-sm font-medium">Marchés IA</Label>
           <Select 
             value={filters.marketFilters && filters.marketFilters.length > 0 ? filters.marketFilters[0] : "all"} 
             onValueChange={(value) => {
@@ -116,14 +116,18 @@ export function FilterPanel({ filters, onFiltersChange, availableLeagues }: Filt
             }}
           >
             <SelectTrigger>
-              <SelectValue placeholder="Sélectionner un marché" />
+              <SelectValue placeholder="Filtrer par recommandation IA" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Tous les marchés</SelectItem>
-              <SelectItem value="btts_yes">Les Deux Équipes Marquent - Oui</SelectItem>
-              <SelectItem value="btts_no">Les Deux Équipes Marquent - Non</SelectItem>
-              <SelectItem value="over25">Plus de 2.5 Buts</SelectItem>
-              <SelectItem value="under25">Moins de 2.5 Buts</SelectItem>
+              <SelectItem value="all">Toutes les recommandations</SelectItem>
+              <SelectItem value="btts_yes">BTTS Oui</SelectItem>
+              <SelectItem value="btts_no">BTTS Non</SelectItem>
+              <SelectItem value="over25">Over 2.5 Buts</SelectItem>
+              <SelectItem value="under25">Under 2.5 Buts</SelectItem>
+              <SelectItem value="1x2_home">1X2 Victoire Domicile</SelectItem>
+              <SelectItem value="1x2_draw">1X2 Match Nul</SelectItem>
+              <SelectItem value="1x2_away">1X2 Victoire Extérieur</SelectItem>
+              <SelectItem value="double_chance">Double Chance</SelectItem>
             </SelectContent>
           </Select>
         </div>
