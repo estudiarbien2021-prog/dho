@@ -699,8 +699,15 @@ export function PicksValidation() {
                               e.stopPropagation();
                               handleOddspediaSearch(pick.match.home_team, pick.match.away_team);
                             }}
+                            onContextMenu={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              const query = `${pick.match.home_team}+vs+${pick.match.away_team}`;
+                              const searchUrl = `https://www.google.com/search?q=${query}`;
+                              window.open(searchUrl, '_blank', 'noopener,noreferrer');
+                            }}
                             className="hover:bg-surface-soft"
-                            title="Rechercher sur Oddspedia"
+                            title="Clic gauche: Rechercher sur Oddspedia | Clic droit: Rechercher sur Google"
                           >
                             <Search className="h-4 w-4" />
                           </Button>
@@ -789,8 +796,15 @@ export function PicksValidation() {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleOddspediaSearch(pick.home_team, pick.away_team)}
+                          onContextMenu={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const query = `${pick.home_team}+vs+${pick.away_team}`;
+                            const searchUrl = `https://www.google.com/search?q=${query}`;
+                            window.open(searchUrl, '_blank', 'noopener,noreferrer');
+                          }}
                           className="hover:bg-surface-soft"
-                          title="Rechercher sur Oddspedia"
+                          title="Clic gauche: Rechercher sur Oddspedia | Clic droit: Rechercher sur Google"
                         >
                           <Search className="h-4 w-4" />
                         </Button>
