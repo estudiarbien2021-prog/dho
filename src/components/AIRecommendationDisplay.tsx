@@ -99,22 +99,33 @@ export function AIRecommendationDisplay({ match, marketFilters, variant = 'compa
     const isConsensus = aiRec.detectionCount && aiRec.detectionCount >= 3;
 
     return (
-      <div className="text-xs text-center">
+      <div className="text-xs text-center space-y-1">
         <div className="font-medium text-green-700 flex items-center justify-center gap-1">
           {isConsensus ? (
-            <span>⭐ CONSENSUS ({aiRec.detectionCount} détections)</span>
+            <span className="bg-gradient-to-r from-yellow-100 to-green-100 px-2 py-1 rounded-full border border-yellow-300">
+              ⭐ CONSENSUS ({aiRec.detectionCount})
+            </span>
           ) : (
-            <>
-              <span>⭐</span>
-              <span>{formatBetType(aiRec.betType)} {aiRec.prediction}</span>
-            </>
+            <div className="bg-gradient-to-r from-green-50 to-green-100 px-2 py-1 rounded-full border border-green-200">
+              <span>⭐ {formatBetType(aiRec.betType)} {aiRec.prediction}</span>
+            </div>
           )}
         </div>
-        <div className="text-muted-foreground">
-          {aiRec.odds.toFixed(2)} | {confidence}%
+        
+        <div className="flex items-center justify-center gap-3 text-xs">
+          <div className="flex items-center gap-1">
+            <span className="text-muted-foreground font-medium">Cote:</span>
+            <span className="font-bold text-green-700">{aiRec.odds.toFixed(2)}</span>
+          </div>
+          <div className="h-3 w-px bg-muted-foreground/30"></div>
+          <div className="flex items-center gap-1">
+            <span className="text-muted-foreground font-medium">Confiance:</span>
+            <span className="font-bold text-blue-600">{confidence}%</span>
+          </div>
         </div>
+        
         {aiRec.reason && aiRec.reason.length > 0 && (
-          <div className="text-blue-600 mt-1 text-xs">
+          <div className="text-blue-600 mt-1 text-xs bg-blue-50 px-2 py-1 rounded border border-blue-200">
             {aiRec.reason[0]}
           </div>
         )}
