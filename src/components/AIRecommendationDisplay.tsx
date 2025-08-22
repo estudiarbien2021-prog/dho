@@ -107,7 +107,8 @@ export function AIRecommendationDisplay({ match, marketFilters, variant = 'compa
             </span>
           ) : (
             <div className="bg-gradient-to-r from-green-50 to-green-100 px-2 py-1 rounded-full border border-green-200">
-              <span>⭐ {formatBetType(aiRec.betType)} {aiRec.prediction}</span>
+              <span className="font-black text-yellow-600 animate-pulse">⭐</span>
+              <span>{formatBetType(aiRec.betType)} {aiRec.prediction}</span>
             </div>
           )}
         </div>
