@@ -82,6 +82,13 @@ export function PicksValidation() {
     setIsModalOpen(true);
   };
 
+  // Fonction pour lancer une recherche Google sur Oddspedia
+  const handleGoogleSearch = (homeTeam: string, awayTeam: string) => {
+    const query = `${homeTeam} vs ${awayTeam} oddspedia.com`;
+    const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+    window.open(searchUrl, '_blank', 'noopener,noreferrer');
+  };
+
   // Fonction de tri
   const handleSort = (column: string) => {
     if (sortColumn === column) {
@@ -614,18 +621,19 @@ export function PicksValidation() {
         ) : (
           <div className="overflow-x-auto">
             <Table>
-              <TableHeader>
-                <TableRow>
-                   <TableHead className="w-12">Sélection</TableHead>
-                   <SortableHeader column="match">Match</SortableHeader>
-                   <SortableHeader column="prediction">Prédiction</SortableHeader>
-                   <SortableHeader column="odds">Odds</SortableHeader>
-                   <SortableHeader column="probability">Probabilité</SortableHeader>
-                   <SortableHeader column="vigorish">Vigorish</SortableHeader>
-                   <SortableHeader column="date">Date</SortableHeader>
-                   <SortableHeader column="kickoff">Kickoff</SortableHeader>
-                </TableRow>
-              </TableHeader>
+               <TableHeader>
+                 <TableRow>
+                    <TableHead className="w-12">Sélection</TableHead>
+                    <SortableHeader column="match">Match</SortableHeader>
+                    <SortableHeader column="prediction">Prédiction</SortableHeader>
+                    <SortableHeader column="odds">Odds</SortableHeader>
+                    <SortableHeader column="probability">Probabilité</SortableHeader>
+                    <SortableHeader column="vigorish">Vigorish</SortableHeader>
+                    <SortableHeader column="date">Date</SortableHeader>
+                    <SortableHeader column="kickoff">Kickoff</SortableHeader>
+                    <TableHead>Actions</TableHead>
+                 </TableRow>
+               </TableHeader>
               <TableBody>
                 {filteredAndSortedPotentialPicks.map((pick) => {
                   const flagInfo = leagueToFlag(pick.match.league, pick.match.country, pick.match.home_team, pick.match.away_team);
@@ -680,10 +688,24 @@ export function PicksValidation() {
                        <TableCell className="text-xs">
                          {format(new Date(pick.match.match_date + 'T00:00:00Z'), 'dd/MM/yyyy', { locale: fr })}
                        </TableCell>
-                       <TableCell className="text-xs">
-                         {format(pick.match.kickoff_utc, 'HH:mm', { locale: fr })}
-                       </TableCell>
-                    </TableRow>
+                        <TableCell className="text-xs">
+                          {format(pick.match.kickoff_utc, 'HH:mm', { locale: fr })}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleGoogleSearch(pick.match.home_team, pick.match.away_team);
+                            }}
+                            className="hover:bg-surface-soft"
+                            title="Rechercher sur Oddspedia"
+                          >
+                            <Search className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                     </TableRow>
                   );
                 })}
               </TableBody>
@@ -763,6 +785,15 @@ export function PicksValidation() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleGoogleSearch(pick.home_team, pick.away_team)}
+                          className="hover:bg-surface-soft"
+                          title="Rechercher sur Oddspedia"
+                        >
+                          <Search className="h-4 w-4" />
+                        </Button>
                         <Dialog open={isEditDialogOpen && editingPick?.id === pick.id} onOpenChange={setIsEditDialogOpen}>
                           <DialogTrigger asChild>
                             <Button
