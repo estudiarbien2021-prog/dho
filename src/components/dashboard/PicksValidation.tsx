@@ -694,27 +694,6 @@ export function PicksValidation() {
                         <TableCell className="text-xs">
                           {format(pick.match.kickoff_utc, 'HH:mm', { locale: fr })}
                         </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOddspediaSearch(pick.match.home_team, pick.match.away_team);
-                            }}
-                            onContextMenu={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              const query = `${pick.match.home_team}+vs+${pick.match.away_team}`;
-                              const searchUrl = `https://www.google.com/search?q=${query}`;
-                              window.open(searchUrl, '_blank', 'noopener,noreferrer');
-                            }}
-                            className="hover:bg-surface-soft"
-                            title="Clic gauche: Rechercher sur Oddspedia | Clic droit: Rechercher sur Google"
-                          >
-                            <Search className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
                      </TableRow>
                   );
                 })}
