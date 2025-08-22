@@ -124,11 +124,6 @@ export function AIRecommendationDisplay({ match, marketFilters, variant = 'compa
           </div>
         </div>
         
-        {aiRec.reason && aiRec.reason.length > 0 && (
-          <div className="text-blue-600 mt-1 text-xs bg-blue-50 px-2 py-1 rounded border border-blue-200">
-            {aiRec.reason[0]}
-          </div>
-        )}
       </div>
     );
   }
