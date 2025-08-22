@@ -7,9 +7,10 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { CheckCircle, RefreshCw, Target, Eye, Edit, Calendar, Search, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
+import { CheckCircle, RefreshCw, Target, Eye, Edit, Calendar, Search, ChevronUp, ChevronDown, ChevronsUpDown, Filter } from 'lucide-react';
 import { ProcessedMatch } from '@/types/match';
 import { detectOpportunities, prioritizeOpportunitiesByRealProbability, convertOpportunityToAIRecommendation } from '@/lib/opportunityDetection';
 import { FlagMini } from '@/components/Flag';
@@ -56,6 +57,7 @@ export function PicksValidation() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date()); // Date du jour par défaut
   const [searchTerm, setSearchTerm] = useState('');
+  const [marketFilter, setMarketFilter] = useState<string>('all');
   const [editingPick, setEditingPick] = useState<ValidatedPick | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState<ProcessedMatch | null>(null);
@@ -121,10 +123,10 @@ export function PicksValidation() {
     }
   };
 
-  // Filtrer et trier les picks potentiels (avec recherche)
+  // Filtrer et trier les picks potentiels (avec recherche et marché)
   const filteredAndSortedPotentialPicks = useMemo(() => {
     // D'abord filtrer par terme de recherche
-    const filtered = potentialPicks.filter(pick => 
+    let filtered = potentialPicks.filter(pick => 
       pick.match.home_team?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       pick.match.away_team?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       pick.match.league?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -132,6 +134,28 @@ export function PicksValidation() {
       pick.prediction?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       pick.betType?.toLowerCase().includes(searchTerm.toLowerCase())
     );
+
+    // Puis filtrer par marché
+    if (marketFilter !== 'all') {
+      filtered = filtered.filter(pick => {
+        switch (marketFilter) {
+          case 'btts_yes':
+            return pick.betType === 'BTTS' && pick.prediction === 'Oui';
+          case 'btts_no':
+            return pick.betType === 'BTTS' && pick.prediction === 'Non';
+          case 'over_25':
+            return pick.betType === 'O/U 2.5' && pick.prediction === '+2,5 buts';
+          case 'under_25':
+            return pick.betType === 'O/U 2.5' && pick.prediction === '-2,5 buts';
+          case '1x2':
+            return pick.betType === '1X2';
+          case 'double_chance':
+            return pick.betType === 'Double Chance';
+          default:
+            return true;
+        }
+      });
+    }
 
     // Puis trier si nécessaire
     if (!sortColumn) return filtered;
@@ -152,7 +176,7 @@ export function PicksValidation() {
 
       return 0;
     });
-  }, [potentialPicks, sortColumn, sortDirection, searchTerm]);
+  }, [potentialPicks, sortColumn, sortDirection, searchTerm, marketFilter]);
 
   // Composant pour les en-têtes triables
   const SortableHeader: React.FC<{ column: string; children: React.ReactNode; className?: string }> = ({ 
@@ -530,14 +554,41 @@ export function PicksValidation() {
     }
   };
 
-  // Filtrer les picks validés par recherche
-  const filteredValidatedPicks = validatedPicks.filter(pick => 
-    pick.home_team?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    pick.away_team?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    pick.league?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    pick.country?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    pick.prediction?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filtrer les picks validés par recherche et marché
+  const filteredValidatedPicks = useMemo(() => {
+    let filtered = validatedPicks.filter(pick => 
+      pick.home_team?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      pick.away_team?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      pick.league?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      pick.country?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      pick.prediction?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      pick.bet_type?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    // Filtrer par marché
+    if (marketFilter !== 'all') {
+      filtered = filtered.filter(pick => {
+        switch (marketFilter) {
+          case 'btts_yes':
+            return pick.bet_type === 'BTTS' && pick.prediction === 'Oui';
+          case 'btts_no':
+            return pick.bet_type === 'BTTS' && pick.prediction === 'Non';
+          case 'over_25':
+            return pick.bet_type === 'O/U 2.5' && pick.prediction === '+2,5 buts';
+          case 'under_25':
+            return pick.bet_type === 'O/U 2.5' && pick.prediction === '-2,5 buts';
+          case '1x2':
+            return pick.bet_type === '1X2';
+          case 'double_chance':
+            return pick.bet_type === 'Double Chance';
+          default:
+            return true;
+        }
+      });
+    }
+
+    return filtered;
+  }, [validatedPicks, searchTerm, marketFilter]);
 
   if (isLoading) {
     return (
@@ -580,7 +631,7 @@ export function PicksValidation() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <div className="flex-1">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-weak h-4 w-4" />
@@ -591,6 +642,23 @@ export function PicksValidation() {
               className="pl-10"
             />
           </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <Select value={marketFilter} onValueChange={setMarketFilter}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Filtrer par marché" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous les marchés</SelectItem>
+              <SelectItem value="btts_yes">BTTS Oui</SelectItem>
+              <SelectItem value="btts_no">BTTS Non</SelectItem>
+              <SelectItem value="over_25">Over 2.5</SelectItem>
+              <SelectItem value="under_25">Under 2.5</SelectItem>
+              <SelectItem value="1x2">1X2</SelectItem>
+              <SelectItem value="double_chance">Double Chance</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div>
           <DatePickerFilter
@@ -604,7 +672,7 @@ export function PicksValidation() {
       <Card className="p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold">
-            Picks Potentiels ({filteredAndSortedPotentialPicks.length}{searchTerm ? ` sur ${potentialPicks.length}` : ''})
+            Picks Potentiels ({filteredAndSortedPotentialPicks.length}{searchTerm || marketFilter !== 'all' ? ` sur ${potentialPicks.length}` : ''})
           </h3>
           <Checkbox
             checked={selectedPicks.length === filteredAndSortedPotentialPicks.length && filteredAndSortedPotentialPicks.length > 0}
@@ -714,7 +782,9 @@ export function PicksValidation() {
       {/* Validated Picks */}
       <Card className="p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">Picks Validés ({filteredValidatedPicks.filter(p => p.is_validated).length})</h3>
+          <h3 className="text-lg font-semibold">
+            Picks Validés ({filteredValidatedPicks.filter(p => p.is_validated).length}{searchTerm || marketFilter !== 'all' ? ` sur ${validatedPicks.filter(p => p.is_validated).length}` : ''})
+          </h3>
           <Eye className="h-5 w-5 text-brand" />
         </div>
         
