@@ -631,7 +631,6 @@ export function PicksValidation() {
                     <SortableHeader column="vigorish">Vigorish</SortableHeader>
                     <SortableHeader column="date">Date</SortableHeader>
                     <SortableHeader column="kickoff">Kickoff</SortableHeader>
-                    <TableHead>Actions</TableHead>
                  </TableRow>
                </TableHeader>
               <TableBody>
